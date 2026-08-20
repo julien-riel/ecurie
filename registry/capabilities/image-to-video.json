@@ -1,0 +1,71 @@
+{
+  "id": "image-to-video",
+  "title": "Image vers vidéo",
+  "input": {
+    "type": "object",
+    "required": ["image"],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Première image de la séquence. Sa taille fixe le cadrage."
+      },
+      "prompt": {
+        "type": "string",
+        "x-ui": "textarea",
+        "description": "Mouvement souhaité. Facultatif : certains modèles animent sans consigne."
+      },
+      "negative_prompt": {
+        "type": "string",
+        "x-ui": "textarea",
+        "description": "Ce qu'il faut éviter : déformations, coupures, mouvements de caméra parasites."
+      },
+      "num_frames": {
+        "type": "integer",
+        "minimum": 8,
+        "maximum": 129,
+        "default": 81,
+        "description": "Nombre d'images. 81 à 16 im/s font environ 5 secondes. Les modèles Wan attendent 4n+1."
+      },
+      "fps": {
+        "type": "integer",
+        "minimum": 8,
+        "maximum": 30,
+        "default": 16,
+        "description": "Cadence du fichier produit."
+      },
+      "steps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 60,
+        "default": 30,
+        "description": "Pas de débruitage. Le temps y est proportionnel."
+      },
+      "guidance_scale": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 15.0,
+        "default": 5.0,
+        "description": "Fidélité à la consigne de mouvement."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Graine aléatoire. À conserver pour rejouer la même animation."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["video"],
+    "properties": {
+      "video": {
+        "type": "string",
+        "contentMediaType": "video/mp4",
+        "description": "Chemin de la vidéo produite, relatif au dossier du job."
+      }
+    }
+  }
+}

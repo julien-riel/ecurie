@@ -1,0 +1,107 @@
+{
+  "ref": "minimax-music3@4bit",
+  "model": "minimax-music3",
+  "variant": "4bit",
+  "capability": "text-to-music",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1",
+  "measured_at": "2026-08-20",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/text-to-music.json",
+    "version": 1,
+    "cases": [
+      "instrumental-15",
+      "couplet-20",
+      "couplet-refrain-30"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 9210759883,
+    "peak_unified_memory_bytes": 25704234348,
+    "peak_scaling": {
+      "parameter": "duration_seconds",
+      "base_bytes": 3581413350,
+      "bytes_per_unit": 747077532.9,
+      "measured_range": [
+        15.0,
+        30.0
+      ],
+      "r_squared": 0.9823
+    },
+    "warmup_ms": 1546,
+    "latency_ms_p50": 153013,
+    "rtf": 7.915264,
+    "throughput": "0.13× temps réel"
+  },
+  "cases": [
+    {
+      "id": "instrumental-15",
+      "ok": true,
+      "duration_ms": 77406,
+      "metrics": {
+        "duration_ms": 77406,
+        "sample_rate": 44100,
+        "segments": 1,
+        "steps": 30,
+        "channels": 2,
+        "lyrics_characters": 14,
+        "instrumental": true,
+        "peak_memory_bytes": 14208566364,
+        "audio_seconds": 11.517,
+        "rtf": 6.7186,
+        "duration_note": "11.5 s produites pour 15 demandées — le modèle a émis sa fin plus tôt",
+        "warnings": [
+          "guidance_scale ignoré : MiniMax Music 3 n'expose pas ce réglage (voir les caveats du manifeste)",
+          "temperature ignoré : MiniMax Music 3 n'expose pas ce réglage (voir les caveats du manifeste)"
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "couplet-20",
+      "ok": true,
+      "duration_ms": 153013,
+      "metrics": {
+        "duration_ms": 153013,
+        "sample_rate": 44100,
+        "segments": 1,
+        "steps": 30,
+        "channels": 2,
+        "lyrics_characters": 58,
+        "instrumental": false,
+        "peak_memory_bytes": 19391478980,
+        "audio_seconds": 20.016,
+        "rtf": 7.6397,
+        "warnings": [
+          "guidance_scale ignoré : MiniMax Music 3 n'expose pas ce réglage (voir les caveats du manifeste)",
+          "temperature ignoré : MiniMax Music 3 n'expose pas ce réglage (voir les caveats du manifeste)"
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "couplet-refrain-30",
+      "ok": true,
+      "duration_ms": 256813,
+      "metrics": {
+        "duration_ms": 256813,
+        "sample_rate": 44100,
+        "segments": 1,
+        "steps": 30,
+        "channels": 2,
+        "lyrics_characters": 78,
+        "instrumental": false,
+        "peak_memory_bytes": 25704234348,
+        "audio_seconds": 30.023,
+        "rtf": 8.5512,
+        "warnings": [
+          "guidance_scale ignoré : MiniMax Music 3 n'expose pas ce réglage (voir les caveats du manifeste)",
+          "temperature ignoré : MiniMax Music 3 n'expose pas ce réglage (voir les caveats du manifeste)"
+        ]
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

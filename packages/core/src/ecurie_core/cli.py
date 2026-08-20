@@ -57,14 +57,21 @@ def registry_validate(
         raise typer.Exit(code=1)
 
 
-# Le paquet store est optionnel pour ecurie-core ; ses commandes se greffent
-# quand il est installé (toujours le cas dans le workspace).
+# Les paquets store et runtime sont optionnels pour ecurie-core ; leurs commandes
+# se greffent quand ils sont installés (toujours le cas dans le workspace).
 try:
     from ecurie_store.cli import store_app
 except ImportError:
     pass
 else:
     app.add_typer(store_app, name="store")
+
+try:
+    from ecurie_runtime.cli import register as register_runtime
+except ImportError:
+    pass
+else:
+    register_runtime(app)
 
 
 if __name__ == "__main__":

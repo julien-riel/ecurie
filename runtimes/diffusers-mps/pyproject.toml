@@ -1,0 +1,52 @@
+# Environnement isolé du runtime `diffusers-mps` (CONCEPTION.md §5.3).
+#
+# Le nom du dossier est contractuel : c'est `Variant.env_name`, qui vaut le nom du
+# runtime quand `runtime_env` n'est pas déclaré au manifeste. Le renommer coupe
+# `ecurie run` sur tout variant image, avec une erreur qui parle d'un venv absent.
+#
+# Reconstruit par `ecurie env sync diffusers-mps` ; le `.venv` n'est pas versionné.
+# Rien d'Écurie n'est installé ici, volontairement : le superviseur rend visibles par
+# PYTHONPATH les seuls modules dont le worker a besoin (`protocol`, `channel`,
+# `workers.base`), tous en bibliothèque standard pure. Ajouter `ecurie-core` ici
+# ferait entrer pydantic dans le même env que torch, et le premier conflit de version
+# se paierait sur le runtime, pas sur l'outil.
+#
+# Les bornes ci-dessous sont relevées dans les métadonnées réelles des paquets
+# (`diffusers/dependency_versions_table.py`, noms de wheels publiés sur PyPI), pas
+# estimées. Elles sont datées : à revérifier au prochain `ecurie env sync` qui casse.
+
+[project]
+name = "ecurie-runtime-diffusers-mps"
+version = "0.3.0"
+description = "Écurie — env isolé : diffusers text-to-image sur backend MPS (Apple Silicon)"
+# Le plancher suit celui du dépôt. torch publie des wheels cp310 à cp314, donc rien
+# n'oblige à 3.12 côté runtime — mais deux planchers différents dans le même dépôt
+# sont une source de surprise gratuite.
+requires-python = ">=3.12"
+dependencies = [
+    # diffusers 0.39 exige torch>=2.6 (dependency_versions_table.py). Le cap <2.14 borne
+    # la dérive à la branche vérifiée. À savoir avant de monter : les wheels macOS arm64
+    # passent de `macosx_11_0` à `macosx_14_0` en 2.12 — torch>=2.12 impose macOS 14+.
+    "torch>=2.6,<2.14",
+    # Cap volontaire. En 0.39, `enable_vae_slicing()`/`enable_vae_tiling()` portent un
+    # `deprecate(..., "0.40.0", ...)` et le kwarg de dtype de `from_pretrained` s'appelle
+    # encore `torch_dtype` — les deux hypothèses sur lesquelles repose l'adaptateur.
+    "diffusers>=0.39.0,<0.40",
+    # `pip install diffusers` n'installe ni torch ni transformers : les encodeurs de
+    # texte des pipelines viennent de transformers, qu'il faut donc déclarer soi-même.
+    "transformers>=4.41.2",
+    # Requis dès qu'on touche à `low_cpu_mem_usage` ou au placement des modules.
+    "accelerate>=0.31.0",
+    # Contrainte réelle de diffusers 0.39. Le worker charge avec `use_safetensors=True` :
+    # sans ce paquet, aucun pipeline du parc ne se charge.
+    "safetensors>=0.8.0",
+    # Cap haut de diffusers 0.39. Le worker ne s'en sert pas directement — le
+    # téléchargement est le métier d'`ecurie pull`, jamais celui d'un worker.
+    "huggingface-hub>=0.34.0,<2.0",
+    # Écriture du PNG de sortie.
+    "pillow>=11,<13",
+]
+
+# Rien à construire : cet env n'est qu'une liste de dépendances, pas un paquet.
+[tool.uv]
+package = false

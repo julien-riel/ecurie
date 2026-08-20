@@ -1,0 +1,40 @@
+{
+  "capability": "text-to-image",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Trois entrées figées, à résolution et nombre de pas croissants : c'est le produit des deux qui pilote le coût, et le pas de débruitage qui domine la durée. Elles ne changent jamais — une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "cases": [
+    {
+      "id": "vignette-512",
+      "input": {
+        "prompt": "Une pomme rouge posée sur une table en bois clair, lumière de fenêtre.",
+        "width": 512,
+        "height": 512,
+        "steps": 20,
+        "guidance_scale": 7.0,
+        "seed": 1
+      }
+    },
+    {
+      "id": "carre-1024",
+      "input": {
+        "prompt": "Un atelier d'horloger, établi encombré d'outils, loupe sur pied, lumière rasante de fin d'après-midi.",
+        "width": 1024,
+        "height": 1024,
+        "steps": 30,
+        "guidance_scale": 7.0,
+        "seed": 2
+      }
+    },
+    {
+      "id": "paysage-1216",
+      "input": {
+        "prompt": "Un quai de port de pêche au petit matin, casiers empilés, brume sur l'eau, mouettes.",
+        "width": 1216,
+        "height": 832,
+        "steps": 30,
+        "guidance_scale": 7.0,
+        "seed": 3
+      }
+    }
+  ]
+}

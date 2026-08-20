@@ -10,6 +10,10 @@ dist/
 # Environnements isolés des runtimes (reconstruits par `ecurie env sync`)
 runtimes/**/.venv/
 
+# Code amont copié dans un runtime faute de paquet publié — voir le README de
+# l'env concerné pour la commande qui le remet en place.
+runtimes/*/vendor/
+
 # Front
 node_modules/
 

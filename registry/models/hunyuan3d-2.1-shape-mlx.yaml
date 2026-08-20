@@ -24,10 +24,19 @@ variants:
     source:
       kind: huggingface
       repo: tencent/Hunyuan3D-2.1
-      revision: "0000000"                        # PLACEHOLDER
+      revision: "0b94677654c57bb9a6b6845cd7b704ccf551d327"   # 2025-10-17
+      # Le dépôt sert deux pipelines ; celui-ci ne veut que la forme. Le seul
+      # model.fp16.ckpt de hunyuan3d-dit-v2-1/ contient déjà DiT, ShapeVAE et
+      # conditionneur DINOv2 — le dossier hunyuan3d-vae-v2-1/ autonome (0,66 Go)
+      # ne sert qu'à la démo d'encodage de maillage, et hunyuan3d-paintpbr-v2-1/
+      # (6,89 Go) à la texturation. Filtrer épargne 7,54 Go sur 14,91 Go.
+      # LICENSE et Notice.txt suivent les poids (34 ko) : la licence impose de
+      # transmettre le Notice, autant l'avoir sous la main à côté du modèle.
+      allow_patterns: ["hunyuan3d-dit-v2-1/*", "LICENSE", "Notice.txt"]
     defaults:
       octree_resolution: 256
       num_inference_steps: 30
     caveats:
       - "Géométrie seulement, pas de PBR complet."
       - "Licence à restrictions : vérifier avant tout usage professionnel."
+      - "Le suffixe « mlx » de l'id est trompeur : aucun portage MLX de la partie shape 2.1 n'est publié (le portage communautaire s'arrête à 2.0/2mini). L'inférence passe par PyTorch/MPS, chemin non validé de bout en bout."

@@ -1,0 +1,34 @@
+{
+  "capability": "image-to-mesh",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Trois solides simples sur fond neutre, à résolution d'octree croissante : c'est ce paramètre qui pilote le coût mémoire de la reconstruction, donc le chiffre qui décide de l'admission. Les images sont figées ; les regénérer changerait les mesures sans le dire.",
+  "cases": [
+    {
+      "id": "cube-256",
+      "input": {
+        "image": "assets/cube.png",
+        "octree_resolution": 256,
+        "num_inference_steps": 30,
+        "seed": 1
+      }
+    },
+    {
+      "id": "sphere-256",
+      "input": {
+        "image": "assets/sphere.png",
+        "octree_resolution": 256,
+        "num_inference_steps": 30,
+        "seed": 2
+      }
+    },
+    {
+      "id": "cone-384",
+      "input": {
+        "image": "assets/cone.png",
+        "octree_resolution": 384,
+        "num_inference_steps": 30,
+        "seed": 3
+      }
+    }
+  ]
+}

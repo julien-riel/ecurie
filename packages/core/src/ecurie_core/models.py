@@ -59,11 +59,39 @@ class Source(BaseModel):
     path: str | None = None
 
 
+class PeakScaling(BaseModel):
+    """Le pic de certains modèles dépend d'un paramètre d'entrée.
+
+    MiniMax Music 3, mesuré : 13,2 Gio pour 15 s d'audio, 18,1 pour 20, 23,9 pour
+    30 — environ 0,7 Gio par seconde. Avec un pic unique, il faut choisir entre
+    inscrire le pire cas, et refuser des jobs courts qui passeraient largement,
+    ou un cas favorable, et laisser une demande longue emporter la machine. Ni
+    l'un ni l'autre n'est acceptable pour un contrôle d'admission.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    parameter: str
+    base_bytes: int = Field(ge=0)
+    bytes_per_unit: float
+    measured_range: list[float] = Field(min_length=2, max_length=2)
+    r_squared: float | None = None
+
+    def expected(self, valeur: float) -> int:
+        return max(0, int(self.base_bytes + self.bytes_per_unit * valeur))
+
+    def extrapolates(self, valeur: float) -> bool:
+        """Vrai hors des bornes mesurées : la droite y est une conjecture."""
+        bas, haut = min(self.measured_range), max(self.measured_range)
+        return not (bas <= valeur <= haut)
+
+
 class Profile(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     disk_bytes: int = Field(ge=0)
     peak_unified_memory_bytes: int = Field(ge=0)
+    peak_scaling: PeakScaling | None = None
     warmup_ms: int | None = Field(default=None, ge=0)
     latency_ms_p50: int | None = Field(default=None, ge=0)
     rtf: float | None = None
@@ -71,6 +99,34 @@ class Profile(BaseModel):
     measured_on: str
     measured_at: date
     harness_version: str | None = None
+
+    def expected_peak(self, values: dict[str, Any] | None = None) -> tuple[int, str | None]:
+        """Pic attendu pour cette entrée, et ce qu'il faut en penser.
+
+        Sans `peak_scaling`, ou sans le paramètre dans l'entrée, on rend le pic
+        mesuré : c'est le pire cas de la charge type, donc le choix prudent.
+        """
+        mesuré = self.peak_unified_memory_bytes
+        échelle = self.peak_scaling
+        if échelle is None or not values:
+            return mesuré, None
+        brut = values.get(échelle.parameter)
+        if not isinstance(brut, (int, float)) or isinstance(brut, bool):
+            return mesuré, None
+
+        valeur = float(brut)
+        attendu = échelle.expected(valeur)
+        if échelle.extrapolates(valeur):
+            bas, haut = min(échelle.measured_range), max(échelle.measured_range)
+            note = (
+                f"{échelle.parameter}={valeur:g} sort de l'intervalle mesuré "
+                f"[{bas:g}, {haut:g}] : le pic attendu de {attendu} octets est extrapolé"
+            )
+            # Hors intervalle, on ne descend jamais sous le pic mesuré : la
+            # droite pourrait sous-estimer un coût qui n'est linéaire que dans
+            # la plage éprouvée.
+            return max(attendu, mesuré), note
+        return attendu, None
 
 
 class Variant(BaseModel):
@@ -85,6 +141,7 @@ class Variant(BaseModel):
     entrypoint: str | None = None
     profile: Profile | None = None
     defaults: dict[str, Any] | None = None
+    options: dict[str, Any] | None = None
     caveats: list[str] | None = None
 
     @property

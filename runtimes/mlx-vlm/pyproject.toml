@@ -1,0 +1,46 @@
+# Environnement isolé du runtime `mlx-vlm` (CONCEPTION.md §5.3).
+#
+# Quatrième runtime du parc, ajouté après les trois du v0.3 : c'est lui qui sert
+# la capacité `document-to-text`, un modèle vision-langage lisant une page rendue
+# en image plutôt qu'un OCR classique par segmentation.
+#
+# Écurie n'est PAS installé ici et ne doit pas l'être : le superviseur rend
+# visibles par PYTHONPATH les trois modules du protocole, en bibliothèque
+# standard pure (voir `envs.py`).
+#
+# Le `.venv` n'est pas versionné, ce fichier l'est. Pour le reconstruire :
+#
+#     ecurie env sync mlx-vlm
+#
+# Séparé de `mlx-audio` bien que les deux reposent sur MLX : leurs bornes de
+# `transformers` divergent au premier modèle qui exige une version précise du
+# processeur d'images, et c'est exactement le genre de collision que l'isolation
+# par environnement existe pour absorber (ARCHITECTURE.md §0, piège 2).
+
+[project]
+name = "ecurie-runtime-mlx-vlm"
+version = "0.3.0"
+description = "Écurie — environnement isolé du runtime mlx-vlm (vision-langage, Apple Silicon)"
+# Aligné sur le socle 3.12 d'Écurie : le worker exécute
+# `ecurie_runtime.workers.base`, écrit pour cette version.
+requires-python = ">=3.12"
+
+dependencies = [
+    "mlx-vlm>=0.6.15,<0.7",
+    "mlx>=0.32.1",
+    # Le rendu d'un PDF en images relève du worker, pas de l'appelant : le
+    # contrat `document-to-text` accepte les deux et l'utilisateur ne doit pas
+    # avoir à convertir lui-même. `pymupdf` embarque son moteur, sans dépendance
+    # système à installer à côté.
+    "pymupdf>=1.24",
+    "pillow>=11,<13",
+    # mlx-vlm ne la déclare pas, et `apply_chat_template` la charge : sans elle,
+    # le modèle se charge très bien puis le premier job échoue sur un ImportError.
+    # C'est exactement ce qu'un pyproject d'environnement isolé sert à rattraper —
+    # on complète la dépendance manquante ici plutôt que d'attendre l'amont.
+    "jinja2>=3.1",
+]
+
+# Cet env n'est pas une bibliothèque : rien à construire, rien à installer de lui-même.
+[tool.uv]
+package = false

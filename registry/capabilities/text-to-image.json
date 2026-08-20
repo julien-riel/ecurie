@@ -1,0 +1,68 @@
+{
+  "id": "text-to-image",
+  "title": "Texte vers image",
+  "input": {
+    "type": "object",
+    "required": ["prompt"],
+    "additionalProperties": false,
+    "properties": {
+      "prompt": {
+        "type": "string",
+        "minLength": 1,
+        "x-ui": "textarea",
+        "description": "Description de l'image voulue."
+      },
+      "negative_prompt": {
+        "type": "string",
+        "x-ui": "textarea",
+        "description": "Ce qu'il faut éviter. Sans effet sur les modèles à guidage distillé."
+      },
+      "width": {
+        "type": "integer",
+        "minimum": 256,
+        "maximum": 2048,
+        "multipleOf": 64,
+        "default": 1024,
+        "description": "Largeur en pixels, multiple de 64."
+      },
+      "height": {
+        "type": "integer",
+        "minimum": 256,
+        "maximum": 2048,
+        "multipleOf": 64,
+        "default": 1024,
+        "description": "Hauteur en pixels, multiple de 64."
+      },
+      "steps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 25,
+        "description": "Pas de débruitage. Au-delà de 50, le gain est rarement visible."
+      },
+      "guidance_scale": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 20.0,
+        "default": 3.5,
+        "description": "Fidélité à la description. Les modèles distillés travaillent autour de 1."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Graine aléatoire. À conserver pour rejouer la même image."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["image"],
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de l'image produite, relatif au dossier du job."
+      }
+    }
+  }
+}

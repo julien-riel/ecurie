@@ -44,9 +44,26 @@ class Config(BaseModel):
     tier_volumes: list[Path] = Field(default_factory=list)
     scan: ScanConfig = Field(default_factory=ScanConfig)
 
+    # --- exécution (v0.3) ----------------------------------------------------
+    # La politique du §7 de l'architecture, en réglages : un seul modèle lourd
+    # résident à la fois, les légers restent chauds.
+    max_heavy_resident: int = Field(default=1, ge=0)
+    heavy_threshold_bytes: int = Field(default=6 * (1 << 30), ge=0)
+    # Un worker résident oublié garderait sa mémoire indéfiniment : il se retire
+    # de lui-même après ce délai sans travail. 0 = jamais.
+    resident_idle_timeout_s: int = Field(default=1800, ge=0)
+    # Garde de disque de `ecurie pull` : refuser un téléchargement qui ferait
+    # passer l'espace libre sous cette part du volume.
+    free_disk_ratio: float = Field(default=0.15, ge=0.0, le=0.9)
+
     @property
     def state_db(self) -> Path:
         return ecurie_home() / "state.db"
+
+    @property
+    def outputs_dir(self) -> Path:
+        """Sorties des jobs — un dossier par job, avec son manifeste (CONCEPTION.md §6)."""
+        return ecurie_home() / "outputs"
 
     @property
     def trash_dir(self) -> Path:
@@ -94,6 +111,16 @@ def render_config(config: Config) -> str:
         "# Volumes externes autorisés pour le tiering (`ecurie store tier`). Ils sont",
         "# aussi scannés : un volume démonté marque ses variants « froid indisponible ».",
         f"tier_volumes = {toml_list(config.tier_volumes)}",
+        "",
+        "# Exécution : politique de résidence mémoire (ARCHITECTURE.md §7).",
+        "# Un seul modèle lourd résident à la fois ; les légers restent chauds.",
+        f"max_heavy_resident = {config.max_heavy_resident}",
+        f"heavy_threshold_bytes = {config.heavy_threshold_bytes}",
+        "# Un worker résident se retire seul après ce temps sans travail (0 = jamais).",
+        f"resident_idle_timeout_s = {config.resident_idle_timeout_s}",
+        "# `ecurie pull` refuse un téléchargement qui ferait passer l'espace libre",
+        "# du volume sous cette part.",
+        f"free_disk_ratio = {config.free_disk_ratio}",
         "",
         "[scan]",
     ]

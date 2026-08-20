@@ -1,0 +1,95 @@
+{
+  "ref": "sdxl-base@fp16",
+  "model": "sdxl-base",
+  "variant": "fp16",
+  "capability": "text-to-image",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2",
+  "measured_at": "2026-08-20",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/text-to-image.json",
+    "version": 1,
+    "cases": [
+      "vignette-512",
+      "carre-1024",
+      "paysage-1216"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 7106938904,
+    "peak_unified_memory_bytes": 17123246080,
+    "warmup_ms": 5098,
+    "latency_ms_p50": 56605,
+    "throughput": "1 sortie / 41.3 s"
+  },
+  "cases": [
+    {
+      "id": "vignette-512",
+      "ok": true,
+      "duration_ms": 8824,
+      "metrics": {
+        "duration_ms": 8824,
+        "seed": 1,
+        "steps": 20,
+        "guidance_scale": 7.0,
+        "width": 512,
+        "height": 512,
+        "scheduler": "EulerDiscreteScheduler",
+        "dtype": "float16",
+        "generate_ms": 8752,
+        "ms_per_step": 437.6,
+        "mps_current_allocated_bytes": 6941139968,
+        "mps_driver_allocated_bytes": 10074718208,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 10074718208
+      },
+      "error": null
+    },
+    {
+      "id": "carre-1024",
+      "ok": true,
+      "duration_ms": 56605,
+      "metrics": {
+        "duration_ms": 56605,
+        "seed": 2,
+        "steps": 30,
+        "guidance_scale": 7.0,
+        "width": 1024,
+        "height": 1024,
+        "scheduler": "EulerDiscreteScheduler",
+        "dtype": "float16",
+        "generate_ms": 56478,
+        "ms_per_step": 1882.6,
+        "mps_current_allocated_bytes": 6948248576,
+        "mps_driver_allocated_bytes": 16919822336,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 16919822336
+      },
+      "error": null
+    },
+    {
+      "id": "paysage-1216",
+      "ok": true,
+      "duration_ms": 58363,
+      "metrics": {
+        "duration_ms": 58363,
+        "seed": 3,
+        "steps": 30,
+        "guidance_scale": 7.0,
+        "width": 1216,
+        "height": 832,
+        "scheduler": "EulerDiscreteScheduler",
+        "dtype": "float16",
+        "generate_ms": 58214,
+        "ms_per_step": 1940.5,
+        "mps_current_allocated_bytes": 6952475136,
+        "mps_driver_allocated_bytes": 17123246080,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 17123246080
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

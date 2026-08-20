@@ -13,34 +13,42 @@ c'est l'appelant (CLI, CI, API) qui décide quoi en faire.
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
 
 import yaml
 from jsonschema import Draft202012Validator
 from pydantic import ValidationError
 
+from ecurie_core.capabilities import (
+    CAPABILITIES_DIR,
+    CapabilityContract,
+    check_variant_defaults,
+    check_variant_options,
+    load_capabilities,
+)
+from ecurie_core.issues import Issue, Severity
 from ecurie_core.models import Model
 
-Severity = Literal["error", "warning"]
+__all__ = [
+    "CAPABILITIES_DIR",
+    "CapabilityContract",
+    "Issue",
+    "Registry",
+    "Severity",
+    "find_root",
+    "load_registry",
+]
 
 SCHEMA_PATH = Path("registry/schema/model.schema.json")
 MODELS_DIR = Path("registry/models")
-CAPABILITIES_DIR = Path("registry/capabilities")
+MEASUREMENTS_DIR = Path("registry/measurements")
 RUNTIMES_DIR = Path("runtimes")
-
-
-@dataclass(frozen=True)
-class Issue:
-    severity: Severity
-    file: str
-    message: str
 
 
 @dataclass
 class Registry:
     root: Path
     models: dict[str, Model] = field(default_factory=dict)
-    capabilities: dict[str, dict[str, Any]] = field(default_factory=dict)
+    capabilities: dict[str, CapabilityContract] = field(default_factory=dict)
     issues: list[Issue] = field(default_factory=list)
 
     @property
@@ -86,10 +94,9 @@ def load_registry(root: Path) -> Registry:
         return reg
     validator = Draft202012Validator(json.loads(schema_file.read_text()))
 
-    capabilities_dir = root / CAPABILITIES_DIR
-    if capabilities_dir.is_dir():
-        for cap_file in sorted(capabilities_dir.glob("*.json")):
-            reg.capabilities[cap_file.stem] = json.loads(cap_file.read_text())
+    contracts, cap_issues = load_capabilities(root)
+    reg.capabilities.update(contracts)
+    issues.extend(cap_issues)
 
     models_dir = root / MODELS_DIR
     for path in sorted(models_dir.glob("*.yaml")):
@@ -129,12 +136,22 @@ def load_registry(root: Path) -> Registry:
 def _check_model(reg: Registry, model: Model, rel: str) -> None:
     issues = reg.issues
 
-    if model.capability not in reg.capabilities:
+    contract = reg.capabilities.get(model.capability)
+    if contract is None:
         issues.append(
             Issue(
                 "error",
                 rel,
                 f"aucun contrat registry/capabilities/{model.capability}.json pour cette capacité",
+            )
+        )
+    elif contract.composite:
+        issues.append(
+            Issue(
+                "error",
+                rel,
+                f"{model.capability} est une capacité composite : elle s'exécute en enchaînant "
+                "d'autres capacités, aucun modèle ne la remplit directement",
             )
         )
 
@@ -169,6 +186,14 @@ def _check_model(reg: Registry, model: Model, rel: str) -> None:
             severity = "error" if model.status == "active" else "warning"
             issues.append(Issue(severity, rel, f"{ref} : runtime custom sans entrypoint"))
 
+        if contract is not None and v.defaults:
+            issues.extend(check_variant_defaults(contract, v.defaults, ref, rel))
+        if contract is not None and v.options:
+            issues.extend(check_variant_options(contract, v.options, ref, rel))
+
+        if v.profile is not None:
+            issues.extend(_check_profile(reg, model, v, ref, rel))
+
         if v.tier != "absent":
             env_dir = reg.root / RUNTIMES_DIR / v.env_name
             if not (env_dir / "pyproject.toml").is_file():
@@ -179,6 +204,61 @@ def _check_model(reg: Registry, model: Model, rel: str) -> None:
                         f"{ref} : environnement runtimes/{v.env_name}/ absent (attendu au v0.3)",
                     )
                 )
+
+
+def _check_profile(reg: Registry, model: Model, variant, ref: str, rel: str) -> list[Issue]:
+    """Un bloc `profile:` doit être la copie d'une mesure, jamais une estimation.
+
+    C'est la règle non négociable du §3 de l'architecture : le contrôle
+    d'admission mémoire décide de charger ou de décharger sur la foi de ce
+    chiffre. Un profil saisi à la main est un profil faux, et il se paie en swap.
+    Le fichier de `measurements/` est l'autorité ; le manifeste en est la copie
+    committée par un humain, et cette copie peut diverger — on le dit.
+    """
+    issues: list[Issue] = []
+    fichier = reg.root / MEASUREMENTS_DIR / f"{ref}.json"
+    if not fichier.is_file():
+        issues.append(
+            Issue(
+                "warning",
+                rel,
+                f"{ref} : bloc profile: sans mesure correspondante "
+                f"({MEASUREMENTS_DIR}/{ref}.json) — le mesurer avec ecurie bench {ref}",
+            )
+        )
+        return issues
+
+    try:
+        mesure = json.loads(fichier.read_text())
+    except json.JSONDecodeError as exc:
+        issues.append(
+            Issue("error", str(MEASUREMENTS_DIR / f"{ref}.json"), f"JSON illisible : {exc}")
+        )
+        return issues
+
+    mesuré = mesure.get("profile") or {}
+    for champ in ("peak_unified_memory_bytes", "disk_bytes"):
+        attendu, déclaré = mesuré.get(champ), getattr(variant.profile, champ)
+        if attendu is not None and déclaré != attendu:
+            issues.append(
+                Issue(
+                    "warning",
+                    rel,
+                    f"{ref} : profile.{champ} = {déclaré} alors que la mesure dit {attendu} — "
+                    "le manifeste a divergé de measurements/",
+                )
+            )
+    if variant.profile.harness_version and mesure.get("harness_version"):
+        if variant.profile.harness_version != mesure["harness_version"]:
+            issues.append(
+                Issue(
+                    "warning",
+                    rel,
+                    f"{ref} : profil mesuré par le banc {mesure['harness_version']}, "
+                    f"manifeste annonçant {variant.profile.harness_version}",
+                )
+            )
+    return issues
 
 
 def _check_incumbents(reg: Registry) -> None:

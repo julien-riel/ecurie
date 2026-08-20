@@ -1,0 +1,31 @@
+{
+  "capability": "document-to-text",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Trois pages figées, de difficulté croissante : un paragraphe courant, un tableau aligné, une page dense en chiffres et sigles. C'est la densité de texte qui pilote le nombre de jetons produits, donc la durée. Les pages ne changent jamais — une charge modifiée détruit la comparabilité des mesures antérieures. Aucune graine : une transcription est déterministe (température nulle), et le contrat n'expose pas de seed.",
+  "cases": [
+    {
+      "id": "paragraphe",
+      "input": {
+        "document": "assets/page-paragraphe.png",
+        "format": "text",
+        "detect_layout": false
+      }
+    },
+    {
+      "id": "tableau",
+      "input": {
+        "document": "assets/page-tableau.png",
+        "format": "markdown",
+        "detect_layout": true
+      }
+    },
+    {
+      "id": "dense",
+      "input": {
+        "document": "assets/page-dense.png",
+        "format": "markdown",
+        "detect_layout": true
+      }
+    }
+  ]
+}

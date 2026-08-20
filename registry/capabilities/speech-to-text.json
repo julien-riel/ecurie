@@ -1,0 +1,73 @@
+{
+  "id": "speech-to-text",
+  "title": "Transcription de la parole",
+  "input": {
+    "type": "object",
+    "required": ["audio"],
+    "additionalProperties": false,
+    "properties": {
+      "audio": {
+        "type": "string",
+        "contentMediaType": "audio/*",
+        "x-ui": "file",
+        "description": "Enregistrement à transcrire."
+      },
+      "language": {
+        "type": "string",
+        "x-ui": "select",
+        "x-options-from": "runtime.languages",
+        "description": "Langue attendue. Vide = détection automatique par le modèle."
+      },
+      "task": {
+        "type": "string",
+        "enum": ["transcribe", "translate"],
+        "default": "transcribe",
+        "description": "transcribe restitue la langue d'origine, translate traduit vers l'anglais."
+      },
+      "word_timestamps": {
+        "type": "boolean",
+        "default": false,
+        "description": "Horodater chaque mot et non seulement chaque segment. Nettement plus lent."
+      },
+      "beam_size": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 8,
+        "default": 5,
+        "description": "Largeur du faisceau de décodage. Au-delà de 5, le gain est marginal et la mémoire monte."
+      },
+      "temperature": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "default": 0.0,
+        "description": "0 = décodage déterministe. À monter seulement pour débloquer une boucle de répétition."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["text"],
+    "properties": {
+      "text": {
+        "type": "string",
+        "contentMediaType": "text/plain",
+        "description": "Chemin de la transcription en texte brut, relatif au dossier du job."
+      },
+      "segments": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin des segments horodatés (début, fin, texte), relatif au dossier du job."
+      },
+      "language": {
+        "type": "string",
+        "description": "Langue retenue, détectée ou imposée."
+      },
+      "duration_seconds": {
+        "type": "number",
+        "minimum": 0,
+        "description": "Durée de l'audio traité, en secondes."
+      }
+    }
+  }
+}

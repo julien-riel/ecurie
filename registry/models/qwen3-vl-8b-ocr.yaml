@@ -1,0 +1,48 @@
+# Premier modèle de lecture de document du parc, et premier usage du runtime
+# `mlx-vlm` — que le v0.3 laissait explicitement non livré.
+#
+# Un modèle vision-langage plutôt qu'un OCR par segmentation : le contrat
+# document-to-text demande un ordre de lecture, des titres et des tableaux, pas
+# une liste de boîtes englobantes.
+id: qwen3-vl-8b-ocr
+name: Qwen3-VL 8B Instruct (lecture de document)
+capability: document-to-text
+family: qwen3-vl
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Retenu en 4 bits pour tenir dans le budget à côté d'autre chose : la version
+  8 bits pèse 9,2 Go sur le disque et bien plus en mémoire, ce qui en ferait un
+  modèle lourd de plus dans un parc qui n'a de place que pour un. La perte de
+  qualité de la quantification 4 bits sur du texte imprimé est à mesurer sur le
+  golden set OCR du v0.5, pas à supposer.
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3-VL-8B-Instruct-4bit
+      revision: "defcdea7cc7a4b0858fea563cbbce171d328e457"   # 2025-10-14
+      allow_patterns: ["*.json", "*.safetensors", "*.txt"]
+    defaults:
+      format: markdown
+      detect_layout: true
+      dpi: 200
+    caveats:
+      - "Quantification 4 bits : la fidélité sur les petits caractères et les chiffres reste à mesurer."
+      - "Un VLM transcrit, il ne localise pas : la sortie `layout` décrit les pages, pas des boîtes."
+    profile:
+      disk_bytes: 5776625617
+      peak_unified_memory_bytes: 6712856963
+      warmup_ms: 1348
+      latency_ms_p50: 7480
+      throughput: "1 sortie / 7.4 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-20"
+      harness_version: "0.3.0"

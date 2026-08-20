@@ -1,0 +1,48 @@
+{
+  "id": "audio-denoise",
+  "title": "Débruitage audio",
+  "input": {
+    "type": "object",
+    "required": ["audio"],
+    "additionalProperties": false,
+    "properties": {
+      "audio": {
+        "type": "string",
+        "contentMediaType": "audio/*",
+        "x-ui": "file",
+        "description": "Enregistrement à nettoyer."
+      },
+      "strength": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "default": 1.0,
+        "description": "Dosage : 1 garde le résultat brut du modèle, en dessous on le mélange à l'original."
+      },
+      "sample_rate": {
+        "type": "integer",
+        "enum": [16000, 24000, 44100, 48000],
+        "default": 48000,
+        "description": "Fréquence d'échantillonnage du fichier produit."
+      },
+      "segment_seconds": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 60,
+        "default": 15,
+        "description": "Longueur des tranches traitées. À baisser si la mémoire unifiée sature sur un long enregistrement."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["audio"],
+    "properties": {
+      "audio": {
+        "type": "string",
+        "contentMediaType": "audio/wav",
+        "description": "Chemin de l'enregistrement nettoyé, relatif au dossier du job."
+      }
+    }
+  }
+}

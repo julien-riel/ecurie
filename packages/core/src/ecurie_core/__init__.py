@@ -1,16 +1,20 @@
-"""Écurie — noyau : modèles de données, registre, CLI."""
+"""Écurie — noyau : modèles de données, contrats de capacité, registre, CLI."""
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"
 
+from ecurie_core.capabilities import CapabilityContract, load_capabilities
+from ecurie_core.issues import Issue
 from ecurie_core.models import Model, Profile, Source, Variant
-from ecurie_core.registry import Issue, Registry, load_registry
+from ecurie_core.registry import Registry, load_registry
 
 __all__ = [
+    "CapabilityContract",
     "Issue",
     "Model",
     "Profile",
     "Registry",
     "Source",
     "Variant",
+    "load_capabilities",
     "load_registry",
 ]

@@ -1,0 +1,82 @@
+{
+  "id": "text-generation",
+  "title": "Génération de texte",
+  "input": {
+    "type": "object",
+    "required": ["prompt"],
+    "additionalProperties": false,
+    "properties": {
+      "prompt": {
+        "type": "string",
+        "minLength": 1,
+        "x-ui": "textarea",
+        "description": "Requête adressée au modèle."
+      },
+      "system": {
+        "type": "string",
+        "x-ui": "textarea",
+        "description": "Consigne système. Vide = celle du gabarit de conversation du modèle."
+      },
+      "max_tokens": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 32768,
+        "default": 1024,
+        "description": "Plafond de jetons produits. Le contexte long coûte de la mémoire unifiée, pas seulement du temps."
+      },
+      "temperature": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 2.0,
+        "default": 0.7,
+        "description": "0 = décodage déterministe. Au-delà de 1, la sortie part vite en digression."
+      },
+      "top_p": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "default": 0.95,
+        "description": "Échantillonnage par noyau : ne garde que les jetons cumulant cette probabilité."
+      },
+      "repetition_penalty": {
+        "type": "number",
+        "minimum": 1.0,
+        "maximum": 2.0,
+        "default": 1.0,
+        "description": "Pénalise les jetons déjà émis. 1 = aucune pénalité."
+      },
+      "stop": {
+        "type": "array",
+        "maxItems": 4,
+        "items": { "type": "string" },
+        "description": "Séquences qui interrompent la génération dès qu'elles apparaissent."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Graine aléatoire. À conserver pour rejouer la même réponse."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["text"],
+    "properties": {
+      "text": {
+        "type": "string",
+        "contentMediaType": "text/plain",
+        "description": "Chemin de la réponse en texte brut, relatif au dossier du job."
+      },
+      "tokens_generated": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de jetons effectivement produits."
+      },
+      "finish_reason": {
+        "type": "string",
+        "enum": ["stop", "length", "stop_sequence"],
+        "description": "Cause de l'arrêt : fin naturelle, plafond de jetons atteint, séquence d'arrêt rencontrée."
+      }
+    }
+  }
+}

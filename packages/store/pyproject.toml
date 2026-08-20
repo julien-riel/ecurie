@@ -1,6 +1,6 @@
 [project]
 name = "ecurie-store"
-version = "0.1.0"
+version = "0.3.0"
 description = "Écurie — scan disque, comptabilité, dédup, GC, tiering"
 requires-python = ">=3.12"
 dependencies = [

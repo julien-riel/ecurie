@@ -46,6 +46,7 @@
     "notes": { "type": "string" },
     "links": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "homepage": { "type": "string", "format": "uri" },
         "paper": { "type": "string", "format": "uri" },
@@ -81,6 +82,7 @@
         "source": {
           "type": "object",
           "required": ["kind"],
+          "additionalProperties": false,
           "properties": {
             "kind": { "type": "string", "enum": ["huggingface", "ollama", "url", "local"] },
             "repo": { "type": "string" },
@@ -113,7 +115,12 @@
         },
         "defaults": {
           "type": "object",
-          "description": "Valeurs par défaut des paramètres de la capacité pour ce variant.",
+          "description": "Valeurs par défaut des paramètres de la capacité pour ce variant. Chaque clé doit exister dans le contrat d'entrée de la capacité : une clé inconnue serait ignorée à l'exécution sans que rien ne le signale.",
+          "additionalProperties": true
+        },
+        "options": {
+          "type": "object",
+          "description": "Réglages propres au runtime, hors contrat de capacité — ex. la langue forcée d'un moteur TTS. Transmis tels quels au worker en params ; l'UI ne les affiche pas, puisqu'ils ne sont pas interchangeables entre variants d'une même capacité. Une clé qui porte le nom d'un paramètre de la capacité est refusée : sa place est dans defaults.",
           "additionalProperties": true
         },
         "caveats": {
@@ -126,12 +133,45 @@
     "profile": {
       "type": "object",
       "required": ["disk_bytes", "peak_unified_memory_bytes", "measured_on", "measured_at"],
+      "additionalProperties": false,
       "properties": {
         "disk_bytes": { "type": "integer", "minimum": 0 },
         "peak_unified_memory_bytes": {
           "type": "integer",
           "minimum": 0,
-          "description": "Pic mesuré. Base du contrôle d'admission mémoire."
+          "description": "Pic mesuré sur la charge type, pire cas compris. C'est le chiffre comparable entre variants, et celui que le contrôle d'admission emploie quand peak_scaling est absent."
+        },
+        "peak_scaling": {
+          "type": "object",
+          "description": "Pour les modèles dont le pic dépend d'un paramètre d'entrée — la durée d'un morceau, la résolution d'un maillage. Sans lui, il faut choisir entre inscrire le pire cas (et refuser des jobs qui passeraient) ou un cas favorable (et laisser la machine partir en swap). ÉCRIT PAR LE BANC D'ESSAI, comme le reste du profil.",
+          "required": ["parameter", "base_bytes", "bytes_per_unit", "measured_range"],
+          "additionalProperties": false,
+          "properties": {
+            "parameter": {
+              "type": "string",
+              "description": "Nom du paramètre du contrat de capacité dont le pic dépend."
+            },
+            "base_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Ordonnée à l'origine : ce que coûte le modèle indépendamment du paramètre."
+            },
+            "bytes_per_unit": {
+              "type": "number",
+              "description": "Pente, en octets par unité du paramètre."
+            },
+            "measured_range": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": { "type": "number" },
+              "description": "Bornes du paramètre sur lesquelles la pente a été ajustée. Au-delà, l'admission extrapole et le dit."
+            },
+            "r_squared": {
+              "type": "number",
+              "description": "Qualité de l'ajustement. En dessous de 0,9, la relation n'est pas linéaire et la pente ne vaut pas grand-chose."
+            }
+          }
         },
         "warmup_ms": { "type": "integer", "minimum": 0 },
         "latency_ms_p50": { "type": "integer", "minimum": 0 },
