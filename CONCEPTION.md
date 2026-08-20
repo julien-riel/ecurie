@@ -4,7 +4,10 @@
 > ici on fixe *comment* : structures de données, interfaces, algorithmes, formats.
 > Le plan d'exécution correspondant est dans `PLAN.md`.
 >
-> Date : 19 août 2026.
+> Rédigé le 19 août 2026, révisé le 20 août au terme du v0.3 : les sections §2,
+> §3, §5, §8, §9, §12 et §13 portent maintenant ce que l'exécution réelle a
+> établi, et non plus seulement ce qui était prévu. Ce qui a été démenti par la
+> mesure est signalé comme tel plutôt que réécrit en silence.
 
 ---
 
@@ -85,29 +88,38 @@ concrète du dernier risque du §13 de l'architecture.
 
 ## 2. Arborescence cible et migration du dépôt actuel
 
-Le dépôt actuel est plat et n'est pas encore un dépôt Git. Première tâche du v0.1 :
+État au terme du v0.3 — ce qui existe porte une coche, le reste attend son jalon :
 
 ```
-ecurie/                          # git init, monorepo uv workspace
+ecurie/                          # monorepo uv workspace
   ARCHITECTURE.md  CONCEPTION.md  PLAN.md
   registry/
-    schema/model.schema.json     # ← model.schema.json actuel
-    capabilities/*.json
-    models/
-      qwen3-tts-1.7b.yaml        # ← fichiers actuels
-      hunyuan3d-2.1-shape-mlx.yaml
-      trellis2.yaml
-    measurements/  evals/  veille/
+    schema/{model,capability}.schema.json      ✓
+    capabilities/*.json                        ✓ 12 contrats atomiques
+    models/*.yaml                              ✓ 6 manifestes
+    measurements/<id>@<variant>.json           ✓ 4 profils mesurés
+    evals/
+      bench/<capability>.json + assets/        ✓ charges type du banc d'essai
+      golden/  results/  preferences.jsonl       v0.5
+    veille/                                      v0.6
   packages/
-    core/     store/    runtime/   api/   veille/     # paquets Python (uv workspace)
-  apps/ui/                        # React + Vite + RJSF
+    core/  store/  runtime/                    ✓
+    api/                                         v0.4
+    veille/                                      v0.6
+  apps/ui/                                       v0.4
   runtimes/                       # envs isolés — .gitignore sur les .venv
-    mlx-audio/pyproject.toml
-    diffusers/pyproject.toml
-    hunyuan3d/{pyproject.toml, run.py}
-  .claude/skills/veille-modeles/SKILL.md   # ← SKILL.md actuel
-  .github/workflows/{registry-ci.yml, veille.yml}
+    mlx-audio/       pyproject.toml + uv.lock  ✓ TTS
+    mlx-audio-music/ pyproject.toml + uv.lock  ✓ chanson (commit épinglé, voir §5.3)
+    mlx-vlm/         pyproject.toml + uv.lock  ✓ lecture de document
+    diffusers-mps/   pyproject.toml + uv.lock  ✓ image
+    hunyuan3d/       pyproject.toml + run.py   ✓ écrit, jamais exécuté (§13.4)
+  .claude/skills/veille-modeles/SKILL.md       ✓
+  .github/workflows/{registry-ci.yml, veille.yml}  v0.6
 ```
+
+Le `uv.lock` de chaque environnement est versionné, au même titre que son
+`pyproject.toml` : « reconstructible » ne veut rien dire si la reconstruction ne
+redonne pas les mêmes versions que celles sur lesquelles le profil a été mesuré.
 
 Outillage : Python 3.12, `uv` workspace (un `pyproject.toml` racine, un par paquet),
 `ruff` + `pytest`, CLI construite avec `typer` + `rich`.
@@ -141,7 +153,25 @@ Outillage : Python 3.12, `uv` workspace (un `pyproject.toml` racine, un par paqu
 - **Config machine** : `~/.ecurie/config.toml` — chemins des gestionnaires scannés
   (avec autodétection par défaut), volumes de tiering autorisés, budget mémoire
   (`auto` = `recommendedMaxWorkingSetSize` lu via MLX, ou valeur explicite),
-  chemins déclarés manuellement.
+  chemins déclarés manuellement, politique de résidence (`max_heavy_resident`,
+  `heavy_threshold_bytes`, `resident_idle_timeout_s`) et garde de disque de
+  `pull` (`free_disk_ratio`).
+
+  MLX n'est pas installé dans l'env d'Écurie et ne doit pas l'être : le budget
+  `auto` est donc lu en interrogeant le mlx d'un environnement de runtime, avec
+  repli sur 75 % de la mémoire physique. La provenance du chiffre est toujours
+  affichée à côté de lui — un budget lu dans Metal et un budget déduit d'une
+  règle de trois ne méritent pas la même confiance. Relevé sur la machine de
+  référence : 17,76 Gio par Metal, ce que le §7 de l'architecture annonçait.
+
+- **Profil dont le pic dépend de l'entrée** : `profile.peak_scaling` déclare un
+  paramètre du contrat, une ordonnée à l'origine, une pente en octets par unité,
+  et l'intervalle sur lequel elle a été ajustée. Sans lui, un modèle dont le coût
+  varie avec ce qu'on lui demande force un choix perdant — inscrire le pire cas
+  refuse des jobs qui passeraient, inscrire un cas favorable laisse partir la
+  machine en swap. Mesuré, jamais saisi (§8). Le champ est optionnel : un modèle
+  à coût fixe n'en a pas, et `peak_unified_memory_bytes` reste le chiffre
+  comparable entre variants.
 
 ---
 
@@ -251,19 +281,64 @@ bibliothèque part alors dans le journal au lieu de couper une ligne JSON en deu
 
 ### 5.2 Adaptateurs
 
-Un adaptateur = un module worker (`packages/runtime/workers/<runtime>.py`) copié ou
-importé dans le venv cible, qui traduit le protocole vers la bibliothèque du runtime.
-v0.3 en livre trois : `mlx_audio` (TTS/ASR), `diffusers_mps` (image), `custom`
-(délègue à `entrypoint` du manifeste — c'est le chemin de Hunyuan3D). `ollama` et
-`comfy` (proxys HTTP vers leurs serveurs) viennent après, ce sont les plus simples.
+Un adaptateur = un module worker (`packages/runtime/workers/<runtime>.py`) rendu
+visible par `PYTHONPATH` dans le venv cible, qui traduit le protocole vers la
+bibliothèque du runtime. Rien n'est installé dans le venv du runtime : seuls
+`protocol`, `channel` et `workers/base` y sont visibles, tous trois en
+bibliothèque standard pure.
+
+Cinq sont livrés :
+
+| runtime | capacité | adaptateur |
+|---|---|---|
+| `mlx-audio` | `text-to-speech` | `workers/mlx_audio.py` |
+| `mlx-audio` | `text-to-music` | `workers/mlx_audio_music.py` |
+| `mlx-vlm` | `document-to-text` | `workers/mlx_vlm.py` |
+| `diffusers-mps` | `text-to-image` | `workers/diffusers_mps.py` |
+| `custom` | — | l'`entrypoint` du manifeste (chemin de Hunyuan3D) |
+
+**Un runtime peut servir plusieurs capacités par des API qui n'ont rien en
+commun.** `mlx_audio.tts` et `mlx_audio.music` ne partagent ni le chargement, ni
+l'appel, ni la sortie ; les fondre dans un adaptateur donnerait un fichier qui
+commence par un aiguillage et ne se relit plus. Le choix se fait donc sur le
+couple (runtime, capacité), avec repli sur le runtime seul.
+
+Règles qu'un adaptateur ne peut pas enfreindre, apprises à l'usage :
+
+- **aucun import de la bibliothèque du runtime au niveau du module** — tout dans
+  `load()`, dans un try/except qui nomme `ecurie env sync <env>`. C'est ce qui
+  permet à la CI, sans Apple Silicon, d'importer tous les adaptateurs ;
+- le worker ne télécharge rien (`HF_HUB_OFFLINE=1` est posé par le superviseur) :
+  il reçoit un chemin local déjà vérifié, ce qui garantit que la révision
+  exécutée est celle qui sera écrite au manifeste du job ;
+- ce qu'un adaptateur ne peut pas honorer, il le **dit** plutôt que de le
+  simuler. Qwen3-TTS n'a pas de contrôle de vitesse et MiniMax Music ignore
+  `guidance_scale` : ces réglages remontent en avertissement dans les métriques
+  du job, jamais en rééchantillonnage maison ni en kwarg avalé sans effet.
+
+`ollama` et `comfy` (proxys HTTP vers leurs serveurs) viennent après, ce sont les
+plus simples.
 
 ### 5.3 Environnements isolés
 
-`runtimes/<env>/pyproject.toml` versionné, `.venv` ignoré. `ecurie env sync [env]`
-exécute `uv sync` dans chaque env. Le superviseur refuse de lancer un worker si le
-venv est absent et affiche la commande de réparation. Aucune dépendance de runtime
-dans l'env racine — l'env racine ne connaît que pydantic, typer, FastAPI, PyYAML,
-huggingface_hub.
+`runtimes/<env>/{pyproject.toml, uv.lock}` versionnés, `.venv` ignoré.
+`ecurie env sync [env]` exécute `uv sync` dans chaque env. Le superviseur refuse de
+lancer un worker si le venv est absent et affiche la commande de réparation. Aucune
+dépendance de runtime dans l'env racine — l'env racine ne connaît que pydantic,
+typer, FastAPI, PyYAML, huggingface_hub.
+
+**Un runtime peut avoir plusieurs environnements**, désignés par `runtime_env` au
+manifeste. Le cas s'est présenté dès le premier modèle musical : son support est
+mergé en amont mais publié dans aucune version de `mlx-audio`, donc son env
+épingle un commit — pendant que celui du TTS reste sur la version publiée sur
+laquelle son profil a été mesuré. Faire dépendre un profil qui tient d'une
+version qui bouge serait le contraire de ce que l'isolation cherche.
+
+Le `pyproject.toml` d'un env est aussi l'endroit où **rattraper une dépendance
+que l'amont oublie de déclarer**. `mlx-vlm` charge `jinja2` pour son gabarit de
+conversation sans la déclarer : le modèle se chargeait, puis le premier job
+mourait sur un `ImportError`. Une ligne dans l'env, et le problème est réglé sans
+attendre l'amont.
 
 ### 5.4 Contrôle d'admission
 
@@ -272,11 +347,18 @@ Le superviseur (dans le processus API) tient la table des résidents
 
 ```
 budget    = config.memory_budget          # défaut : recommendedMaxWorkingSetSize
+peak      = profil.peak_scaling ? base + pente × entrée[paramètre] : pic mesuré
 résiduel  = budget − Σ peak_bytes(résidents)
 tant que résiduel < peak(candidat) :
-    décharger le résident LRU non épinglé ; recalculer
+    décharger le résident LRU ni épinglé ni occupé ; recalculer
 si peak(candidat) > budget seul → refus explicite (jamais de swap subi)
 ```
+
+Le pic du candidat se calcule **avec l'entrée du job**, pas seulement avec son
+variant : trente secondes de musique coûtent le double de quinze. Hors de
+l'intervalle sur lequel la pente a été ajustée, l'admission extrapole, le dit, et
+ne descend jamais sous le pire cas mesuré — la droite n'est éprouvée que dans sa
+plage. Le job passe alors par le même chemin, avec l'avertissement au manifeste.
 
 Deux résidents ne sont jamais évincés : les **épinglés**, et ceux sur lesquels un
 **job tourne**. Le second cas n'est pas une politesse — décharger un worker en
@@ -346,14 +428,35 @@ React + Vite + TypeScript + `react-jsonschema-form`. Aucun formulaire écrit à 
 1. Vérifie que le variant est téléchargé (sinon propose `ecurie pull`, qui télécharge
    à la révision épinglée avec `allow_patterns`).
 2. Décharge tout le parc, lance le worker en mode mesure.
-3. Mesure : `warmup_ms` (load → loaded), pic mémoire (`mx.get_peak_memory()` si MLX,
-   sinon RSS échantillonné à 100 ms sur toute la vie du worker), `disk_bytes` (somme
-   des artifacts du variant), débit/latence/rtf sur la **charge type de la capacité**
-   (3 entrées fixes par capacité, versionnées avec les golden sets).
-4. Écrit `registry/measurements/<id>@<variant>.json` avec `measured_on`,
+3. Mesure : `warmup_ms` (load → loaded), pic mémoire, `disk_bytes`, débit, latence
+   et `rtf` sur la **charge type de la capacité** — trois entrées fixes,
+   versionnées dans `registry/evals/bench/<capability>.json` avec leurs éventuels
+   fichiers sous `assets/`. Append-only, comme les golden sets : une charge
+   modifiée détruit la comparabilité de toutes les mesures antérieures.
+4. Ajuste, si la charge déclare un `scaling_parameter`, la **pente du pic** par
+   moindres carrés sur ses points, et rend le R² avec. Sous 0,9, la pente est
+   jetée et le profil garde le pire cas : une droite ajustée sur une relation qui
+   n'en est pas une vaut moins que rien.
+5. Écrit `registry/measurements/<id>@<variant>.json` avec `measured_on`,
    `harness_version`, et affiche le patch `profile:` à committer dans le YAML.
    Le fichier de mesure est l'autorité ; le bloc `profile` du manifeste en est la
-   copie committée par un humain.
+   copie committée par un humain. Le patch porte un en-tête nommant le fichier et
+   le variant : collé d'un cran trop loin, il atterrit dans `source:` et YAML
+   l'accepte sans broncher.
+
+**Mesurer le pic est spécifique au runtime, et s'y tromper coûte cher.** MLX
+expose `get_peak_memory()`, qui est exact. PyTorch/MPS n'expose aucun maximum, et
+surtout le RSS du processus **ne compte pas la mémoire Metal** : mesuré sur SDXL,
+452 Mo de RSS pendant que le driver en réservait 15,95 Gio. Un profil écrit sur
+le RSS aurait fait cohabiter deux modèles et provoqué l'OOM que tout ceci existe
+pour empêcher. `driver_allocated_memory()` redescend aussi vite qu'il monte : le
+maximum se tient à chaque relevé, pas une fois à la fin.
+
+Convention de `rtf` : **temps de calcul par seconde produite**, agrégé sur toute
+la charge et non moyenné par cas — la moyenne des ratios donne le même poids à
+une phrase de deux secondes qu'à un paragraphe de quinze, alors que le warmup
+pèse surtout sur la première. `throughput` en est l'inverse ; si les deux cessent
+de l'être, l'un des deux est faux.
 
 ---
 
@@ -362,6 +465,12 @@ React + Vite + TypeScript + `react-jsonschema-form`. Aucun formulaire écrit à 
 - `registry/evals/golden/<capability>/` : entrées figées + `manifest.json`
   (id, entrée, référence attendue s'il y en a une). Règle : **append-only**, jamais
   de modification d'une entrée existante.
+
+  À ne pas confondre avec `registry/evals/bench/`, qui existe depuis le v0.3 :
+  la charge type mesure un **coût** (mémoire, warmup, débit), le golden set mesure
+  une **qualité**. Les deux sont figés pour la même raison, mais on ne juge pas un
+  modèle sur la charge du banc — ses trois entrées sont choisies pour être
+  représentatives d'un coût, pas d'un usage.
 - Métriques automatiques (WER via `jiwer`, exactitude OCR par champs) : exécutées par
   `ecurie eval <model>@<variant>`, résultats dans `registry/evals/results/`.
 - Préférences humaines : l'écran Confrontation soumet
@@ -419,20 +528,49 @@ vérifié au chargement du registre, pas à l'exécution.
   HF, faux blobs Ollama, liens durs réels créés par le test) — les trois chiffres ont
   des valeurs attendues exactes ; plan de GC sur fixtures ; résolveur ; admission
   (simulation pure, aucun modèle réel).
-- **Contrat de worker** : un `fake_worker.py` qui parle le protocole sans charger de
-  modèle — teste supervision, timeout, ping, admission, SSE de bout en bout en CI.
-- **Intégration réelle** (locale, hors CI, `pytest -m real`) : un job TTS complet sur
-  le vrai parc.
+- **Contrat de worker** : un `workers/fake.py` qui parle le protocole sans charger
+  de modèle, et dont on demande les pannes par variables d'environnement
+  (`ECURIE_FAKE_HANG`, `_FAIL`, `_EXIT`, `_IGNORE_SIGTERM`, `_NOISE`). Il éprouve
+  la supervision, le ping, le timeout, l'escalade SIGTERM/SIGKILL, l'éviction, le
+  job complet — en CI, sans Apple Silicon ni poids. Les tests du superviseur
+  lancent de **vrais** sous-processus détachés sur de **vrais** sockets Unix :
+  le mécanisme qui fait survivre un modèle entre deux commandes ne se simule pas.
+- **Adaptateurs réels** : ce qui se vérifie sans le runtime — l'import du module
+  sans la bibliothèque (c'est la situation de la CI), la préparation pure des
+  arguments, le message qui nomme la réparation. Le reste demande le vrai modèle
+  et relève du banc d'essai.
+- **Intégration réelle** (locale, hors CI, `pytest -m real`) : un job TTS complet
+  sur le vrai parc, et la non-répétition du warmup au second job. Ces tests
+  **sautent avec le message qui dit quelle commande manque** plutôt que d'échouer :
+  un test rouge parce qu'un modèle de deux gigaoctets n'est pas téléchargé
+  n'apprend rien à personne.
 - La CI GitHub Actions (runners sans Apple Silicon) n'exécute que unitaires, contrat
   et validation du registre.
+
+Au terme du v0.3 : 556 tests, dont 3 marqués `real`.
 
 ---
 
 ## 13. Questions ouvertes (à trancher pendant, pas avant)
 
-1. `ollama`/`comfy` en proxy HTTP : v0.3 si besoin réel, sinon repoussés — le parc
-   initial tourne avec `mlx-audio`, `diffusers-mps` et `custom`.
+1. ~~`ollama`/`comfy` en proxy HTTP~~ — **repoussés**, comme prévu : le parc tourne
+   sans eux. Trois runtimes de plus sont venus à la place, tous MLX ou PyTorch.
 2. Format du golden set OCR (vérité terrain par champs) : à définir au v0.5 avec les
-   15 pages réelles.
+   15 pages réelles. La charge type du banc en donne déjà la forme la plus simple —
+   trois pages rendues depuis des textes du dépôt, donc à vérité terrain exacte.
 3. `iogpu.wired_limit_mb` : simple page de doc + réglage affiché dans Parc, pas de
    `sudo` lancé par l'outil.
+4. **Hunyuan3D n'a jamais été exécuté.** `runtimes/hunyuan3d/run.py` est écrit
+   d'après le source amont, son env n'est pas synchronisé, le code `hy3dshape`
+   n'est pas vendoré et les 7,37 Go de poids ne sont pas téléchargés. Rien ne
+   prouve que le chemin 2.1 sur MPS fonctionne, et aucune trace publique ne
+   l'établit. C'est le risque principal du v0.7, qui en dépend.
+5. **Le seuil « lourd » de 6 Go est à recalibrer.** Il vient du §7 de
+   l'architecture, écrit avant toute mesure. Les quatre modèles mesurés sont
+   au-dessus (6,25 à 15,95 Gio), donc aucun ne peut cohabiter avec un autre —
+   alors que la voix et la lecture de document tiendraient ensemble dans les
+   17,76 Gio. Un seuil à 8 Go rendrait la politique de nouveau discriminante.
+6. **Aucune capacité ajoutée après le v0.1 n'a de titulaire.** Les trois modèles
+   du parc réel sont en `status: candidate` : ils fonctionnent et sont mesurés,
+   mais rien ne dit encore qu'ils sont les bons. La promotion en `incumbent`
+   demande une comparaison, donc le v0.5.
