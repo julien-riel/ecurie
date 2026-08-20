@@ -30,3 +30,21 @@ def make_manifest(
         ],
         **extra,
     }
+
+
+def minimal_capability(cap_id: str) -> dict:
+    """Le plus petit contrat que `capability.schema.json` accepte."""
+    return {
+        "id": cap_id,
+        "title": cap_id,
+        "input": {
+            "type": "object",
+            "required": ["text"],
+            "additionalProperties": False,
+            "properties": {"text": {"type": "string"}},
+        },
+        "output": {
+            "type": "object",
+            "properties": {"result": {"type": "string", "contentMediaType": "text/plain"}},
+        },
+    }

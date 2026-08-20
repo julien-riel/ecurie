@@ -1,0 +1,31 @@
+{
+  "capability": "text-to-speech",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Trois entrées figées : court, moyen, difficile. Elles ne changent jamais — une charge modifiée détruit la comparabilité de toutes les mesures antérieures. Pour mesurer autre chose, ajouter un cas, jamais en corriger un.",
+  "cases": [
+    {
+      "id": "court",
+      "input": {
+        "text": "Bonjour. Le parc est prêt.",
+        "speed": 1.0,
+        "seed": 1
+      }
+    },
+    {
+      "id": "moyen",
+      "input": {
+        "text": "L'écurie compte aujourd'hui trois modèles actifs, répartis entre la synthèse vocale et la reconstruction de maillages. Le budget de mémoire unifiée est vérifié avant chaque chargement, et le modèle le moins récemment utilisé cède sa place au suivant.",
+        "speed": 1.0,
+        "seed": 2
+      }
+    },
+    {
+      "id": "difficile",
+      "input": {
+        "text": "Le 14 juillet 2026, l'IRSST a publié le rapport R-1428 : 3 247 cas, soit 12,5 % de plus qu'en 2025. Contact : Marie-Josée Beauchêne, CIUSSS de l'Est-de-l'Île-de-Montréal, poste 4021.",
+        "speed": 1.0,
+        "seed": 3
+      }
+    }
+  ]
+}

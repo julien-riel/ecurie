@@ -1,0 +1,66 @@
+# Environnement isolé du runtime Hunyuan3D 2.1 Shape (CONCEPTION.md §5.3).
+#
+# Reconstruit par `ecurie env sync hunyuan3d`, jamais versionné au-delà de ce
+# fichier. Il n'installe QUE la géométrie : la texturation PBR amont réclame une
+# extension CUDA compilée (`custom_rasterizer`), `cupy-cuda12x` et `bpy`, dont rien
+# n'existe pour Apple Silicon. Voir README.md pour la liste complète des paquets
+# amont volontairement écartés.
+#
+# ATTENTION : `hy3dshape` n'est pas ici parce qu'il n'existe pas sur PyPI. Le code
+# d'inférence de Tencent n'est publié que dans un dépôt Git, sans setup.py : `uv
+# sync` ne peut pas l'installer, il faut le vendorer (deux commandes git, dans le
+# README). C'est la seule étape d'installation que `ecurie env sync` ne fait pas.
+
+[project]
+name = "ecurie-runtime-hunyuan3d"
+version = "0.1.0"
+description = "Environnement isolé : Hunyuan3D 2.1 Shape (image vers maillage) sur PyTorch/MPS"
+# Borne haute assumée : les versions épinglées en amont (transformers 4.46,
+# numpy 1.24) précèdent Python 3.13 et rien n'a été vérifié au-delà de 3.12.
+requires-python = ">=3.11,<3.13"
+
+dependencies = [
+    # --- cœur de l'inférence -------------------------------------------------
+    # Les roues macOS arm64 de torch embarquent MPS ; aucune roue CUDA ici.
+    "torch>=2.5.1,<2.14",
+    "torchvision>=0.20.1,<0.29",      # conditioner.py : torchvision.transforms
+    "transformers>=4.46,<5",          # Dinov2Model / Dinov2Config du conditionneur
+    "diffusers>=0.30,<0.40",          # randn_tensor, models.attention.FeedForward
+    "accelerate>=1.1.1",              # sondé par diffusers.utils.import_utils
+    "timm>=1.0",                      # moe_layers.py : PatchEmbed / Attention / Mlp
+    "einops>=0.8.0",
+    "safetensors>=0.4.4",
+    "huggingface-hub>=0.30.2",        # importé par utils.py, jamais appelé : HF_HUB_OFFLINE=1
+
+    # --- pré et post-traitement ----------------------------------------------
+    "numpy>=1.26,<3",
+    "scipy>=1.14",
+    # Obligatoire, pas optionnel : l'extracteur de surface par défaut est
+    # skimage.measure.marching_cubes, et l'autre (`dmc`, paquet `diso`) est CUDA.
+    "scikit-image>=0.24",
+    "opencv-python>=4.10",            # preprocessors.py : cv2.resize / recenter
+    "pillow>=10",
+    "trimesh>=4.4.7",                 # export GLB natif, sans dépendance de plus
+    "pyyaml>=6.0.2",
+    "omegaconf>=2.3.0",               # hy3dshape/utils/misc.py
+    "tqdm>=4.66.5",
+
+    # Dépendance non désirée mais non contournable : `hy3dshape/__init__.py`
+    # importe `postprocessors`, qui importe `pymeshlab` au niveau du module. Tout
+    # import d'un sous-module de hy3dshape l'exige donc, y compris pour ne produire
+    # que de la géométrie — contrairement à ce que suggère la démo minimale amont.
+    # À retirer le jour où cet import disparaît en amont.
+    "pymeshlab>=2023.12",
+]
+
+# Sans cette section, `uv` remonte l'arborescence, trouve le workspace de la racine
+# du dépôt, constate que cet environnement n'en est pas membre et refuse de le
+# synchroniser. Un environnement de runtime est volontairement hors workspace :
+# c'est toute la raison d'être de l'isolation (ARCHITECTURE.md §5).
+[tool.uv.workspace]
+members = []
+
+# Rien à construire ici : cet environnement n'expose aucun paquet, il n'héberge que
+# les dépendances de `run.py` et le vendoring de hy3dshape.
+[tool.uv]
+package = false

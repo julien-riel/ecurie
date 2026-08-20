@@ -1,0 +1,43 @@
+# Environnement isolé du runtime `mlx-audio` (CONCEPTION.md §5.3, ARCHITECTURE.md §5).
+#
+# Il n'existe que pour faire tourner `ecurie_runtime.workers.mlx_audio`, donc
+# aujourd'hui le variant `qwen3-tts-1.7b@8bit-mlx` — Qwen3-TTS CustomVoice sur
+# Apple Silicon. Écurie n'est PAS installé ici et ne doit pas l'être : le
+# superviseur rend visibles par PYTHONPATH les trois modules du protocole, qui
+# sont en bibliothèque standard pure (voir `envs.py`).
+#
+# Le `.venv` n'est pas versionné, ce fichier l'est. Pour le reconstruire :
+#
+#     ecurie env sync mlx-audio
+#
+# Aucun extra de mlx-audio n'est nécessaire : `[tts]` sert à Voxtral via
+# mistral-common, `[server]` à l'API FastAPI du paquet, dont Écurie n'a que faire.
+# ffmpeg non plus : l'écriture WAV passe par miniaudio, déjà en dépendance de
+# base. Il ne redeviendrait nécessaire que pour flac/mp3/ogg/opus.
+
+[project]
+name = "ecurie-runtime-mlx-audio"
+version = "0.3.0"
+description = "Écurie — environnement isolé du runtime mlx-audio (TTS/ASR, Apple Silicon)"
+# mlx-audio se contente de 3.10, mais le worker exécute `ecurie_runtime.workers.base`,
+# écrit pour le socle 3.12 d'Écurie. Aligner les deux évite qu'un env synchronisé
+# avec l'interpréteur que uv trouve en premier échoue à l'import du protocole.
+requires-python = ">=3.12"
+
+dependencies = [
+    # L'adaptateur est écrit contre la surface d'API de la 0.5.0 :
+    # `mlx_audio.tts.utils.load_model`, `Model.generate_custom_voice(speaker=…)`,
+    # `mlx_audio.audio_io.write`. Elle a été relevée dans le source, jamais
+    # exécutée — d'où la borne haute sur la mineure : mlx-audio bouge vite et
+    # `generate_custom_voice` y est récente. Monter la borne est un geste
+    # délibéré, qui se vérifie par un job réel, pas une résolution silencieuse.
+    "mlx-audio>=0.5.0,<0.6",
+    # mlx-audio n'exige que >=0.31.1 ; on prend la version où les compteurs
+    # `get_peak_memory` / `reset_peak_memory` utilisés par l'adaptateur pour le
+    # contrôle d'admission sont documentés tels quels.
+    "mlx>=0.32.1",
+]
+
+# Cet env n'est pas une bibliothèque : rien à construire, rien à installer de lui-même.
+[tool.uv]
+package = false

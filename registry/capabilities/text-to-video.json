@@ -1,0 +1,82 @@
+{
+  "id": "text-to-video",
+  "title": "Texte vers vidéo",
+  "input": {
+    "type": "object",
+    "required": ["prompt"],
+    "additionalProperties": false,
+    "properties": {
+      "prompt": {
+        "type": "string",
+        "minLength": 1,
+        "x-ui": "textarea",
+        "description": "Description de la scène et du mouvement voulus."
+      },
+      "negative_prompt": {
+        "type": "string",
+        "x-ui": "textarea",
+        "description": "Ce qu'il faut éviter : artefacts, mouvements de caméra parasites."
+      },
+      "width": {
+        "type": "integer",
+        "minimum": 256,
+        "maximum": 1280,
+        "multipleOf": 16,
+        "default": 832,
+        "description": "Largeur en pixels, multiple de 16. Au-delà de 832, prévoir une longue attente sur 24 Go."
+      },
+      "height": {
+        "type": "integer",
+        "minimum": 256,
+        "maximum": 720,
+        "multipleOf": 16,
+        "default": 480,
+        "description": "Hauteur en pixels, multiple de 16."
+      },
+      "num_frames": {
+        "type": "integer",
+        "minimum": 8,
+        "maximum": 129,
+        "default": 81,
+        "description": "Nombre d'images. 81 à 16 im/s font environ 5 secondes. Les modèles Wan attendent 4n+1."
+      },
+      "fps": {
+        "type": "integer",
+        "minimum": 8,
+        "maximum": 30,
+        "default": 16,
+        "description": "Cadence du fichier produit."
+      },
+      "steps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 60,
+        "default": 30,
+        "description": "Pas de débruitage. Le poste de coût principal : le temps y est proportionnel."
+      },
+      "guidance_scale": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 15.0,
+        "default": 5.0,
+        "description": "Fidélité à la description."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Graine aléatoire. À conserver pour rejouer la même séquence."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["video"],
+    "properties": {
+      "video": {
+        "type": "string",
+        "contentMediaType": "video/mp4",
+        "description": "Chemin de la vidéo produite, relatif au dossier du job."
+      }
+    }
+  }
+}

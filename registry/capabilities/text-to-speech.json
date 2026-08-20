@@ -23,6 +23,11 @@
         "minimum": 0.5,
         "maximum": 2.0,
         "default": 1.0
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Graine aléatoire. Les moteurs récents échantillonnent : sans graine, deux synthèses du même texte diffèrent."
       }
     }
   },

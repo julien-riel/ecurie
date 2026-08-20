@@ -36,7 +36,7 @@ def repo_root() -> Path:
 @pytest.fixture
 def fake_hf(tmp_path: Path) -> Path:
     hub = tmp_path / "hf-hub"
-    repo = hub / "models--mlx-community--Qwen3-TTS-1.7B-8bit"
+    repo = hub / ("models--" + HF_REPO.replace("/", "--"))
     blobs = repo / "blobs"
     blobs.mkdir(parents=True)
     (blobs / SHA_LIVE).write_bytes(b"L" * 1000)

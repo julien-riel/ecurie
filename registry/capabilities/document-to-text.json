@@ -1,0 +1,67 @@
+{
+  "id": "document-to-text",
+  "title": "Lecture de document (OCR)",
+  "input": {
+    "type": "object",
+    "required": ["document"],
+    "additionalProperties": false,
+    "properties": {
+      "document": {
+        "type": "string",
+        "contentMediaType": "application/pdf,image/*",
+        "x-ui": "file",
+        "description": "Document à lire : PDF ou page numérisée."
+      },
+      "language": {
+        "type": "string",
+        "x-ui": "select",
+        "x-options-from": "runtime.languages",
+        "description": "Langue dominante attendue. Vide = détection automatique."
+      },
+      "format": {
+        "type": "string",
+        "enum": ["text", "markdown"],
+        "default": "markdown",
+        "description": "Mise en forme du texte extrait : brut, ou Markdown avec titres, listes et tableaux."
+      },
+      "detect_layout": {
+        "type": "boolean",
+        "default": true,
+        "description": "Restituer la structure de page : blocs, tableaux, ordre de lecture."
+      },
+      "page_range": {
+        "type": "string",
+        "pattern": "^\\d+(-\\d+)?(,\\d+(-\\d+)?)*$",
+        "description": "Pages à traiter, par exemple 1-5,8. Vide = tout le document."
+      },
+      "dpi": {
+        "type": "integer",
+        "minimum": 72,
+        "maximum": 600,
+        "default": 200,
+        "description": "Résolution de rastérisation des pages PDF. Au-delà de 300, la mémoire monte sans gain de lecture."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["text"],
+    "properties": {
+      "text": {
+        "type": "string",
+        "contentMediaType": "text/plain",
+        "description": "Chemin du texte extrait, relatif au dossier du job."
+      },
+      "layout": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin de la structure de page — blocs, tableaux, boîtes englobantes —, relatif au dossier du job."
+      },
+      "page_count": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de pages effectivement traitées."
+      }
+    }
+  }
+}

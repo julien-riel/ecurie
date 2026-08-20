@@ -3,7 +3,7 @@ name = "ecurie-workspace"
 version = "0.1.0"
 description = "Racine du workspace Écurie — voir ARCHITECTURE.md"
 requires-python = ">=3.12"
-dependencies = ["ecurie-core", "ecurie-store"]
+dependencies = ["ecurie-core", "ecurie-store", "ecurie-runtime"]
 
 [dependency-groups]
 dev = [
@@ -20,6 +20,7 @@ members = ["packages/*"]
 [tool.uv.sources]
 ecurie-core = { workspace = true }
 ecurie-store = { workspace = true }
+ecurie-runtime = { workspace = true }
 
 [tool.ruff]
 line-length = 100
@@ -29,6 +30,6 @@ target-version = "py312"
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
-testpaths = ["packages/core/tests", "packages/store/tests"]
+testpaths = ["packages/core/tests", "packages/store/tests", "packages/runtime/tests"]
 markers = ["real: tests d'intégration sur le vrai parc, hors CI"]
 addopts = "-m 'not real'"

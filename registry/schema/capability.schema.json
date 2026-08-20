@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecurie.local/schema/capability.schema.json",
+  "title": "Contrat de capacité Écurie",
+  "description": "Schémas d'entrée et de sortie d'une capacité. Tous les modèles d'une même capacité sont interchangeables derrière ce contrat : c'est lui qui engendre le formulaire de l'UI et qui rend la confrontation A/B et le chaînage vérifiables.",
+  "type": "object",
+  "required": ["id", "title", "input", "output"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "description": "Facultatif. Référence à ce méta-schéma." },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "description": "Identifiant de la capacité. Identique au nom du fichier, et présent dans l'enum capability de model.schema.json."
+    },
+    "title": {
+      "type": "string",
+      "description": "Libellé affiché dans l'UI, en français."
+    },
+    "description": {
+      "type": "string",
+      "description": "Ce que fait la capacité, en une phrase."
+    },
+    "input": {
+      "$ref": "#/$defs/entree",
+      "description": "Schéma du formulaire d'entrée. L'UI le rend tel quel : aucun formulaire n'est écrit à la main."
+    },
+    "output": {
+      "$ref": "#/$defs/sortie",
+      "description": "Schéma de la sortie. Le visualiseur est choisi d'après contentMediaType."
+    },
+    "composite": {
+      "type": "boolean",
+      "default": false,
+      "description": "true pour une capacité qui enchaîne d'autres capacités au lieu d'appeler un modèle. Voir steps."
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/etape" },
+      "description": "Étapes d'une capacité composite, dans l'ordre d'exécution. Chaque étape est un job atomique normal, inscrit dans la Bibliothèque."
+    },
+    "checkpoint_after": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 0 },
+      "uniqueItems": true,
+      "description": "Index des étapes après lesquelles l'exécution s'arrête et rend la main à l'humain : régénérer ou continuer."
+    }
+  },
+  "dependentRequired": {
+    "checkpoint_after": ["steps"]
+  },
+  "if": {
+    "required": ["composite"],
+    "properties": { "composite": { "const": true } }
+  },
+  "then": {
+    "required": ["steps"]
+  },
+  "$defs": {
+    "entree": {
+      "type": "object",
+      "required": ["type", "required", "additionalProperties", "properties"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "object" },
+        "description": { "type": "string" },
+        "required": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "description": "Champs obligatoires. Une entrée sans champ obligatoire n'a rien à traiter."
+        },
+        "additionalProperties": {
+          "const": false,
+          "description": "Toujours false : un paramètre non déclaré est un paramètre que l'UI ne sait pas rendre et que le worker ne saura pas lire."
+        },
+        "properties": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/champ" },
+          "description": "Un champ par paramètre exposé à l'utilisateur."
+        }
+      }
+    },
+    "sortie": {
+      "type": "object",
+      "required": ["type", "properties"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "const": "object" },
+        "description": { "type": "string" },
+        "required": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "description": "Sorties toujours produites, quel que soit le modèle."
+        },
+        "additionalProperties": { "type": "boolean" },
+        "properties": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/champ" },
+          "description": "Un champ par sortie. Une sortie portant un contentMediaType est un chemin de fichier."
+        }
+      }
+    },
+    "champ": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "description": "Un paramètre ou une sortie. Le vocabulaire est volontairement fermé : l'UI ne rend que ce qu'elle sait rendre.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "number", "integer", "boolean", "array", "object"]
+        },
+        "title": { "type": "string", "description": "Étiquette du champ. Par défaut, l'UI reprend le nom de la clé." },
+        "description": { "type": "string", "description": "Phrase courte, en français, utile à qui remplit le formulaire." },
+        "default": { "description": "Valeur pré-remplie dans le formulaire." },
+        "const": { "description": "Valeur imposée." },
+        "enum": { "type": "array", "minItems": 1, "description": "Liste fermée de valeurs. Rendue en liste déroulante." },
+        "minimum": { "type": "number" },
+        "maximum": { "type": "number" },
+        "exclusiveMinimum": { "type": "number" },
+        "exclusiveMaximum": { "type": "number" },
+        "multipleOf": { "type": "number", "exclusiveMinimum": 0 },
+        "minLength": { "type": "integer", "minimum": 0 },
+        "maxLength": { "type": "integer", "minimum": 0 },
+        "pattern": { "type": "string", "format": "regex" },
+        "format": { "type": "string" },
+        "minItems": { "type": "integer", "minimum": 0 },
+        "maxItems": { "type": "integer", "minimum": 0 },
+        "items": { "$ref": "#/$defs/champ" },
+        "properties": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/champ" },
+          "description": "Sous-champs, pour un champ de type object."
+        },
+        "required": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "additionalProperties": { "type": "boolean" },
+        "contentMediaType": {
+          "type": "string",
+          "description": "Type de média. En entrée, filtre le sélecteur de fichier. En sortie, choisit le visualiseur — audio/wav, image/png, video/mp4, model/gltf-binary, text/plain — et signale que la valeur est un chemin relatif au dossier du job."
+        },
+        "x-ui": {
+          "type": "string",
+          "enum": ["textarea", "select", "file", "slider", "hidden"],
+          "description": "Widget imposé côté UI. Sans cette clé, le widget découle du type."
+        },
+        "x-options-from": {
+          "type": "string",
+          "pattern": "^runtime\\.[a-z][a-z0-9_]*$",
+          "description": "Options chargées à l'exécution depuis la réponse loaded du worker, par exemple runtime.voices."
+        }
+      }
+    },
+    "etape": {
+      "type": "object",
+      "required": ["capability"],
+      "additionalProperties": false,
+      "description": "Une étape d'une capacité composite.",
+      "properties": {
+        "capability": {
+          "type": "string",
+          "description": "Capacité atomique invoquée. Doit avoir son propre contrat dans registry/capabilities/."
+        },
+        "expose": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "description": "Paramètres de l'étape remontés dans le formulaire de la capacité composite."
+        },
+        "input_from": {
+          "type": "string",
+          "description": "Origine de l'entrée de l'étape, par exemple steps[0].output.image. La compatibilité des types est vérifiée au chargement du registre, pas à l'exécution."
+        }
+      }
+    }
+  }
+}

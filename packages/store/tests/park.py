@@ -9,4 +9,7 @@ ETAG40 = "9f" * 20  # petit fichier HF non-LFS, etag 40 caractères (10 o)
 REV_LIVE = "e" * 40
 REV_STALE = "d" * 40
 
-HF_REPO = "mlx-community/Qwen3-TTS-1.7B-8bit"  # correspond au manifeste réel du dépôt
+# Le dépôt du manifeste réel : le faux cache HF le porte pour que le résolveur
+# rattache vraiment ses blobs à qwen3-tts-1.7b@8bit-mlx. Épinglé au v0.3 (3.5),
+# à suivre si le manifeste change de dépôt.
+HF_REPO = "mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit"

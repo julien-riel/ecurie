@@ -10,9 +10,15 @@ status: active
 incumbent: true
 
 notes: >
-  Retenu plutôt que Fish Speech S2 pour l'empreinte mémoire : reste résident en
-  permanence sans entamer le budget des modèles lourds. À réévaluer si un portage MLX
-  de Fish Speech S2 apparaît.
+  Retenu plutôt que Fish Speech S2, à réévaluer si un portage MLX de Fish Speech S2
+  apparaît. ATTENTION — la mesure du 20 août 2026 dément l'hypothèse d'origine
+  (« reste résident sans entamer le budget des lourds ») : le pic est de 8,2 Go,
+  au-dessus du seuil de 6 Go, donc ce variant compte comme un modèle lourd et
+  occupe à lui seul la place unique que la politique du parc leur réserve. Un job
+  image le déchargera systématiquement, et le warmup de 1,3 s sera repayé à chaque
+  retour. Deux issues à trancher : relever `heavy_threshold_bytes`, ou essayer le
+  0.6B (mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit) qui tiendrait chaud
+  en permanence.
 
 variants:
   - id: 8bit-mlx
@@ -21,11 +27,35 @@ variants:
     runtime: mlx-audio
     source:
       kind: huggingface
-      repo: mlx-community/Qwen3-TTS-1.7B-8bit   # à confirmer au premier scan
-      revision: "0000000"                        # PLACEHOLDER — CI refusera tant que non épinglé
-      allow_patterns: ["*.safetensors", "*.json", "tokenizer*"]
+      # Le dépôt supposé au v0.1 (mlx-community/Qwen3-TTS-1.7B-8bit) n'existe pas :
+      # HF répond 401, ce qui se lit à tort comme un défaut de jeton. Le portage
+      # réellement publié est celui-ci, converti avec mlx-audio et déclarant
+      # model_type: qwen3_tts (le type que MODEL_REMAPPING de mlx-audio attend).
+      repo: mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit
+      revision: "41d3337e8b7f2843a75841595fc14e4b9a7a4b96"   # 2026-01-26, apache-2.0
+      # Le `*` de fnmatch traverse les `/` : `*.json` et `*.safetensors` prennent
+      # aussi le contenu de speech_tokenizer/, dont l'absence fait échouer la
+      # synthèse sur « Speech tokenizer not loaded ». Le dossier est répété ici
+      # pour que l'intention se lise, et merges.txt nommé parce que le tokenizer
+      # BPE ne se charge pas sans lui (vocab.json seul ne suffit pas).
+      allow_patterns: ["*.json", "*.safetensors", "merges.txt", "speech_tokenizer/*"]
     defaults:
+      # Une des 9 voix déclarées par talker_config.spk_id de ce dépôt ; le worker
+      # les réannonce au chargement (options.voices), la valeur ici n'est qu'un
+      # départ pour qui ne choisit pas.
+      voice: serena
       speed: 1.0
     caveats:
       - "Sigles et nombres à valider sur le golden set FR."
-    # profile: absent — sera écrit par `ecurie bench qwen3-tts-1.7b@8bit-mlx`
+      - "`speed` n'est pas honoré : le source mlx-audio le note « not directly supported yet » pour Qwen3-TTS et generate_custom_voice n'a pas ce paramètre. Seule la valeur 1.0 est sincère."
+      - "Voix non évaluées en français : `french` figure bien dans codec_language_id, mais les 9 timbres sont documentés en chinois et en anglais."
+    profile:
+      disk_bytes: 3080138901
+      peak_unified_memory_bytes: 8209951240
+      warmup_ms: 1268
+      latency_ms_p50: 7918
+      rtf: 0.440386
+      throughput: "2.27× temps réel"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2"
+      measured_at: "2026-08-20"
+      harness_version: "0.3.0"

@@ -1,0 +1,75 @@
+{
+  "id": "audio-separation",
+  "title": "Séparation de pistes audio",
+  "input": {
+    "type": "object",
+    "required": ["audio"],
+    "additionalProperties": false,
+    "properties": {
+      "audio": {
+        "type": "string",
+        "contentMediaType": "audio/*",
+        "x-ui": "file",
+        "description": "Enregistrement mixé à séparer."
+      },
+      "stems": {
+        "type": "integer",
+        "enum": [2, 4],
+        "default": 2,
+        "description": "2 = voix et accompagnement. 4 = voix, batterie, basse et le reste."
+      },
+      "shifts": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "default": 1,
+        "description": "Passes décalées puis moyennées. Meilleure séparation, temps multiplié d'autant."
+      },
+      "segment_seconds": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 60,
+        "default": 10,
+        "description": "Longueur des tranches traitées. À baisser si la mémoire unifiée sature sur un long morceau."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["tracks"],
+    "properties": {
+      "tracks": {
+        "type": "object",
+        "required": ["vocals"],
+        "description": "Pistes produites. Les clés présentes dépendent du paramètre stems.",
+        "properties": {
+          "vocals": {
+            "type": "string",
+            "contentMediaType": "audio/wav",
+            "description": "Chemin de la piste de voix, relatif au dossier du job."
+          },
+          "accompaniment": {
+            "type": "string",
+            "contentMediaType": "audio/wav",
+            "description": "Chemin de la piste d'accompagnement (tout sauf la voix), relatif au dossier du job."
+          },
+          "drums": {
+            "type": "string",
+            "contentMediaType": "audio/wav",
+            "description": "Chemin de la piste de batterie, relatif au dossier du job. Séparation en 4 pistes seulement."
+          },
+          "bass": {
+            "type": "string",
+            "contentMediaType": "audio/wav",
+            "description": "Chemin de la piste de basse, relatif au dossier du job. Séparation en 4 pistes seulement."
+          },
+          "other": {
+            "type": "string",
+            "contentMediaType": "audio/wav",
+            "description": "Chemin de la piste des instruments restants, relatif au dossier du job. Séparation en 4 pistes seulement."
+          }
+        }
+      }
+    }
+  }
+}

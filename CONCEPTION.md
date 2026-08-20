@@ -24,8 +24,16 @@ Séparation stricte :
 | État | Support | Contenu |
 |---|---|---|
 | Déclaré | `registry/` en Git | manifestes, capacités, `measurements/`, `evals/preferences.jsonl` |
-| Observé | `~/.ecurie/state.db` (SQLite) | artifacts, locations, cache de hash, télémétrie, résidents mémoire |
+| Observé | `~/.ecurie/state.db` (SQLite) | artifacts, locations, cache de hash, télémétrie |
+| Observé | `~/.ecurie/residents.json` | modèles chargés en mémoire, sous verrou de fichier |
 | Dérivé | recalculé, jamais committé | classement Elo, trois chiffres d'occupation, plans de GC |
+
+Les résidents mémoire sont à part, hors SQLite : ils changent à chaque commande,
+sont lus et réécrits sous verrou exclusif par le superviseur (§5.4), et une
+entrée dont le processus est mort doit disparaître à la lecture. Un fichier JSON
+verrouillé dit cela plus simplement qu'une table qu'il faudrait garder en
+cohérence avec des PID. Les sockets des workers, eux, vivent dans un répertoire
+temporaire court et non dans `~/.ecurie` : `sun_path` est limité à 104 octets.
 
 Le **résolveur** (`packages/core/resolver.py`) fait la jointure : pour chaque variant
 déclaré, il retrouve ses artifacts observés et en déduit le `tier` réel (un variant
@@ -117,7 +125,19 @@ Outillage : Python 3.12, `uv` workspace (un `pyproject.toml` racine, un par paqu
   valide contre le schéma, vérifie les invariants inter-fichiers : un seul
   `incumbent` par capacité, `capability` du manifeste existe dans `capabilities/`,
   `runtime_env` existe sous `runtimes/`, `revision` non-placeholder si
-  `status: active`.
+  `status: active`. S'y ajoute la **validation croisée** avec le contrat de
+  capacité : chaque clé de `defaults:` doit être un paramètre déclaré par le
+  contrat, et sa valeur doit valider le sous-schéma correspondant. Une clé
+  inconnue n'est pas une coquille sans suite — elle ne serait jamais transmise au
+  worker, et le réglage qu'on croit appliqué ne le serait pas.
+- **Deux blocs de réglages, et il faut les distinguer** : `defaults:` porte les
+  valeurs par défaut des paramètres *du contrat* pour ce variant, donc
+  interchangeables entre modèles d'une même capacité et affichées par l'UI ;
+  `options:` porte les réglages *propres au runtime* — la langue forcée d'un
+  moteur TTS, un mode de découpe — qui ne sont pas un dénominateur commun de la
+  capacité, ne sont pas croisés avec le contrat, et sont transmis tels quels au
+  worker en `params`. Sans cette séparation, il faudrait choisir entre relâcher la
+  validation croisée et interdire tout réglage spécifique à un moteur.
 - **Config machine** : `~/.ecurie/config.toml` — chemins des gestionnaires scannés
   (avec autodétection par défaut), volumes de tiering autorisés, budget mémoire
   (`auto` = `recommendedMaxWorkingSetSize` lu via MLX, ou valeur explicite),
@@ -203,13 +223,31 @@ message :
 ← {"ev":"progress","job_id":"j1","pct":40,"note":"…"}        (0..n)
 ← {"ev":"result","job_id":"j1","output":{"audio":"audio.wav"},"metrics":{"rtf":0.11}}
 ← {"ev":"error","job_id":"j1","message":"…","trace":"…"}
-→ {"op":"unload"}   /   {"op":"ping"} ← {"ev":"pong","rss_bytes":…}
+→ {"op":"unload"}  ← {"ev":"unloaded","rss_bytes":…}
+→ {"op":"ping"}    ← {"ev":"pong","rss_bytes":…}
 ```
 
 Règles : les sorties binaires vont **en fichiers** dans `output_dir`, jamais en
 base64 sur stdio ; `stderr` du worker est capturé en log, seul `stdout` porte le
 protocole ; un worker qui ne répond pas au ping en 10 s est tué (SIGTERM puis SIGKILL)
 et son variant marqué non résident.
+
+`unloaded` accuse réception du déchargement. Sans lui, le superviseur ne saurait
+pas quand la mémoire est rendue et chargerait le modèle suivant par-dessus le
+précédent — le swap que le contrôle d'admission (§5.4) existe pour empêcher.
+
+Deux transports pour ce même protocole, selon la durée de vie du worker :
+
+- **stdio**, pour un worker attaché à la commande qui le lance : c'est le mode du
+  banc d'essai, qui mesure un modèle seul et ne doit rien laisser derrière lui ;
+- **socket Unix** (`--listen`), pour un worker résident qui survit à la commande.
+  C'est ce qui permet à `ecurie run` de retrouver un modèle déjà chaud et de ne
+  pas repayer le warmup à chaque phrase (§7 de l'architecture). Le worker écoute
+  une connexion à la fois ; le dialogue est identique, octet pour octet.
+
+Côté worker, le descripteur 1 est réservé au protocole dès le démarrage et
+remplacé par le descripteur 2 : une barre de progression ou un avertissement de
+bibliothèque part alors dans le journal au lieu de couper une ligne JSON en deux.
 
 ### 5.2 Adaptateurs
 
@@ -239,6 +277,14 @@ tant que résiduel < peak(candidat) :
     décharger le résident LRU non épinglé ; recalculer
 si peak(candidat) > budget seul → refus explicite (jamais de swap subi)
 ```
+
+Deux résidents ne sont jamais évincés : les **épinglés**, et ceux sur lesquels un
+**job tourne**. Le second cas n'est pas une politesse — décharger un worker en
+pleine inférence ne libère rien tout de suite, cela détruit un travail en cours,
+et la commande qui l'a provoqué n'en sait même rien. L'occupation est portée par
+le registre des résidents sous la forme du **pid du processus qui tient le
+worker** : un drapeau resterait posé pour toujours si la commande était
+interrompue, un pid se vérifie.
 
 Politique du §7 de l'architecture encodée en config : `max_heavy_resident = 1`
 (lourd = peak > 6 Go), les légers restent chauds. Un variant **sans profil mesuré**
