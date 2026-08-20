@@ -1,7 +1,7 @@
 """Invariants du registre sur des fixtures synthétiques."""
 
-from conftest import make_manifest
 from ecurie_core.registry import load_registry
+from manifest_helpers import make_manifest
 
 
 def test_manifeste_valide_sans_probleme(registry_builder):

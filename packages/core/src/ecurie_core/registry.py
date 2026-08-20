@@ -58,6 +58,15 @@ class Registry:
         return None
 
 
+def find_root(start: Path) -> Path | None:
+    """Remonte depuis `start` jusqu'au dossier contenant le schéma du registre."""
+    start = start.resolve()
+    for candidate in [start, *start.parents]:
+        if (candidate / SCHEMA_PATH).is_file():
+            return candidate
+    return None
+
+
 def _is_placeholder(revision: str | None) -> bool:
     """Révision non épinglée : placeholder tout-zéros ou référence flottante."""
     if revision is None:
