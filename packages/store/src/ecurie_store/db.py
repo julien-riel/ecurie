@@ -134,6 +134,107 @@ class StateDB:
             for row in rows
         ]
 
+    # --- cache de hachage (CONCEPTION.md §1.2) --------------------------------
+    #
+    # La clé de validité est le quadruplet (path, size, mtime, inode) : si l'un
+    # des quatre a bougé, l'entrée est périmée et le sha256 doit être recalculé.
+
+    def hash_cache_get(self, path: str, size: int, mtime: float, inode: int) -> str | None:
+        row = self.conn.execute(
+            "SELECT sha256 FROM hash_cache"
+            " WHERE path = ? AND size = ? AND mtime = ? AND inode = ? AND sha256 IS NOT NULL",
+            (path, size, mtime, inode),
+        ).fetchone()
+        return row[0] if row else None
+
+    def hash_cache_put(
+        self,
+        path: str,
+        size: int,
+        mtime: float,
+        inode: int,
+        sha256: str,
+        verified_at: str | None = None,
+    ) -> None:
+        with self.conn:
+            self.conn.execute(
+                "INSERT OR REPLACE INTO hash_cache"
+                " (path, size, mtime, inode, quick_hash, sha256, verified_at)"
+                " VALUES (?, ?, ?, ?, NULL, ?, ?)",
+                (path, size, mtime, inode, sha256, verified_at or datetime.now(UTC).isoformat()),
+            )
+
+    def hash_cache_size(self) -> int:
+        return self.conn.execute("SELECT count(*) FROM hash_cache").fetchone()[0]
+
+    def set_location_hash(self, path: str, sha256: str, source: str = "verified") -> None:
+        """Écrit le hash vérifié dans la Location et trace sa provenance.
+
+        Ce qu'annonçait le gestionnaire est mis de côté avant d'être recouvert :
+        sans cette trace, un blob dont le nom ment ne serait signalé qu'une fois,
+        et la vérification suivante le déclarerait conforme.
+        """
+        row = self.conn.execute(
+            "SELECT meta, size, sha256 FROM locations WHERE path = ?", (path,)
+        ).fetchone()
+        if row is None:
+            return
+        meta = json.loads(row[0])
+        if meta.get("hash_source") == "announced" and row[2] and "announced_sha256" not in meta:
+            meta["announced_sha256"] = row[2]
+        meta["hash_source"] = source
+        now = datetime.now(UTC).isoformat()
+        with self.conn:
+            self.conn.execute(
+                "UPDATE locations SET sha256 = ?, meta = ? WHERE path = ?",
+                (sha256, json.dumps(meta), path),
+            )
+            self.conn.execute(
+                "INSERT OR IGNORE INTO artifacts (sha256, size, first_seen) VALUES (?, ?, ?)",
+                (sha256, row[1], now),
+            )
+
+    # --- télémétrie d'usage (poste « variants jamais utilisés ») --------------
+
+    def record_run(
+        self,
+        run_id: str,
+        variant_ref: str,
+        started_at: str | None = None,
+        duration_ms: int | None = None,
+        job_dir: str | None = None,
+        ok: bool | None = None,
+    ) -> None:
+        with self.conn:
+            self.conn.execute(
+                "INSERT OR REPLACE INTO runs"
+                " (id, variant_ref, started_at, duration_ms, job_dir, ok)"
+                " VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    run_id,
+                    variant_ref,
+                    started_at or datetime.now(UTC).isoformat(),
+                    duration_ms,
+                    job_dir,
+                    None if ok is None else int(ok),
+                ),
+            )
+
+    def runs_count(self) -> int:
+        return self.conn.execute("SELECT count(*) FROM runs").fetchone()[0]
+
+    def first_run_at(self) -> str | None:
+        """Depuis quand la télémétrie observe. Une télémétrie de la veille ne peut
+        pas conclure qu'un variant n'a pas servi depuis trois mois."""
+        row = self.conn.execute("SELECT min(started_at) FROM runs").fetchone()
+        return row[0] if row and row[0] else None
+
+    def last_run_by_variant(self) -> dict[str, str]:
+        rows = self.conn.execute(
+            "SELECT variant_ref, max(started_at) FROM runs GROUP BY variant_ref"
+        ).fetchall()
+        return {row[0]: row[1] for row in rows}
+
     def set_variant_refs(self, refs: dict[str, str | None]) -> None:
         with self.conn:
             self.conn.executemany(

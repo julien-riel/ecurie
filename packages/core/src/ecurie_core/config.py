@@ -41,11 +41,20 @@ class Config(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     memory_budget: Literal["auto"] | int = "auto"
+    tier_volumes: list[Path] = Field(default_factory=list)
     scan: ScanConfig = Field(default_factory=ScanConfig)
 
     @property
     def state_db(self) -> Path:
         return ecurie_home() / "state.db"
+
+    @property
+    def trash_dir(self) -> Path:
+        return ecurie_home() / "trash"
+
+    @property
+    def plans_dir(self) -> Path:
+        return ecurie_home() / "plans"
 
 
 def autodetect_scan() -> ScanConfig:
@@ -81,6 +90,10 @@ def render_config(config: Config) -> str:
         f"memory_budget = {config.memory_budget!r}"
         if isinstance(config.memory_budget, str)
         else f"memory_budget = {config.memory_budget}",
+        "",
+        "# Volumes externes autorisés pour le tiering (`ecurie store tier`). Ils sont",
+        "# aussi scannés : un volume démonté marque ses variants « froid indisponible ».",
+        f"tier_volumes = {toml_list(config.tier_volumes)}",
         "",
         "[scan]",
     ]
