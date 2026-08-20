@@ -1,0 +1,33 @@
+# Second maillon de la capacité composite text-to-mesh.
+id: hunyuan3d-2.1-shape-mlx
+name: Hunyuan3D 2.1 Shape (MLX)
+capability: image-to-mesh
+family: hunyuan3d
+vendor: Tencent
+license: tencent-hunyuan-community
+license_class: restricted     # restrictions géographiques et de seuil d'usage — à lire avant tout usage pro
+status: active
+incumbent: true
+
+notes: >
+  Géométrie de bonne tenue sur Apple Silicon. Le pipeline PBR complet n'est pas couvert :
+  prévoir une passe de texturation séparée. Alternative TRELLIS.2 (MIT, meilleure sur le
+  papier) bloquée par ses noyaux CUDA — voir candidate trellis2.
+
+variants:
+  - id: mlx-bf16
+    quantization: bf16
+    tier: hot
+    runtime: custom
+    runtime_env: hunyuan3d
+    entrypoint: runtimes/hunyuan3d/run.py
+    source:
+      kind: huggingface
+      repo: tencent/Hunyuan3D-2.1
+      revision: "0000000"                        # PLACEHOLDER
+    defaults:
+      octree_resolution: 256
+      num_inference_steps: 30
+    caveats:
+      - "Géométrie seulement, pas de PBR complet."
+      - "Licence à restrictions : vérifier avant tout usage professionnel."

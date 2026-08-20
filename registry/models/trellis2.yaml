@@ -1,0 +1,32 @@
+# Candidat identifié par la veille — non installé.
+id: trellis2
+name: TRELLIS.2
+capability: image-to-mesh
+family: trellis
+vendor: Microsoft Research
+license: mit
+license_class: permissive
+status: candidate
+
+notes: >
+  Meilleur générateur 3D auto-hébergeable connu au 19 août 2026, sortie gaussian
+  splatting incluse. BLOQUÉ sur Apple Silicon : opérations de voxels épars en noyaux
+  CUDA, aucun portage Metal/MLX connu. Repli CPU inexploitable.
+  Déclencheur de réévaluation : apparition d'un portage MLX ou d'une implémentation
+  Metal des opérations éparses. Surveillé par veille-scan (watch: portage Metal).
+
+links:
+  code: https://github.com/microsoft/TRELLIS
+
+variants:
+  - id: bf16
+    quantization: bf16
+    tier: absent
+    runtime: custom
+    runtime_env: trellis
+    source:
+      kind: huggingface
+      repo: microsoft/TRELLIS-2
+      revision: "0000000"
+    caveats:
+      - "CUDA requis. Ne tourne pas sur M5."

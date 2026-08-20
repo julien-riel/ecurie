@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecurie.local/schema/model.schema.json",
+  "title": "Manifeste de modèle Écurie",
+  "type": "object",
+  "required": ["id", "capability", "license", "status", "variants"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "description": "Identifiant stable, ne change jamais après création."
+    },
+    "name": { "type": "string" },
+    "capability": {
+      "type": "string",
+      "description": "Doit correspondre à un fichier de registry/capabilities/.",
+      "enum": [
+        "text-to-speech", "speech-to-text", "text-to-music",
+        "text-to-image", "image-to-image", "text-to-video", "image-to-video",
+        "document-to-text", "image-to-mesh", "text-to-mesh",
+        "audio-separation", "audio-denoise", "text-generation"
+      ]
+    },
+    "family": { "type": "string" },
+    "vendor": { "type": "string" },
+    "license": {
+      "type": "string",
+      "description": "Identifiant SPDX quand il existe, sinon chaîne libre."
+    },
+    "license_class": {
+      "type": "string",
+      "enum": ["permissive", "restricted", "research-only", "unknown"],
+      "description": "Utilisé par le score de veille. research-only interdit tout usage professionnel."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "candidate", "deprecated", "retired"],
+      "description": "candidate = proposé par la veille, pas encore validé. retired = poids supprimés du disque, manifeste conservé pour l'historique."
+    },
+    "incumbent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Titulaire en poste pour cette capacité. Un seul par capacité. Référence des comparaisons A/B."
+    },
+    "notes": { "type": "string" },
+    "links": {
+      "type": "object",
+      "properties": {
+        "homepage": { "type": "string", "format": "uri" },
+        "paper": { "type": "string", "format": "uri" },
+        "code": { "type": "string", "format": "uri" }
+      }
+    },
+    "variants": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/variant" }
+    }
+  },
+  "$defs": {
+    "variant": {
+      "type": "object",
+      "required": ["id", "source", "runtime"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Ex. 8bit-mlx, Q4_K_M, bf16."
+        },
+        "quantization": {
+          "type": "string",
+          "enum": ["fp32", "bf16", "fp16", "8bit", "6bit", "4bit", "Q8_0", "Q6_K", "Q5_K_M", "Q4_K_M", "mixed", "none"]
+        },
+        "tier": {
+          "type": "string",
+          "enum": ["hot", "cold", "absent"],
+          "default": "absent",
+          "description": "hot = disque interne. cold = volume externe, lien symbolique en place. absent = non téléchargé."
+        },
+        "source": {
+          "type": "object",
+          "required": ["kind"],
+          "properties": {
+            "kind": { "type": "string", "enum": ["huggingface", "ollama", "url", "local"] },
+            "repo": { "type": "string" },
+            "revision": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{7,40}$",
+              "description": "Toujours un SHA de commit. 'main' est refusé en CI : une révision flottante rend le profil mesuré caduc sans préavis."
+            },
+            "allow_patterns": { "type": "array", "items": { "type": "string" } },
+            "url": { "type": "string", "format": "uri" },
+            "path": { "type": "string" }
+          }
+        },
+        "runtime": {
+          "type": "string",
+          "description": "Adaptateur responsable. Doit exister dans packages/runtime/adapters/.",
+          "enum": ["mlx-lm", "mlx-audio", "mlx-vlm", "diffusers-mps", "comfy", "ollama", "llama-cpp", "custom"]
+        },
+        "runtime_env": {
+          "type": "string",
+          "description": "Nom de l'environnement isolé sous runtimes/. Par défaut, identique à runtime."
+        },
+        "entrypoint": {
+          "type": "string",
+          "description": "Pour runtime=custom : script exécuté dans le venv isolé, protocole JSON sur stdio."
+        },
+        "profile": {
+          "$ref": "#/$defs/profile",
+          "description": "ÉCRIT PAR LE BANC D'ESSAI UNIQUEMENT. Toute valeur saisie à la main est réputée fausse."
+        },
+        "defaults": {
+          "type": "object",
+          "description": "Valeurs par défaut des paramètres de la capacité pour ce variant.",
+          "additionalProperties": true
+        },
+        "caveats": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Limites connues, affichées dans l'UI. Ex. 'pas de PBR', 'anglais seulement'."
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "required": ["disk_bytes", "peak_unified_memory_bytes", "measured_on", "measured_at"],
+      "properties": {
+        "disk_bytes": { "type": "integer", "minimum": 0 },
+        "peak_unified_memory_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Pic mesuré. Base du contrôle d'admission mémoire."
+        },
+        "warmup_ms": { "type": "integer", "minimum": 0 },
+        "latency_ms_p50": { "type": "integer", "minimum": 0 },
+        "rtf": {
+          "type": "number",
+          "description": "Real-time factor pour l'audio. < 1 = plus rapide que le temps réel."
+        },
+        "throughput": { "type": "string", "description": "Ex. '38 tok/s', '1 image / 9 s'." },
+        "measured_on": {
+          "type": "string",
+          "description": "Machine, OS et versions de runtime. Un profil sans contexte est ininterprétable."
+        },
+        "measured_at": { "type": "string", "format": "date" },
+        "harness_version": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "id": "image-to-mesh",
+  "title": "Image vers maillage 3D",
+  "input": {
+    "type": "object",
+    "required": ["image"],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image de l'objet à reconstruire, de préférence sur fond neutre."
+      },
+      "octree_resolution": {
+        "type": "integer",
+        "enum": [128, 256, 384, 512],
+        "default": 256
+      },
+      "num_inference_steps": {
+        "type": "integer",
+        "minimum": 10,
+        "maximum": 100,
+        "default": 30
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["mesh"],
+    "properties": {
+      "mesh": {
+        "type": "string",
+        "contentMediaType": "model/gltf-binary",
+        "description": "Chemin du maillage produit, relatif au dossier du job."
+      }
+    }
+  }
+}

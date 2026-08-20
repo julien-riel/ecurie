@@ -1,0 +1,31 @@
+# Titulaire en poste pour la synthèse vocale.
+id: qwen3-tts-1.7b
+name: Qwen3-TTS 1.7B
+capability: text-to-speech
+family: qwen3
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: active
+incumbent: true
+
+notes: >
+  Retenu plutôt que Fish Speech S2 pour l'empreinte mémoire : reste résident en
+  permanence sans entamer le budget des modèles lourds. À réévaluer si un portage MLX
+  de Fish Speech S2 apparaît.
+
+variants:
+  - id: 8bit-mlx
+    quantization: 8bit
+    tier: hot
+    runtime: mlx-audio
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3-TTS-1.7B-8bit   # à confirmer au premier scan
+      revision: "0000000"                        # PLACEHOLDER — CI refusera tant que non épinglé
+      allow_patterns: ["*.safetensors", "*.json", "tokenizer*"]
+    defaults:
+      speed: 1.0
+    caveats:
+      - "Sigles et nombres à valider sur le golden set FR."
+    # profile: absent — sera écrit par `ecurie bench qwen3-tts-1.7b@8bit-mlx`

@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+dist/
+*.egg-info/
+
+# Environnements isolés des runtimes (reconstruits par `ecurie env sync`)
+runtimes/**/.venv/
+
+# Front
+node_modules/
+
+# macOS
+.DS_Store

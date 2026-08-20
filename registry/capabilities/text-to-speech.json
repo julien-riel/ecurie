@@ -1,0 +1,40 @@
+{
+  "id": "text-to-speech",
+  "title": "Synthèse vocale",
+  "input": {
+    "type": "object",
+    "required": ["text"],
+    "additionalProperties": false,
+    "properties": {
+      "text": {
+        "type": "string",
+        "minLength": 1,
+        "x-ui": "textarea",
+        "description": "Texte à synthétiser."
+      },
+      "voice": {
+        "type": "string",
+        "x-ui": "select",
+        "x-options-from": "runtime.voices",
+        "description": "Voix, parmi celles annoncées par le worker au chargement."
+      },
+      "speed": {
+        "type": "number",
+        "minimum": 0.5,
+        "maximum": 2.0,
+        "default": 1.0
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["audio"],
+    "properties": {
+      "audio": {
+        "type": "string",
+        "contentMediaType": "audio/wav",
+        "description": "Chemin du fichier produit, relatif au dossier du job."
+      }
+    }
+  }
+}
