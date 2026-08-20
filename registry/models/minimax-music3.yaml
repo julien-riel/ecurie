@@ -1,0 +1,65 @@
+# Premier modèle musical du parc. Génération de chanson conditionnée par des
+# paroles — c'est ce qui a fait ajouter un champ `lyrics` au contrat de la
+# capacité : un contrat qui tait les paroles obligerait à les passer en douce.
+id: minimax-music3
+name: MiniMax Music 3 (MLX 4 bits)
+capability: text-to-music
+family: minimax-music
+vendor: MiniMax
+license: minimax-music3-community-license
+license_class: restricted     # conditions d'usage acceptable et clauses commerciales
+status: candidate
+
+notes: >
+  Conversion communautaire, pas une publication officielle de MiniMax. Retenue en
+  4 bits : la bf16 pèse 26,6 Go sur le disque, la 8 bits 13,2 — hors de portée
+  d'un parc qui n'a de place que pour un modèle à la fois. Le support amont est
+  mergé mais absent des versions publiées de mlx-audio, d'où un environnement
+  dédié épinglant un commit (runtimes/mlx-audio-music/).
+
+links:
+  homepage: https://huggingface.co/MiniMaxAI/MiniMax-Music3
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-audio
+    # Même runtime que le TTS, autre environnement : le TTS tourne sur la 0.5.0
+    # publiée et mesurée, la musique demande un commit non publié. Les mêler
+    # ferait dépendre un profil qui marche d'une version qui bouge.
+    runtime_env: mlx-audio-music
+    source:
+      kind: huggingface
+      repo: mlx-community/MiniMax-Music3-4bit
+      revision: "c7ea32923b245fe5afc22d740a1936ad2ac590f3"   # 2026
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.model"]
+    defaults:
+      duration_seconds: 30
+    options:
+      # Pas de débruitage du transformeur de flot : propre à ce modèle, donc
+      # hors contrat de capacité (le contrat ne déclare que le dénominateur
+      # commun de la génération musicale).
+      steps: 30
+    caveats:
+      - "Le pic dépend de la durée demandée : environ 3,3 Gio de base plus 0,70 Gio par seconde d'audio (R² = 0,98, ajusté entre 15 et 30 s). Le contrôle d'admission calcule le pic attendu du job ; au-delà d'une vingtaine de secondes il refuse, et il a raison."
+      - "`guidance_scale` et `temperature` du contrat sont ignorés : ce modèle ne les expose pas."
+      - "La durée demandée est une borne haute — l'étage autorégressif peut clore le morceau plus tôt."
+      - "Licence à conditions d'usage acceptable et clauses commerciales : à lire avant tout emploi professionnel."
+      - "Contrôles de style, tempo et voix probabilistes, jamais stricts."
+    profile:
+      disk_bytes: 9210759883
+      peak_unified_memory_bytes: 25704234348
+      peak_scaling:
+        parameter: "duration_seconds"
+        base_bytes: 3581413350
+        bytes_per_unit: 747077532.9
+        measured_range: [15.0, 30.0]
+        r_squared: 0.9823
+      warmup_ms: 1546
+      latency_ms_p50: 153013
+      rtf: 7.915264
+      throughput: "0.13× temps réel"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1"
+      measured_at: "2026-08-20"
+      harness_version: "0.3.0"

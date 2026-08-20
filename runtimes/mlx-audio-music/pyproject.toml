@@ -1,0 +1,35 @@
+# Environnement isolé du runtime `mlx-audio`, chemin **musique**.
+#
+# Pourquoi un second env pour la même bibliothèque : le support de MiniMax
+# Music 3 est mergé en amont (Blaizzy/mlx-audio#888) mais n'est encore dans
+# aucune version publiée sur PyPI. L'installer demande d'épingler un commit — ce
+# qu'on ne veut surtout pas imposer à `runtimes/mlx-audio/`, dont le TTS
+# fonctionne aujourd'hui sur la 0.5.0 mesurée et profilée.
+#
+# C'est exactement l'usage que `runtime_env` prévoit dans le manifeste : même
+# runtime, même adaptateur de famille, environnement distinct. Le jour où une
+# version publiée embarque le support musique, ce fichier devient une ligne
+# `mlx-audio>=0.6` et l'env fusionne avec l'autre — ou pas, si les bornes
+# divergent encore.
+#
+#     ecurie env sync mlx-audio-music
+#
+# Le `.venv` n'est pas versionné, ce fichier l'est.
+
+[project]
+name = "ecurie-runtime-mlx-audio-music"
+version = "0.3.0"
+description = "Écurie — environnement isolé du runtime mlx-audio, génération musicale"
+requires-python = ">=3.12"
+
+dependencies = [
+    # Commit épinglé, jamais une branche : c'est la même règle que pour les
+    # révisions de modèles. Une branche qui bouge rendrait caduc sans préavis le
+    # profil mesuré sur cet environnement.
+    "mlx-audio @ git+https://github.com/Blaizzy/mlx-audio.git@784b29e2691a93ca7483147d86f61859dfaa6296",
+    "mlx>=0.32.1",
+]
+
+# Cet env n'est pas une bibliothèque : rien à construire, rien à installer de lui-même.
+[tool.uv]
+package = false

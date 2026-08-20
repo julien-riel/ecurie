@@ -1,0 +1,34 @@
+{
+  "capability": "text-to-music",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Trois pièces courtes : instrumental sans paroles, chanson brève, chanson à deux sections. C'est la durée demandée qui pilote le coût, et la présence de voix qui change la nature du calcul. Les entrées ne changent jamais — une charge modifiée détruit la comparabilité des mesures antérieures. La charge fait varier `duration_seconds` exprès : c'est ce paramètre dont le pic mémoire dépend, et le banc en ajuste la pente.",
+  "scaling_parameter": "duration_seconds",
+  "cases": [
+    {
+      "id": "instrumental-15",
+      "input": {
+        "prompt": "Piano solo feutré, tempo lent, réverbération de salle, mélancolique.",
+        "duration_seconds": 15,
+        "seed": 1
+      }
+    },
+    {
+      "id": "couplet-20",
+      "input": {
+        "prompt": "Folk acoustique chaleureux, 96 BPM, voix féminine intime, guitare et contrebasse.",
+        "lyrics": "[verse]\nLe matin passe la fenêtre\nEt la maison se réveille",
+        "duration_seconds": 20,
+        "seed": 2
+      }
+    },
+    {
+      "id": "couplet-refrain-30",
+      "input": {
+        "prompt": "Pop indépendante, 110 BPM, batterie sèche, voix masculine, refrain lumineux.",
+        "lyrics": "[verse]\nOn compte les gigaoctets qui restent\n[chorus]\nUn seul modèle à la fois",
+        "duration_seconds": 30,
+        "seed": 3
+      }
+    }
+  ]
+}

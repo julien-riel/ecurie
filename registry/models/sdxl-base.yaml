@@ -1,0 +1,57 @@
+# Premier modèle image du parc. Candidat, pas titulaire : l'ARCHITECTURE.md §10
+# retient Z-Image Turbo pour la route A texte→3D, et c'est lui qui prendra la
+# place quand il aura été mesuré. SDXL est là parce qu'il est le chemin le plus
+# éprouvé sur MPS — le bon modèle pour la première exécution de l'adaptateur
+# diffusers_mps.
+id: sdxl-base
+name: Stable Diffusion XL 1.0 (base)
+capability: text-to-image
+family: stable-diffusion
+vendor: Stability AI
+license: openrail++
+license_class: restricted     # restrictions d'usage à lire avant tout emploi professionnel
+status: candidate
+
+notes: >
+  Retenu pour éprouver la chaîne image, pas pour la qualité : le modèle date de
+  2023 et se fait dépasser sur le texte dans l'image, les mains et la composition.
+  Le raffineur (refiner) n'est pas téléchargé — la base seule suffit à la plupart
+  des usages et épargne 6 Go.
+
+links:
+  homepage: https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0
+
+variants:
+  - id: fp16
+    quantization: fp16
+    tier: hot
+    runtime: diffusers-mps
+    source:
+      kind: huggingface
+      repo: stabilityai/stable-diffusion-xl-base-1.0
+      revision: "462165984030d82259a11f4367a4eed129e94a7b"   # 2023-10-30
+      # Le dépôt sert cinq formats du même modèle : safetensors fp32 (9,6 Go),
+      # flax, openvino, onnx, et la variante fp16. Sans filtre, `pull`
+      # téléchargerait 71 Gio pour n'en exécuter que 6,6.
+      allow_patterns: ["*.json", "*.txt", "*fp16.safetensors"]
+    defaults:
+      # SDXL est entraîné en 1024×1024 ; s'en écarter dégrade la composition
+      # bien plus vite que sur les modèles récents.
+      width: 1024
+      height: 1024
+      steps: 30
+      guidance_scale: 7.0
+    caveats:
+      - "Occupe 15,95 Gio sur les 17,76 du budget, soit 90 % : rien d'autre ne peut rester résident à côté. Tout job image déchargera le TTS, et son warmup sera repayé au retour."
+      - "Texte dans l'image : peu fiable. Ne pas compter dessus pour une enseigne ou une étiquette."
+      - "Licence openrail++ : restrictions d'usage, à lire avant tout emploi professionnel."
+      - "Raffineur non téléchargé : les rendus les plus fins demanderaient stable-diffusion-xl-refiner-1.0."
+    profile:
+      disk_bytes: 7106938904
+      peak_unified_memory_bytes: 17123246080
+      warmup_ms: 5098
+      latency_ms_p50: 56605
+      throughput: "1 sortie / 41.3 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2"
+      measured_at: "2026-08-20"
+      harness_version: "0.3.0"
