@@ -278,7 +278,7 @@ def store_verify(
             cibles = [r for r in records if r.path in voulus]
             inconnus = voulus - {r.path for r in cibles}
         elif variant:
-            cibles = [r for r in records if r.variant_ref == variant]
+            cibles = [r for r in records if variant in r.variant_refs]
             inconnus = set()
         elif all_files:
             cibles = [r for r in records if r.link_kind != "symlink"]
@@ -489,7 +489,7 @@ def store_tier(
 
     db, records = _observed(config)
     try:
-        cibles = [r for r in records if r.variant_ref == ref and r.link_kind != "symlink"]
+        cibles = [r for r in records if ref in r.variant_refs and r.link_kind != "symlink"]
         octets = sum(r.size for r in cibles)
         console.print(f"{ref} : {len(cibles)} fichier(s), {fmt_bytes(octets)}")
         if not dry_run and not yes and cibles:

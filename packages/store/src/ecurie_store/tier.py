@@ -157,7 +157,10 @@ def _copy_fsync(source: Path, dest: Path) -> None:
 
 def variant_records(records: list[LocationRecord], ref: str) -> list[LocationRecord]:
     return sorted(
-        (r for r in records if r.variant_ref == ref and r.link_kind != "symlink"),
+        # `variant_refs` et non `variant_ref` : des poids partagés par deux
+        # manifestes se déportent en entier ou pas du tout — les couper en deux
+        # laisserait la moitié d'un modèle sur chaque volume.
+        (r for r in records if ref in r.variant_refs and r.link_kind != "symlink"),
         key=lambda r: r.path,
     )
 
