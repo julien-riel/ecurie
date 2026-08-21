@@ -16,6 +16,9 @@ Capability = Literal[
     "text-to-music",
     "text-to-image",
     "image-to-image",
+    "image-matting",
+    "image-upscale",
+    "image-to-text",
     "text-to-video",
     "image-to-video",
     "document-to-text",
@@ -24,13 +27,23 @@ Capability = Literal[
     "audio-separation",
     "audio-denoise",
     "text-generation",
+    "translation",
+    "tool-use",
 ]
 
 Status = Literal["active", "candidate", "deprecated", "retired"]
 LicenseClass = Literal["permissive", "restricted", "research-only", "unknown"]
 Tier = Literal["hot", "cold", "absent"]
 Runtime = Literal[
-    "mlx-lm", "mlx-audio", "mlx-vlm", "diffusers-mps", "comfy", "ollama", "llama-cpp", "custom"
+    "mlx-lm",
+    "mlx-audio",
+    "mlx-vlm",
+    "diffusers-mps",
+    "torch-vision",
+    "comfy",
+    "ollama",
+    "llama-cpp",
+    "custom",
 ]
 Quantization = Literal[
     "fp32",

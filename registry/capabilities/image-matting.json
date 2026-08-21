@@ -1,0 +1,59 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "image-matting",
+  "title": "Détourage d'image",
+  "description": "Isole le sujet d'une image et rend son canal alpha. C'est le chaînon qui manque entre une photo et une reconstruction 3D : le pipeline image vers maillage recadre sur l'alpha, et une image opaque le prive de sa seule indication de silhouette.",
+  "input": {
+    "type": "object",
+    "required": ["image"],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image dont il faut isoler le sujet."
+      },
+      "edge_refine": {
+        "type": "boolean",
+        "default": true,
+        "description": "Affiner les bords après le premier masque. Cheveux, poils et feuillage y gagnent nettement ; un objet manufacturé, presque rien."
+      },
+      "threshold": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "description": "Binariser l'alpha à ce seuil. Vide = alpha continu, qui est presque toujours ce qu'on veut : un masque binaire découpe les bords en escalier et perd la transparence partielle."
+      },
+      "max_side": {
+        "type": "integer",
+        "minimum": 256,
+        "maximum": 4096,
+        "default": 1024,
+        "description": "Plus grand côté de l'image soumise au modèle. C'est ce nombre qui pilote le coût mémoire ; le masque est ensuite remis à l'échelle de l'original."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["image", "mask"],
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Sujet détouré sur fond transparent (RGBA), relatif au dossier du job."
+      },
+      "mask": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin du masque alpha seul, en niveaux de gris, relatif au dossier du job. Rendu séparément parce que c'est lui qu'on note, et parce qu'un compositeur en a besoin sans l'image."
+      },
+      "coverage": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "description": "Part de l'image occupée par le sujet. Un détourage qui rend 0 ou 1 n'a rien isolé, et le chiffre le dit sans qu'on ouvre le fichier."
+      }
+    }
+  }
+}

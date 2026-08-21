@@ -1,0 +1,68 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "translation",
+  "title": "Traduction",
+  "description": "Traduit un texte d'une langue vers une autre. Contrat distinct de la génération de texte, et pour une raison qui se paie au v0.5 : une traduction a une référence, donc une métrique automatique — là où une réponse libre n'a que des juges.",
+  "input": {
+    "type": "object",
+    "required": ["text", "target_language"],
+    "additionalProperties": false,
+    "properties": {
+      "text": {
+        "type": "string",
+        "minLength": 1,
+        "x-ui": "textarea",
+        "description": "Texte à traduire."
+      },
+      "source_language": {
+        "type": "string",
+        "x-ui": "select",
+        "x-options-from": "runtime.languages",
+        "description": "Langue de départ, en code BCP 47 (fr, en, es…). Vide = détection par le modèle."
+      },
+      "target_language": {
+        "type": "string",
+        "minLength": 2,
+        "x-ui": "select",
+        "x-options-from": "runtime.languages",
+        "description": "Langue d'arrivée, en code BCP 47. Obligatoire : la deviner serait deviner ce qu'on veut."
+      },
+      "register": {
+        "type": "string",
+        "enum": ["neutre", "soutenu", "familier"],
+        "default": "neutre",
+        "description": "Registre visé. Un moteur de traduction dédié l'ignore ; un modèle de langue l'honore. C'est précisément le genre d'écart que la confrontation doit faire apparaître, et le manifeste d'un moteur qui l'ignore doit le dire en `caveats`."
+      },
+      "preserve_formatting": {
+        "type": "boolean",
+        "default": true,
+        "description": "Conserver retours à la ligne, listes et balisage léger. Traduire un document en perdant sa mise en forme oblige à tout reprendre à la main."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Graine aléatoire, pour les modèles qui échantillonnent. Sans effet sur un décodage par faisceau."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["text"],
+    "properties": {
+      "text": {
+        "type": "string",
+        "contentMediaType": "text/plain",
+        "description": "Chemin de la traduction en texte brut, relatif au dossier du job."
+      },
+      "detected_source_language": {
+        "type": "string",
+        "description": "Langue de départ retenue, détectée ou imposée. Une détection fausse explique une traduction absurde mieux que n'importe quel score."
+      },
+      "tokens_generated": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de jetons effectivement produits."
+      }
+    }
+  }
+}
