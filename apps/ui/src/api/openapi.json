@@ -319,6 +319,355 @@
         "title": "IssueOut",
         "type": "object"
       },
+      "JobDetail": {
+        "properties": {
+          "capability": {
+            "title": "Capability",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "evicted": {
+            "description": "Ce qu'il a fallu décharger pour faire de la place.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Evicted",
+            "type": "array"
+          },
+          "files": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Sortie du contrat → URL à télécharger. Composée par le serveur : une sortie imbriquée est un chemin à plusieurs segments, que le client n'a pas à savoir.",
+            "title": "Files",
+            "type": "object"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "additionalProperties": true,
+            "description": "Entrée complète, défauts résolus.",
+            "title": "Input",
+            "type": "object"
+          },
+          "manifest": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Manifeste du job — révision épinglée, paramètres complets, empreinte de l'entrée, versions, métriques. C'est le contrat de reproductibilité du §6, écrit dans le dossier du job. `null` tant que le job n'est pas terminé.",
+            "title": "Manifest"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "description": "Ce qui se passe maintenant, en clair.",
+            "title": "Note",
+            "type": "string"
+          },
+          "outputs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Sortie du contrat → chemin du fichier dans le dossier du job.",
+            "title": "Outputs",
+            "type": "object"
+          },
+          "progress": {
+            "default": 0,
+            "title": "Progress",
+            "type": "integer"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          },
+          "reused": {
+            "default": false,
+            "description": "Le modèle était déjà chaud : le warmup n'a pas été repayé.",
+            "title": "Reused",
+            "type": "boolean"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "state": {
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "submitted_at": {
+            "title": "Submitted At",
+            "type": "string"
+          },
+          "variant": {
+            "title": "Variant",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "ref",
+          "model",
+          "variant",
+          "capability",
+          "state",
+          "submitted_at"
+        ],
+        "title": "JobDetail",
+        "type": "object"
+      },
+      "JobOut": {
+        "description": "L'état d'un job, tel que le flux d'événements le répète.\n\nLe même objet sert la lecture et chaque événement : le client remplace son\nétat au lieu de recomposer des fragments, et deux chemins ne peuvent pas\ndiverger.",
+        "properties": {
+          "capability": {
+            "title": "Capability",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "evicted": {
+            "description": "Ce qu'il a fallu décharger pour faire de la place.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Evicted",
+            "type": "array"
+          },
+          "files": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Sortie du contrat → URL à télécharger. Composée par le serveur : une sortie imbriquée est un chemin à plusieurs segments, que le client n'a pas à savoir.",
+            "title": "Files",
+            "type": "object"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "additionalProperties": true,
+            "description": "Entrée complète, défauts résolus.",
+            "title": "Input",
+            "type": "object"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "description": "Ce qui se passe maintenant, en clair.",
+            "title": "Note",
+            "type": "string"
+          },
+          "outputs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Sortie du contrat → chemin du fichier dans le dossier du job.",
+            "title": "Outputs",
+            "type": "object"
+          },
+          "progress": {
+            "default": 0,
+            "title": "Progress",
+            "type": "integer"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          },
+          "reused": {
+            "default": false,
+            "description": "Le modèle était déjà chaud : le warmup n'a pas été repayé.",
+            "title": "Reused",
+            "type": "boolean"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "state": {
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "submitted_at": {
+            "title": "Submitted At",
+            "type": "string"
+          },
+          "variant": {
+            "title": "Variant",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "ref",
+          "model",
+          "variant",
+          "capability",
+          "state",
+          "submitted_at"
+        ],
+        "title": "JobOut",
+        "type": "object"
+      },
+      "JobRequest": {
+        "properties": {
+          "input": {
+            "additionalProperties": true,
+            "description": "Entrée du job, déjà typée — un nombre pour un nombre. Les défauts du contrat et du variant sont résolus par le serveur, et écrits au manifeste.",
+            "title": "Input",
+            "type": "object"
+          },
+          "ref": {
+            "description": "« model@variant », ou « model » quand le choix est évident.",
+            "title": "Ref",
+            "type": "string"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          }
+        },
+        "required": [
+          "ref"
+        ],
+        "title": "JobRequest",
+        "type": "object"
+      },
       "LinksOut": {
         "properties": {
           "code": {
@@ -1185,7 +1534,7 @@
     }
   },
   "info": {
-    "description": "\nSurface de lecture du parc Écurie (v0.4, tâche 4.1).\n\n* `/registry/capabilities` — les contrats qui engendrent les formulaires\n* `/registry/models` — les manifestes, avec ce que le disque en dit\n* `/store/summary` — les trois chiffres d'occupation\n* `/runtime/residents` — mémoire occupée, budget, et ce que coûterait un job\n* `/runtime/admission` — le même calcul pour une entrée précise\n\nAucune de ces routes ne charge un modèle, n'écrit un manifeste ni ne déplace un\noctet. Le superviseur, lui, a emménagé ici (tâche 4.6) : il tient le tour de rôle\ndes jobs sur un même worker et l'occupation des résidents. `POST /jobs` et son\nflux SSE suivent.\n",
+    "description": "\nLe parc Écurie : ce qu'il contient, ce qu'il a en mémoire, ce qu'il exécute\n(v0.4, tâche 4.1).\n\n* `/registry/capabilities` — les contrats qui engendrent les formulaires\n* `/registry/models` — les manifestes, avec ce que le disque en dit\n* `/store/summary` — les trois chiffres d'occupation\n* `/runtime/residents` — mémoire occupée, budget, et ce que coûterait un job\n* `/runtime/admission` — le même calcul pour une entrée précise\n* `/jobs` — lancer, suivre en direct (SSE), récupérer les fichiers produits\n\nLes cinq premières ne chargent rien, n'écrivent rien, ne déplacent aucun octet.\n`/jobs` est la seule surface d'écriture, et elle a attendu que le superviseur\nvive dans ce processus (tâche 4.6) : un serveur qui lance des jobs doit savoir\nlequel tourne, sur quel worker, et faire attendre le suivant.\n",
     "summary": "Parc de modèles locaux — registre, disque, mémoire.",
     "title": "Écurie",
     "version": "0.4.0"
@@ -1235,6 +1584,181 @@
         "summary": "Le serveur répond-il",
         "tags": [
           "service"
+        ]
+      }
+    },
+    "/jobs": {
+      "post": {
+        "description": "Accepte le job et rend son identifiant : le travail part dans un fil.\n\n202 et non 201 : rien n'est encore produit. Ce que la réponse garantit, c'est\nqu'un job existe, qu'il porte cet identifiant, et qu'il est suivable.",
+        "operationId": "submit_jobs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Lancer un job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/jobs/{job_id}": {
+      "get": {
+        "operationId": "detail_jobs__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "État d'un job et son manifeste",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/jobs/{job_id}/events": {
+      "get": {
+        "description": "Flux d'événements : un `job` à chaque changement, puis un `end`.\n\nChaque événement porte l'état complet plutôt qu'un fragment : le client\nremplace ce qu'il affiche, et un événement perdu ne le laisse pas dans un\nétat composé de moitiés.",
+        "operationId": "events_jobs__job_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Suivre un job en direct (SSE)",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/jobs/{job_id}/files/{chemin}": {
+      "get": {
+        "description": "Sert un fichier du dossier du job — sorties, entrées copiées, manifeste.\n\n`{chemin:path}` et non un simple nom : une séparation audio produit\n`tracks/vocals.wav`, et un client qui devrait recomposer ce chemin depuis une\nclé pointée referait le travail que `files` lui donne déjà fait.\n\nTout ce qui sort du dossier est un 404 et non un 403 : la question « ce\nfichier existe-t-il ailleurs sur cette machine » n'a pas à recevoir de\nréponse, fût-elle négative.",
+        "operationId": "fichier_jobs__job_id__files__chemin__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "chemin",
+            "required": true,
+            "schema": {
+              "title": "Chemin",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Un fichier produit par un job",
+        "tags": [
+          "jobs"
         ]
       }
     },

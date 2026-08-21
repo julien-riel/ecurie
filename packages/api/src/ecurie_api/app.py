@@ -25,6 +25,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from ecurie_api import __version__
+from ecurie_api.routers import jobs as jobs_router
 from ecurie_api.routers import registry as registry_router
 from ecurie_api.routers import runtime as runtime_router
 from ecurie_api.routers import store as store_router
@@ -38,18 +39,20 @@ DEFAULT_CORS_ORIGINS = (
 )
 
 DESCRIPTION = """
-Surface de lecture du parc Écurie (v0.4, tâche 4.1).
+Le parc Écurie : ce qu'il contient, ce qu'il a en mémoire, ce qu'il exécute
+(v0.4, tâche 4.1).
 
 * `/registry/capabilities` — les contrats qui engendrent les formulaires
 * `/registry/models` — les manifestes, avec ce que le disque en dit
 * `/store/summary` — les trois chiffres d'occupation
 * `/runtime/residents` — mémoire occupée, budget, et ce que coûterait un job
 * `/runtime/admission` — le même calcul pour une entrée précise
+* `/jobs` — lancer, suivre en direct (SSE), récupérer les fichiers produits
 
-Aucune de ces routes ne charge un modèle, n'écrit un manifeste ni ne déplace un
-octet. Le superviseur, lui, a emménagé ici (tâche 4.6) : il tient le tour de rôle
-des jobs sur un même worker et l'occupation des résidents. `POST /jobs` et son
-flux SSE suivent.
+Les cinq premières ne chargent rien, n'écrivent rien, ne déplacent aucun octet.
+`/jobs` est la seule surface d'écriture, et elle a attendu que le superviseur
+vive dans ce processus (tâche 4.6) : un serveur qui lance des jobs doit savoir
+lequel tourne, sur quel worker, et faire attendre le suivant.
 """
 
 
@@ -82,6 +85,7 @@ def create_app(state: AppState, *, cors_origins: Sequence[str] | None = None) ->
     app.include_router(registry_router.router)
     app.include_router(store_router.router)
     app.include_router(runtime_router.router)
+    app.include_router(jobs_router.router)
 
     @app.get("/", tags=["service"], summary="Où l'on est, et sur quel dépôt")
     def index() -> dict:

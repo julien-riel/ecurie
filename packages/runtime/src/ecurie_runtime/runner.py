@@ -32,7 +32,7 @@ from ecurie_store.db import StateDB
 from jsonschema import Draft202012Validator
 
 from ecurie_runtime import __version__ as HARNESS_VERSION
-from ecurie_runtime.supervisor import Lease, Supervisor, WaitFn
+from ecurie_runtime.supervisor import AdmissionRefused, Lease, Supervisor, WaitFn
 from ecurie_runtime.worker import JobResult, ProgressFn
 
 INPUTS_DIR = "inputs"
@@ -324,8 +324,9 @@ def run_job(
     model: Model,
     variant: Variant,
     contract: CapabilityContract,
-    assignments: dict[str, str],
+    assignments: dict[str, Any],
     *,
+    typed: bool = False,
     seed: int | None = None,
     db: StateDB | None = None,
     outputs_dir: Path | None = None,
@@ -334,14 +335,26 @@ def run_job(
     pin: bool = False,
     job_id: str | None = None,
 ) -> JobOutcome:
-    """Exécute un job complet et rend un résultat déjà écrit sur le disque."""
+    """Exécute un job complet et rend un résultat déjà écrit sur le disque.
+
+    `typed` dit d'où viennent les valeurs, et ce n'est pas un détail : le
+    terminal ne connaît que des chaînes, qu'il faut convertir d'après le contrat,
+    là où un client HTTP envoie déjà un nombre pour un nombre. Faire passer ce
+    dernier par la conversion du terminal marcherait par accident sur `1.0` et se
+    tromperait sur `false`, qui deviendrait la chaîne `"False"`, donc le booléen
+    vrai.
+    """
     ref = f"{model.id}@{variant.id}"
     job_id = job_id or new_job_id()
     racine = outputs_dir or supervisor.config.outputs_dir
     job_dir = racine / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
-    résolu = resolve_input(contract, variant, assignments, seed=seed)
+    résolu = (
+        resolve_typed_input(contract, variant, assignments, seed=seed)
+        if typed
+        else resolve_input(contract, variant, assignments, seed=seed)
+    )
     stage_inputs(contract, résolu, job_dir)
     # La graine transmise au worker est celle du contrat quand il en déclare une,
     # sinon celle de la ligne de commande : un contrat sans champ `seed` ne rend
@@ -370,6 +383,12 @@ def run_job(
             output_dir=job_dir,
             seed=graine,
         )
+    except AdmissionRefused as exc:
+        # Un refus d'admission n'est pas une panne : c'est une décision, et sa
+        # raison est déjà écrite pour être lue (« demande 24,21 Gio, le budget
+        # entier est de 17,76 »). La préfixer du nom de la classe ferait entrer
+        # le seul mot anglais que l'utilisateur verra de tout le parcours.
+        erreur = f"admission refusée : {exc}"
     except Exception as exc:  # noqa: BLE001 — l'échec est un résultat, il s'écrit comme les autres
         erreur = f"{type(exc).__name__}: {exc}"
     finally:

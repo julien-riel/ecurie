@@ -21,6 +21,7 @@ from ecurie_api.app import create_app
 from ecurie_api.state import AppState
 from ecurie_core.config import Config, ScanConfig
 from ecurie_runtime.budget import Budget
+from ecurie_runtime.worker import Timeouts
 from ecurie_store.db import LocationRecord, StateDB
 from fastapi.testclient import TestClient
 
@@ -137,16 +138,57 @@ def config(ecurie_home: Path) -> Config:
 
 
 @pytest.fixture
-def state_factory(config: Config, ecurie_home: Path):
+def fake_spec_factory():
+    """Fabrique de `WorkerSpec` qui lance le worker d'essai au lieu d'un runtime réel.
+
+    Le point d'injection est celui du superviseur : tout le reste du chemin —
+    admission, tour de rôle, registre des résidents, socket, protocole, job
+    complet — est exactement celui de production. Sans elle, un test de `/jobs`
+    exigerait un venv MLX et deux gigaoctets de poids.
+    """
+    import sys
+
+    from ecurie_runtime.envs import WorkerSpec
+
+    def factory(root: Path, variant, ref: str, capability: str | None = None) -> WorkerSpec:
+        return WorkerSpec(
+            argv=[sys.executable, "-m", "ecurie_runtime.workers.fake"], env_vars={}, label=ref
+        )
+
+    return factory
+
+
+@pytest.fixture
+def state_factory(config: Config, ecurie_home: Path, fake_spec_factory):
+    """Un état de serveur par dépôt, et aucun worker qui survit au test.
+
+    Les tests de `/jobs` lancent de vrais sous-processus résidents : sans ce
+    déchargement, le suivant hériterait de leur mémoire dans le budget, et le
+    dernier les laisserait tourner jusqu'au délai d'inactivité.
+    """
+    créés: list[AppState] = []
+
     def build(depot) -> AppState:
-        return AppState(
+        state = AppState(
             depot.root,
             config,
             home=ecurie_home,
             budget=Budget(BUDGET_TEST, "budget d'essai, injecté"),
+            timeouts=Timeouts(load_s=30, infer_s=30, ping_s=5, grace_s=2, queue_s=30),
+            spec_factory=fake_spec_factory,
         )
+        créés.append(state)
+        return state
 
-    return build
+    yield build
+
+    for state in créés:
+        # Seulement si un superviseur a réellement été construit : un test qui
+        # casse `registry` pour éprouver la gestion d'erreur ne doit pas voir son
+        # démontage échouer sur la même panne.
+        if state._supervisor is not None:
+            state._supervisor.unload_all(force=True)
+        state.close()
 
 
 @pytest.fixture

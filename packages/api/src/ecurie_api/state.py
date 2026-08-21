@@ -34,9 +34,11 @@ from pathlib import Path
 from ecurie_core.config import Config
 from ecurie_core.registry import Registry, load_registry
 from ecurie_runtime.budget import Budget, detect_budget
-from ecurie_runtime.supervisor import Supervisor
+from ecurie_runtime.supervisor import SpecFactory, Supervisor
 from ecurie_runtime.worker import Timeouts
 from ecurie_store.db import StateDB
+
+from ecurie_api.jobs import JobRegistry
 
 # Ce que `load_registry` lit réellement. Surveiller `registry/` en entier ferait
 # entrer les fichiers du banc d'essai et leurs images dans l'empreinte : des
@@ -83,11 +85,17 @@ class AppState:
         home: Path | None = None,
         timeouts: Timeouts | None = None,
         budget: Budget | None = None,
+        spec_factory: SpecFactory | None = None,
     ) -> None:
         self.root = root.resolve()
         self.config = config
         self.home = home
         self.timeouts = timeouts or Timeouts()
+        # Comment lancer un worker. Injecté par les tests, qui n'ont ni venv de
+        # runtime ni poids : la fabrique d'essai lance `workers/fake.py`, et tout
+        # le reste du chemin — admission, tour de rôle, socket, protocole — est
+        # celui de production.
+        self.spec_factory = spec_factory
         self._registry: Registry | None = None
         self._signature: tuple = ()
         self._registry_lock = threading.Lock()
@@ -98,6 +106,10 @@ class AppState:
         self._budget_lock = threading.Lock()
         self._supervisor: Supervisor | None = None
         self._supervisor_lock = threading.Lock()
+        # Les jobs de cette session. Leur mémoire longue est le manifeste écrit
+        # dans le dossier de chaque job, qui survit au redémarrage ; cette table
+        # ne porte que ce qui se suit en direct.
+        self.jobs = JobRegistry(self)
 
     def registry(self) -> Registry:
         empreinte = registry_signature(self.root)
@@ -138,6 +150,7 @@ class AppState:
                     timeouts=self.timeouts,
                     budget=self.budget,
                     registry_provider=self.registry,
+                    spec_factory=self.spec_factory,
                 )
             return self._supervisor
 

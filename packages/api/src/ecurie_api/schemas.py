@@ -268,6 +268,72 @@ class ResidentsResponse(BaseModel):
     admission: AdmissionOut | None = None
 
 
+class JobRequest(BaseModel):
+    ref: str = Field(description="« model@variant », ou « model » quand le choix est évident.")
+    input: Json = Field(
+        default_factory=dict,
+        description=(
+            "Entrée du job, déjà typée — un nombre pour un nombre. Les défauts du "
+            "contrat et du variant sont résolus par le serveur, et écrits au manifeste."
+        ),
+    )
+    seed: int | None = None
+
+
+class JobOut(BaseModel):
+    """L'état d'un job, tel que le flux d'événements le répète.
+
+    Le même objet sert la lecture et chaque événement : le client remplace son
+    état au lieu de recomposer des fragments, et deux chemins ne peuvent pas
+    diverger.
+    """
+
+    id: str
+    ref: str
+    model: str
+    variant: str
+    capability: str
+    state: Literal["queued", "running", "done", "failed"]
+    submitted_at: str
+    started_at: str | None = None
+    finished_at: str | None = None
+    progress: int = 0
+    note: str = Field(default="", description="Ce qui se passe maintenant, en clair.")
+    error: str | None = None
+    reused: bool = Field(
+        default=False, description="Le modèle était déjà chaud : le warmup n'a pas été repayé."
+    )
+    evicted: list[str] = Field(
+        default_factory=list, description="Ce qu'il a fallu décharger pour faire de la place."
+    )
+    warnings: list[str] = Field(default_factory=list)
+    metrics: Json = Field(default_factory=dict)
+    outputs: dict[str, str] = Field(
+        default_factory=dict,
+        description="Sortie du contrat → chemin du fichier dans le dossier du job.",
+    )
+    files: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Sortie du contrat → URL à télécharger. Composée par le serveur : une "
+            "sortie imbriquée est un chemin à plusieurs segments, que le client n'a pas à savoir."
+        ),
+    )
+    input: Json = Field(default_factory=dict, description="Entrée complète, défauts résolus.")
+    seed: int | None = None
+
+
+class JobDetail(JobOut):
+    manifest: Json | None = Field(
+        default=None,
+        description=(
+            "Manifeste du job — révision épinglée, paramètres complets, empreinte de "
+            "l'entrée, versions, métriques. C'est le contrat de reproductibilité du §6, "
+            "écrit dans le dossier du job. `null` tant que le job n'est pas terminé."
+        ),
+    )
+
+
 class AdmissionRequest(BaseModel):
     ref: str = Field(description="« model@variant », ou « model » quand le choix est évident.")
     input: Json = Field(

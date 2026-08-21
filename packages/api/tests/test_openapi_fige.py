@@ -56,13 +56,16 @@ def test_le_schema_fige_du_front_est_celui_que_l_api_sert():
 
 
 def test_les_routes_figees_sont_celles_que_le_front_appelle():
-    """Le front n'a que sept fonctions d'appel : elles doivent toutes exister.
+    """Les routes que le front peut appeler, énumérées : rien de plus, rien de moins.
 
-    Ce test dit aussi ce qui n'existe PAS encore, et c'est le point : `POST
-    /jobs`, le flux SSE et les fichiers de sortie sont le reste de la tâche 4.1.
-    Ce qui les retenait — le superviseur reconstruit à chaque requête, incapable
-    de savoir qu'un job tourne — a été levé par la tâche 4.6. Le jour où ils
-    arriveront, cette liste changera, et le front pourra les appeler.
+    La liste a grandi de quatre avec le reste de la tâche 4.1 — soumettre, suivre,
+    relire, télécharger. Ce qui les retenait, le superviseur reconstruit à chaque
+    requête et incapable de savoir qu'un job tourne, a été levé par la 4.6.
+
+    Elle dit aussi ce qui n'existe pas : aucune route de téléversement, alors que
+    dix champs du registre attendent un fichier. Sans conséquence tant que le
+    navigateur et le serveur partagent la machine — le champ porte un chemin
+    local — et à reprendre le jour où ce ne sera plus vrai.
     """
     if not FIGE.exists():
         pytest.skip("apps/ui absent : le front n'est pas installé dans cette copie")
@@ -76,5 +79,8 @@ def test_les_routes_figees_sont_celles_que_le_front_appelle():
         "/store/summary",
         "/runtime/residents",
         "/runtime/admission",
+        "/jobs",
+        "/jobs/{job_id}",
+        "/jobs/{job_id}/events",
+        "/jobs/{job_id}/files/{chemin}",
     }
-    assert "/jobs" not in figé["paths"]

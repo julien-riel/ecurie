@@ -38,6 +38,98 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lancer un job
+         * @description Accepte le job et rend son identifiant : le travail part dans un fil.
+         *
+         *     202 et non 201 : rien n'est encore produit. Ce que la réponse garantit, c'est
+         *     qu'un job existe, qu'il porte cet identifiant, et qu'il est suivable.
+         */
+        post: operations["submit_jobs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** État d'un job et son manifeste */
+        get: operations["detail_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{job_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Suivre un job en direct (SSE)
+         * @description Flux d'événements : un `job` à chaque changement, puis un `end`.
+         *
+         *     Chaque événement porte l'état complet plutôt qu'un fragment : le client
+         *     remplace ce qu'il affiche, et un événement perdu ne le laisse pas dans un
+         *     état composé de moitiés.
+         */
+        get: operations["events_jobs__job_id__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{job_id}/files/{chemin}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Un fichier produit par un job
+         * @description Sert un fichier du dossier du job — sorties, entrées copiées, manifeste.
+         *
+         *     `{chemin:path}` et non un simple nom : une séparation audio produit
+         *     `tracks/vocals.wav`, et un client qui devrait recomposer ce chemin depuis une
+         *     clé pointée referait le travail que `files` lui donne déjà fait.
+         *
+         *     Tout ce qui sort du dossier est un 404 et non un 403 : la question « ce
+         *     fichier existe-t-il ailleurs sur cette machine » n'a pas à recevoir de
+         *     réponse, fût-elle négative.
+         */
+        get: operations["fichier_jobs__job_id__files__chemin__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/registry/capabilities": {
         parameters: {
             query?: never;
@@ -305,6 +397,191 @@ export interface components {
              * @enum {string}
              */
             severity: "error" | "warning";
+        };
+        /** JobDetail */
+        JobDetail: {
+            /** Capability */
+            capability: string;
+            /** Error */
+            error?: string | null;
+            /**
+             * Evicted
+             * @description Ce qu'il a fallu décharger pour faire de la place.
+             */
+            evicted?: string[];
+            /**
+             * Files
+             * @description Sortie du contrat → URL à télécharger. Composée par le serveur : une sortie imbriquée est un chemin à plusieurs segments, que le client n'a pas à savoir.
+             */
+            files?: {
+                [key: string]: string;
+            };
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: string;
+            /**
+             * Input
+             * @description Entrée complète, défauts résolus.
+             */
+            input?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Manifest
+             * @description Manifeste du job — révision épinglée, paramètres complets, empreinte de l'entrée, versions, métriques. C'est le contrat de reproductibilité du §6, écrit dans le dossier du job. `null` tant que le job n'est pas terminé.
+             */
+            manifest?: {
+                [key: string]: unknown;
+            } | null;
+            /** Metrics */
+            metrics?: {
+                [key: string]: unknown;
+            };
+            /** Model */
+            model: string;
+            /**
+             * Note
+             * @description Ce qui se passe maintenant, en clair.
+             * @default
+             */
+            note: string;
+            /**
+             * Outputs
+             * @description Sortie du contrat → chemin du fichier dans le dossier du job.
+             */
+            outputs?: {
+                [key: string]: string;
+            };
+            /**
+             * Progress
+             * @default 0
+             */
+            progress: number;
+            /** Ref */
+            ref: string;
+            /**
+             * Reused
+             * @description Le modèle était déjà chaud : le warmup n'a pas été repayé.
+             * @default false
+             */
+            reused: boolean;
+            /** Seed */
+            seed?: number | null;
+            /** Started At */
+            started_at?: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "queued" | "running" | "done" | "failed";
+            /** Submitted At */
+            submitted_at: string;
+            /** Variant */
+            variant: string;
+            /** Warnings */
+            warnings?: string[];
+        };
+        /**
+         * JobOut
+         * @description L'état d'un job, tel que le flux d'événements le répète.
+         *
+         *     Le même objet sert la lecture et chaque événement : le client remplace son
+         *     état au lieu de recomposer des fragments, et deux chemins ne peuvent pas
+         *     diverger.
+         */
+        JobOut: {
+            /** Capability */
+            capability: string;
+            /** Error */
+            error?: string | null;
+            /**
+             * Evicted
+             * @description Ce qu'il a fallu décharger pour faire de la place.
+             */
+            evicted?: string[];
+            /**
+             * Files
+             * @description Sortie du contrat → URL à télécharger. Composée par le serveur : une sortie imbriquée est un chemin à plusieurs segments, que le client n'a pas à savoir.
+             */
+            files?: {
+                [key: string]: string;
+            };
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: string;
+            /**
+             * Input
+             * @description Entrée complète, défauts résolus.
+             */
+            input?: {
+                [key: string]: unknown;
+            };
+            /** Metrics */
+            metrics?: {
+                [key: string]: unknown;
+            };
+            /** Model */
+            model: string;
+            /**
+             * Note
+             * @description Ce qui se passe maintenant, en clair.
+             * @default
+             */
+            note: string;
+            /**
+             * Outputs
+             * @description Sortie du contrat → chemin du fichier dans le dossier du job.
+             */
+            outputs?: {
+                [key: string]: string;
+            };
+            /**
+             * Progress
+             * @default 0
+             */
+            progress: number;
+            /** Ref */
+            ref: string;
+            /**
+             * Reused
+             * @description Le modèle était déjà chaud : le warmup n'a pas été repayé.
+             * @default false
+             */
+            reused: boolean;
+            /** Seed */
+            seed?: number | null;
+            /** Started At */
+            started_at?: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "queued" | "running" | "done" | "failed";
+            /** Submitted At */
+            submitted_at: string;
+            /** Variant */
+            variant: string;
+            /** Warnings */
+            warnings?: string[];
+        };
+        /** JobRequest */
+        JobRequest: {
+            /**
+             * Input
+             * @description Entrée du job, déjà typée — un nombre pour un nombre. Les défauts du contrat et du variant sont résolus par le serveur, et écrits au manifeste.
+             */
+            input?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Ref
+             * @description « model@variant », ou « model » quand le choix est évident.
+             */
+            ref: string;
+            /** Seed */
+            seed?: number | null;
         };
         /** LinksOut */
         LinksOut: {
@@ -651,6 +928,133 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    submit_jobs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detail_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    events_jobs__job_id__events_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fichier_jobs__job_id__files__chemin__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+                chemin: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

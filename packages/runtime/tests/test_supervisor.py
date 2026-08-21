@@ -560,6 +560,34 @@ def test_unload_refuse_un_worker_en_plein_job(parc, supervisor_factory):
         superviseur.unload_all(force=True)
 
 
+def test_le_superviseur_ne_se_tue_pas_lui_meme(parc, supervisor_factory):
+    """Notre pid dans le registre des résidents ne peut être qu'une entrée fausse.
+
+    Un fichier corrompu, un pid recyclé, une entrée fabriquée : dans les trois
+    cas, l'éviction tuerait le processus qui la décide. Un serveur disparaîtrait
+    en voulant faire de la place.
+    """
+    from ecurie_runtime.residents import ResidentEntry
+
+    parc.capability().model()
+    superviseur = supervisor_factory(parc)
+    faux_socket = parc.root / "pas-un-socket"
+    faux_socket.write_text("")
+
+    with superviseur.registry_file.locked() as entries:
+        entries["fantome@essai"] = ResidentEntry(
+            ref="fantome@essai",
+            pid=os.getpid(),
+            socket=str(faux_socket),
+            peak_bytes=GIB,
+            last_used=time.time(),
+        )
+
+    assert superviseur.unload("fantome@essai", force=True)
+    assert superviseur.residents() == []
+    assert pid_alive(os.getpid()), "nous sommes encore là"
+
+
 def test_close_retire_l_occupation_sans_tuer_les_workers(parc, supervisor_factory):
     """Un serveur qui s'arrête en plein job laisse un worker chaud, pas un job fantôme."""
     parc.capability().model()

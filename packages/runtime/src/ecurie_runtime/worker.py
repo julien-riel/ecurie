@@ -406,8 +406,15 @@ def process_state(pid: int) -> str | None:
 
 
 def kill_pid(pid: int, *, grace_s: float = 10) -> None:
-    """SIGTERM puis SIGKILL sur un worker résident, dont nous ne sommes pas le parent."""
-    if not pid_alive(pid):
+    """SIGTERM puis SIGKILL sur un worker résident, dont nous ne sommes pas le parent.
+
+    Un worker est toujours un autre processus : notre propre pid dans le registre
+    des résidents ne peut venir que d'un fichier corrompu, d'un pid recyclé ou
+    d'une entrée fabriquée. Se tuer soi-même serait alors la conséquence d'une
+    entrée à laquelle on n'a aucune raison de faire confiance — et le serveur
+    disparaîtrait en voulant faire de la place.
+    """
+    if pid == os.getpid() or not pid_alive(pid):
         return
     try:
         os.kill(pid, signal.SIGTERM)

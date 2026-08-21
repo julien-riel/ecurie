@@ -29,14 +29,18 @@ describe("les types engendrés depuis l'OpenAPI", () => {
     );
   }, 30_000);
 
-  test("le schema fige n_annonce aucune route de job", () => {
-    // POST /jobs et le flux SSE sont le reste de la tâche 4.1 — ce qui les
-    // retenait, le superviseur hors du processus de l'API, est levé depuis la
-    // 4.6. Le front ne doit pas se mettre à les appeler par inadvertance.
+  test("le schema fige annonce les routes de job", () => {
+    // Elles sont arrivées avec le reste de la tâche 4.1 : le superviseur vit
+    // dans le processus de l'API depuis la 4.6, donc le serveur sait quel job
+    // tourne. C'est ce qui donnera son bouton *Lancer* à l'Atelier.
     const schéma = JSON.parse(readFileSync(resolve(DOSSIER, "openapi.json"), "utf8"));
     expect(Object.keys(schéma.paths).sort()).toEqual([
       "/",
       "/healthz",
+      "/jobs",
+      "/jobs/{job_id}",
+      "/jobs/{job_id}/events",
+      "/jobs/{job_id}/files/{chemin}",
       "/registry/capabilities",
       "/registry/models",
       "/runtime/admission",
