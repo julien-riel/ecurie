@@ -403,6 +403,19 @@ n'est exécutable qu'en mode mesure : parc déchargé entièrement, échantillon
 le résultat écrit le premier profil. C'est ce qui rend la règle « jamais de profil
 estimé » vivable au premier lancement.
 
+**Un refus se lit** — corrigé au 4.4, et le défaut datait du v0.3. La décision
+d'admission porte une `reason` rendue telle quelle par `ecurie ps --for` et par
+l'Atelier ; elle disait « demande 25704234348 octets, le budget entier est de
+19070000000 », là où le §4 du plan exige « ce morceau de 30 s demanderait
+24,2 Gio, au-delà des 17,8 disponibles ». Personne ne l'avait vu parce que les
+tests comparaient la phrase à `str(20 * GIB)`, c'est-à-dire au calcul qu'ils
+étaient censés vérifier — un test qui recalcule ce qu'il contrôle ne contrôle
+rien. Les tailles passent maintenant par `ecurie_core.format.fmt_memory`, qui
+compte en **unités binaires** : `fmt_bytes` du store est décimal parce qu'un
+disque se lit ainsi, mais le budget, le seuil de lourdeur et les profils mesurés
+sont des puissances de deux, et un seuil écrit `8 * (1 << 30)` s'affichait
+« 8.59 Go » — un chiffre qui n'apparaît dans aucun fichier de configuration.
+
 ---
 
 ## 6. `packages/api` — jobs, SSE, bibliothèque
@@ -511,10 +524,29 @@ qu'un dix-huitième y entre sans qu'une ligne de front bouge.
   parce qu'`audio-separation` déclare cinq pistes et n'en produit que deux ou
   quatre selon `stems`.
 - **Quatre écrans**, plafond ferme (§9 de l'architecture) : Atelier, Confrontation,
-  Parc, Bibliothèque. Le bandeau de ressources (mémoire résidente, budget restant,
-  « lancer déchargera X ») est un composant global alimenté par `/runtime/residents`.
-  Le socle n'en livre **aucun** : `App.tsx` est un banc de rendu, remplacé par
-  l'Atelier au 4.4.
+  Parc, Bibliothèque. **Le premier est livré** (tâche 4.4) : `src/ecrans/Atelier.tsx`
+  remplace le banc de rendu, avec le choix de la capacité groupé par ce qui marche,
+  le variant préselectionné sur le titulaire exécutable, le formulaire engendré, le
+  chiffrage de l'entrée et les sorties que le contrat promet. `App.tsx` n'est plus
+  qu'une coquille sans état ; la navigation attend le Parc (4.5), un onglet unique
+  étant un décor.
+- **Le bandeau de ressources** (mémoire résidente, budget restant, « lancer
+  déchargera X ») est alimenté par `GET /runtime/residents?for=<ref>`, rafraîchi
+  toutes les deux secondes. Il est global par sa nature — n'importe quel écran peut
+  le poser — et **pas par sa place dans l'arbre** : le chiffre qui compte est celui
+  du variant sélectionné, et le hisser dans la coquille y ferait remonter l'état de
+  l'écran. C'est **l'écran qui tient le sondage** et le lui passe, parce que la
+  même réponse sert deux fois : les chiffres du bandeau, et les `x-options-from`
+  du formulaire, dont la seule source est le champ `options` d'un worker chargé.
+  Deux sondages sur la même route doubleraient les requêtes, et une lecture unique
+  au montage figerait les voix à « aucune » pour toute la session — y compris après
+  un `ecurie run` lancé dans un terminal. Trois décisions gouvernent le sondage, et
+  aucune ne se lit dans l'appel :
+  on replanifie **après la réponse** (un `setInterval` de 2 s sur un serveur qui
+  répond en 3 s empile les requêtes) ; un échec **n'efface pas** les derniers
+  chiffres, qui restent affichés datés de l'heure où ils étaient vrais ; et un
+  onglet caché **ne sonde pas** — à deux secondes, un onglet laissé ouvert une
+  journée fait quarante mille requêtes dont chacune vérifie l'existence de processus.
 
 **Le typage vient du serveur.** `tools/openapi_dump.py` fige le schéma OpenAPI
 dans `apps/ui/src/api/openapi.json`, dont `openapi-typescript` engendre les
@@ -531,6 +563,25 @@ navigateur dans une boucle infinie ; l'éditeur JSON renvoyait le curseur en fin
 de texte dès que la saisie devenait analysable, rendant impossible toute frappe à
 l'intérieur d'un objet ; et une entrée de la table qui aurait nommé un widget
 inexistant serait passée à travers le typage sans qu'aucun test ne bronche.
+
+L'Atelier en a coûté deux de plus, l'une et l'autre invisibles en jsdom.
+
+**Le même chiffre s'affichait deux fois.** Le bandeau chiffre le *variant* par
+`?for=`, le bouton chiffre l'*entrée* par `POST /runtime/admission` ; comme douze
+variants sur treize ont un pic qui ne dépend pas de l'entrée, les deux rendent
+mot pour mot la même phrase, dans le même écran. Les fixtures ne le montraient
+pas — elles ne remplissaient pas `admission`. L'intitulé « Pour l'entrée saisie »
+sépare les deux, mais la leçon porte plus loin : la tâche **4.7 n'est pas un
+raffinement du bandeau**, c'est ce qui rend le second chiffre utile.
+
+**Garder les dernières données devient faux quand l'écran change de sujet.**
+`useResource` ne vide pas ses données pendant qu'il recharge, pour ne pas faire
+clignoter l'écran ; entre le clic sur une nouvelle capacité et l'arrivée de ses
+modèles, la liste des variants est donc encore celle de la précédente. La
+préselection y cherchait une référence de la bonne capacité, ne la trouvait pas,
+et posait un formulaire sans les défauts du manifeste — `voice` vide là où
+`qwen3-tts-1.7b` déclare `serena`. Le correctif est de filtrer sur `capability` :
+ne jamais faire confiance à une donnée qui n'a pas encore été rechargée.
 
 ---
 

@@ -14,12 +14,13 @@
 | v0.1 — Voir le parc | **livré** | atteint |
 | v0.2 — Récupérer des gigaoctets | **livré** | atteint |
 | v0.3 — Exécuter sans OOM | **livré** | atteint : `run` TTS produit un wav, un job image décharge le TTS proprement, sans swap |
-| v0.4 — Utilisable au quotidien | **en cours** | 4.1 : la surface de lecture d'`ecurie serve` répond sur le vrai parc. 4.3 : les 17 contrats engendrent leur formulaire, sans un formulaire écrit à la main |
+| v0.4 — Utilisable au quotidien | **en cours** | 4.1 : la surface de lecture d'`ecurie serve` répond sur le vrai parc. 4.3 : les 17 contrats engendrent leur formulaire, sans un formulaire écrit à la main. 4.4 : l'Atelier existe, avec son bandeau de ressources, et il est complet sauf son bouton *Lancer* |
 | v0.5 → v0.7 | à faire | — |
 
 Le parc réel compte **dix capacités exécutables** sur dix-sept déclarées, douze
 manifestes et treize variants, dont onze prêts. Sept environnements de runtime,
-quatre paquets Python et un front, **726 tests Python et 145 tests de front**.
+quatre paquets Python et un front, **731 tests Python et 231 tests de front**,
+plus trois essais contre un vrai serveur, exclus par défaut.
 
 Deux choses ont été faites en marge du jalon, et elles n'attendaient personne :
 le **recalibrage du seuil de lourdeur** (voir les points de contrôle), et la
@@ -131,7 +132,7 @@ vendoré, 7,37 Go de poids non téléchargés (conception §13.4).
 | 4.1 | ◑ FastAPI : registre, jobs + SSE, `store/summary`, résidents | `ecurie serve` sert les **lectures** : `/registry/capabilities`, `/registry/models`, `/store/summary`, `/runtime/residents`, plus `/runtime/admission` que le §4 réclamait. Les jobs et le SSE attendent le 4.6 |
 | 4.2 | Bibliothèque côté serveur : manifeste de job complet, rejeu | reproductibilité effective |
 | 4.3 | ✓ UI : socle React+Vite+RJSF, mapping `x-ui`, visualiseurs par media type | `apps/ui` : deux tables d'aiguillage totales, les **17 contrats** rendus par une suite qui les lit sur le disque, 145 tests. Le typage vient du serveur — schéma OpenAPI figé et fixtures du vrai registre, gardés par deux tests pytest |
-| 4.4 | Écran **Atelier** (capacité → variant → formulaire → progression SSE → sortie) + bandeau de ressources | flux complet dans le navigateur |
+| 4.4 | ◑ Écran **Atelier** (capacité → variant → formulaire → progression SSE → sortie) + bandeau de ressources | `src/ecrans/Atelier.tsx` : capacités groupées par ce qui marche, variant préselectionné sur le titulaire **exécutable**, formulaire engendré, chiffrage de l'entrée, sorties promises par le contrat. Bandeau permanent sondé toutes les 2 s. **La progression SSE et la sortie réelle attendent le 4.6**, faute de job à suivre |
 | 4.5 | Écran **Parc** (trois chiffres, arbre de duplication, plan de GC dry-run, tiering) | parité avec la CLI |
 | 4.6 | Le superviseur passe dans le processus de l'API : l'occupation des résidents cesse d'être un pid dans un fichier verrouillé et redevient un état en mémoire, et deux jobs sur un même worker se sérialisent au lieu d'attendre dans le backlog du socket | `residents.json` n'est plus qu'un miroir de lecture pour la CLI |
 | 4.7 | Bandeau de ressources **calculé sur l'entrée en cours de saisie** : un profil paramétré (§3 conception) change le pic attendu quand l'utilisateur bouge un curseur de durée ou de résolution | « lancer coûtera 17,2 Gio, déchargera X » se met à jour en direct |
@@ -201,12 +202,13 @@ v0.1 ── v0.2 ── v0.3 ── v0.4 ── v0.5 ── v0.6 ── v0.7
                          │                       └ 7.0 (éprouver Hunyuan3D)
                          │                          peut démarrer n'importe quand
                          ├ 4.1 lectures ✓   4.3 socle UI ✓
-                         │                       │
-                         │                       └ 4.4 (Atelier) : tout sauf
-                         │                          le bouton Lancer
+                         │                  4.4 Atelier ✓ (sauf Lancer)
+                         │
                          └ 4.6 (superviseur dans l'API) rend caduc
                             le verrou de fichier du v0.3, et conditionne
-                            le reste du 4.1 (POST /jobs, SSE)
+                            le reste du 4.1 (POST /jobs, SSE), la fin du
+                            4.4 (progression, sortie réelle, résolveur de
+                            fichiers) et la tâche 4.2
 ```
 
 Seule parallélisation utile : les contrats de capacité (3.1) et la constitution des
@@ -283,19 +285,70 @@ se lisait dans le plan :
    dans la suite pytest, comme celle du schéma OpenAPI : c'est celui qui édite
    `registry/` qu'il faut avertir, et il ne lance pas `npm test`.
 
+### Ce que l'écran Atelier a appris
+
+Le 4.4 a livré `src/ecrans/Atelier.tsx`, `src/ressources/BandeauRessources.tsx` et
+le sondage qui l'alimente. `App.tsx` n'est plus qu'une coquille sans état. Quatre
+choses valent d'être retenues, et trois n'ont été vues qu'en exécutant.
+
+1. **Un refus ne se lisait pas, et le défaut datait du v0.3.** Le §4 de ce plan
+   exige « ce morceau de 30 s demanderait 24,2 Gio » ; ce que `plan_admission`
+   produisait était « demande 25704234348 octets, le budget entier est de
+   19070000000 » — rendu tel quel par `ecurie ps --for` depuis deux jalons.
+   Personne ne l'avait vu parce que les tests comparaient la phrase à
+   `str(20 * GIB)`, c'est-à-dire au calcul qu'ils étaient censés vérifier : **un
+   test qui recalcule ce qu'il contrôle ne contrôle rien.**
+2. **La mémoire se comptait en unités de disque.** `fmt_bytes` du store est
+   décimal, ce qui est juste pour un disque et faux pour un budget écrit
+   `8 * (1 << 30)` : le seuil de lourdeur s'affichait « 8.59 Go », un chiffre qui
+   n'apparaît ni dans `admission.py`, ni dans `Config`, ni dans
+   `~/.ecurie/config.toml`. D'où `ecurie_core.format.fmt_memory`, binaire, pour
+   la mémoire seule — deux domaines, deux conventions, dites une fois.
+3. **Le même chiffre s'affichait deux fois.** Le bandeau chiffre le *variant* par
+   `?for=`, le bouton chiffre l'*entrée* ; pour douze variants sur treize le pic
+   ne dépend pas de l'entrée, donc les deux rendent mot pour mot la même phrase
+   dans le même écran. Les fixtures ne le montraient pas — elles ne remplissaient
+   pas `admission` —, seul l'essai contre un vrai serveur l'a fait. La leçon
+   dépasse l'intitulé qui les sépare : **la tâche 4.7 n'est pas un raffinement du
+   bandeau**, c'est ce qui rend le second chiffre utile.
+4. **Garder les dernières données devient faux quand l'écran change de sujet.**
+   `useResource` ne vide pas ses données pendant qu'il recharge, pour ne pas
+   faire clignoter l'écran ; entre le clic sur une nouvelle capacité et l'arrivée
+   de ses modèles, la liste des variants est donc encore celle de la précédente.
+   La préselection y cherchait la bonne référence, ne la trouvait pas, et posait
+   un formulaire sans les défauts du manifeste — `voice` vide là où
+   `qwen3-tts-1.7b` déclare `serena`.
+5. **Ce qui ne se rafraîchit pas se voit à l'usage, pas à la lecture.** Le
+   bandeau devait sonder `/runtime/residents` et le formulaire s'en servir pour
+   ses `x-options-from` : deux lectures de la même route, dont une seule
+   sondait. Les voix d'un modèle chargé après l'ouverture de l'écran ne
+   seraient jamais apparues — et c'est le moment exact où l'on veut les voir,
+   puisqu'elles n'existent qu'après le premier chargement. Un seul sondage, tenu
+   par l'écran et passé au bandeau : deux fois moins de requêtes, et le défaut
+   disparaît avec le doublon.
+
+Un écart au plan, assumé : **le résolveur de fichiers de sortie n'a pas été
+écrit.** Le point d'injection reste `NO_FILE`. Ce n'est pas l'effort — c'est une
+ligne — mais qu'on ne peut pas l'écrire juste : la forme de
+`GET /jobs/{id}/files/{name}` est une décision du 4.6, qui a un vrai choix à
+faire entre un nom de fichier et un chemin à plusieurs segments, `audio-separation`
+produisant des sorties imbriquées. Écrite avant, elle serait réécrite après, et
+aucun test n'aurait pu dire laquelle des deux formes est la bonne. À la place,
+l'écran annonce ce que le contrat promet de produire, sans prétendre l'avoir
+produit.
+
 ## Prochain pas
 
-Tâche **4.4** : l'écran Atelier. Le socle lui laisse peu à faire — la capacité,
-le variant, le formulaire et le chiffre d'admission fonctionnent déjà sur le vrai
-parc ; il reste à en faire un écran, à poser le bandeau de ressources et à
-brancher le résolveur de fichiers, dont le point d'injection est en place et les
-huit visualiseurs déjà éprouvés sans URL.
+Tâche **4.6** : le superviseur passe dans le processus de l'API. C'est le verrou
+du jalon — il conditionne le reste du 4.1 (`POST /jobs`, SSE), la fin du 4.4
+(progression, sortie réelle, résolveur de fichiers) et la tâche 4.2. Le prendre
+avant le 4.5 évite d'écrire deux fois la même chose : l'Atelier a désormais tout
+ce qu'il lui faut *sauf* de quoi lancer, et le 4.5 n'en dépend pas.
 
-Ce qui reste du 4.1 — `POST /jobs` et le flux SSE — attend délibérément le
-**4.6**, le déménagement du superviseur dans le processus de l'API. L'écrire
-avant reviendrait à faire vivre l'occupation des résidents dans un fichier
-verrouillé pendant toute la durée d'un job, puis à le défaire. L'Atelier peut
-donc être complet sauf son bouton *Lancer*, et c'est l'ordre qu'il faut tenir.
+L'écran **Parc** (4.5) est faisable en parallèle sans rien attendre : la route
+`/store/summary` répond déjà, et le bandeau de ressources lui est réutilisable
+tel quel. C'est aussi le moment où la coquille gagnera sa navigation — au 4.4 un
+onglet unique aurait été un décor.
 
 Deux dettes que le socle rend visibles, et qu'aucune tâche ne porte : **aucun des
 102 champs du registre n'a de `title`** — l'étiquette affichée est la clé du
