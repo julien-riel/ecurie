@@ -1,0 +1,57 @@
+# Traduction par modèle de langue — et le premier usage du runtime `mlx-lm`,
+# que `envs.py` déclarait « aucun modèle du parc ne l'utilise encore ».
+#
+# Un modèle généraliste plutôt qu'un moteur de traduction dédié, et c'est un
+# choix à assumer : NLLB-200 traduit mieux à taille égale, mais il est publié en
+# CC-BY-NC, donc inutilisable hors recherche. Opus-MT est en Apache mais
+# unidirectionnel — il faudrait un jeu de poids par paire de langues, et le
+# contrat `translation` expose une langue d'arrivée libre. Un modèle de langue
+# tient les deux bouts, honore le `register` du contrat, et se partage avec deux
+# autres capacités. Le prix : 2,3 Go pour ce qu'un NMT ferait en 300 Mo.
+#
+# Le vrai challenger de ce variant sera un moteur dédié, et c'est la confrontation
+# du v0.5 qui dira lequel mérite d'être titulaire.
+id: qwen3-4b-traduction
+name: Qwen3 4B Instruct (traduction)
+capability: translation
+family: qwen3
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Poids partagés avec qwen3-4b-outils, à la même révision : un seul
+  téléchargement, un seul jeu de fichiers sur le disque, deux capacités. Le
+  profil, lui, doit être mesuré pour chacune — traduire un paragraphe et remplir
+  un appel d'outil ne produisent pas le même nombre de jetons, donc pas le même
+  pic ni la même durée.
+
+links:
+  homepage: https://huggingface.co/mlx-community/Qwen3-4B-Instruct-2507-4bit
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-lm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3-4B-Instruct-2507-4bit
+      revision: "50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b"   # 2026-01-02
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      register: neutre
+      preserve_formatting: true
+    caveats:
+      - "Ne détecte pas la langue de départ : il traduit ce qu'on lui donne. `detected_source_language` rend la langue déclarée, ou rien."
+      - "Poids partagés avec qwen3-4b-outils — les déporter déplace les deux."
+    profile:
+      disk_bytes: 2278969697
+      peak_unified_memory_bytes: 2763997636
+      warmup_ms: 746
+      latency_ms_p50: 1454
+      throughput: "1 sortie / 1.6 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-lm 0.29.1"
+      measured_at: "2026-08-21"
+      harness_version: "0.3.0"

@@ -1,0 +1,47 @@
+{
+  "capability": "image-to-text",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Une seule image, trois longueurs de réponse demandées : c'est le nombre de jetons produits, et lui seul, qui fait la durée d'une description — l'image est encodée une fois, quelle que soit la réponse. Fixer l'image et ne faire varier que la longueur isole donc le vrai facteur de coût. Elles ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "cases": [
+    {
+      "id": "bref-128",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "detail": "bref",
+        "max_tokens": 128,
+        "temperature": 0.0,
+        "seed": 1
+      },
+      "source": {
+        "recipe": "scene",
+        "taille": 768,
+        "fond": "atelier",
+        "objets": [
+          { "forme": "cube", "x": 0.28, "y": 0.6, "echelle": 0.34 },
+          { "forme": "sphere", "x": 0.55, "y": 0.66, "echelle": 0.28 },
+          { "forme": "cone", "x": 0.78, "y": 0.62, "echelle": 0.3 }
+        ]
+      }
+    },
+    {
+      "id": "normal-512",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "detail": "normal",
+        "max_tokens": 512,
+        "temperature": 0.0,
+        "seed": 2
+      }
+    },
+    {
+      "id": "detaille-1024",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "detail": "détaillé",
+        "max_tokens": 1024,
+        "temperature": 0.0,
+        "seed": 3
+      }
+    }
+  ]
+}

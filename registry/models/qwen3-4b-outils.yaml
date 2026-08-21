@@ -1,0 +1,50 @@
+# Appel d'outils — les mêmes poids que qwen3-4b-traduction, autre contrat.
+#
+# Qwen3 déclare un gabarit de conversation qui accepte `tools`, ce qui permet de
+# mesurer l'appel d'outil natif plutôt qu'un repli par consigne système. La
+# métrique `template_tools` du job le rapporte à chaque exécution : si elle
+# passe à faux après une mise à jour du gabarit, la comparaison avec les
+# mesures antérieures cesse d'être valide, et il vaut mieux l'apprendre là que
+# par un score qui baisse sans raison.
+id: qwen3-4b-outils
+name: Qwen3 4B Instruct (appel d'outils)
+capability: tool-use
+family: qwen3
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Écurie n'exécute aucun outil : elle juge le choix et le remplissage. Ce
+  manifeste sert donc à mesurer une compétence, pas à brancher un agent — la
+  boucle d'agent reste hors périmètre (ARCHITECTURE.md §11).
+
+links:
+  homepage: https://huggingface.co/mlx-community/Qwen3-4B-Instruct-2507-4bit
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-lm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3-4B-Instruct-2507-4bit
+      revision: "50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b"   # 2026-01-02
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      tool_choice: auto
+      parallel_calls: false
+      temperature: 0.0
+    caveats:
+      - "Poids partagés avec qwen3-4b-traduction — un seul téléchargement pour les deux."
+    profile:
+      disk_bytes: 2278969697
+      peak_unified_memory_bytes: 2932723800
+      warmup_ms: 742
+      latency_ms_p50: 958
+      throughput: "1 sortie / 1.0 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-lm 0.29.1"
+      measured_at: "2026-08-21"
+      harness_version: "0.3.0"

@@ -1,0 +1,147 @@
+{
+  "$schema": "../../../schema/golden.schema.json",
+  "capability": "image-to-text",
+  "version": 1,
+  "status": "complet",
+  "description": "Huit scènes dont on connaît le contenu exact, puisqu'on les a composées. Il n'y a pas de description « correcte » — deux descriptions également justes n'ont aucune raison de se ressembler —, donc pas de référence textuelle : ces cas se départagent en Confrontation. Mais leurs `fields` sont vérifiables sans juge : ce sont les mentions qu'une réponse correcte ne peut pas omettre. Un modèle qui décrit une « composition d'objets géométriques » sans jamais dire combien il y en a a produit une phrase agréable et vide, et le champ le dit.\n\nSeules l'image et la question sont fixées ; ni la longueur ni la température, qui restent celles du variant.",
+  "cases": [
+    {
+      "id": "comptage",
+      "input": {
+        "image": "assets/comptage.png",
+        "question": "Combien d'objets vois-tu, et lesquels ?",
+        "seed": 401
+      },
+      "reference": { "fields": { "nombre": "trois" } },
+      "notes": "Trois objets à compter. Le comptage est la question la plus honnête qu'on puisse poser à un modèle de vision : la réponse est juste ou fausse, et deux juges tombent toujours d'accord.",
+      "source": {
+        "recipe": "scene",
+        "taille": 768,
+        "fond": "atelier",
+        "objets": [
+          { "forme": "cube", "x": 0.26, "y": 0.6, "echelle": 0.3 },
+          { "forme": "sphere", "x": 0.53, "y": 0.64, "echelle": 0.26 },
+          { "forme": "cone", "x": 0.78, "y": 0.6, "echelle": 0.28 }
+        ]
+      }
+    },
+    {
+      "id": "identification",
+      "input": {
+        "image": "assets/identification.png",
+        "question": "Quelle forme géométrique est représentée ?",
+        "seed": 402
+      },
+      "reference": { "fields": { "forme": "tore" } },
+      "notes": "Un tore vu de trois quarts. « Anneau », « beigne » et « donut » sont des réponses acceptables qu'un champ littéral rejettera : c'est une limite connue de l'exactitude par champs, et elle se corrige en Confrontation plutôt qu'en assouplissant le champ.",
+      "source": {
+        "recipe": "scene",
+        "taille": 768,
+        "fond": "atelier",
+        "objets": [{ "forme": "tore", "x": 0.5, "y": 0.55, "echelle": 0.5 }]
+      }
+    },
+    {
+      "id": "position-relative",
+      "input": {
+        "image": "assets/position-relative.png",
+        "question": "Quel objet se trouve le plus à gauche ?",
+        "seed": 403
+      },
+      "reference": { "fields": { "reponse": "escalier" } },
+      "notes": "Une relation spatiale, pas une reconnaissance. Les modèles de vision décrivent bien ce qu'ils voient et se trompent souvent sur où ça se trouve.",
+      "source": {
+        "recipe": "scene",
+        "taille": 768,
+        "fond": "atelier",
+        "objets": [
+          { "forme": "escalier", "x": 0.24, "y": 0.6, "echelle": 0.3 },
+          { "forme": "cylindre", "x": 0.55, "y": 0.62, "echelle": 0.26 },
+          { "forme": "etoile", "x": 0.8, "y": 0.6, "echelle": 0.28 }
+        ]
+      }
+    },
+    {
+      "id": "description-libre",
+      "input": { "image": "assets/description-libre.png", "seed": 404 },
+      "reference": { "fields": { "sujet": "étoile" } },
+      "notes": "Aucune question : la description libre est le mode par défaut de l'Atelier, et c'est celui où un modèle bavard se distingue d'un modèle utile.",
+      "source": {
+        "recipe": "scene",
+        "taille": 768,
+        "fond": "atelier",
+        "objets": [{ "forme": "etoile", "x": 0.5, "y": 0.52, "echelle": 0.52 }]
+      }
+    },
+    {
+      "id": "fond-charge",
+      "input": {
+        "image": "assets/fond-charge.png",
+        "question": "Décris l'arrière-plan, puis l'objet au premier plan.",
+        "seed": 405
+      },
+      "reference": { "fields": { "fond": "ray" } },
+      "notes": "Un fond à motif : le modèle doit séparer ce qui est décor de ce qui est sujet. Le champ ne retient que la racine « ray », pour accepter aussi bien « rayures » que « rayé ».",
+      "source": {
+        "recipe": "scene",
+        "taille": 768,
+        "fond": "raye",
+        "objets": [{ "forme": "equerre", "x": 0.5, "y": 0.55, "echelle": 0.42 }]
+      }
+    },
+    {
+      "id": "absence",
+      "input": {
+        "image": "assets/absence.png",
+        "question": "Y a-t-il du texte écrit dans cette image ?",
+        "seed": 406
+      },
+      "reference": { "fields": { "reponse": "non" } },
+      "notes": "Une question dont la bonne réponse est « non ». Savoir dire qu'une chose n'est pas là est ce qui sépare un modèle qui regarde d'un modèle qui complète — et il n'y a effectivement aucun texte dans cette scène.",
+      "source": {
+        "recipe": "scene",
+        "taille": 768,
+        "fond": "uni",
+        "objets": [{ "forme": "cylindre", "x": 0.5, "y": 0.55, "echelle": 0.4 }]
+      }
+    },
+    {
+      "id": "nuance-de-forme",
+      "input": {
+        "image": "assets/nuance-de-forme.png",
+        "question": "Cet objet a-t-il des arêtes vives ou des surfaces courbes ?",
+        "seed": 407
+      },
+      "reference": { "fields": { "reponse": "courbe" } },
+      "notes": "Une distinction fine sur un objet unique. Elle ne demande aucune culture visuelle, seulement de regarder — et c'est précisément pour cela qu'elle départage.",
+      "source": {
+        "recipe": "scene",
+        "taille": 768,
+        "fond": "atelier",
+        "objets": [{ "forme": "sphere", "x": 0.5, "y": 0.55, "echelle": 0.46 }]
+      }
+    },
+    {
+      "id": "scene-dense",
+      "input": {
+        "image": "assets/scene-dense.png",
+        "question": "Énumère tous les objets, de gauche à droite.",
+        "seed": 408
+      },
+      "reference": { "fields": { "nombre": "cinq" } },
+      "notes": "Cinq objets à énumérer dans l'ordre. C'est la combinaison du comptage et de la position, et le premier cas où la longueur de la réponse commence à compter.",
+      "source": {
+        "recipe": "scene",
+        "taille": 768,
+        "fond": "atelier",
+        "objets": [
+          { "forme": "cube", "x": 0.14, "y": 0.62, "echelle": 0.2 },
+          { "forme": "cone", "x": 0.32, "y": 0.62, "echelle": 0.2 },
+          { "forme": "sphere", "x": 0.5, "y": 0.64, "echelle": 0.18 },
+          { "forme": "tore", "x": 0.68, "y": 0.66, "echelle": 0.2 },
+          { "forme": "escalier", "x": 0.86, "y": 0.62, "echelle": 0.2 }
+        ]
+      }
+    }
+  ]
+}

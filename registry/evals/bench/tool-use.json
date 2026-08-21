@@ -1,0 +1,247 @@
+{
+  "capability": "tool-use",
+  "version": 1,
+  "description": "Charge type du banc d'essai. La même demande, avec trois catalogues d'outils de taille croissante : c'est le nombre d'outils déclarés qui gonfle le contexte, donc la mémoire et le temps de préremplissage — la réponse, elle, tient en quelques dizaines de jetons dans les trois cas. Fixer la tâche et ne faire varier que le catalogue isole le vrai facteur de coût. Les cas ne changent jamais.",
+  "cases": [
+    {
+      "id": "outils-3",
+      "input": {
+        "task": "Combien de modèles de synthèse vocale y a-t-il au parc ?",
+        "temperature": 0.0,
+        "max_tokens": 256,
+        "seed": 1,
+        "tools": [
+          {
+            "name": "lister_modeles",
+            "description": "Liste les modèles du registre, éventuellement filtrés par capacité.",
+            "parameters": {
+              "type": "object",
+              "properties": { "capability": { "type": "string" } }
+            }
+          },
+          {
+            "name": "lancer_job",
+            "description": "Exécute un modèle sur une entrée.",
+            "parameters": {
+              "type": "object",
+              "required": ["ref"],
+              "properties": { "ref": { "type": "string" }, "input": { "type": "object" } }
+            }
+          },
+          {
+            "name": "lister_residents",
+            "description": "Modèles actuellement chargés en mémoire.",
+            "parameters": { "type": "object", "properties": {} }
+          }
+        ]
+      }
+    },
+    {
+      "id": "outils-8",
+      "input": {
+        "task": "Combien de modèles de synthèse vocale y a-t-il au parc ?",
+        "temperature": 0.0,
+        "max_tokens": 256,
+        "seed": 2,
+        "tools": [
+          {
+            "name": "lister_modeles",
+            "description": "Liste les modèles du registre, éventuellement filtrés par capacité.",
+            "parameters": {
+              "type": "object",
+              "properties": { "capability": { "type": "string" } }
+            }
+          },
+          {
+            "name": "lancer_job",
+            "description": "Exécute un modèle sur une entrée.",
+            "parameters": {
+              "type": "object",
+              "required": ["ref"],
+              "properties": { "ref": { "type": "string" }, "input": { "type": "object" } }
+            }
+          },
+          {
+            "name": "lister_residents",
+            "description": "Modèles actuellement chargés en mémoire.",
+            "parameters": { "type": "object", "properties": {} }
+          },
+          {
+            "name": "mesurer_profil",
+            "description": "Mesure le profil mémoire et la latence d'un variant.",
+            "parameters": {
+              "type": "object",
+              "required": ["ref"],
+              "properties": { "ref": { "type": "string" } }
+            }
+          },
+          {
+            "name": "telecharger_poids",
+            "description": "Télécharge les poids d'un variant à sa révision épinglée.",
+            "parameters": {
+              "type": "object",
+              "required": ["ref"],
+              "properties": { "ref": { "type": "string" } }
+            }
+          },
+          {
+            "name": "decharger_modele",
+            "description": "Rend la mémoire d'un modèle résident.",
+            "parameters": {
+              "type": "object",
+              "properties": { "ref": { "type": "string" }, "force": { "type": "boolean" } }
+            }
+          },
+          {
+            "name": "occupation_disque",
+            "description": "Les trois chiffres d'occupation du parc sur le disque.",
+            "parameters": { "type": "object", "properties": {} }
+          },
+          {
+            "name": "valider_registre",
+            "description": "Valide les manifestes contre le schéma et les invariants.",
+            "parameters": { "type": "object", "properties": {} }
+          }
+        ]
+      }
+    },
+    {
+      "id": "outils-16",
+      "input": {
+        "task": "Combien de modèles de synthèse vocale y a-t-il au parc ?",
+        "temperature": 0.0,
+        "max_tokens": 256,
+        "seed": 3,
+        "tools": [
+          {
+            "name": "lister_modeles",
+            "description": "Liste les modèles du registre, éventuellement filtrés par capacité.",
+            "parameters": {
+              "type": "object",
+              "properties": { "capability": { "type": "string" } }
+            }
+          },
+          {
+            "name": "lancer_job",
+            "description": "Exécute un modèle sur une entrée.",
+            "parameters": {
+              "type": "object",
+              "required": ["ref"],
+              "properties": { "ref": { "type": "string" }, "input": { "type": "object" } }
+            }
+          },
+          {
+            "name": "lister_residents",
+            "description": "Modèles actuellement chargés en mémoire.",
+            "parameters": { "type": "object", "properties": {} }
+          },
+          {
+            "name": "mesurer_profil",
+            "description": "Mesure le profil mémoire et la latence d'un variant.",
+            "parameters": {
+              "type": "object",
+              "required": ["ref"],
+              "properties": { "ref": { "type": "string" } }
+            }
+          },
+          {
+            "name": "telecharger_poids",
+            "description": "Télécharge les poids d'un variant à sa révision épinglée.",
+            "parameters": {
+              "type": "object",
+              "required": ["ref"],
+              "properties": { "ref": { "type": "string" } }
+            }
+          },
+          {
+            "name": "decharger_modele",
+            "description": "Rend la mémoire d'un modèle résident.",
+            "parameters": {
+              "type": "object",
+              "properties": { "ref": { "type": "string" }, "force": { "type": "boolean" } }
+            }
+          },
+          {
+            "name": "occupation_disque",
+            "description": "Les trois chiffres d'occupation du parc sur le disque.",
+            "parameters": { "type": "object", "properties": {} }
+          },
+          {
+            "name": "valider_registre",
+            "description": "Valide les manifestes contre le schéma et les invariants.",
+            "parameters": { "type": "object", "properties": {} }
+          },
+          {
+            "name": "plan_recuperation",
+            "description": "Génère un plan de récupération d'espace, poste par poste.",
+            "parameters": {
+              "type": "object",
+              "properties": { "unused_after_days": { "type": "integer" } }
+            }
+          },
+          {
+            "name": "vider_corbeille",
+            "description": "Efface définitivement la quarantaine.",
+            "parameters": {
+              "type": "object",
+              "properties": { "older_than_days": { "type": "integer" } }
+            }
+          },
+          {
+            "name": "deporter_variant",
+            "description": "Déplace les poids d'un variant sur un volume externe.",
+            "parameters": {
+              "type": "object",
+              "required": ["ref", "volume"],
+              "properties": { "ref": { "type": "string" }, "volume": { "type": "string" } }
+            }
+          },
+          {
+            "name": "lire_fichier",
+            "description": "Lit un fichier texte du dépôt.",
+            "parameters": {
+              "type": "object",
+              "required": ["path"],
+              "properties": { "path": { "type": "string" } }
+            }
+          },
+          {
+            "name": "ecrire_fichier",
+            "description": "Écrit un fichier texte dans le dépôt.",
+            "parameters": {
+              "type": "object",
+              "required": ["path", "content"],
+              "properties": { "path": { "type": "string" }, "content": { "type": "string" } }
+            }
+          },
+          {
+            "name": "chercher_texte",
+            "description": "Cherche une chaîne dans les fichiers du dépôt.",
+            "parameters": {
+              "type": "object",
+              "required": ["pattern"],
+              "properties": { "pattern": { "type": "string" }, "glob": { "type": "string" } }
+            }
+          },
+          {
+            "name": "convertir_unites",
+            "description": "Convertit une quantité d'octets vers une unité lisible.",
+            "parameters": {
+              "type": "object",
+              "required": ["bytes"],
+              "properties": { "bytes": { "type": "integer" }, "unit": { "type": "string" } }
+            }
+          },
+          {
+            "name": "historique_jobs",
+            "description": "Liste les jobs déjà exécutés, du plus récent au plus ancien.",
+            "parameters": {
+              "type": "object",
+              "properties": { "limit": { "type": "integer" }, "ref": { "type": "string" } }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

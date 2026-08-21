@@ -1,0 +1,40 @@
+{
+  "capability": "image-matting",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Une seule scène, trois définitions soumises au modèle : c'est `max_side` qui pilote le coût mémoire d'un détourage, et il le pilote au carré — passer de 512 à 2048 multiplie par seize la surface à traiter. Le fond rayé est délibéré : il ne change rien au coût, mais une charge type qui ne serait détourable que sur fond uni mesurerait un cas que personne ne rencontre.",
+  "cases": [
+    {
+      "id": "cote-512",
+      "input": {
+        "image": "assets/matte-raye.png",
+        "max_side": 512,
+        "edge_refine": true
+      },
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "fond": "raye",
+        "objets": [
+          { "forme": "etoile", "x": 0.4, "y": 0.5, "echelle": 0.42 },
+          { "forme": "cylindre", "x": 0.72, "y": 0.62, "echelle": 0.3 }
+        ]
+      }
+    },
+    {
+      "id": "cote-1024",
+      "input": {
+        "image": "assets/matte-raye.png",
+        "max_side": 1024,
+        "edge_refine": true
+      }
+    },
+    {
+      "id": "cote-2048",
+      "input": {
+        "image": "assets/matte-raye.png",
+        "max_side": 2048,
+        "edge_refine": true
+      }
+    }
+  ]
+}

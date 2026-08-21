@@ -1,0 +1,34 @@
+{
+  "capability": "text-generation",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Trois plafonds de jetons croissants sur des demandes de longueur naturelle correspondante : c'est le nombre de jetons produits qui fait la durée, et la longueur du contexte qui fait le pic. Température nulle partout — une charge type qui échantillonnerait ne serait pas reproductible, et deux mesures ne se compareraient plus. Les cas ne changent jamais.",
+  "cases": [
+    {
+      "id": "court-128",
+      "input": {
+        "prompt": "En une phrase : pourquoi un profil mémoire se mesure-t-il au lieu de s'estimer ?",
+        "max_tokens": 128,
+        "temperature": 0.0,
+        "seed": 1
+      }
+    },
+    {
+      "id": "moyen-512",
+      "input": {
+        "prompt": "Écris une fonction Python qui lit un fichier par blocs de 4 Mio et rend son empreinte sha256 en hexadécimal. Ajoute une phrase d'explication après le code.",
+        "max_tokens": 512,
+        "temperature": 0.0,
+        "seed": 2
+      }
+    },
+    {
+      "id": "long-1536",
+      "input": {
+        "prompt": "Explique en détail, avec des exemples de code, comment on isole deux bibliothèques de calcul qui exigent des versions incompatibles du même moteur : arborescence, fichiers de dépendances, et façon de lancer un sous-processus dans le bon environnement.",
+        "max_tokens": 1536,
+        "temperature": 0.0,
+        "seed": 3
+      }
+    }
+  ]
+}

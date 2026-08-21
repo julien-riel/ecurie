@@ -1,0 +1,4 @@
+[
+  { "name": "valider_registre", "arguments": {} },
+  { "name": "lister_residents", "arguments": {} }
+]

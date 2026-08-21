@@ -1,0 +1,86 @@
+{
+  "ref": "swin2sr@reel-x4",
+  "model": "swin2sr",
+  "variant": "reel-x4",
+  "capability": "image-upscale",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0 / transformers 5.15.1",
+  "measured_at": "2026-08-21",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/image-upscale.json",
+    "version": 1,
+    "cases": [
+      "cote-128",
+      "cote-256",
+      "cote-512"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 48461065,
+    "peak_unified_memory_bytes": 6741032960,
+    "warmup_ms": 1549,
+    "latency_ms_p50": 2873,
+    "throughput": "1 sortie / 5.2 s"
+  },
+  "cases": [
+    {
+      "id": "cote-128",
+      "ok": true,
+      "duration_ms": 710,
+      "metrics": {
+        "duration_ms": 710,
+        "input_width": 128,
+        "input_height": 128,
+        "scale": 4,
+        "padded_height": 128,
+        "padded_width": 128,
+        "output_pixels": 262144,
+        "mps_current_allocated_bytes": 61531648,
+        "mps_driver_allocated_bytes": 1173110784,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 1173110784
+      },
+      "error": null
+    },
+    {
+      "id": "cote-256",
+      "ok": true,
+      "duration_ms": 2873,
+      "metrics": {
+        "duration_ms": 2873,
+        "input_width": 256,
+        "input_height": 256,
+        "scale": 4,
+        "padded_height": 256,
+        "padded_width": 256,
+        "output_pixels": 1048576,
+        "mps_current_allocated_bytes": 62907904,
+        "mps_driver_allocated_bytes": 2307653632,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 2307653632
+      },
+      "error": null
+    },
+    {
+      "id": "cote-512",
+      "ok": true,
+      "duration_ms": 11991,
+      "metrics": {
+        "duration_ms": 11991,
+        "input_width": 512,
+        "input_height": 512,
+        "scale": 4,
+        "padded_height": 512,
+        "padded_width": 512,
+        "output_pixels": 4194304,
+        "mps_current_allocated_bytes": 112453120,
+        "mps_driver_allocated_bytes": 6741032960,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 6741032960
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

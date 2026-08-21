@@ -1,0 +1,86 @@
+{
+  "ref": "birefnet@fp16",
+  "model": "birefnet",
+  "variant": "fp16",
+  "capability": "image-matting",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0 / transformers 5.15.1",
+  "measured_at": "2026-08-21",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/image-matting.json",
+    "version": 1,
+    "cases": [
+      "cote-512",
+      "cote-1024",
+      "cote-2048"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 444571106,
+    "peak_unified_memory_bytes": 8300331008,
+    "warmup_ms": 2192,
+    "latency_ms_p50": 909,
+    "throughput": "1 sortie / 1.5 s"
+  },
+  "cases": [
+    {
+      "id": "cote-512",
+      "ok": true,
+      "duration_ms": 402,
+      "metrics": {
+        "duration_ms": 402,
+        "input_width": 1024,
+        "input_height": 1024,
+        "model_side": 512,
+        "coverage": 0.0572,
+        "thresholded": false,
+        "dtype": "float16",
+        "mps_current_allocated_bytes": 446749440,
+        "mps_driver_allocated_bytes": 1430077440,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 1430077440
+      },
+      "error": null
+    },
+    {
+      "id": "cote-1024",
+      "ok": true,
+      "duration_ms": 909,
+      "metrics": {
+        "duration_ms": 909,
+        "input_width": 1024,
+        "input_height": 1024,
+        "model_side": 1024,
+        "coverage": 0.0565,
+        "thresholded": false,
+        "dtype": "float16",
+        "mps_current_allocated_bytes": 454702848,
+        "mps_driver_allocated_bytes": 3569156096,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 3569156096
+      },
+      "error": null
+    },
+    {
+      "id": "cote-2048",
+      "ok": true,
+      "duration_ms": 3084,
+      "metrics": {
+        "duration_ms": 3084,
+        "input_width": 1024,
+        "input_height": 1024,
+        "model_side": 2048,
+        "coverage": 0.0568,
+        "thresholded": false,
+        "dtype": "float16",
+        "mps_current_allocated_bytes": 477984512,
+        "mps_driver_allocated_bytes": 8300331008,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 8300331008
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

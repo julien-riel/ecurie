@@ -1,0 +1,91 @@
+{
+  "$schema": "../../../schema/golden.schema.json",
+  "capability": "image-upscale",
+  "version": 1,
+  "status": "complet",
+  "description": "Six agrandissements dont la bonne réponse est connue exactement : l'entrée est la réduction bicubique d'une image de référence, et l'agrandissement doit y revenir. C'est le seul endroit du dossier où une capacité générative a une vérité terrain — on ne demande pas au modèle d'inventer, on lui demande de retrouver, et PSNR ou SSIM le mesurent sans juge humain.\n\nDeux limites à connaître avant de lire un classement. La dégradation est une réduction bicubique propre, ce qui avantage structurellement les modèles entraînés sur ce protocole et désavantage ceux entraînés sur des dégradations composées, plus utiles sur une photo réelle. Et surtout, **tous les cas ne discriminent pas également** : mesuré le 21 août 2026 avec Swin2SR, l'écart à une simple interpolation bicubique est de +0,31 dB sur une scène lisse et de +5,48 dB sur le fond rayé. Une scène analytique douce ne contient presque aucune haute fréquence à restituer, donc presque rien à départager. Les cas `texture-fine-x4` et `details-repetes-x2` portent le signal ; les autres vérifient surtout qu'un modèle ne dégrade rien.",
+  "cases": [
+    {
+      "id": "aretes-vives-x2",
+      "input": { "image": "assets/aretes-vives-x2.png", "scale": 2 },
+      "reference": { "image_file": "reference/aretes-vives.png" },
+      "notes": "Arêtes rectilignes et faces planes : le défaut visible est l'escalier le long des diagonales, et il se voit à l'œil autant qu'au score.",
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "reduire": 2,
+        "fond": "atelier",
+        "objets": [{ "forme": "cube", "x": 0.5, "y": 0.55, "echelle": 0.46 }]
+      }
+    },
+    {
+      "id": "aretes-vives-x4",
+      "input": { "image": "assets/aretes-vives-x4.png", "scale": 4 },
+      "reference": { "image_file": "reference/aretes-vives.png" },
+      "notes": "La même scène et la même référence, réduite quatre fois. Comparer ce cas au précédent isole exactement ce que coûte un facteur d'agrandissement doublé.",
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "reduire": 4,
+        "fond": "atelier",
+        "objets": [{ "forme": "cube", "x": 0.5, "y": 0.55, "echelle": 0.46 }]
+      }
+    },
+    {
+      "id": "degrade-doux-x2",
+      "input": { "image": "assets/degrade-doux-x2.png", "scale": 2 },
+      "reference": { "image_file": "reference/degrade-doux.png" },
+      "notes": "Une sphère : que des transitions douces. Le piège inverse du cube — un modèle qui accentue les contours fabrique ici un cerne que la référence n'a pas.",
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "reduire": 2,
+        "fond": "atelier",
+        "objets": [{ "forme": "sphere", "x": 0.5, "y": 0.55, "echelle": 0.48 }]
+      }
+    },
+    {
+      "id": "texture-fine-x4",
+      "input": { "image": "assets/texture-fine-x4.png", "scale": 4 },
+      "reference": { "image_file": "reference/texture-fine.png" },
+      "notes": "Un fond rayé réduit quatre fois : les rayures approchent la fréquence de Nyquist, donc l'information est réellement perdue. On juge ce que le modèle invente à la place, et s'il l'invente régulier.",
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "reduire": 4,
+        "fond": "raye",
+        "objets": [{ "forme": "cylindre", "x": 0.5, "y": 0.55, "echelle": 0.36 }]
+      }
+    },
+    {
+      "id": "details-repetes-x2",
+      "input": { "image": "assets/details-repetes-x2.png", "scale": 2 },
+      "reference": { "image_file": "reference/details-repetes.png" },
+      "notes": "Quatre marches identiques à petite échelle. Une structure répétée révèle l'irrégularité mieux qu'une forme unique : si une marche sort différente des trois autres, c'est le modèle qui a improvisé.",
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "reduire": 2,
+        "fond": "atelier",
+        "objets": [{ "forme": "escalier", "x": 0.5, "y": 0.55, "echelle": 0.5 }]
+      }
+    },
+    {
+      "id": "scene-chargee-x2",
+      "input": { "image": "assets/scene-chargee-x2.png", "scale": 2 },
+      "reference": { "image_file": "reference/scene-chargee.png" },
+      "notes": "Trois sujets, donc trois échelles de détail dans la même image. C'est le cas le plus proche d'un usage réel : agrandir la sortie d'un générateur, où tout ne se joue pas au même niveau de finesse.",
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "reduire": 2,
+        "fond": "atelier",
+        "objets": [
+          { "forme": "etoile", "x": 0.26, "y": 0.56, "echelle": 0.3 },
+          { "forme": "tore", "x": 0.54, "y": 0.62, "echelle": 0.28 },
+          { "forme": "cone", "x": 0.79, "y": 0.58, "echelle": 0.26 }
+        ]
+      }
+    }
+  ]
+}
