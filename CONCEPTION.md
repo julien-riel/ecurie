@@ -8,6 +8,10 @@
 > §3, §5, §8, §9, §12 et §13 portent maintenant ce que l'exécution réelle a
 > établi, et non plus seulement ce qui était prévu. Ce qui a été démenti par la
 > mesure est signalé comme tel plutôt que réécrit en silence.
+>
+> Révisé de nouveau le 21 août, au fil des tâches du v0.4 : le §7 dit ce que le
+> socle de l'UI a établi, et les §1.1, §5 et §6 ce que le déménagement du
+> superviseur dans le processus de l'API a changé.
 
 ---
 
@@ -28,7 +32,7 @@ Séparation stricte :
 |---|---|---|
 | Déclaré | `registry/` en Git | manifestes, capacités, `measurements/`, `evals/preferences.jsonl` |
 | Observé | `~/.ecurie/state.db` (SQLite) | artifacts, locations, cache de hash, télémétrie |
-| Observé | `~/.ecurie/residents.json` | modèles chargés en mémoire, sous verrou de fichier |
+| Observé | `~/.ecurie/residents.json` | modèles chargés, **miroir** de ce que chaque processus tient en mémoire |
 | Dérivé | recalculé, jamais committé | classement Elo, trois chiffres d'occupation, plans de GC |
 
 Les résidents mémoire sont à part, hors SQLite : ils changent à chaque commande,
@@ -37,6 +41,15 @@ entrée dont le processus est mort doit disparaître à la lecture. Un fichier J
 verrouillé dit cela plus simplement qu'une table qu'il faudrait garder en
 cohérence avec des PID. Les sockets des workers, eux, vivent dans un répertoire
 temporaire court et non dans `~/.ecurie` : `sun_path` est limité à 104 octets.
+
+**Depuis la tâche 4.6, ce fichier n'est plus l'état du superviseur : il en est le
+miroir.** Le superviseur vit aussi longtemps que son processus — une commande
+dans la CLI, le serveur entier dans `ecurie serve` — et c'est en mémoire que se
+tiennent l'occupation de chaque résident et le tour de rôle des jobs sur un même
+worker. Ce que le fichier porte encore, et qui ne peut vivre ailleurs : la liste
+des workers qu'un **autre** processus a chargés, et le verrou exclusif qui
+empêche deux superviseurs de conclure chacun de son côté qu'il reste de la place.
+Chacun y publie sa vue et n'y lit que celle des autres.
 
 Le **résolveur** (`packages/core/resolver.py`) fait la jointure : pour chaque variant
 déclaré, il retrouve ses artifacts observés et en déduit le `tier` réel (un variant
@@ -281,6 +294,13 @@ Deux transports pour ce même protocole, selon la durée de vie du worker :
   pas repayer le warmup à chaque phrase (§7 de l'architecture). Le worker écoute
   une connexion à la fois ; le dialogue est identique, octet pour octet.
 
+Cette dernière ligne a plus de portée qu'il n'y paraît, et elle a tranché une
+décision du 4.6 : **la connexion se ferme entre deux jobs**, elle ne se garde
+pas. La garder ouverte pour épargner un `connect()` — une microseconde sur un
+socket local — priverait tout autre processus de l'accès au worker, et
+neutraliserait son délai d'inactivité, qui se compte dans l'attente d'une
+connexion. Un modèle chargé une fois ne serait plus jamais rendu de lui-même.
+
 Côté worker, le descripteur 1 est réservé au protocole dès le démarrage et
 remplacé par le descripteur 2 : une barre de progression ou un avertissement de
 bibliothèque part alors dans le journal au lieu de couper une ligne JSON en deux.
@@ -390,10 +410,31 @@ plage. Le job passe alors par le même chemin, avec l'avertissement au manifeste
 Deux résidents ne sont jamais évincés : les **épinglés**, et ceux sur lesquels un
 **job tourne**. Le second cas n'est pas une politesse — décharger un worker en
 pleine inférence ne libère rien tout de suite, cela détruit un travail en cours,
-et la commande qui l'a provoqué n'en sait même rien. L'occupation est portée par
-le registre des résidents sous la forme du **pid du processus qui tient le
-worker** : un drapeau resterait posé pour toujours si la commande était
-interrompue, un pid se vérifie.
+et la commande qui l'a provoqué n'en sait même rien.
+
+**L'occupation vit dans la mémoire du superviseur** (tâche 4.6), et le pid n'en
+est plus que la publication. Elle était le pid du processus détenteur, écrit dans
+`residents.json` : un chiffre par processus, ce qui suffit tant qu'un processus
+ne tient qu'un job — le cas d'une commande, jamais celui d'un serveur. Deux jobs
+du même processus y inscrivaient le même pid, et le premier à finir l'effaçait :
+le worker redevenait évinçable alors qu'une inférence tournait dessus. Ce que le
+miroir transporte reste un pid, parce qu'il s'adresse aux autres processus et
+qu'un pid se vérifie — un détenteur mort ne retient rien, là où un drapeau
+resterait posé pour toujours.
+
+**Un modèle sert un job à la fois, et cela se tient en amont du socket.** Le
+worker résident écoute une connexion à la fois (`listen(1)`, §5.1) : deux jobs
+lancés sur le même modèle attendaient donc dans le backlog, sans que rien ne dise
+pourquoi, avec le délai d'inférence du second qui courait déjà. Un verrou par
+variant les sérialise, tenu de l'admission à la fin du job. L'attente est
+annoncée à qui la subit — « un job occupe déjà ce modèle » vaut mieux qu'une
+commande qui semble avoir cessé de répondre —, et elle est bornée : au-delà d'un
+job entier, c'est un bail qu'on n'a pas rendu, et cela se dit.
+
+Ce que ce verrou ne fait pas : sérialiser deux **processus**. Un `ecurie run`
+lancé pendant qu'un job de l'Atelier occupe le même modèle se retrouve, lui, dans
+la file d'écoute du worker — c'est le comportement voulu, et le seul possible
+sans donner à un processus autorité sur les jobs de l'autre.
 
 Politique du §7 de l'architecture encodée en config : `max_heavy_resident = 1`
 (lourd = peak > `heavy_threshold_bytes`, **8 Gio** depuis le recalibrage du
@@ -402,6 +443,12 @@ discrimine plus rien), les légers restent chauds. Un variant **sans profil mesu
 n'est exécutable qu'en mode mesure : parc déchargé entièrement, échantillonnage RSS,
 le résultat écrit le premier profil. C'est ce qui rend la règle « jamais de profil
 estimé » vivable au premier lancement.
+
+Le mode mesure vide le parc **épinglés compris** — un profil pris en concurrence
+mesure la machine et non le modèle —, mais il s'arrête devant un **job en cours** :
+une épingle est une préférence, un job est un travail, et l'évincer ne rendrait
+pas la mémoire tout de suite. Là encore, le cas ne pouvait pas se poser tant
+qu'une commande tenait seule le parc.
 
 **Un refus se lit** — corrigé au 4.4, et le défaut datait du v0.3. La décision
 d'admission porte une `reason` rendue telle quelle par `ecurie ps --for` et par
@@ -457,6 +504,28 @@ suffisent à faire vivre l'Atelier. Quatre décisions les gouvernent :
   poids et ce que la machine a en mémoire : `ecurie serve` refuse une adresse
   non locale sans `--expose`, et n'autorise que les origines de développement
   connues — la boucle locale ne protège pas d'une page ouverte dans le navigateur.
+
+**Le superviseur est unique et vit aussi longtemps que le serveur** (tâche 4.6).
+Il en existait un par requête tant qu'il ne portait aucun état : celui des
+résidents vivait dans un fichier verrouillé, et un objet jetable suffisait à le
+lire. Deux choses l'ont rendu impossible — l'occupation d'un résident et le tour
+de rôle des jobs sur un même worker (§5.4) —, et les deux étaient inévitables dès
+lors qu'un même processus tient plusieurs jobs à la fois. Ce que l'unicité ne
+doit pas figer, en revanche, c'est le registre : le superviseur le **redemande**
+plutôt que de le garder, faute de quoi l'admission travaillerait sur un manifeste
+que le rechargement à chaud a déjà remplacé.
+
+Trois conséquences visibles, toutes éprouvées contre un vrai serveur :
+
+- `GET /runtime/residents` montre le job d'un `ecurie run` lancé dans un
+  terminal, pid à l'appui, et l'admission d'un modèle lourd est refusée pendant
+  ce temps — « les résidents restants ne peuvent pas partir (qwen3-tts-1.7b
+  (en cours de job)) » ;
+- `ecurie unload` **refuse** un worker en plein job sans `--force`, ce qu'il ne
+  faisait pas : le défaut datait du v0.3 et n'est devenu visible qu'en donnant au
+  superviseur les moyens de savoir qu'un job tournait ;
+- l'arrêt du serveur laisse les workers chargés — c'est ce qu'être résident veut
+  dire — mais retire l'occupation qu'il publiait.
 
 `/runtime/admission` est un `POST` par la forme et une lecture par l'effet : la
 question porte une entrée complète, qu'on n'écrit pas dans une chaîne de requête.
@@ -733,14 +802,18 @@ vérifié au chargement du registre, pas à l'exécution.
   arguments, le message qui nomme la réparation. Le reste demande le vrai modèle
   et relève du banc d'essai.
 - **Intégration réelle** (locale, hors CI, `pytest -m real`) : un job TTS complet
-  sur le vrai parc, et la non-répétition du warmup au second job. Ces tests
-  **sautent avec le message qui dit quelle commande manque** plutôt que d'échouer :
-  un test rouge parce qu'un modèle de deux gigaoctets n'est pas téléchargé
-  n'apprend rien à personne.
+  sur le vrai parc, la non-répétition du warmup au second job, et deux jobs
+  concurrents qui se partagent un seul worker — la situation du serveur, qu'aucun
+  worker d'essai ne prouve. Ces tests **sautent avec le message qui dit quelle
+  commande manque** plutôt que d'échouer : un test rouge parce qu'un modèle de
+  deux gigaoctets n'est pas téléchargé n'apprend rien à personne. Ils ne
+  s'exécutent qu'à la main, donc à chaque fin de jalon : l'un d'eux avait viré au
+  rouge sans que personne le sache, périmé par l'arrivée du profil paramétré.
 - La CI GitHub Actions (runners sans Apple Silicon) n'exécute que unitaires, contrat
   et validation du registre.
 
-Au terme du v0.3 : 556 tests, dont 3 marqués `real`.
+Au terme de la tâche 4.6 : 749 tests Python, plus 4 marqués `real` ; 231 tests de
+front, plus 3 contre un vrai serveur.
 
 ---
 
