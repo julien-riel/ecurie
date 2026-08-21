@@ -1,0 +1,58 @@
+# Environnement isolé du runtime `torch-vision` (CONCEPTION.md §5.3).
+#
+# Sixième famille du parc. Elle sert deux capacités qui n'ont en commun que leur
+# pile — PyTorch sur MPS et `transformers` — et rien de leur appel : le détourage
+# (`workers/birefnet.py`) et l'agrandissement (`workers/swin2sr.py`). C'est
+# pourquoi `envs.py` ne lui donne aucun adaptateur par défaut : un runtime est
+# une famille de bibliothèques, pas une promesse d'API commune.
+#
+# Pourquoi un env de plus plutôt que `diffusers-mps`, qui a déjà torch et
+# transformers : le code d'inférence de BiRefNet est publié dans son dépôt de
+# poids et chargé par `trust_remote_code`. Ses dépendances sont donc décidées en
+# amont, sans préavis, par un fichier qu'on ne contrôle pas. Les laisser entrer
+# dans l'environnement qui fait tourner l'image du parc reviendrait à mettre en
+# jeu un modèle mesuré et profilé pour économiser 1,5 Go de wheels — exactement
+# l'arbitrage que l'isolation par environnement existe pour ne plus avoir à
+# faire (ARCHITECTURE.md §0, piège 2).
+#
+# Le `.venv` n'est pas versionné, ce fichier l'est. Pour le reconstruire :
+#
+#     ecurie env sync torch-vision
+
+[project]
+name = "ecurie-runtime-torch-vision"
+version = "0.4.0"
+description = "Écurie — env isolé : détourage et agrandissement d'image sur PyTorch/MPS"
+requires-python = ">=3.12"
+dependencies = [
+    # Même borne que `diffusers-mps`, et pour la même raison : les wheels macOS
+    # arm64 passent de `macosx_11_0` à `macosx_14_0` en 2.12, donc torch>=2.12
+    # imposerait macOS 14+. Le cap borne la dérive à la branche vérifiée.
+    "torch>=2.6,<2.14",
+    # Swin2SR est natif dans transformers (`Swin2SRForImageSuperResolution`, 4.26+) ;
+    # BiRefNet passe par `AutoModelForImageSegmentation` et `trust_remote_code`.
+    "transformers>=4.41.2",
+    # Dépendances du code amont de BiRefNet, chargé par trust_remote_code.
+    #
+    # `einops` vient de son `requirements.txt` ; les trois suivantes n'y sont
+    # PAS, et c'est le premier lancement qui les a révélées — `transformers`
+    # inspecte les imports du fichier distant et refuse net : « requires the
+    # following packages that were not found in your environment: kornia, timm,
+    # torchvision ». Le fichier de dépendances publié avec des poids est une
+    # indication, pas un contrat : c'est exactement pourquoi un adaptateur non
+    # exécuté est un adaptateur faux.
+    "einops>=0.8",
+    "kornia>=0.7",
+    "timm>=1.0",
+    "torchvision>=0.21",
+    "accelerate>=0.31.0",
+    "safetensors>=0.8.0",
+    "pillow>=11,<13",
+    "numpy>=1.26",
+    # Le worker ne télécharge jamais — `ecurie pull` est le seul chemin vers le
+    # réseau —, mais `from_pretrained` sur un chemin local en dépend quand même.
+    "huggingface-hub>=0.34.0,<2.0",
+]
+
+[tool.uv]
+package = false
