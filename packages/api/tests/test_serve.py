@@ -78,7 +78,9 @@ def test_la_commande_dit_le_depot_le_registre_et_le_budget(ecurie_home, monkeypa
     assert résultat.exit_code == 0, résultat.output
     assert "Dépôt" in résultat.output
     assert "capacité(s)" in résultat.output
-    assert "19.07 Go (metal" in résultat.output
+    # Le budget mémoire se lit en Gio, comme le seuil de lourdeur et comme
+    # l'UI l'affiche : « 19.07 Go » est un chiffre écrit nulle part ailleurs.
+    assert "17.76 Gio (metal" in résultat.output
     assert "/docs" in résultat.output
 
 

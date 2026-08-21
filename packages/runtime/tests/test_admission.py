@@ -79,8 +79,10 @@ def test_un_candidat_plus_gros_que_le_budget_est_refuse_sans_eviction():
 
     assert décision.admitted is False
     assert "décharger ne changerait rien" in décision.reason
-    assert f"{20 * GIB} octets" in décision.reason
-    assert str(16 * GIB) in décision.reason
+    # Le refus est lu tel quel par « ecurie ps --for » et par le bandeau de
+    # l'Atelier : il porte des Gio, pas onze chiffres bruts.
+    assert "20 Gio" in décision.reason
+    assert "16 Gio" in décision.reason
     assert décision.evict == ()
     assert décision.blockers == ()
     assert décision.headroom_bytes == 0
@@ -403,7 +405,7 @@ def test_un_epingle_qui_bloque_fait_refuser_en_nommant_ce_qui_bloque_et_ce_qui_m
     # 12 (l'épinglé qui reste) + 6 − 16 : ce qui manque une fois déchargé tout ce
     # qui pouvait l'être, pas avant — sinon le message réclame de libérer 4 Gio
     # alors que 2 suffisent.
-    assert f"il manque {2 * GIB} octets" in décision.reason
+    assert "il manque 2 Gio" in décision.reason
     assert "epingle@v1" in décision.reason
     assert "ecurie unload --force" in décision.reason
     assert décision.evict == ()  # un refus ne décharge rien
@@ -422,7 +424,7 @@ def test_le_refus_nomme_tous_les_epingles_qui_pesent():
     # Le motif accompagne chaque nom : « épinglé » se désépingle, « en cours de
     # job » s'attend. Ce ne sont pas les mêmes gestes.
     assert "epingle-a@v1 (épinglé), epingle-b@v1 (épinglé)" in décision.reason
-    assert f"il manque {2 * GIB} octets" in décision.reason
+    assert "il manque 2 Gio" in décision.reason
 
 
 def test_un_resident_en_plein_job_n_est_jamais_evince():
@@ -478,7 +480,7 @@ def test_un_refus_du_a_la_regle_du_parc_ne_parle_pas_d_octets_manquants():
     # 9 + 9 + 1 tiennent largement dans 32 : rien ne manque en octets, et le léger
     # épinglé n'a aucune part au blocage. Le désépingler ne débloquerait rien.
     assert décision.admitted is False
-    assert "il manque 0 octets" not in décision.reason
+    assert "il manque 0 o" not in décision.reason
     assert décision.blockers == ("lourd-epingle@v1",)
 
 

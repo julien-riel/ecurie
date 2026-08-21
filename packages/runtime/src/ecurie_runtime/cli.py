@@ -17,6 +17,7 @@ from typing import Annotated, Any
 import typer
 from ecurie_core.capabilities import CapabilityContract
 from ecurie_core.config import Config, load_config
+from ecurie_core.format import fmt_memory
 from ecurie_core.models import Model, Variant
 from ecurie_core.registry import Registry, find_root, load_registry
 from ecurie_store.db import StateDB
@@ -236,9 +237,9 @@ def ps_command(
         return
 
     console.print(
-        f"Budget mémoire unifiée : [bold]{fmt_bytes(budget.bytes)}[/bold] "
-        f"({budget.source}) — occupé {fmt_bytes(occupé)}, "
-        f"libre [bold]{fmt_bytes(budget.bytes - occupé)}[/bold]"
+        f"Budget mémoire unifiée : [bold]{fmt_memory(budget.bytes)}[/bold] "
+        f"({budget.source}) — occupé {fmt_memory(occupé)}, "
+        f"libre [bold]{fmt_memory(budget.bytes - occupé)}[/bold]"
     )
     if not résidents:
         console.print("aucun modèle résident")
@@ -263,7 +264,7 @@ def ps_command(
                 état = f"[red]ne répond pas[/red] — {état}"
             table.add_row(
                 e.ref,
-                fmt_bytes(e.peak_bytes),
+                fmt_memory(e.peak_bytes),
                 str(e.pid),
                 f"{e.warmup_ms} ms",
                 e.loaded_at[:19],
@@ -292,7 +293,7 @@ def _render_admission(ref: str, admission: Admission) -> None:
         détail = f" — déchargerait : {', '.join(admission.evict)}" if admission.evict else ""
         console.print(
             f"[green]{ref} passerait[/green] : {admission.reason}{détail} "
-            f"(marge résiduelle {fmt_bytes(max(0, admission.headroom_bytes))})"
+            f"(marge résiduelle {fmt_memory(max(0, admission.headroom_bytes))})"
         )
     else:
         console.print(f"[red]{ref} ne passerait pas[/red] : {admission.reason}")
@@ -499,7 +500,7 @@ def bench_command(
     table.add_column(justify="right")
     table.add_row("Disque", fmt_bytes(report.profile.get("disk_bytes", 0)))
     table.add_row(
-        "Pic mémoire unifiée", fmt_bytes(report.profile.get("peak_unified_memory_bytes", 0))
+        "Pic mémoire unifiée", fmt_memory(report.profile.get("peak_unified_memory_bytes", 0))
     )
     table.add_row("Warmup", f"{report.profile.get('warmup_ms', 0)} ms")
     for clé in ("latency_ms_p50", "rtf", "throughput"):
@@ -641,4 +642,4 @@ def register(app: typer.Typer) -> None:
 
 def budget_summary(config: Config, root: Path | None = None) -> str:
     budget = detect_budget(config, repo_root=root)
-    return f"{fmt_bytes(budget.bytes)} ({budget.source})"
+    return f"{fmt_memory(budget.bytes)} ({budget.source})"

@@ -21,8 +21,8 @@ from typing import Annotated
 import typer
 import uvicorn
 from ecurie_core.config import load_config
+from ecurie_core.format import fmt_memory
 from ecurie_core.registry import find_root, load_registry
-from ecurie_store.figures import fmt_bytes
 from rich.console import Console
 
 from ecurie_api.app import DEFAULT_CORS_ORIGINS, create_app
@@ -94,7 +94,7 @@ def serve_command(
 
     budget = state.budget
     console.print(
-        f"Budget mémoire unifiée : [bold]{fmt_bytes(budget.bytes)}[/bold] ({budget.source})"
+        f"Budget mémoire unifiée : [bold]{fmt_memory(budget.bytes)}[/bold] ({budget.source})"
     )
 
     origines = [*DEFAULT_CORS_ORIGINS, *(cors_origin or [])]

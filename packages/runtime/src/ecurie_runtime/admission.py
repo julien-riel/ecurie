@@ -22,10 +22,19 @@ Deux refus explicites valent mieux qu'un swap subi :
   par le mode mesure (`ecurie bench`), parc vidé, qui écrit son premier profil.
   C'est ce qui rend vivable la règle « jamais de profil estimé » ;
 - un variant dont le pic dépasse le budget à lui seul est refusé, jamais tenté.
+
+**Un refus se lit.** Les tailles des messages passent par `fmt_memory` : ces
+phrases sont rendues telles quelles par `ecurie ps --for` et par le bandeau de
+l'Atelier, et « demande 25704234348 octets, le budget entier est de 19070000000 »
+n'apprend rien à personne. Le §4 du plan le demande en toutes lettres — « ce
+morceau de 30 s demanderait 24,2 Gio, au-delà des 17,8 disponibles » vaut mieux
+qu'un bouton grisé —, et l'exigence porte d'abord sur qui écrit la phrase.
 """
 
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
+
+from ecurie_core.format import fmt_memory
 
 GIB = 1 << 30
 DEFAULT_HEAVY_THRESHOLD = 8 * GIB
@@ -112,8 +121,8 @@ def plan_admission(
         return Admission(
             admitted=False,
             reason=(
-                f"{ref} demande {peak_bytes} octets, le budget entier est de "
-                f"{policy.budget_bytes} : décharger ne changerait rien"
+                f"{ref} demande {fmt_memory(peak_bytes)}, le budget entier est de "
+                f"{fmt_memory(policy.budget_bytes)} : décharger ne changerait rien"
             ),
         )
 
@@ -122,7 +131,7 @@ def plan_admission(
         return Admission(
             admitted=False,
             reason=(
-                f"{ref} dépasse le seuil de {policy.heavy_threshold_bytes} octets et la "
+                f"{ref} dépasse le seuil de {fmt_memory(policy.heavy_threshold_bytes)} et la "
                 "politique du parc n'admet aucun modèle lourd résident "
                 "(max_heavy_resident = 0) : relever le réglage dans ~/.ecurie/config.toml"
             ),
@@ -208,7 +217,7 @@ def _refus_epingles(
     return Admission(
         admitted=False,
         reason=(
-            f"{ref} ne tient pas : il manque {manque} octets et les résidents restants "
+            f"{ref} ne tient pas : il manque {fmt_memory(manque)} et les résidents restants "
             f"ne peuvent pas partir ({', '.join(bloquants) or 'aucun'}) — "
             f"attendre la fin des jobs, ou ecurie unload --force"
         ),
