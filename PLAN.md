@@ -14,13 +14,13 @@
 | v0.1 — Voir le parc | **livré** | atteint |
 | v0.2 — Récupérer des gigaoctets | **livré** | atteint |
 | v0.3 — Exécuter sans OOM | **livré** | atteint : `run` TTS produit un wav, un job image décharge le TTS proprement, sans swap |
-| v0.4 — Utilisable au quotidien | **en cours** | 4.1 : la surface de lecture d'`ecurie serve` répond sur le vrai parc. 4.3 : les 17 contrats engendrent leur formulaire, sans un formulaire écrit à la main. 4.4 : l'Atelier existe, avec son bandeau de ressources, et il est complet sauf son bouton *Lancer*. 4.6 : le superviseur vit dans le processus de l'API, et `residents.json` n'est plus qu'un miroir |
+| v0.4 — Utilisable au quotidien | **en cours** | 4.1 : `ecurie serve` sert le parc **et lance ses jobs** — un POST, un flux SSE, un wav téléchargeable, éprouvés sur le vrai parc. 4.3 : les 17 contrats engendrent leur formulaire, sans un formulaire écrit à la main. 4.4 : l'Atelier existe, avec son bandeau de ressources, et il est complet sauf son bouton *Lancer*. 4.6 : le superviseur vit dans le processus de l'API, et `residents.json` n'est plus qu'un miroir |
 | v0.5 → v0.7 | à faire | — |
 
 Le parc réel compte **dix capacités exécutables** sur dix-sept déclarées, douze
 manifestes et treize variants, dont onze prêts. Sept environnements de runtime,
-quatre paquets Python et un front, **749 tests Python et 231 tests de front**,
-plus quatre essais sur le vrai parc et trois contre un vrai serveur, exclus par
+quatre paquets Python et un front, **770 tests Python et 231 tests de front**,
+plus cinq essais sur le vrai parc et trois contre un vrai serveur, exclus par
 défaut.
 
 Deux choses ont été faites en marge du jalon, et elles n'attendaient personne :
@@ -130,10 +130,10 @@ vendoré, 7,37 Go de poids non téléchargés (conception §13.4).
 
 | # | Tâche | Livrable |
 |---|---|---|
-| 4.1 | ◑ FastAPI : registre, jobs + SSE, `store/summary`, résidents | `ecurie serve` sert les **lectures** : `/registry/capabilities`, `/registry/models`, `/store/summary`, `/runtime/residents`, plus `/runtime/admission` que le §4 réclamait. Les jobs et le SSE restent à écrire — ce qui les retenait, le superviseur hors du processus, est levé depuis le 4.6 |
+| 4.1 | ✓ FastAPI : registre, jobs + SSE, `store/summary`, résidents | Les **lectures** (`/registry/*`, `/store/summary`, `/runtime/residents`, `/runtime/admission`), puis les **jobs** : `POST /jobs` rend 202 et un identifiant, `GET /jobs/{id}` l'état et son manifeste, `/events` un flux SSE qui rejoue depuis le début et se termine par un `end`, `/files/{chemin}` les fichiers — avec l'URL composée par le serveur et le type de média que le contrat promettait |
 | 4.2 | Bibliothèque côté serveur : manifeste de job complet, rejeu | reproductibilité effective |
 | 4.3 | ✓ UI : socle React+Vite+RJSF, mapping `x-ui`, visualiseurs par media type | `apps/ui` : deux tables d'aiguillage totales, les **17 contrats** rendus par une suite qui les lit sur le disque, 145 tests. Le typage vient du serveur — schéma OpenAPI figé et fixtures du vrai registre, gardés par deux tests pytest |
-| 4.4 | ◑ Écran **Atelier** (capacité → variant → formulaire → progression SSE → sortie) + bandeau de ressources | `src/ecrans/Atelier.tsx` : capacités groupées par ce qui marche, variant préselectionné sur le titulaire **exécutable**, formulaire engendré, chiffrage de l'entrée, sorties promises par le contrat. Bandeau permanent sondé toutes les 2 s. **La progression SSE et la sortie réelle attendent la route des jobs**, faute de job à suivre |
+| 4.4 | ◑ Écran **Atelier** (capacité → variant → formulaire → progression SSE → sortie) + bandeau de ressources | `src/ecrans/Atelier.tsx` : capacités groupées par ce qui marche, variant préselectionné sur le titulaire **exécutable**, formulaire engendré, chiffrage de l'entrée, sorties promises par le contrat. Bandeau permanent sondé toutes les 2 s. **Le bouton *Lancer*, la progression SSE et la sortie réelle restent à brancher** — le serveur les sert depuis le 4.1, l'écran ne les appelle pas encore |
 | 4.5 | Écran **Parc** (trois chiffres, arbre de duplication, plan de GC dry-run, tiering) | parité avec la CLI |
 | 4.6 | ✓ Le superviseur passe dans le processus de l'API : l'occupation des résidents cesse d'être un pid dans un fichier verrouillé et redevient un état en mémoire, et deux jobs sur un même worker se sérialisent au lieu d'attendre dans le backlog du socket | Un superviseur par processus, un verrou par variant tenu de l'admission à la fin du job, l'occupation en mémoire. `residents.json` est écrit par chacun, lu pour les autres. `ecurie unload` refuse un job en cours, `health()` ne fait plus la queue derrière le sien, et l'attente se dit à qui la subit |
 | 4.7 | Bandeau de ressources **calculé sur l'entrée en cours de saisie** : un profil paramétré (§3 conception) change le pic attendu quand l'utilisateur bouge un curseur de durée ou de résolution | « lancer coûtera 17,2 Gio, déchargera X » se met à jour en direct |
@@ -202,15 +202,15 @@ v0.1 ── v0.2 ── v0.3 ── v0.4 ── v0.5 ── v0.6 ── v0.7
                          │                       │
                          │                       └ 7.0 (éprouver Hunyuan3D)
                          │                          peut démarrer n'importe quand
-                         ├ 4.1 lectures ✓   4.3 socle UI ✓
-                         │                  4.4 Atelier ✓ (sauf Lancer)
-                         │                  4.6 superviseur dans l'API ✓
+                         ├ 4.1 serveur ✓    4.3 socle UI ✓
+                         │  (lectures,      4.4 Atelier ✓ (sauf Lancer)
+                         │   puis jobs)     4.6 superviseur dans l'API ✓
                          │
-                         └ plus rien ne retient le reste du 4.1
-                            (POST /jobs, SSE), la fin du 4.4 (progression,
-                            sortie réelle, résolveur de fichiers) ni la
-                            tâche 4.2 — le superviseur sait désormais
-                            qu'un job tourne, et lequel
+                         └ le serveur lance, suit et sert ; il ne reste
+                            qu'à le brancher — fin du 4.4 (Lancer,
+                            progression, sortie réelle), puis 4.2
+                            (Bibliothèque et rejeu), qui s'appuie sur
+                            le manifeste déjà écrit par chaque job
 ```
 
 Seule parallélisation utile : les contrats de capacité (3.1) et la constitution des
@@ -385,15 +385,53 @@ choses valent d'être retenues, et quatre ne se lisaient nulle part.
    synchronisé — et c'est le prix de ce qu'ils prouvent : ils se lancent à la
    main, donc à chaque fin de jalon.
 
+### Ce que la route des jobs a tranché
+
+Le reste du 4.1 a livré `POST /jobs`, `GET /jobs/{id}`, le flux SSE et les
+fichiers de sortie. Quatre points, dont trois étaient des questions ouvertes.
+
+1. **Le serveur compose l'URL des fichiers ; le client ne la fabrique pas.**
+   C'était la décision que le 4.4 avait refusé de prendre faute d'un endroit où
+   la prendre — un nom de fichier, ou un chemin à plusieurs segments ? Les deux
+   existent, `audio-separation` rendant `tracks/vocals.wav` sous la clé pointée
+   `tracks.vocals`. La route accepte donc un chemin, et la réponse porte `files`
+   déjà composé : le résolveur du front devient une lecture, pas une
+   construction. Le type de média suit le même principe — celui que **le
+   contrat** promettait, lu dans le manifeste, parce qu'un `.glb` est un
+   `model/gltf-binary` et qu'aucune table système ne le dit.
+2. **Ce qui se refuse avant, et ce qui ne peut se refuser qu'après.** Un modèle
+   inconnu, un variant que le disque contredit, une entrée hors contrat : pas de
+   job, un code et la commande qui répare. L'admission, elle, ne se tranche
+   qu'au moment de charger — d'ici là un autre job a pu libérer la place — donc
+   le job existe et échoue en portant la phrase du contrôle d'admission. Elle
+   est préfixée « admission refusée : » plutôt que du nom de la classe : un refus
+   est une décision, pas une panne, et « AdmissionRefused » aurait été le seul
+   mot anglais de tout le parcours.
+3. **Un fil par job, pas un pool.** Un pool borné ferait attendre un job sur un
+   modèle libre derrière deux jobs en file sur un modèle occupé : le backlog
+   qu'on venait de retirer du socket, réintroduit un cran plus haut. La
+   sérialisation a son endroit — le tour de rôle par variant — et ce qui reste
+   ici n'est qu'un plafond de nombre.
+4. **Un test a failli tuer le processus qui le lançait.** Le nettoyage des
+   fixtures déchargeait les résidents ; or celles de l'API en fabriquent avec le
+   pid du test — délibérément, pour qu'ils soient vus vivants. `_evict` a donc
+   envoyé un SIGTERM à pytest, et la suite s'arrêtait au milieu sans un mot.
+   Le correctif vaut pour la production : **un worker est toujours un autre
+   processus**, et notre propre pid dans le registre des résidents ne peut venir
+   que d'un fichier corrompu ou d'un pid recyclé. Le serveur aurait disparu en
+   voulant faire de la place.
+
+Éprouvé contre un vrai `ecurie serve` : un POST, un flux qui va de `queued` à
+`done` en passant par la progression du worker, un wav de 3,36 s téléchargé en
+`audio/wav`, deux jobs simultanés qui se suivent sur un seul worker, et une
+demande de trente secondes de musique refusée par « demande 24,21 Gio, le budget
+entier est de 17,76 Gio » — sans que le TTS résident soit touché.
+
 ## Prochain pas
 
-Le reste de la tâche **4.1** : `POST /jobs`, `GET /jobs/{id}`, son flux **SSE** et
-`GET /jobs/{id}/files/{name}`. Plus rien ne le retient — le superviseur sait
-maintenant qu'un job tourne, lequel, et fait attendre le suivant. C'est ce qui
-donne son bouton *Lancer* à l'Atelier (fin du 4.4) et ce dont la Bibliothèque
-(4.2) a besoin. La première décision à prendre y est celle qu'on a refusé de
-prendre au 4.4 : un nom de fichier ou un chemin à plusieurs segments, sachant
-qu'`audio-separation` produit des sorties imbriquées.
+La fin de la tâche **4.4** : le bouton *Lancer* de l'Atelier, la progression, la
+sortie réelle. Tout ce qui lui manquait existe désormais côté serveur, y compris
+l'URL des fichiers, qu'il n'a plus qu'à suivre.
 
 L'écran **Parc** (4.5) est faisable en parallèle sans rien attendre : la route
 `/store/summary` répond déjà, et le bandeau de ressources lui est réutilisable

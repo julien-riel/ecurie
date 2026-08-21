@@ -10,8 +10,9 @@
 > mesure est signalé comme tel plutôt que réécrit en silence.
 >
 > Révisé de nouveau le 21 août, au fil des tâches du v0.4 : le §7 dit ce que le
-> socle de l'UI a établi, et les §1.1, §5 et §6 ce que le déménagement du
-> superviseur dans le processus de l'API a changé.
+> socle de l'UI a établi, les §1.1 et §5 ce que le déménagement du superviseur
+> dans le processus de l'API a changé, et le §6 ce que la route des jobs a
+> tranché — la forme des URL de sortie, et ce qui se refuse avant plutôt qu'après.
 
 ---
 
@@ -119,7 +120,7 @@ ecurie/                          # monorepo uv workspace
     veille/                                      v0.6
   packages/
     core/  store/  runtime/                    ✓
-    api/                                       ✓ surface de lecture (4.1)
+    api/                                       ✓ lectures, puis les jobs (4.1)
     veille/                                      v0.6
   tools/golden_assets.py                       ✓ recette des entrées d'essai
   tools/{openapi_dump,ui_fixtures}.py          ✓ ce que le front fige du serveur
@@ -474,9 +475,9 @@ GET  /registry/capabilities              GET /registry/models[?capability=]   �
 GET  /store/summary                      trois chiffres + arbre de duplication ✓
 GET  /runtime/residents[?for=<ref>]      mémoire, budget, admission simulée    ✓
 POST /runtime/admission {ref, input}     pic attendu pour cette entrée         ✓
-POST /jobs        {model, variant, input, params, seed?}   → {job_id}
-GET  /jobs/{id}   état + manifeste       GET /jobs/{id}/events   (SSE)
-GET  /jobs/{id}/files/{name}             fichiers de sortie
+POST /jobs        {ref, input, seed?}    → 202 {id, state, …}                  ✓
+GET  /jobs/{id}   état + manifeste       GET /jobs/{id}/events   (SSE)         ✓
+GET  /jobs/{id}/files/{chemin}           fichiers de sortie                    ✓
 POST /store/plan
 POST /evals/preference  {capability, input_hash, a, b, winner}
 GET  /library[?capability=&model=]       POST /library/{job_id}/replay
@@ -537,8 +538,63 @@ les reproches du contrat : un champ encore vide n'est pas une erreur du client,
 et refuser de répondre priverait l'utilisateur du chiffre au moment précis où il
 le regarde.
 
-**Bibliothèque / reproductibilité** : chaque job écrit
-`~/.ecurie/outputs/<job_id>/manifest.json` — capability, model, variant, révision
+### 6.1 Les jobs
+
+`/jobs` est la **seule surface d'écriture** de l'API, et la dernière pièce de la
+tâche 4.1. Elle a attendu la 4.6 pour une raison de fond : un serveur qui lance
+des jobs doit savoir lequel tourne, sur quel worker, et faire attendre le suivant
+— ce qu'un superviseur reconstruit à chaque requête ne peut pas.
+
+`POST /jobs` rend **202** et un identifiant : `run_job` est bloquant, il attend
+son tour, charge un modèle, exécute — des minutes, parfois. Un fil par job, et
+non un pool : un pool borné ferait attendre un job sur un modèle libre derrière
+deux jobs en file sur un modèle occupé, c'est-à-dire le backlog qu'on vient de
+retirer du socket, réintroduit un cran plus haut. La sérialisation a déjà son
+endroit, le tour de rôle par variant ; ce qui reste ici n'est qu'un plafond de
+nombre, contre un client qui s'emballe.
+
+Ce qui est refusé **avant** de créer un job, et ce qui ne peut l'être qu'après,
+sépare deux familles :
+
+- un modèle inconnu (404), un variant que le disque contredit — poids absents,
+  environnement non synchronisé, profil non mesuré (409, avec la commande qui
+  répare) —, une entrée que le contrat rejette (422). Créer un job voué à
+  l'échec pour le voir échouer trois secondes plus tard n'apprend rien de plus
+  et laisse une trace ;
+- l'**admission**, elle, ne se tranche qu'au moment de charger, après le tour de
+  rôle : d'ici là, un autre job a pu finir et libérer la place. Le job existe
+  donc, et il échoue en portant la phrase que le contrôle d'admission compose.
+  Elle est préfixée « admission refusée : » et non du nom de la classe — un
+  refus est une décision, pas une panne, et « AdmissionRefused » serait le seul
+  mot anglais de tout le parcours.
+
+**Le flux d'événements rejoue depuis le début.** Chaque événement porte l'état
+complet du job plutôt qu'un fragment : le client remplace ce qu'il affiche, et un
+client qui s'abonne en retard voit où l'on en est au lieu d'attendre le
+changement suivant. Le flux se termine par un `end` explicite, sans quoi
+`EventSource` rouvrirait la connexion indéfiniment sur un job terminé. Le journal
+ne grossit pas pour autant : une progression qui répète le même pourcentage et la
+même note n'est pas un événement.
+
+**Le serveur compose l'URL des fichiers, le client ne la fabrique pas.** C'est ce
+qui tranche la question laissée ouverte au 4.4 — un nom de fichier, ou un chemin
+à plusieurs segments ? Les deux existent, `audio-separation` produisant
+`tracks/vocals.wav` sous une clé pointée `tracks.vocals`. La route accepte donc un
+chemin (`{chemin:path}`), et la réponse porte `files`, déjà composé. Trois
+conséquences : le résolveur de fichiers du front est une lecture et non une
+construction ; le type de média servi est celui que **le contrat promettait**,
+lu dans le manifeste du job — un `.glb` est un `model/gltf-binary`, ce qu'aucune
+table système ne dit ; et tout ce qui sort du dossier du job est un 404 et non un
+403, la question « ce fichier existe-t-il ailleurs sur cette machine » n'ayant pas
+à recevoir de réponse.
+
+Enfin, la table des jobs ne survit pas au redémarrage du serveur, **le dossier du
+job si** : `GET /jobs/{id}` et les fichiers se replient dessus. C'est le
+manifeste, et non la table, qui fait foi sur ce qui a été exécuté.
+
+### 6.2 Bibliothèque et reproductibilité
+
+Chaque job écrit `~/.ecurie/outputs/<job_id>/manifest.json` — capability, model, variant, révision
 épinglée, params complets (défauts résolus inclus), seed, sha256 de l'entrée,
 versions (harness, runtime, adaptateur), durée, métriques. L'entrée elle-même est
 copiée dans le dossier du job (texte inline dans le manifeste, fichiers copiés).
@@ -812,7 +868,7 @@ vérifié au chargement du registre, pas à l'exécution.
 - La CI GitHub Actions (runners sans Apple Silicon) n'exécute que unitaires, contrat
   et validation du registre.
 
-Au terme de la tâche 4.6 : 749 tests Python, plus 4 marqués `real` ; 231 tests de
+Au terme de la tâche 4.1 : 770 tests Python, plus 5 marqués `real` ; 231 tests de
 front, plus 3 contre un vrai serveur.
 
 ---
