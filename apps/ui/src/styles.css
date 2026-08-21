@@ -129,7 +129,82 @@ legend { font-weight: 600; padding: 0 0.35rem; }
 .ecurie-avis ul { margin: 0.5rem 0 0; padding-left: 1.1rem; font-size: 0.9rem; }
 .ecurie-avis li[data-severite="error"] { color: var(--alerte); }
 
-.ecurie-cout { font-weight: 600; }
+/* --- bandeau de ressources (4.4) --------------------------------------------
+ *
+ * Collant en haut de l'écran : « permanent » au sens du §9 de l'architecture,
+ * c'est-à-dire visible pendant qu'on remplit un formulaire long — le contrat de
+ * `tool-use` fait défiler bien au-delà d'un écran.
+ */
+.ecurie-bandeau {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--papier);
+  border-bottom: 1px solid var(--trait);
+  padding: 0.6rem 0 0.7rem;
+  margin-bottom: 0.5rem;
+}
+
+.ecurie-jauge {
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--encre) 10%, transparent);
+  overflow: hidden;
+}
+
+.ecurie-jauge span {
+  display: block;
+  height: 100%;
+  background: var(--sourdine);
+}
+
+.ecurie-budget { margin: 0.35rem 0 0.25rem; }
+
+.ecurie-residents,
+.ecurie-admission,
+.ecurie-promesses {
+  margin: 0.3rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+}
+
+.ecurie-residents li[data-occupe="oui"] { color: var(--sourdine); }
+
+.ecurie-admission[data-severite="refus"] { color: var(--alerte); }
+.ecurie-admission[data-severite="attention"] { font-weight: 600; }
+
+.ecurie-promesses li { margin-bottom: 0.35rem; }
+.ecurie-promesses li[data-fichier="non"] .ecurie-sortie-type { font-style: italic; }
+
+/* --- écran Atelier ---------------------------------------------------------- */
+
+.ecurie-choix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 1.2rem;
+}
+
+.ecurie-choix > div { flex: 1 1 20rem; min-width: 0; }
+
+.ecurie-fiche { margin-top: 0.3rem; }
+.ecurie-fiche ul { margin: 0.2rem 0 0; padding-left: 1.1rem; }
+
+.ecurie-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  align-items: baseline;
+  margin: 1rem 0;
+}
+
+.ecurie-actions p { flex: 1 1 22rem; margin: 0; }
+
+.ecurie-chiffrage[data-severite="refus"] .ecurie-cout { color: var(--alerte); }
+
+summary { cursor: pointer; color: var(--sourdine); font-size: 0.9rem; }
+
+.ecurie-cout { font-weight: 600; margin: 0; padding-left: 1.1rem; }
 
 .ecurie-sorties { display: grid; gap: 1rem; }
 
