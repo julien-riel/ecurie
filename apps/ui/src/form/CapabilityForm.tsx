@@ -78,8 +78,9 @@ export function CapabilityForm(props: CapabilityFormProps) {
       fields={FIELDS}
       liveValidate
       showErrorList={false}
-      // Aucun bouton : il n'y a pas de route à appeler avant la tâche 4.6, et un
-      // bouton « Lancer » inerte serait un mensonge.
+      // Aucun bouton dans le formulaire : *Lancer* appartient à l'écran, qui
+      // sait aussi quel variant est choisi et si un job tourne déjà. Un bouton
+      // de soumission RJSF ne verrait que l'entrée.
       onChange={(e: IChangeEvent) => onChange((e.formData ?? {}) as Record<string, unknown>)}
     />
   );

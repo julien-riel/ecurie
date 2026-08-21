@@ -308,6 +308,16 @@ class JobOut(BaseModel):
     )
     warnings: list[str] = Field(default_factory=list)
     metrics: Json = Field(default_factory=dict)
+    output: Json = Field(
+        default_factory=dict,
+        description=(
+            "Ce que le worker a rendu, tel quel. `outputs` n'en retient que les "
+            "fichiers ; il faut aussi ce qui n'en est pas — une langue détectée, un "
+            "nombre de pages, une liste d'appels d'outils. Le client aplatit cette "
+            "réponse-là, et non les `properties` du contrat : `audio-separation` "
+            "déclare cinq pistes et n'en produit que deux ou quatre."
+        ),
+    )
     outputs: dict[str, str] = Field(
         default_factory=dict,
         description="Sortie du contrat → chemin du fichier dans le dossier du job.",

@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
+import { resolveurDeJob } from "./files";
 import { flattenOutput } from "./flatten";
 import { OutputPanel } from "./OutputPanel";
 import { VIEWERS, VIEWER_INCONNU, VIEWER_INLINE } from "./registry";
@@ -105,5 +106,43 @@ describe("le panneau de sortie", () => {
   test("un job sans sortie le dit", () => {
     render(<OutputPanel sortie={null} mediaTypes={{}} />);
     expect(screen.getByText("aucune sortie")).toBeInTheDocument();
+  });
+});
+
+describe("le résolveur de fichiers", () => {
+  test("il lit l_url du serveur, il ne la compose pas", () => {
+    // `files` est indexé par le chemin **pointé** de la sortie, pas par la
+    // valeur : `tracks.vocals` et non `tracks/vocals.wav`. Le serveur compose la
+    // seconde, et le front n'a qu'à y ajouter l'hôte de l'API.
+    const resoudre = resolveurDeJob({ "tracks.vocals": "/jobs/j1/files/tracks/vocals.wav" });
+    expect(resoudre("tracks.vocals")).toBe(
+      "http://127.0.0.1:8765/jobs/j1/files/tracks/vocals.wav",
+    );
+  });
+
+  test("une piste que le job n_a pas produite n_a pas d_url", () => {
+    // `audio-separation` déclare cinq pistes et n'en rend que deux ou quatre :
+    // fabriquer une adresse vraisemblable ne ferait que déplacer le 404 dans une
+    // balise, où plus personne ne le lit.
+    const resoudre = resolveurDeJob({ "tracks.vocals": "/jobs/j1/files/tracks/vocals.wav" });
+    expect(resoudre("tracks.drums")).toBeNull();
+  });
+
+  test("une url deja absolue est rendue telle quelle", () => {
+    const resoudre = resolveurDeJob({ audio: "http://ailleurs.test/a.wav" });
+    expect(resoudre("audio")).toBe("http://ailleurs.test/a.wav");
+  });
+
+  test("le panneau resout le chemin pointe et pas la valeur", () => {
+    render(
+      <OutputPanel
+        sortie={{ tracks: { vocals: "tracks/vocals.wav" } }}
+        mediaTypes={{ "tracks.vocals": "audio/wav" }}
+        resoudre={resolveurDeJob({ "tracks.vocals": "/jobs/j1/files/tracks/vocals.wav" })}
+      />,
+    );
+    const lecteur = document.querySelector('[data-viewer="audio"]')!;
+    expect(lecteur.getAttribute("src")).toContain("/jobs/j1/files/tracks/vocals.wav");
+    expect(screen.queryByText(/fichier non résolu/)).toBeNull();
   });
 });

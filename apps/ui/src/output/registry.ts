@@ -37,8 +37,9 @@ export interface ViewerProps {
   /** `null` pour une valeur inline. */
   mediaType: string | null;
   /**
-   * URL résolue du fichier. **Toujours `null` au 4.3** : aucune route ne sert
-   * les sorties de job. Tout visualiseur doit savoir rendre cet état.
+   * URL résolue du fichier, composée par le serveur et lue dans `job.files`.
+   * `null` reste un état **normal** — une sortie facultative que le worker n'a
+   * pas produite n'en a pas —, et tout visualiseur doit savoir le rendre.
    */
   href: string | null;
 }

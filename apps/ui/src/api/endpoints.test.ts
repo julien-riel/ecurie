@@ -109,3 +109,41 @@ describe("les appels de l'API", () => {
     expect(new URL(requetes()[0]!.url).search).toBe("");
   });
 });
+
+describe("les routes des jobs", () => {
+  test("lancer un job ne pose le seed qu_a l_interieur de l_entree", async () => {
+    // Même règle que pour l'admission : le serveur écrit le champ racine par
+    // -dessus la saisie résolue, et deux sources en feraient partir une que
+    // l'utilisateur n'a pas choisie.
+    repond("/jobs", { status: 202, body: { id: "j1" } });
+    await api.lancerJob("m@v", { text: "a", seed: 7 });
+
+    const requête = requetes()[0]!;
+    expect(requête.method).toBe("POST");
+    expect(new URL(requête.url).pathname).toBe("/jobs");
+    const corps = JSON.parse(await requête.text());
+    expect(corps).toEqual({ ref: "m@v", input: { text: "a", seed: 7 } });
+  });
+
+  test("un identifiant de job est encode dans le chemin", async () => {
+    // Il compose une URL. Le serveur en vérifie la forme avant de toucher au
+    // disque ; le front n'a pas à lui envoyer un chemin qu'il n'a pas voulu.
+    repond("/jobs/x%2Fy", { body: { id: "x/y" } });
+    await api.job("x/y").catch(() => {});
+    expect(new URL(requetes()[0]!.url).pathname).toBe("/jobs/x%2Fy");
+  });
+
+  test("l_url d_un fichier est lue, jamais composee", async () => {
+    // Le serveur donne `files` déjà fait — chemin à plusieurs segments compris.
+    // Tout ce que le front y ajoute est l'hôte de l'API.
+    expect(api.fichierDuJob("/jobs/j1/files/tracks/vocals.wav")).toBe(
+      "http://127.0.0.1:8765/jobs/j1/files/tracks/vocals.wav",
+    );
+  });
+
+  test("le flux annonce qu_il attend des evenements", async () => {
+    repond("/jobs/j1/events", { texte: "event: end\ndata: {}\n\n", type: "text/event-stream" });
+    await api.evenementsDuJob("j1", () => {});
+    expect(requetes()[0]!.headers.get("accept")).toBe("text/event-stream");
+  });
+});

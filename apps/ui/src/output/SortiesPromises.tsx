@@ -12,9 +12,10 @@
  * l'aiguillage mais ment sur l'état du job. Ou bien la promesse du contrat,
  * annoncée pour ce qu'elle est.
  *
- * C'est la troisième. `OutputPanel` reste le composant des vraies sorties, ses
- * huit visualiseurs sont éprouvés par leurs propres tests, et il prendra cette
- * place au 4.6 sans que rien d'autre ne bouge.
+ * C'est la troisième, et elle a survécu à l'arrivée du bouton *Lancer* : ce
+ * composant reste ce que l'écran montre **avant** le premier job, et
+ * `OutputPanel` prend sa place dès qu'il y a une réponse. Le titre change avec
+ * eux — « ce que ce job produirait », puis « ce que ce job a produit ».
  */
 
 import type { Capability } from "../api/types";

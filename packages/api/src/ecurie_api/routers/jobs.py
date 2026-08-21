@@ -121,6 +121,7 @@ def _lu_sur_disque(state: AppState, job_id: str) -> JobDetail | None:
         error=manifeste.get("error"),
         warnings=list(manifeste.get("warnings") or []),
         metrics=dict(manifeste.get("metrics") or {}),
+        output=dict(manifeste.get("output") or {}),
         outputs=sorties,
         files={clé: file_url(job_id, chemin) for clé, chemin in sorties.items()},
         input=dict(manifeste.get("input") or {}),
@@ -265,12 +266,23 @@ async def _flux(job: Job, request: Request):
     while True:
         if await request.is_disconnected():
             return
+        # L'état terminal se lit **avant** le journal, et l'ordre est tout ce qui
+        # sépare ce flux d'une impasse. Dans l'autre sens : la lecture rend une
+        # liste vide, le fil du job exécute `finish()` en entier — dernier
+        # événement compris —, et le test de terminaison qui suit conclut « plus
+        # rien à venir, plus rien à dire ». Le client reste alors sur l'avant
+        # -dernier état, en cours à jamais, avec sa barre figée et sa sortie
+        # jamais montrée. Dans cet ordre-ci l'inversion est sûre : `finish()`
+        # pose l'état **puis** émet, tous deux sous le verrou, donc voir
+        # « terminé » garantit que la lecture suivante attendra ce verrou et
+        # verra l'événement.
+        terminal = job.terminal
         nouveaux = job.events_since(index)
         for événement in nouveaux:
             index += 1
             yield _sse(événement["kind"], événement["job"])
             dernier_signe = time.monotonic()
-        if not nouveaux and job.terminal:
+        if not nouveaux and terminal:
             yield _sse("end", {"id": job.id, "state": job.state})
             return
         if time.monotonic() - dernier_signe > BATTEMENT_S:

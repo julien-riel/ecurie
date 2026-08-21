@@ -447,6 +447,13 @@ export interface components {
              */
             note: string;
             /**
+             * Output
+             * @description Ce que le worker a rendu, tel quel. `outputs` n'en retient que les fichiers ; il faut aussi ce qui n'en est pas — une langue détectée, un nombre de pages, une liste d'appels d'outils. Le client aplatit cette réponse-là, et non les `properties` du contrat : `audio-separation` déclare cinq pistes et n'en produit que deux ou quatre.
+             */
+            output?: {
+                [key: string]: unknown;
+            };
+            /**
              * Outputs
              * @description Sortie du contrat → chemin du fichier dans le dossier du job.
              */
@@ -530,6 +537,13 @@ export interface components {
              * @default
              */
             note: string;
+            /**
+             * Output
+             * @description Ce que le worker a rendu, tel quel. `outputs` n'en retient que les fichiers ; il faut aussi ce qui n'en est pas — une langue détectée, un nombre de pages, une liste d'appels d'outils. Le client aplatit cette réponse-là, et non les `properties` du contrat : `audio-separation` déclare cinq pistes et n'en produit que deux ou quatre.
+             */
+            output?: {
+                [key: string]: unknown;
+            };
             /**
              * Outputs
              * @description Sortie du contrat → chemin du fichier dans le dossier du job.

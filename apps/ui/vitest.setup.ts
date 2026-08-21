@@ -11,7 +11,14 @@ import { afterEach } from "vitest";
  * frapperait `ecurie serve` passerait au vert chez son auteur et nulle part
  * ailleurs.
  */
-type Reponse = { status?: number; body?: unknown; texte?: string; type?: string };
+type Reponse = {
+  status?: number;
+  body?: unknown;
+  texte?: string;
+  type?: string;
+  /** Un corps qui arrive en morceaux — le flux d'événements d'un job. */
+  flux?: ReadableStream<Uint8Array>;
+};
 type Route = (requete: Request) => Reponse | Promise<Reponse>;
 
 const routes = new Map<string, Route>();
@@ -48,13 +55,66 @@ globalThis.fetch = (async (entree: RequestInfo | URL, init?: RequestInit) => {
         "appeler repond() avant de rendre le composant",
     );
   }
-  const { status = 200, body, texte, type } = await route(requete);
-  const corps = texte ?? (body === undefined ? "" : JSON.stringify(body));
+  const { status = 200, body, texte, type, flux } = await route(requete);
+  // Le signal est branché sur le flux, et pas seulement accepté : `fetch` fait
+  // échouer la lecture en cours quand on abandonne une requête, et un double qui
+  // l'ignorerait laisserait passer un composant qui ne coupe jamais rien — le
+  // défaut se verrait en production, sur un onglet ouvert des heures.
+  const corps =
+    flux && requete.signal
+      ? flux.pipeThrough(new TransformStream(), { signal: requete.signal })
+      : (flux ?? texte ?? (body === undefined ? "" : JSON.stringify(body)));
   return new Response(corps, {
     status,
     headers: { "content-type": type ?? "application/json" },
   });
 }) as typeof fetch;
+
+/**
+ * Un flux qu'un test remplit à la main, morceau par morceau.
+ *
+ * Un job n'arrive pas d'un coup : `queued`, `running`, une progression, une
+ * sortie. Servir toutes ses trames d'un bloc éprouverait l'analyse et rien
+ * d'autre — or ce qui compte à l'écran est qu'une barre bouge *pendant* que le
+ * flux dure, et qu'un abandon coupe la connexion au lieu de la laisser ouverte.
+ * Le test pousse donc lui-même, entre deux assertions.
+ */
+export function fluxManuel() {
+  const encodeur = new TextEncoder();
+  let controle!: ReadableStreamDefaultController<Uint8Array>;
+  let ferme = false;
+  const corps = new ReadableStream<Uint8Array>({
+    start(c) {
+      controle = c;
+    },
+  });
+  return {
+    corps,
+    /** Une trame SSE — `event:` puis `data:`, suivies de la ligne vide. */
+    evenement(nom: string, donnee: unknown) {
+      controle.enqueue(encodeur.encode(`event: ${nom}\ndata: ${JSON.stringify(donnee)}\n\n`));
+    },
+    /** Du texte brut, pour éprouver une trame coupée en deux. */
+    brut(morceau: string) {
+      controle.enqueue(encodeur.encode(morceau));
+    },
+    /** Des octets, pour couper au milieu d'un caractère et non entre deux. */
+    brutOctets(octets: Uint8Array) {
+      controle.enqueue(octets);
+    },
+    fermer() {
+      if (ferme) return;
+      ferme = true;
+      try {
+        controle.close();
+      } catch {
+        // Le consommateur a pu fermer le flux avant le test : un composant
+        // démonté annule son lecteur, ce qui clôt le stream par l'autre bout.
+        // Un test qui range ses affaires après coup ne doit pas échouer là-dessus.
+      }
+    },
+  };
+}
 
 afterEach(() => {
   // Le démontage n'est pas laissé à la détection automatique de Testing

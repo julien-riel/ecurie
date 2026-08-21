@@ -95,6 +95,11 @@ class Job:
     evicted: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     metrics: dict[str, Any] = field(default_factory=dict)
+    # Ce que le worker a rendu, tel quel, et le sous-ensemble qui est fichier.
+    # Les deux, parce qu'ils ne disent pas la même chose : `page_count` et
+    # `language` sont des sorties du contrat qui ne sont pas des fichiers, et un
+    # client qui n'aurait que `outputs` les perdrait sans le savoir.
+    output: dict[str, Any] = field(default_factory=dict)
     outputs: dict[str, str] = field(default_factory=dict)  # clé du contrat → chemin dans le job
     manifest: dict[str, Any] | None = None
     job_dir: str | None = None
@@ -139,6 +144,7 @@ class Job:
             "evicted": list(self.evicted),
             "warnings": list(self.warnings),
             "metrics": dict(self.metrics),
+            "output": dict(self.output),
             "outputs": dict(self.outputs),
             "files": {clé: file_url(self.id, chemin) for clé, chemin in self.outputs.items()},
             "input": dict(self.input),
@@ -189,6 +195,7 @@ class Job:
             self.evicted = list(outcome.evicted)
             self.warnings = list(outcome.warnings)
             self.metrics = dict(outcome.result.metrics) if outcome.result else {}
+            self.output = dict(outcome.result.output) if outcome.result else {}
             self.manifest = outcome.manifest
             self.job_dir = str(outcome.job_dir)
             self.outputs = {

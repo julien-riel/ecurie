@@ -80,6 +80,42 @@ export type AdmissionResponse = Omit<
   "admission"
 > & { admission: Admission };
 
+// --- jobs ---------------------------------------------------------------------------
+
+/**
+ * L'état d'un job — celui que `POST /jobs` rend, et que chaque événement répète.
+ *
+ * Dix champs passent par `Requis` : pydantic les déclare avec un
+ * `default_factory`, ce qui les sort du `required` d'OpenAPI, alors que le
+ * serveur les émet toujours. Deux méritent d'être distingués ici parce que rien
+ * dans leur nom ne le dit :
+ *
+ * - `output` est la réponse du worker **entière** — c'est elle qu'on aplatit,
+ *   parce qu'`audio-separation` déclare cinq pistes et n'en produit que deux ou
+ *   quatre selon `stems` ;
+ * - `outputs` n'en retient que les sorties qui sont des fichiers, et `files` les
+ *   mêmes clés vers l'URL que **le serveur** a composée. Le front n'en fabrique
+ *   aucune : une sortie imbriquée est un chemin à plusieurs segments.
+ */
+export type Job = Requis<
+  Schemas["JobOut"],
+  | "evicted"
+  | "files"
+  | "input"
+  | "metrics"
+  | "note"
+  | "output"
+  | "outputs"
+  | "progress"
+  | "reused"
+  | "warnings"
+>;
+
+/** Le job et son manifeste — `null` tant qu'il n'est pas terminé. */
+export type JobDetail = Job & Pick<Schemas["JobDetail"], "manifest">;
+
+export type JobState = Schemas["JobOut"]["state"];
+
 // --- parc disque ------------------------------------------------------------------
 
 /**

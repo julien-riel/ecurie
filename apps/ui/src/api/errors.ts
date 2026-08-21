@@ -12,10 +12,16 @@
  * ce qui est le seul message dont on ne peut rien faire. On les normalise donc
  * toutes en `string[]`, sans jamais réécrire les phrases du serveur : elles sont
  * en français et portent ce qui manque, et les paraphraser ferait perdre le seul
- * renseignement utile. Les commandes de réparation, elles, ne voyagent pas dans
- * les erreurs : elles arrivent dans les `blockers` d'une réponse **200** —
- * « poids absents du cache — ecurie pull <ref> » —, parce qu'un variant qu'on ne
- * peut pas lancer n'est pas un échec de requête.
+ * renseignement utile.
+ *
+ * Une cinquième forme est arrivée avec les jobs, et elle contredit ce que ce
+ * fichier affirmait : **une commande de réparation peut voyager dans une
+ * erreur**. Tant qu'on ne faisait que lire, un variant non exécutable était un
+ * état — ses blockers arrivaient dans une réponse 200, « poids absents du cache
+ * — ecurie pull <ref> ». Le demander à `POST /jobs` en fait un refus, et le 409
+ * porte alors un `detail` **objet** : une phrase, et la liste des blockers.
+ * `JSON.stringify` l'aurait rendu illisible au moment précis où il dit quoi
+ * taper.
  *
  * Le cas du réseau mérite son traitement : côté JavaScript, **un refus de CORS
  * est indiscernable d'un serveur éteint** — les deux donnent un `TypeError` nu.
@@ -51,6 +57,20 @@ function estErreurPydantic(valeur: unknown): valeur is ErreurPydantic {
   return typeof valeur === "object" && valeur !== null && "msg" in valeur;
 }
 
+/** Le refus d'un variant que le disque contredit : une phrase, et ce qui répare. */
+interface RefusDeVariant {
+  message?: string;
+  blockers?: unknown;
+}
+
+function estRefusDeVariant(valeur: unknown): valeur is RefusDeVariant {
+  return (
+    typeof valeur === "object" &&
+    valeur !== null &&
+    typeof (valeur as RefusDeVariant).message === "string"
+  );
+}
+
 /**
  * Toutes les formes de `detail` du serveur, ramenées à des phrases.
  *
@@ -77,6 +97,16 @@ export function detailToMessages(corps: unknown): string[] {
       return chemin ? `${chemin} : ${message}` : message;
     });
   }
+  if (estRefusDeVariant(detail)) {
+    // `POST /jobs` refuse un variant non exécutable par un 409 dont le `detail`
+    // est un objet — la phrase, et les blockers qui portent chacun la commande
+    // qui répare. C'est le seul endroit où une réparation voyage dans une
+    // **erreur** plutôt que dans une réponse 200 : le sérialiser en JSON brut
+    // ferait lire « {"ref":"…","blockers":["poids absents du cache — ecurie
+    // pull …"]} » là où l'utilisateur attend la commande à copier.
+    const blockers = Array.isArray(detail.blockers) ? detail.blockers.map(String) : [];
+    return [String(detail.message), ...blockers];
+  }
   if (detail !== undefined) {
     return [JSON.stringify(detail)];
   }
@@ -93,13 +123,25 @@ export function messageReseau(base: string): string {
   );
 }
 
-/** Ce que l'utilisateur lit quand une requête échoue, sans jamais de forme vide. */
-export function phraseErreur(erreur: unknown): string {
+/**
+ * Toutes les phrases d'un échec, séparées — une par ligne à l'écran.
+ *
+ * Un refus de variant en porte plusieurs, et chacune dit une chose à faire :
+ * « poids absents du cache — ecurie pull … », « environnement non synchronisé —
+ * ecurie env sync … ». Les recoller en une seule ligne rendrait la deuxième
+ * commande illisible au moment précis où il faut la copier.
+ */
+export function messagesErreur(erreur: unknown): readonly string[] {
   if (erreur instanceof ApiError) {
-    return erreur.messages.length ? erreur.messages.join(" · ") : `échec ${erreur.status}`;
+    return erreur.messages.length ? erreur.messages : [`échec ${erreur.status}`];
   }
   if (erreur instanceof Error) {
-    return erreur.message;
+    return [erreur.message];
   }
-  return String(erreur);
+  return [String(erreur)];
+}
+
+/** Ce que l'utilisateur lit quand une requête échoue, sans jamais de forme vide. */
+export function phraseErreur(erreur: unknown): string {
+  return messagesErreur(erreur).join(" · ");
 }

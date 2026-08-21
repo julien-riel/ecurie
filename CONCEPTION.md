@@ -588,6 +588,17 @@ table système ne dit ; et tout ce qui sort du dossier du job est un 404 et non 
 403, la question « ce fichier existe-t-il ailleurs sur cette machine » n'ayant pas
 à recevoir de réponse.
 
+**Le flux se suffit à lui-même**, et il a fallu écrire le client pour s'en
+apercevoir. `JobOut` portait `outputs` — les sorties du contrat qui sont des
+fichiers — mais pas `output`, la réponse du worker telle qu'il l'a rendue. Or le
+§7 aplatit **la réponse** et non les `properties` du contrat, et tout ce qui n'est
+pas un fichier n'existe que là : `document-to-text.page_count`,
+`speech-to-text.language`, `tool-use.call_names`. Sans ce champ, un client qui
+n'écoute que le flux ne les verrait jamais et devrait relire le manifeste par une
+seconde requête, que les événements ne transportent pas. Les deux clés coexistent
+donc, et elles ne disent pas la même chose : `output` est ce qui a été produit,
+`outputs` ce qui s'en télécharge.
+
 Enfin, la table des jobs ne survit pas au redémarrage du serveur, **le dossier du
 job si** : `GET /jobs/{id}` et les fichiers se replient dessus. C'est le
 manifeste, et non la table, qui fait foi sur ce qui a été exécuté.
@@ -649,12 +660,38 @@ qu'un dix-huitième y entre sans qu'une ligne de front bouge.
   parce qu'`audio-separation` déclare cinq pistes et n'en produit que deux ou
   quatre selon `stems`.
 - **Quatre écrans**, plafond ferme (§9 de l'architecture) : Atelier, Confrontation,
-  Parc, Bibliothèque. **Le premier est livré** (tâche 4.4) : `src/ecrans/Atelier.tsx`
-  remplace le banc de rendu, avec le choix de la capacité groupé par ce qui marche,
-  le variant préselectionné sur le titulaire exécutable, le formulaire engendré, le
-  chiffrage de l'entrée et les sorties que le contrat promet. `App.tsx` n'est plus
-  qu'une coquille sans état ; la navigation attend le Parc (4.5), un onglet unique
-  étant un décor.
+  Parc, Bibliothèque. **Le premier est livré, et il exécute** (tâche 4.4) :
+  `src/ecrans/Atelier.tsx` remplace le banc de rendu, avec le choix de la capacité
+  groupé par ce qui marche, le variant préselectionné sur le titulaire exécutable,
+  le formulaire engendré, le chiffrage de l'entrée, le bouton *Lancer*, la
+  progression en direct et la sortie réelle. `App.tsx` n'est plus qu'une coquille
+  sans état ; la navigation attend le Parc (4.5), un onglet unique étant un décor.
+  Trois décisions gouvernent le lancement, et aucune n'était au plan :
+  - **le bouton n'est jamais grisé pour un variant qu'on croit incapable.** « Ce
+    morceau de 30 s demanderait 24,2 Gio » vaut mieux qu'un bouton mort ; un
+    variant dont les poids manquent part quand même, le serveur refuse en 409, et
+    l'écran affiche la commande qui répare. Il ne se grise que pendant qu'un job
+    de cet écran tourne, ce qui n'est pas un jugement mais un fait affiché juste
+    en dessous ;
+  - **un écran, un job.** Le serveur en accepte seize et les sérialise par
+    variant ; l'écran n'en suit qu'un, faute d'une seconde zone de sortie où
+    montrer le suivant. Ce que cela coûte est ce que la Bibliothèque (5.5) rendra
+    visible ; en attendant, `ecurie run` reste là ;
+  - **changer de capacité retire le job de l'écran.** Sa sortie s'aiguille sur les
+    `output_media_types` du contrat qui l'a produit : la garder l'aplatirait avec
+    la mauvaise table. Rien n'est perdu — le dossier du job est sur le disque.
+- **Le flux d'événements est lu par `fetch`, non par `EventSource`.** La
+  conception nommait le second, et c'est pour lui que le serveur termine par un
+  `end` ; deux raisons l'ont écarté au moment d'écrire le client. Il n'existe pas
+  en jsdom, si bien que toute la suite tournerait sur un double écrit pour
+  l'occasion — on éprouverait le double. Et surtout il n'est pas `fetch` : le
+  double de `vitest.setup.ts` refuse toute route non déclarée, précisément pour
+  qu'un test ne parte pas frapper le `ecurie serve` qui tourne sur cette machine,
+  et un `EventSource` ouvrirait une vraie connexion sans passer par ce filet. Ce
+  qu'on perd est ce qu'on ne voulait pas — la reconnexion automatique, qui rouvre
+  une connexion sur un job terminé ; ce qu'on gagne est l'annulation par
+  `AbortSignal` et un 404 qui arrive comme une erreur lisible. Le `end` garde tout
+  son sens : il dit au client qu'il n'y a plus rien à attendre.
 - **Le bandeau de ressources** (mémoire résidente, budget restant, « lancer
   déchargera X ») est alimenté par `GET /runtime/residents?for=<ref>`, rafraîchi
   toutes les deux secondes. Il est global par sa nature — n'importe quel écran peut
@@ -707,6 +744,54 @@ préselection y cherchait une référence de la bonne capacité, ne la trouvait 
 et posait un formulaire sans les défauts du manifeste — `voice` vide là où
 `qwen3-tts-1.7b` déclare `serena`. Le correctif est de filtrer sur `capability` :
 ne jamais faire confiance à une donnée qui n'a pas encore été rechargée.
+
+Brancher le bouton *Lancer* en a coûté quatre autres, et la première touche le
+serveur plutôt que le front — c'est le propre d'un client : il découvre ce que
+l'API ne dit pas.
+
+**Le flux pouvait sauter son dernier événement.** `_flux` lisait le journal, puis
+demandait si le job était terminé ; entre les deux, le fil du job avait le temps
+d'exécuter `finish()` en entier — dernier événement compris. La lecture rendait
+alors « rien de neuf », le test de terminaison concluait « plus rien à venir », et
+le `end` partait sans que l'état final soit jamais passé. Aucun test serveur ne
+pouvait le voir : ils lisent le flux jusqu'au bout et trouvent bien l'état final
+dans l'avant-dernière trame, en régime non concurrent. C'est l'écran qui en aurait
+payé le prix — barre figée à 40 %, bouton *Lancer* grisé, sortie jamais montrée —
+et c'est en écrivant l'écran qu'on l'a cherché. Lire l'état terminal **avant** le
+journal suffit, et l'inversion est sûre : `finish()` pose l'état puis émet, tous
+deux sous le verrou.
+
+**Une commande de réparation voyage maintenant dans une erreur**, ce que
+`errors.ts` affirmait impossible. C'était vrai tant qu'on ne faisait que lire :
+un variant non exécutable était un état, et ses blockers arrivaient dans une
+réponse 200. Le demander à `POST /jobs` en fait un refus, et le 409 porte alors
+un `detail` **objet** — une phrase et une liste. `JSON.stringify` le rendait
+illisible au moment précis où il dit quoi taper.
+
+**Un test écrit pour la forme a trouvé un vrai défaut.** L'analyseur du flux
+cherchait `\n\n` ; un serveur qui écrirait CRLF émet `\r\n\r\n`, où cette
+recherche ne trouve rien. Il n'aurait rendu **aucun** événement, sans une erreur
+pour le dire — l'écran serait resté figé sur « en file » pendant que le job
+finissait. Ce serveur-ci écrit `\n` ; la leçon est que l'analyse d'un format
+n'est juste que pour le producteur sur lequel on l'a essayée.
+
+**Un essai réel change la machine qu'il éprouve.** Le job réel de
+`App.reel.test.tsx` charge le modèle et le laisse résident ; le test d'admission
+du même fichier, écrit au 4.4, attendait « lancer chargera 7,65 Gio » et lit
+désormais « déjà résident : lancer ne le rechargera pas ». Il passait au premier
+lancement et échouait au second, sans qu'une ligne ait bougé. Cela vaut pour les
+cinq essais réels de pytest comme pour celui-ci : **l'ordre des tests et l'état
+du parc font partie de leurs entrées.**
+
+**Une requête en vol n'a pas de bouton d'annulation, elle a une génération.**
+`AbortController` coupe le flux, mais deux requêtes courtes lui échappent — le
+`POST` de la soumission et le `GET` de la reprise. Les laisser poser leur
+résultat au retour ouvrait deux impasses : un job soumis puis oublié — l'écran
+change de capacité pendant que le `POST` vole — revenait bloquer *Lancer*
+**sans** son panneau, donc sans le bouton qui l'aurait retiré ; et un job retiré
+pendant une reprise réapparaissait tout seul. Le chiffrage avait la même faille
+là où le bandeau avait déjà sa garde. La règle vaut pour tout l'écran : **une
+réponse qui revient doit prouver qu'on lui a posé la question la plus récente.**
 
 ---
 
@@ -868,8 +953,18 @@ vérifié au chargement du registre, pas à l'exécution.
 - La CI GitHub Actions (runners sans Apple Silicon) n'exécute que unitaires, contrat
   et validation du registre.
 
-Au terme de la tâche 4.1 : 770 tests Python, plus 5 marqués `real` ; 231 tests de
-front, plus 3 contre un vrai serveur.
+- **Le front a les mêmes deux étages**, et pour la même raison. La suite en jsdom
+  monte l'écran entier sur un double de `fetch` qui refuse toute route non
+  déclarée — sans quoi un test oublié partirait frapper le `ecurie serve` qui
+  tourne sur cette machine, et passerait au vert chez son auteur seulement. Le
+  double sait servir un **flux** poussé morceau par morceau, ce qui rend le
+  suivi d'un job éprouvable sans serveur : une barre qui bouge pendant que le
+  flux dure, et un abandon qui coupe la connexion. `App.reel.test.tsx` fait le
+  reste contre un vrai serveur, `ECURIE_ESSAI_REEL=1`, et c'est lui qui a trouvé
+  la boucle de rendu du 4.3.
+
+Au terme de la tâche 4.4 : 771 tests Python, plus 5 marqués `real` ; 281 tests de
+front, plus 5 contre un vrai serveur.
 
 ---
 

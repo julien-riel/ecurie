@@ -1,10 +1,15 @@
 /**
  * La sortie d'un job, aplatie puis aiguillée — un composant par type de média.
  *
- * Aucun job n'est encore soumis au 4.3 : ce panneau existe et se prouve sur des
- * sorties fabriquées, parce que c'est la moitié « visualiseurs par media type »
- * du livrable. La tâche 4.4 lui passera une vraie réponse et un vrai résolveur
- * de fichiers ; rien d'autre ne changera ici.
+ * Écrit au 4.3 sur des sorties fabriquées, il reçoit depuis la fin du 4.4 la
+ * vraie réponse d'un vrai job, et **rien n'a bougé** sauf ce qui devait : le
+ * résolveur, qui n'était plus qu'un point d'injection, en est un vrai.
+ *
+ * Ce qu'on résout est le chemin **pointé** de la sortie et non sa valeur. Les
+ * deux se ressemblent à s'y méprendre — `tracks.vocals` contre
+ * `tracks/vocals.wav` — mais seul le premier est une clé de `files`, la table
+ * que le serveur compose. Passer la seconde obligerait à l'inverser pour
+ * retrouver la première.
  */
 
 import type { FileResolver } from "./files";
@@ -16,7 +21,7 @@ export interface OutputPanelProps {
   sortie: Record<string, unknown> | null;
   /** `output_media_types` du contrat : chemins pointés vers types de média. */
   mediaTypes: Record<string, string>;
-  /** Par défaut `NO_FILE` — aucune route ne sert les fichiers avant le 4.4. */
+  /** Par défaut `NO_FILE` — une sortie montrée sans job derrière n'a pas d'URL. */
   resoudre?: FileResolver;
 }
 
@@ -30,7 +35,7 @@ export function OutputPanel({ sortie, mediaTypes, resoudre = NO_FILE }: OutputPa
       {rendus.map((r) => {
         const entree = viewerFor(r.mediaType);
         const Vue = entree.Component;
-        const href = r.mediaType && typeof r.valeur === "string" ? resoudre(r.valeur) : null;
+        const href = r.mediaType && typeof r.valeur === "string" ? resoudre(r.chemin) : null;
         return (
           <Vue
             key={r.chemin}
