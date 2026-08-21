@@ -1,0 +1,154 @@
+{
+  "birefnet@fp16": {
+    "capability": "image-matting",
+    "merged": {
+      "edge_refine": true,
+      "max_side": 1024
+    },
+    "variant_defaults": {
+      "edge_refine": true,
+      "max_side": 1024
+    }
+  },
+  "hunyuan3d-2.1-shape-mlx@mlx-bf16": {
+    "capability": "image-to-mesh",
+    "merged": {
+      "num_inference_steps": 30,
+      "octree_resolution": 256
+    },
+    "variant_defaults": {
+      "num_inference_steps": 30,
+      "octree_resolution": 256
+    }
+  },
+  "minimax-music3@4bit": {
+    "capability": "text-to-music",
+    "merged": {
+      "duration_seconds": 30,
+      "guidance_scale": 3.0,
+      "temperature": 1.0
+    },
+    "variant_defaults": {
+      "duration_seconds": 30
+    }
+  },
+  "qwen25-coder-7b@4bit": {
+    "capability": "text-generation",
+    "merged": {
+      "max_tokens": 2048,
+      "repetition_penalty": 1.0,
+      "temperature": 0.2,
+      "top_p": 0.95
+    },
+    "variant_defaults": {
+      "max_tokens": 2048,
+      "temperature": 0.2,
+      "top_p": 0.95
+    }
+  },
+  "qwen3-4b-outils@4bit": {
+    "capability": "tool-use",
+    "merged": {
+      "max_tokens": 1024,
+      "parallel_calls": false,
+      "temperature": 0.0,
+      "tool_choice": "auto"
+    },
+    "variant_defaults": {
+      "parallel_calls": false,
+      "temperature": 0.0,
+      "tool_choice": "auto"
+    }
+  },
+  "qwen3-4b-traduction@4bit": {
+    "capability": "translation",
+    "merged": {
+      "preserve_formatting": true,
+      "register": "neutre"
+    },
+    "variant_defaults": {
+      "preserve_formatting": true,
+      "register": "neutre"
+    }
+  },
+  "qwen3-tts-1.7b@8bit-mlx": {
+    "capability": "text-to-speech",
+    "merged": {
+      "speed": 1.0,
+      "voice": "serena"
+    },
+    "variant_defaults": {
+      "speed": 1.0,
+      "voice": "serena"
+    }
+  },
+  "qwen3-vl-8b-describe@4bit": {
+    "capability": "image-to-text",
+    "merged": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    },
+    "variant_defaults": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    }
+  },
+  "qwen3-vl-8b-ocr@4bit": {
+    "capability": "document-to-text",
+    "merged": {
+      "detect_layout": true,
+      "dpi": 200,
+      "format": "markdown"
+    },
+    "variant_defaults": {
+      "detect_layout": true,
+      "dpi": 200,
+      "format": "markdown"
+    }
+  },
+  "sdxl-base@fp16": {
+    "capability": "text-to-image",
+    "merged": {
+      "guidance_scale": 7.0,
+      "height": 1024,
+      "steps": 30,
+      "width": 1024
+    },
+    "variant_defaults": {
+      "guidance_scale": 7.0,
+      "height": 1024,
+      "steps": 30,
+      "width": 1024
+    }
+  },
+  "swin2sr@classique-x2": {
+    "capability": "image-upscale",
+    "merged": {
+      "max_side": 4096,
+      "scale": 2
+    },
+    "variant_defaults": {
+      "scale": 2
+    }
+  },
+  "swin2sr@reel-x4": {
+    "capability": "image-upscale",
+    "merged": {
+      "max_side": 4096,
+      "scale": 4
+    },
+    "variant_defaults": {
+      "scale": 4
+    }
+  },
+  "trellis2@bf16": {
+    "capability": "image-to-mesh",
+    "merged": {
+      "num_inference_steps": 30,
+      "octree_resolution": 256
+    },
+    "variant_defaults": {}
+  }
+}

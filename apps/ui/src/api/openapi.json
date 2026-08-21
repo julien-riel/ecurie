@@ -1,0 +1,1455 @@
+{
+  "components": {
+    "schemas": {
+      "AdmissionOut": {
+        "properties": {
+          "admitted": {
+            "title": "Admitted",
+            "type": "boolean"
+          },
+          "already_resident": {
+            "default": false,
+            "title": "Already Resident",
+            "type": "boolean"
+          },
+          "blockers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "evict": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evict",
+            "type": "array"
+          },
+          "headroom_bytes": {
+            "default": 0,
+            "title": "Headroom Bytes",
+            "type": "integer"
+          },
+          "measure_mode": {
+            "default": false,
+            "title": "Measure Mode",
+            "type": "boolean"
+          },
+          "peak_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pic attendu pour cette entrée, pas seulement pour ce variant.",
+            "title": "Peak Bytes"
+          },
+          "peak_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Dit quand le pic est extrapolé hors de l'intervalle mesuré.",
+            "title": "Peak Note"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "admitted",
+          "reason"
+        ],
+        "title": "AdmissionOut",
+        "type": "object"
+      },
+      "AdmissionRequest": {
+        "properties": {
+          "input": {
+            "additionalProperties": true,
+            "description": "Entrée envisagée, déjà typée. Elle sert au pic attendu quand le profil déclare une pente : trente secondes de musique coûtent le double de quinze.",
+            "title": "Input",
+            "type": "object"
+          },
+          "ref": {
+            "description": "« model@variant », ou « model » quand le choix est évident.",
+            "title": "Ref",
+            "type": "string"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          }
+        },
+        "required": [
+          "ref"
+        ],
+        "title": "AdmissionRequest",
+        "type": "object"
+      },
+      "AdmissionResponse": {
+        "properties": {
+          "admission": {
+            "$ref": "#/components/schemas/AdmissionOut"
+          },
+          "blockers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "input": {
+            "additionalProperties": true,
+            "description": "Entrée complète, défauts du contrat et du variant résolus.",
+            "title": "Input",
+            "type": "object"
+          },
+          "input_errors": {
+            "description": "Ce que le contrat reproche à l'entrée. Non vide, aucun job ne partirait.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Input Errors",
+            "type": "array"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "admission",
+          "ready"
+        ],
+        "title": "AdmissionResponse",
+        "type": "object"
+      },
+      "CapabilitiesResponse": {
+        "properties": {
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CapabilityOut"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/IssueOut"
+            },
+            "title": "Issues",
+            "type": "array"
+          }
+        },
+        "required": [
+          "capabilities"
+        ],
+        "title": "CapabilitiesResponse",
+        "type": "object"
+      },
+      "CapabilityOut": {
+        "properties": {
+          "composite": {
+            "default": false,
+            "title": "Composite",
+            "type": "boolean"
+          },
+          "defaults": {
+            "additionalProperties": true,
+            "description": "Valeurs par défaut déclarées par le contrat.",
+            "title": "Defaults",
+            "type": "object"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "incumbent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Titulaire de la capacité, référence de toute confrontation A/B.",
+            "title": "Incumbent"
+          },
+          "input": {
+            "additionalProperties": true,
+            "description": "JSON Schema du formulaire. L'UI le rend tel quel.",
+            "title": "Input",
+            "type": "object"
+          },
+          "models": {
+            "description": "Modèles du registre qui remplissent cette capacité.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Models",
+            "type": "array"
+          },
+          "output": {
+            "additionalProperties": true,
+            "description": "JSON Schema de la sortie.",
+            "title": "Output",
+            "type": "object"
+          },
+          "output_media_types": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Sorties qui sont des fichiers → type de média, qui choisit le visualiseur.",
+            "title": "Output Media Types",
+            "type": "object"
+          },
+          "ready_variants": {
+            "description": "Variants exécutables en l'état. Vide avec des modèles présents veut dire que la capacité est déclarée mais pas encore utilisable.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Ready Variants",
+            "type": "array"
+          },
+          "required": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Required",
+            "type": "array"
+          },
+          "steps": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "input",
+          "output"
+        ],
+        "title": "CapabilityOut",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "IssueOut": {
+        "properties": {
+          "file": {
+            "title": "File",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "error",
+              "warning"
+            ],
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "severity",
+          "file",
+          "message"
+        ],
+        "title": "IssueOut",
+        "type": "object"
+      },
+      "LinksOut": {
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "homepage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Homepage"
+          },
+          "paper": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paper"
+          }
+        },
+        "title": "LinksOut",
+        "type": "object"
+      },
+      "ModelOut": {
+        "properties": {
+          "capability": {
+            "title": "Capability",
+            "type": "string"
+          },
+          "family": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Family"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "incumbent": {
+            "title": "Incumbent",
+            "type": "boolean"
+          },
+          "license": {
+            "title": "License",
+            "type": "string"
+          },
+          "license_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "License Class"
+          },
+          "links": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LinksOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/VariantOut"
+            },
+            "title": "Variants",
+            "type": "array"
+          },
+          "vendor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor"
+          }
+        },
+        "required": [
+          "id",
+          "capability",
+          "license",
+          "status",
+          "incumbent",
+          "variants"
+        ],
+        "title": "ModelOut",
+        "type": "object"
+      },
+      "ModelsResponse": {
+        "properties": {
+          "issues": {
+            "description": "Constats du chargement du registre. Un manifeste invalide n'est pas servi.",
+            "items": {
+              "$ref": "#/components/schemas/IssueOut"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "models": {
+            "items": {
+              "$ref": "#/components/schemas/ModelOut"
+            },
+            "title": "Models",
+            "type": "array"
+          }
+        },
+        "required": [
+          "models"
+        ],
+        "title": "ModelsResponse",
+        "type": "object"
+      },
+      "PeakScalingOut": {
+        "properties": {
+          "base_bytes": {
+            "title": "Base Bytes",
+            "type": "integer"
+          },
+          "bytes_per_unit": {
+            "title": "Bytes Per Unit",
+            "type": "number"
+          },
+          "measured_range": {
+            "items": {
+              "type": "number"
+            },
+            "title": "Measured Range",
+            "type": "array"
+          },
+          "parameter": {
+            "title": "Parameter",
+            "type": "string"
+          },
+          "r_squared": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "R Squared"
+          }
+        },
+        "required": [
+          "parameter",
+          "base_bytes",
+          "bytes_per_unit",
+          "measured_range"
+        ],
+        "title": "PeakScalingOut",
+        "type": "object"
+      },
+      "PolicyOut": {
+        "properties": {
+          "budget_bytes": {
+            "title": "Budget Bytes",
+            "type": "integer"
+          },
+          "heavy_threshold_bytes": {
+            "title": "Heavy Threshold Bytes",
+            "type": "integer"
+          },
+          "max_heavy_resident": {
+            "title": "Max Heavy Resident",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "budget_bytes",
+          "max_heavy_resident",
+          "heavy_threshold_bytes"
+        ],
+        "title": "PolicyOut",
+        "type": "object"
+      },
+      "ProfileOut": {
+        "properties": {
+          "disk_bytes": {
+            "title": "Disk Bytes",
+            "type": "integer"
+          },
+          "harness_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Harness Version"
+          },
+          "latency_ms_p50": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms P50"
+          },
+          "measured_at": {
+            "format": "date",
+            "title": "Measured At",
+            "type": "string"
+          },
+          "measured_on": {
+            "title": "Measured On",
+            "type": "string"
+          },
+          "peak_scaling": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PeakScalingOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "peak_unified_memory_bytes": {
+            "title": "Peak Unified Memory Bytes",
+            "type": "integer"
+          },
+          "rtf": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rtf"
+          },
+          "throughput": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Throughput"
+          },
+          "warmup_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warmup Ms"
+          }
+        },
+        "required": [
+          "disk_bytes",
+          "peak_unified_memory_bytes",
+          "measured_on",
+          "measured_at"
+        ],
+        "title": "ProfileOut",
+        "type": "object"
+      },
+      "ResidentOut": {
+        "properties": {
+          "busy": {
+            "title": "Busy",
+            "type": "boolean"
+          },
+          "busy_by": {
+            "title": "Busy By",
+            "type": "integer"
+          },
+          "busy_since": {
+            "title": "Busy Since",
+            "type": "number"
+          },
+          "env": {
+            "title": "Env",
+            "type": "string"
+          },
+          "heavy": {
+            "title": "Heavy",
+            "type": "boolean"
+          },
+          "last_used": {
+            "title": "Last Used",
+            "type": "number"
+          },
+          "loaded_at": {
+            "title": "Loaded At",
+            "type": "string"
+          },
+          "log": {
+            "title": "Log",
+            "type": "string"
+          },
+          "options": {
+            "additionalProperties": true,
+            "description": "Ce que le worker a annoncé au chargement — voix, langues, versions.",
+            "title": "Options",
+            "type": "object"
+          },
+          "peak_bytes": {
+            "title": "Peak Bytes",
+            "type": "integer"
+          },
+          "pid": {
+            "title": "Pid",
+            "type": "integer"
+          },
+          "pinned": {
+            "title": "Pinned",
+            "type": "boolean"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          },
+          "runtime": {
+            "title": "Runtime",
+            "type": "string"
+          },
+          "socket": {
+            "title": "Socket",
+            "type": "string"
+          },
+          "warmup_ms": {
+            "title": "Warmup Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ref",
+          "pid",
+          "peak_bytes",
+          "heavy",
+          "runtime",
+          "env",
+          "loaded_at",
+          "last_used",
+          "pinned",
+          "busy",
+          "busy_by",
+          "busy_since",
+          "warmup_ms",
+          "socket",
+          "log"
+        ],
+        "title": "ResidentOut",
+        "type": "object"
+      },
+      "ResidentsResponse": {
+        "properties": {
+          "admission": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdmissionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "budget_bytes": {
+            "title": "Budget Bytes",
+            "type": "integer"
+          },
+          "budget_measured": {
+            "description": "Le budget vient de Metal, et non d'une règle de trois sur la mémoire physique.",
+            "title": "Budget Measured",
+            "type": "boolean"
+          },
+          "budget_source": {
+            "title": "Budget Source",
+            "type": "string"
+          },
+          "free_bytes": {
+            "title": "Free Bytes",
+            "type": "integer"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/PolicyOut"
+          },
+          "residents": {
+            "items": {
+              "$ref": "#/components/schemas/ResidentOut"
+            },
+            "title": "Residents",
+            "type": "array"
+          },
+          "stale": {
+            "items": {
+              "$ref": "#/components/schemas/StaleWorkerOut"
+            },
+            "title": "Stale",
+            "type": "array"
+          },
+          "used_bytes": {
+            "title": "Used Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "budget_bytes",
+          "budget_source",
+          "budget_measured",
+          "used_bytes",
+          "free_bytes",
+          "policy",
+          "residents"
+        ],
+        "title": "ResidentsResponse",
+        "type": "object"
+      },
+      "SourceOut": {
+        "properties": {
+          "allow_patterns": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allow Patterns"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "repo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repo"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "SourceOut",
+        "type": "object"
+      },
+      "StaleWorkerOut": {
+        "description": "Une entrée du registre des résidents qui ne correspond plus à un worker joignable.\n\nDistinguer les deux cas est ce qui compte : un processus mort ne laisse\nqu'une ligne à balayer, un processus vivant dont le socket a disparu retient\ntoujours ses gigaoctets et n'est plus comptable dans le budget.",
+        "properties": {
+          "holds_memory": {
+            "title": "Holds Memory",
+            "type": "boolean"
+          },
+          "pid": {
+            "title": "Pid",
+            "type": "integer"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          },
+          "socket": {
+            "title": "Socket",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "pid",
+          "holds_memory",
+          "socket"
+        ],
+        "title": "StaleWorkerOut",
+        "type": "object"
+      },
+      "StoreSummaryResponse": {
+        "properties": {
+          "figures": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Les trois chiffres et leur détail, tels que `ecurie_store.figures` les calcule. `null` — et non zéro — tant qu'aucun scan n'a eu lieu : un parc jamais regardé n'est pas un parc vide.",
+            "title": "Figures"
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ce qu'il faut faire quand la réponse est incomplète.",
+            "title": "Hint"
+          },
+          "last_scan_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Scan At"
+          },
+          "scanned": {
+            "title": "Scanned",
+            "type": "boolean"
+          },
+          "stale": {
+            "default": false,
+            "description": "Un plan a été appliqué depuis le dernier scan : ces chiffres sont périmés.",
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "telemetry": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TelemetryOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "scanned"
+        ],
+        "title": "StoreSummaryResponse",
+        "type": "object"
+      },
+      "TelemetryOut": {
+        "properties": {
+          "conclusive": {
+            "description": "La télémétrie observe-t-elle depuis assez longtemps pour conclure ?",
+            "title": "Conclusive",
+            "type": "boolean"
+          },
+          "first_run_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Run At"
+          },
+          "unused_after_days": {
+            "title": "Unused After Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "conclusive",
+          "unused_after_days"
+        ],
+        "title": "TelemetryOut",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "VariantOut": {
+        "properties": {
+          "blockers": {
+            "description": "Ce qui manque, chaque cause portant la commande qui la répare.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "caveats": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caveats"
+          },
+          "defaults": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Defaults"
+          },
+          "entrypoint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entrypoint"
+          },
+          "env": {
+            "description": "Environnement isolé sous runtimes/, runtime par défaut.",
+            "title": "Env",
+            "type": "string"
+          },
+          "heavy": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pic au-dessus de heavy_threshold_bytes : ce variant ne cohabitera avec aucun autre lourd. Inconnu sans profil mesuré.",
+            "title": "Heavy"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProfileOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quantization": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantization"
+          },
+          "ready": {
+            "description": "Exécutable en l'état : poids, environnement et profil.",
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "ref": {
+            "description": "« model@variant » — l'identifiant qu'attendent run et bench.",
+            "title": "Ref",
+            "type": "string"
+          },
+          "runtime": {
+            "title": "Runtime",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceOut"
+          },
+          "tier": {
+            "description": "Présence déclarée au manifeste : hot, cold ou absent.",
+            "title": "Tier",
+            "type": "string"
+          },
+          "weights_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Chemin local des poids, quand ils sont là.",
+            "title": "Weights Path"
+          }
+        },
+        "required": [
+          "ref",
+          "id",
+          "tier",
+          "runtime",
+          "env",
+          "source",
+          "ready"
+        ],
+        "title": "VariantOut",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "\nSurface de lecture du parc Écurie (v0.4, tâche 4.1).\n\n* `/registry/capabilities` — les contrats qui engendrent les formulaires\n* `/registry/models` — les manifestes, avec ce que le disque en dit\n* `/store/summary` — les trois chiffres d'occupation\n* `/runtime/residents` — mémoire occupée, budget, et ce que coûterait un job\n* `/runtime/admission` — le même calcul pour une entrée précise\n\nAucune de ces routes ne charge un modèle, n'écrit un manifeste ni ne déplace un\noctet. Les jobs arrivent au 4.2, après le déménagement du superviseur (4.6).\n",
+    "summary": "Parc de modèles locaux — registre, disque, mémoire.",
+    "title": "Écurie",
+    "version": "0.4.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "index__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Index  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Où l'on est, et sur quel dépôt",
+        "tags": [
+          "service"
+        ]
+      }
+    },
+    "/healthz": {
+      "get": {
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Healthz Healthz Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Le serveur répond-il",
+        "tags": [
+          "service"
+        ]
+      }
+    },
+    "/registry/capabilities": {
+      "get": {
+        "description": "Les contrats, avec ce que le parc en fait aujourd'hui.\n\nC'est la source du formulaire de l'Atelier : `input` est rendu tel quel par\nRJSF, `output_media_types` choisit le visualiseur. `ready_variants` évite le\npiège d'un écran qui propose une capacité déclarée mais dont aucun variant\nn'est téléchargé.",
+        "operationId": "capabilities_registry_capabilities_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilitiesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Contrats de capacité",
+        "tags": [
+          "registre"
+        ]
+      }
+    },
+    "/registry/models": {
+      "get": {
+        "operationId": "models_registry_models_get",
+        "parameters": [
+          {
+            "description": "Ne rendre que les modèles de cette capacité.",
+            "in": "query",
+            "name": "capability",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Ne rendre que les modèles de cette capacité.",
+              "title": "Capability"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Manifestes du parc",
+        "tags": [
+          "registre"
+        ]
+      }
+    },
+    "/runtime/admission": {
+      "post": {
+        "description": "Chiffre un job envisagé : pic attendu, évictions, marge — sans rien charger.\n\nC'est une lecture malgré le verbe : rien n'est écrit, rien n'est chargé, et\ndeux appels identiques donnent la même réponse. `POST` parce que la question\nporte une entrée complète, que l'on n'écrit pas dans une chaîne de requête.",
+        "operationId": "admission_runtime_admission_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdmissionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdmissionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ce que coûterait ce job",
+        "tags": [
+          "exécution"
+        ]
+      }
+    },
+    "/runtime/residents": {
+      "get": {
+        "operationId": "residents_runtime_residents_get",
+        "parameters": [
+          {
+            "description": "Simuler l'admission de ce variant, sans rien charger ni décharger.",
+            "in": "query",
+            "name": "for",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Simuler l'admission de ce variant, sans rien charger ni décharger.",
+              "title": "For"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResidentsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Modèles résidents et budget",
+        "tags": [
+          "exécution"
+        ]
+      }
+    },
+    "/store/summary": {
+      "get": {
+        "operationId": "summary_store_summary_get",
+        "parameters": [
+          {
+            "description": "Seuil du poste « variants jamais utilisés ».",
+            "in": "query",
+            "name": "unused_after_days",
+            "required": false,
+            "schema": {
+              "default": 90,
+              "description": "Seuil du poste « variants jamais utilisés ».",
+              "maximum": 3650,
+              "minimum": 1,
+              "title": "Unused After Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreSummaryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Occupation du parc",
+        "tags": [
+          "parc"
+        ]
+      }
+    }
+  }
+}

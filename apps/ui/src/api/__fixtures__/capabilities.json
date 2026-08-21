@@ -1,0 +1,1624 @@
+{
+  "capabilities": [
+    {
+      "composite": false,
+      "defaults": {
+        "sample_rate": 48000,
+        "segment_seconds": 15,
+        "strength": 1.0
+      },
+      "description": null,
+      "id": "audio-denoise",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "audio": {
+            "contentMediaType": "audio/*",
+            "description": "Enregistrement à nettoyer.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "sample_rate": {
+            "default": 48000,
+            "description": "Fréquence d'échantillonnage du fichier produit.",
+            "enum": [
+              16000,
+              24000,
+              44100,
+              48000
+            ],
+            "type": "integer"
+          },
+          "segment_seconds": {
+            "default": 15,
+            "description": "Longueur des tranches traitées. À baisser si la mémoire unifiée sature sur un long enregistrement.",
+            "maximum": 60,
+            "minimum": 1,
+            "type": "number"
+          },
+          "strength": {
+            "default": 1.0,
+            "description": "Dosage : 1 garde le résultat brut du modèle, en dessous on le mélange à l'original.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "audio"
+        ],
+        "type": "object"
+      },
+      "models": [],
+      "output": {
+        "properties": {
+          "audio": {
+            "contentMediaType": "audio/wav",
+            "description": "Chemin de l'enregistrement nettoyé, relatif au dossier du job.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "audio"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "audio": "audio/wav"
+      },
+      "ready_variants": [],
+      "required": [
+        "audio"
+      ],
+      "steps": [],
+      "title": "Débruitage audio"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "segment_seconds": 10,
+        "shifts": 1,
+        "stems": 2
+      },
+      "description": null,
+      "id": "audio-separation",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "audio": {
+            "contentMediaType": "audio/*",
+            "description": "Enregistrement mixé à séparer.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "segment_seconds": {
+            "default": 10,
+            "description": "Longueur des tranches traitées. À baisser si la mémoire unifiée sature sur un long morceau.",
+            "maximum": 60,
+            "minimum": 1,
+            "type": "number"
+          },
+          "shifts": {
+            "default": 1,
+            "description": "Passes décalées puis moyennées. Meilleure séparation, temps multiplié d'autant.",
+            "maximum": 10,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "stems": {
+            "default": 2,
+            "description": "2 = voix et accompagnement. 4 = voix, batterie, basse et le reste.",
+            "enum": [
+              2,
+              4
+            ],
+            "type": "integer"
+          }
+        },
+        "required": [
+          "audio"
+        ],
+        "type": "object"
+      },
+      "models": [],
+      "output": {
+        "properties": {
+          "tracks": {
+            "description": "Pistes produites. Les clés présentes dépendent du paramètre stems.",
+            "properties": {
+              "accompaniment": {
+                "contentMediaType": "audio/wav",
+                "description": "Chemin de la piste d'accompagnement (tout sauf la voix), relatif au dossier du job.",
+                "type": "string"
+              },
+              "bass": {
+                "contentMediaType": "audio/wav",
+                "description": "Chemin de la piste de basse, relatif au dossier du job. Séparation en 4 pistes seulement.",
+                "type": "string"
+              },
+              "drums": {
+                "contentMediaType": "audio/wav",
+                "description": "Chemin de la piste de batterie, relatif au dossier du job. Séparation en 4 pistes seulement.",
+                "type": "string"
+              },
+              "other": {
+                "contentMediaType": "audio/wav",
+                "description": "Chemin de la piste des instruments restants, relatif au dossier du job. Séparation en 4 pistes seulement.",
+                "type": "string"
+              },
+              "vocals": {
+                "contentMediaType": "audio/wav",
+                "description": "Chemin de la piste de voix, relatif au dossier du job.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "vocals"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "tracks"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "tracks.accompaniment": "audio/wav",
+        "tracks.bass": "audio/wav",
+        "tracks.drums": "audio/wav",
+        "tracks.other": "audio/wav",
+        "tracks.vocals": "audio/wav"
+      },
+      "ready_variants": [],
+      "required": [
+        "audio"
+      ],
+      "steps": [],
+      "title": "Séparation de pistes audio"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "detect_layout": true,
+        "dpi": 200,
+        "format": "markdown"
+      },
+      "description": null,
+      "id": "document-to-text",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "detect_layout": {
+            "default": true,
+            "description": "Restituer la structure de page : blocs, tableaux, ordre de lecture.",
+            "type": "boolean"
+          },
+          "document": {
+            "contentMediaType": "application/pdf,image/*",
+            "description": "Document à lire : PDF ou page numérisée.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "dpi": {
+            "default": 200,
+            "description": "Résolution de rastérisation des pages PDF. Au-delà de 300, la mémoire monte sans gain de lecture.",
+            "maximum": 600,
+            "minimum": 72,
+            "type": "integer"
+          },
+          "format": {
+            "default": "markdown",
+            "description": "Mise en forme du texte extrait : brut, ou Markdown avec titres, listes et tableaux.",
+            "enum": [
+              "text",
+              "markdown"
+            ],
+            "type": "string"
+          },
+          "language": {
+            "description": "Langue dominante attendue. Vide = détection automatique.",
+            "type": "string",
+            "x-options-from": "runtime.languages",
+            "x-ui": "select"
+          },
+          "page_range": {
+            "description": "Pages à traiter, par exemple 1-5,8. Vide = tout le document.",
+            "pattern": "^\\d+(-\\d+)?(,\\d+(-\\d+)?)*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "qwen3-vl-8b-ocr"
+      ],
+      "output": {
+        "properties": {
+          "layout": {
+            "contentMediaType": "application/json",
+            "description": "Chemin de la structure de page — blocs, tableaux, boîtes englobantes —, relatif au dossier du job.",
+            "type": "string"
+          },
+          "page_count": {
+            "description": "Nombre de pages effectivement traitées.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "text": {
+            "contentMediaType": "text/plain",
+            "description": "Chemin du texte extrait, relatif au dossier du job.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "layout": "application/json",
+        "text": "text/plain"
+      },
+      "ready_variants": [
+        "qwen3-vl-8b-ocr@4bit"
+      ],
+      "required": [
+        "document"
+      ],
+      "steps": [],
+      "title": "Lecture de document (OCR)"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "edge_refine": true,
+        "max_side": 1024
+      },
+      "description": "Isole le sujet d'une image et rend son canal alpha. C'est le chaînon qui manque entre une photo et une reconstruction 3D : le pipeline image vers maillage recadre sur l'alpha, et une image opaque le prive de sa seule indication de silhouette.",
+      "id": "image-matting",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "edge_refine": {
+            "default": true,
+            "description": "Affiner les bords après le premier masque. Cheveux, poils et feuillage y gagnent nettement ; un objet manufacturé, presque rien.",
+            "type": "boolean"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image dont il faut isoler le sujet.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "max_side": {
+            "default": 1024,
+            "description": "Plus grand côté de l'image soumise au modèle. C'est ce nombre qui pilote le coût mémoire ; le masque est ensuite remis à l'échelle de l'original.",
+            "maximum": 4096,
+            "minimum": 256,
+            "type": "integer"
+          },
+          "threshold": {
+            "description": "Binariser l'alpha à ce seuil. Vide = alpha continu, qui est presque toujours ce qu'on veut : un masque binaire découpe les bords en escalier et perd la transparence partielle.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "birefnet"
+      ],
+      "output": {
+        "properties": {
+          "coverage": {
+            "description": "Part de l'image occupée par le sujet. Un détourage qui rend 0 ou 1 n'a rien isolé, et le chiffre le dit sans qu'on ouvre le fichier.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "image": {
+            "contentMediaType": "image/png",
+            "description": "Sujet détouré sur fond transparent (RGBA), relatif au dossier du job.",
+            "type": "string"
+          },
+          "mask": {
+            "contentMediaType": "image/png",
+            "description": "Chemin du masque alpha seul, en niveaux de gris, relatif au dossier du job. Rendu séparément parce que c'est lui qu'on note, et parce qu'un compositeur en a besoin sans l'image.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "image",
+          "mask"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "image": "image/png",
+        "mask": "image/png"
+      },
+      "ready_variants": [
+        "birefnet@fp16"
+      ],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Détourage d'image"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "guidance_scale": 3.5,
+        "steps": 25,
+        "strength": 0.6
+      },
+      "description": null,
+      "id": "image-to-image",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "guidance_scale": {
+            "default": 3.5,
+            "description": "Fidélité à la consigne de transformation.",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image de départ.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "negative_prompt": {
+            "description": "Ce qu'il faut éviter. Sans effet sur les modèles à guidage distillé.",
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "prompt": {
+            "description": "Transformation demandée.",
+            "minLength": 1,
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "seed": {
+            "description": "Graine aléatoire. À conserver pour rejouer la même transformation.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "steps": {
+            "default": 25,
+            "description": "Pas de débruitage appliqués à la portion transformée.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "strength": {
+            "default": 0.6,
+            "description": "Force de la transformation : 0 conserve l'image de départ, 1 la redessine entièrement.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "image",
+          "prompt"
+        ],
+        "type": "object"
+      },
+      "models": [],
+      "output": {
+        "properties": {
+          "image": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de l'image produite, relatif au dossier du job.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "image": "image/png"
+      },
+      "ready_variants": [],
+      "required": [
+        "image",
+        "prompt"
+      ],
+      "steps": [],
+      "title": "Transformation d'image"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "num_inference_steps": 30,
+        "octree_resolution": 256
+      },
+      "description": null,
+      "id": "image-to-mesh",
+      "incumbent": "hunyuan3d-2.1-shape-mlx",
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image de l'objet à reconstruire, de préférence sur fond neutre.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "num_inference_steps": {
+            "default": 30,
+            "maximum": 100,
+            "minimum": 10,
+            "type": "integer"
+          },
+          "octree_resolution": {
+            "default": 256,
+            "enum": [
+              128,
+              256,
+              384,
+              512
+            ],
+            "type": "integer"
+          },
+          "seed": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "hunyuan3d-2.1-shape-mlx",
+        "trellis2"
+      ],
+      "output": {
+        "properties": {
+          "mesh": {
+            "contentMediaType": "model/gltf-binary",
+            "description": "Chemin du maillage produit, relatif au dossier du job.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mesh"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "mesh": "model/gltf-binary"
+      },
+      "ready_variants": [],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Image vers maillage 3D"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "detail": "normal",
+        "max_tokens": 512,
+        "temperature": 0.2
+      },
+      "description": "Décrit une image, ou répond à une question sur elle. À ne pas confondre avec la lecture de document, qui transcrit ce qui est écrit : ici on demande au modèle ce qu'il voit, pas ce qui est imprimé.",
+      "id": "image-to-text",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "default": "normal",
+            "description": "Longueur visée de la réponse. « bref » tient en une phrase, « détaillé » énumère les plans et les objets.",
+            "enum": [
+              "bref",
+              "normal",
+              "détaillé"
+            ],
+            "type": "string"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image à décrire.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "language": {
+            "description": "Langue de la réponse. Vide = celle de la question, ou le français à défaut.",
+            "type": "string",
+            "x-options-from": "runtime.languages",
+            "x-ui": "select"
+          },
+          "max_tokens": {
+            "default": 512,
+            "description": "Plafond de jetons produits. C'est lui, et non l'image, qui fait la durée d'un job.",
+            "maximum": 4096,
+            "minimum": 16,
+            "type": "integer"
+          },
+          "question": {
+            "description": "Question posée sur l'image. Vide = description libre.",
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "seed": {
+            "description": "Graine aléatoire. Sans elle, deux descriptions de la même image diffèrent dès que la température n'est pas nulle.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "temperature": {
+            "default": 0.2,
+            "description": "Bas par défaut : décrire une image n'appelle pas d'invention, et une température haute en fabrique.",
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "qwen3-vl-8b-describe"
+      ],
+      "output": {
+        "properties": {
+          "finish_reason": {
+            "description": "Fin naturelle, ou plafond de jetons atteint — auquel cas la description est tronquée et ne doit pas être notée comme telle.",
+            "enum": [
+              "stop",
+              "length"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "contentMediaType": "text/plain",
+            "description": "Chemin de la réponse en texte brut, relatif au dossier du job.",
+            "type": "string"
+          },
+          "tokens_generated": {
+            "description": "Nombre de jetons effectivement produits.",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "text": "text/plain"
+      },
+      "ready_variants": [
+        "qwen3-vl-8b-describe@4bit"
+      ],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Description d'image"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "fps": 16,
+        "guidance_scale": 5.0,
+        "num_frames": 81,
+        "steps": 30
+      },
+      "description": null,
+      "id": "image-to-video",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "fps": {
+            "default": 16,
+            "description": "Cadence du fichier produit.",
+            "maximum": 30,
+            "minimum": 8,
+            "type": "integer"
+          },
+          "guidance_scale": {
+            "default": 5.0,
+            "description": "Fidélité à la consigne de mouvement.",
+            "maximum": 15.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Première image de la séquence. Sa taille fixe le cadrage.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "negative_prompt": {
+            "description": "Ce qu'il faut éviter : déformations, coupures, mouvements de caméra parasites.",
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "num_frames": {
+            "default": 81,
+            "description": "Nombre d'images. 81 à 16 im/s font environ 5 secondes. Les modèles Wan attendent 4n+1.",
+            "maximum": 129,
+            "minimum": 8,
+            "type": "integer"
+          },
+          "prompt": {
+            "description": "Mouvement souhaité. Facultatif : certains modèles animent sans consigne.",
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "seed": {
+            "description": "Graine aléatoire. À conserver pour rejouer la même animation.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "steps": {
+            "default": 30,
+            "description": "Pas de débruitage. Le temps y est proportionnel.",
+            "maximum": 60,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [],
+      "output": {
+        "properties": {
+          "video": {
+            "contentMediaType": "video/mp4",
+            "description": "Chemin de la vidéo produite, relatif au dossier du job.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "video"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "video": "video/mp4"
+      },
+      "ready_variants": [],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Image vers vidéo"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "max_side": 4096,
+        "scale": 2
+      },
+      "description": "Augmente la définition d'une image sans en changer le contenu. C'est ce qui rend utilisable la sortie d'un générateur qui travaille en 1024 : la contrainte est de restituer du détail plausible sans inventer d'objet.",
+      "id": "image-upscale",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "denoise": {
+            "description": "Force du débruitage appliqué avant l'agrandissement. Vide = celui du modèle. Monter trop lisse les textures fines en même temps que le grain.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image à agrandir.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "max_side": {
+            "default": 4096,
+            "description": "Plus grand côté toléré en sortie. Un refus explicite vaut mieux qu'un agrandissement qui emporte la mémoire de la machine.",
+            "maximum": 8192,
+            "minimum": 256,
+            "type": "integer"
+          },
+          "scale": {
+            "default": 2,
+            "description": "Facteur d'agrandissement. Le coût suit le carré : passer de 2 à 4 quadruple les pixels à produire.",
+            "enum": [
+              2,
+              3,
+              4
+            ],
+            "type": "integer"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "swin2sr"
+      ],
+      "output": {
+        "properties": {
+          "height": {
+            "description": "Hauteur obtenue.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "image": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de l'image agrandie, relatif au dossier du job.",
+            "type": "string"
+          },
+          "width": {
+            "description": "Largeur obtenue. Elle peut différer de largeur × facteur si `max_side` a plafonné.",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "image": "image/png"
+      },
+      "ready_variants": [
+        "swin2sr@classique-x2",
+        "swin2sr@reel-x4"
+      ],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Agrandissement d'image"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "beam_size": 5,
+        "task": "transcribe",
+        "temperature": 0.0,
+        "word_timestamps": false
+      },
+      "description": null,
+      "id": "speech-to-text",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "audio": {
+            "contentMediaType": "audio/*",
+            "description": "Enregistrement à transcrire.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "beam_size": {
+            "default": 5,
+            "description": "Largeur du faisceau de décodage. Au-delà de 5, le gain est marginal et la mémoire monte.",
+            "maximum": 8,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "language": {
+            "description": "Langue attendue. Vide = détection automatique par le modèle.",
+            "type": "string",
+            "x-options-from": "runtime.languages",
+            "x-ui": "select"
+          },
+          "task": {
+            "default": "transcribe",
+            "description": "transcribe restitue la langue d'origine, translate traduit vers l'anglais.",
+            "enum": [
+              "transcribe",
+              "translate"
+            ],
+            "type": "string"
+          },
+          "temperature": {
+            "default": 0.0,
+            "description": "0 = décodage déterministe. À monter seulement pour débloquer une boucle de répétition.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "word_timestamps": {
+            "default": false,
+            "description": "Horodater chaque mot et non seulement chaque segment. Nettement plus lent.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "audio"
+        ],
+        "type": "object"
+      },
+      "models": [],
+      "output": {
+        "properties": {
+          "duration_seconds": {
+            "description": "Durée de l'audio traité, en secondes.",
+            "minimum": 0,
+            "type": "number"
+          },
+          "language": {
+            "description": "Langue retenue, détectée ou imposée.",
+            "type": "string"
+          },
+          "segments": {
+            "contentMediaType": "application/json",
+            "description": "Chemin des segments horodatés (début, fin, texte), relatif au dossier du job.",
+            "type": "string"
+          },
+          "text": {
+            "contentMediaType": "text/plain",
+            "description": "Chemin de la transcription en texte brut, relatif au dossier du job.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "segments": "application/json",
+        "text": "text/plain"
+      },
+      "ready_variants": [],
+      "required": [
+        "audio"
+      ],
+      "steps": [],
+      "title": "Transcription de la parole"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "max_tokens": 1024,
+        "repetition_penalty": 1.0,
+        "temperature": 0.7,
+        "top_p": 0.95
+      },
+      "description": null,
+      "id": "text-generation",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "max_tokens": {
+            "default": 1024,
+            "description": "Plafond de jetons produits. Le contexte long coûte de la mémoire unifiée, pas seulement du temps.",
+            "maximum": 32768,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "prompt": {
+            "description": "Requête adressée au modèle.",
+            "minLength": 1,
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "repetition_penalty": {
+            "default": 1.0,
+            "description": "Pénalise les jetons déjà émis. 1 = aucune pénalité.",
+            "maximum": 2.0,
+            "minimum": 1.0,
+            "type": "number"
+          },
+          "seed": {
+            "description": "Graine aléatoire. À conserver pour rejouer la même réponse.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "stop": {
+            "description": "Séquences qui interrompent la génération dès qu'elles apparaissent.",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array"
+          },
+          "system": {
+            "description": "Consigne système. Vide = celle du gabarit de conversation du modèle.",
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "temperature": {
+            "default": 0.7,
+            "description": "0 = décodage déterministe. Au-delà de 1, la sortie part vite en digression.",
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "top_p": {
+            "default": 0.95,
+            "description": "Échantillonnage par noyau : ne garde que les jetons cumulant cette probabilité.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "qwen25-coder-7b"
+      ],
+      "output": {
+        "properties": {
+          "finish_reason": {
+            "description": "Cause de l'arrêt : fin naturelle, plafond de jetons atteint, séquence d'arrêt rencontrée.",
+            "enum": [
+              "stop",
+              "length",
+              "stop_sequence"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "contentMediaType": "text/plain",
+            "description": "Chemin de la réponse en texte brut, relatif au dossier du job.",
+            "type": "string"
+          },
+          "tokens_generated": {
+            "description": "Nombre de jetons effectivement produits.",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "text": "text/plain"
+      },
+      "ready_variants": [
+        "qwen25-coder-7b@4bit"
+      ],
+      "required": [
+        "prompt"
+      ],
+      "steps": [],
+      "title": "Génération de texte"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "guidance_scale": 3.5,
+        "height": 1024,
+        "steps": 25,
+        "width": 1024
+      },
+      "description": null,
+      "id": "text-to-image",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "guidance_scale": {
+            "default": 3.5,
+            "description": "Fidélité à la description. Les modèles distillés travaillent autour de 1.",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "height": {
+            "default": 1024,
+            "description": "Hauteur en pixels, multiple de 64.",
+            "maximum": 2048,
+            "minimum": 256,
+            "multipleOf": 64,
+            "type": "integer"
+          },
+          "negative_prompt": {
+            "description": "Ce qu'il faut éviter. Sans effet sur les modèles à guidage distillé.",
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "prompt": {
+            "description": "Description de l'image voulue.",
+            "minLength": 1,
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "seed": {
+            "description": "Graine aléatoire. À conserver pour rejouer la même image.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "steps": {
+            "default": 25,
+            "description": "Pas de débruitage. Au-delà de 50, le gain est rarement visible.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "width": {
+            "default": 1024,
+            "description": "Largeur en pixels, multiple de 64.",
+            "maximum": 2048,
+            "minimum": 256,
+            "multipleOf": 64,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "sdxl-base"
+      ],
+      "output": {
+        "properties": {
+          "image": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de l'image produite, relatif au dossier du job.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "image": "image/png"
+      },
+      "ready_variants": [
+        "sdxl-base@fp16"
+      ],
+      "required": [
+        "prompt"
+      ],
+      "steps": [],
+      "title": "Texte vers image"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "duration_seconds": 30,
+        "guidance_scale": 3.0,
+        "temperature": 1.0
+      },
+      "description": null,
+      "id": "text-to-music",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "duration_seconds": {
+            "default": 30,
+            "description": "Durée demandée. Au-delà d'une minute, la mémoire unifiée grimpe vite sur 24 Go.",
+            "maximum": 120,
+            "minimum": 1,
+            "type": "number"
+          },
+          "guidance_scale": {
+            "default": 3.0,
+            "description": "Fidélité à la description. Trop haut, le rendu devient rigide.",
+            "maximum": 15.0,
+            "minimum": 1.0,
+            "type": "number"
+          },
+          "lyrics": {
+            "description": "Paroles à chanter, avec leurs marques de structure : [verse], [chorus], [bridge]. Vide ou [instrumental] pour une pièce sans voix. Les modèles purement instrumentaux ignorent ce champ.",
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "prompt": {
+            "description": "Description du morceau : genre, instruments, tempo, ambiance.",
+            "minLength": 1,
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "seed": {
+            "description": "Graine aléatoire. À conserver pour rejouer le même morceau.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "temperature": {
+            "default": 1.0,
+            "description": "Variété de l'échantillonnage.",
+            "maximum": 2.0,
+            "minimum": 0.1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "minimax-music3"
+      ],
+      "output": {
+        "properties": {
+          "audio": {
+            "contentMediaType": "audio/wav",
+            "description": "Chemin du morceau produit, relatif au dossier du job.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "audio"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "audio": "audio/wav"
+      },
+      "ready_variants": [
+        "minimax-music3@4bit"
+      ],
+      "required": [
+        "prompt"
+      ],
+      "steps": [],
+      "title": "Génération musicale"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "speed": 1.0
+      },
+      "description": null,
+      "id": "text-to-speech",
+      "incumbent": "qwen3-tts-1.7b",
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "seed": {
+            "description": "Graine aléatoire. Les moteurs récents échantillonnent : sans graine, deux synthèses du même texte diffèrent.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "speed": {
+            "default": 1.0,
+            "maximum": 2.0,
+            "minimum": 0.5,
+            "type": "number"
+          },
+          "text": {
+            "description": "Texte à synthétiser.",
+            "minLength": 1,
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "voice": {
+            "description": "Voix, parmi celles annoncées par le worker au chargement.",
+            "type": "string",
+            "x-options-from": "runtime.voices",
+            "x-ui": "select"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "qwen3-tts-1.7b"
+      ],
+      "output": {
+        "properties": {
+          "audio": {
+            "contentMediaType": "audio/wav",
+            "description": "Chemin du fichier produit, relatif au dossier du job.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "audio"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "audio": "audio/wav"
+      },
+      "ready_variants": [
+        "qwen3-tts-1.7b@8bit-mlx"
+      ],
+      "required": [
+        "text"
+      ],
+      "steps": [],
+      "title": "Synthèse vocale"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "fps": 16,
+        "guidance_scale": 5.0,
+        "height": 480,
+        "num_frames": 81,
+        "steps": 30,
+        "width": 832
+      },
+      "description": null,
+      "id": "text-to-video",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "fps": {
+            "default": 16,
+            "description": "Cadence du fichier produit.",
+            "maximum": 30,
+            "minimum": 8,
+            "type": "integer"
+          },
+          "guidance_scale": {
+            "default": 5.0,
+            "description": "Fidélité à la description.",
+            "maximum": 15.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "height": {
+            "default": 480,
+            "description": "Hauteur en pixels, multiple de 16.",
+            "maximum": 720,
+            "minimum": 256,
+            "multipleOf": 16,
+            "type": "integer"
+          },
+          "negative_prompt": {
+            "description": "Ce qu'il faut éviter : artefacts, mouvements de caméra parasites.",
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "num_frames": {
+            "default": 81,
+            "description": "Nombre d'images. 81 à 16 im/s font environ 5 secondes. Les modèles Wan attendent 4n+1.",
+            "maximum": 129,
+            "minimum": 8,
+            "type": "integer"
+          },
+          "prompt": {
+            "description": "Description de la scène et du mouvement voulus.",
+            "minLength": 1,
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "seed": {
+            "description": "Graine aléatoire. À conserver pour rejouer la même séquence.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "steps": {
+            "default": 30,
+            "description": "Pas de débruitage. Le poste de coût principal : le temps y est proportionnel.",
+            "maximum": 60,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "width": {
+            "default": 832,
+            "description": "Largeur en pixels, multiple de 16. Au-delà de 832, prévoir une longue attente sur 24 Go.",
+            "maximum": 1280,
+            "minimum": 256,
+            "multipleOf": 16,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "prompt"
+        ],
+        "type": "object"
+      },
+      "models": [],
+      "output": {
+        "properties": {
+          "video": {
+            "contentMediaType": "video/mp4",
+            "description": "Chemin de la vidéo produite, relatif au dossier du job.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "video"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "video": "video/mp4"
+      },
+      "ready_variants": [],
+      "required": [
+        "prompt"
+      ],
+      "steps": [],
+      "title": "Texte vers vidéo"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "max_tokens": 1024,
+        "parallel_calls": false,
+        "temperature": 0.0,
+        "tool_choice": "auto"
+      },
+      "description": "Choisir le bon outil parmi ceux qu'on lui déclare, et en remplir les arguments. C'est ce qui décide si un modèle est utilisable dans un harnais : une réponse juste mais mal formée ne s'exécute pas, et une réponse bien formée qui appelle le mauvais outil s'exécute — ce qui est pire. Écurie n'exécute AUCUN outil déclaré ici, et ne le fera pas : elle juge le choix et le remplissage, pas leur effet. La boucle d'agent est hors périmètre (ARCHITECTURE.md §11).",
+      "id": "tool-use",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "max_tokens": {
+            "default": 1024,
+            "description": "Plafond de jetons produits. Trop bas, un appel long est tronqué et devient du JSON invalide.",
+            "maximum": 8192,
+            "minimum": 16,
+            "type": "integer"
+          },
+          "parallel_calls": {
+            "default": false,
+            "description": "Autoriser plusieurs appels dans une même réponse. Discriminant : beaucoup de modèles annoncent la capacité et n'émettent jamais qu'un appel.",
+            "type": "boolean"
+          },
+          "seed": {
+            "description": "Graine aléatoire. À conserver pour rejouer la même réponse.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "system": {
+            "description": "Consigne système. Vide = celle du gabarit de conversation du modèle.",
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "task": {
+            "description": "Ce qu'on demande, en langue naturelle.",
+            "minLength": 1,
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "temperature": {
+            "default": 0.0,
+            "description": "Nulle par défaut. Un appel d'outil est une sortie structurée : l'échantillonnage n'y ajoute que des occasions de la casser.",
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "tool_choice": {
+            "default": "auto",
+            "description": "« auto » laisse le modèle répondre en clair s'il juge qu'aucun outil ne convient — savoir s'abstenir fait partie de la compétence. « required » force un appel, « none » l'interdit.",
+            "enum": [
+              "auto",
+              "required",
+              "none"
+            ],
+            "type": "string"
+          },
+          "tools": {
+            "description": "Outils mis à disposition. Le nombre compte autant que la difficulté de la tâche : un modèle qui choisit juste parmi trois outils peut se perdre parmi vingt, et c'est ce que la charge type fait varier.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "description": {
+                  "description": "À quoi sert l'outil, en une phrase. C'est sur elle que le modèle choisit.",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Nom de l'outil, tel qu'il devra être rappelé dans l'appel.",
+                  "pattern": "^[a-zA-Z_][a-zA-Z0-9_-]*$",
+                  "type": "string"
+                },
+                "parameters": {
+                  "description": "JSON Schema des arguments attendus. Transmis tel quel au modèle, et c'est contre lui que l'appel émis sera validé.",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "name",
+                "parameters"
+              ],
+              "type": "object"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "task",
+          "tools"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "qwen3-4b-outils"
+      ],
+      "output": {
+        "properties": {
+          "call_names": {
+            "description": "Noms des outils appelés, dans l'ordre. C'est ce qui se compare à la référence du golden set sans avoir à lire le JSON.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "calls": {
+            "contentMediaType": "application/json",
+            "description": "Chemin du fichier des appels émis, relatif au dossier du job : une liste d'objets {name, arguments}, vide si le modèle a répondu en clair. Toujours écrit, même vide — un fichier absent et une liste vide ne disent pas la même chose.",
+            "type": "string"
+          },
+          "finish_reason": {
+            "description": "Plafond atteint veut dire appel tronqué : la sortie est invalide par construction, et il ne faut pas la noter comme un mauvais choix d'outil.",
+            "enum": [
+              "stop",
+              "length"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "contentMediaType": "text/plain",
+            "description": "Chemin de la réponse en clair, quand le modèle en donne une, relatif au dossier du job.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "calls"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "calls": "application/json",
+        "text": "text/plain"
+      },
+      "ready_variants": [
+        "qwen3-4b-outils@4bit"
+      ],
+      "required": [
+        "task",
+        "tools"
+      ],
+      "steps": [],
+      "title": "Appel d'outils"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "preserve_formatting": true,
+        "register": "neutre"
+      },
+      "description": "Traduit un texte d'une langue vers une autre. Contrat distinct de la génération de texte, et pour une raison qui se paie au v0.5 : une traduction a une référence, donc une métrique automatique — là où une réponse libre n'a que des juges.",
+      "id": "translation",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "preserve_formatting": {
+            "default": true,
+            "description": "Conserver retours à la ligne, listes et balisage léger. Traduire un document en perdant sa mise en forme oblige à tout reprendre à la main.",
+            "type": "boolean"
+          },
+          "register": {
+            "default": "neutre",
+            "description": "Registre visé. Un moteur de traduction dédié l'ignore ; un modèle de langue l'honore. C'est précisément le genre d'écart que la confrontation doit faire apparaître, et le manifeste d'un moteur qui l'ignore doit le dire en `caveats`.",
+            "enum": [
+              "neutre",
+              "soutenu",
+              "familier"
+            ],
+            "type": "string"
+          },
+          "seed": {
+            "description": "Graine aléatoire, pour les modèles qui échantillonnent. Sans effet sur un décodage par faisceau.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "source_language": {
+            "description": "Langue de départ, en code BCP 47 (fr, en, es…). Vide = détection par le modèle.",
+            "type": "string",
+            "x-options-from": "runtime.languages",
+            "x-ui": "select"
+          },
+          "target_language": {
+            "description": "Langue d'arrivée, en code BCP 47. Obligatoire : la deviner serait deviner ce qu'on veut.",
+            "minLength": 2,
+            "type": "string",
+            "x-options-from": "runtime.languages",
+            "x-ui": "select"
+          },
+          "text": {
+            "description": "Texte à traduire.",
+            "minLength": 1,
+            "type": "string",
+            "x-ui": "textarea"
+          }
+        },
+        "required": [
+          "text",
+          "target_language"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "qwen3-4b-traduction"
+      ],
+      "output": {
+        "properties": {
+          "detected_source_language": {
+            "description": "Langue de départ retenue, détectée ou imposée. Une détection fausse explique une traduction absurde mieux que n'importe quel score.",
+            "type": "string"
+          },
+          "text": {
+            "contentMediaType": "text/plain",
+            "description": "Chemin de la traduction en texte brut, relatif au dossier du job.",
+            "type": "string"
+          },
+          "tokens_generated": {
+            "description": "Nombre de jetons effectivement produits.",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "text": "text/plain"
+      },
+      "ready_variants": [
+        "qwen3-4b-traduction@4bit"
+      ],
+      "required": [
+        "text",
+        "target_language"
+      ],
+      "steps": [],
+      "title": "Traduction"
+    }
+  ],
+  "issues": [
+    {
+      "file": "registry/models/trellis2.yaml",
+      "message": "trellis2@bf16 : révision non épinglée ('0000000') — un profil mesuré sur une révision flottante est caduc sans préavis",
+      "severity": "warning"
+    },
+    {
+      "file": "registry/models/trellis2.yaml",
+      "message": "trellis2@bf16 : runtime custom sans entrypoint",
+      "severity": "warning"
+    }
+  ]
+}

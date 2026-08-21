@@ -16,6 +16,10 @@ runtimes/*/vendor/
 
 # Front
 node_modules/
+apps/ui/dist/
+apps/ui/.vite/
+apps/ui/coverage/
+*.local
 
 # macOS
 .DS_Store

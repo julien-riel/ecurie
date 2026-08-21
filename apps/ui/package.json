@@ -1,0 +1,39 @@
+{
+  "name": "ecurie-ui",
+  "private": true,
+  "type": "module",
+  "version": "0.4.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "gen:api": "uv run --project ../.. python ../../tools/openapi_dump.py src/api/openapi.json && openapi-typescript src/api/openapi.json -o src/api/openapi.gen.ts",
+    "fixtures": "uv run --project ../.. python ../../tools/ui_fixtures.py src/api/__fixtures__"
+  },
+  "dependencies": {
+    "@rjsf/core": "6.8.0",
+    "@rjsf/utils": "6.8.0",
+    "@rjsf/validator-ajv8": "6.8.0",
+    "ajv": "8.20.0",
+    "ajv-i18n": "4.2.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "10.4.1",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.5",
+    "@types/node": "26.2.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitejs/plugin-react": "6.1.0",
+    "jsdom": "29.0.0",
+    "openapi-typescript": "7.13.0",
+    "typescript": "6.0.3",
+    "vite": "8.2.2",
+    "vitest": "4.1.11"
+  }
+}

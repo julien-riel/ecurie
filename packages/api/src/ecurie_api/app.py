@@ -4,7 +4,7 @@ Deux choix méritent d'être expliqués, parce qu'ils touchent à la sécurité 
 machine qui héberge un parc de modèles.
 
 **Le serveur écoute sur la boucle locale, et il faut le vouloir pour en sortir.**
-`ecurie serve` refuse une adresse non locale sans `--i-know`. Ce n'est pas de la
+`ecurie serve` refuse une adresse non locale sans `--expose`. Ce n'est pas de la
 prudence de principe : l'API dit où sont les poids sur le disque, ce que la
 machine a en mémoire, et bientôt lancera des jobs. Publiée sur un réseau, elle
 donne tout cela à qui passe.

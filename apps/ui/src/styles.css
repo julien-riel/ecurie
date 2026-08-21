@@ -1,0 +1,157 @@
+/*
+ * Le minimum pour que le formulaire engendré soit lisible.
+ *
+ * Aucun thème RJSF n'est installé — ni Bootstrap, ni MUI, ni Tailwind. Le thème
+ * natif émet des classes d'inspiration Bootstrap (`form-group`, `form-control`,
+ * `control-label`, `col-xs-9`) sans la feuille qui va avec ; on habille celles
+ * qui comptent, et rien d'autre. Choisir un thème ici dicterait le langage
+ * visuel des quatre écrans à partir d'une décision prise pour un formulaire, ce
+ * qui est exactement le risque « effort du front sous-estimé » que
+ * l'architecture demande de contenir.
+ */
+
+:root {
+  --encre: #1b1b1b;
+  --papier: #fbfbf9;
+  --trait: #d6d3cc;
+  --sourdine: #6b6862;
+  --alerte: #a4302a;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --encre: #ececea;
+    --papier: #191917;
+    --trait: #3a3934;
+    --sourdine: #9c988f;
+    --alerte: #e88b84;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--papier);
+  color: var(--encre);
+  font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", sans-serif;
+}
+
+.ecurie {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 6rem;
+}
+
+h1 { font-size: 1.4rem; margin: 0 0 0.25rem; }
+h2 { font-size: 1.15rem; margin: 2rem 0 0.5rem; }
+h3 { font-size: 1rem; margin: 1.5rem 0 0.5rem; }
+
+section { margin-top: 1.5rem; }
+
+label, .control-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.form-group { margin-bottom: 1.1rem; }
+
+.form-control,
+select {
+  width: 100%;
+  max-width: 40rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--trait);
+  border-radius: 4px;
+  background: var(--papier);
+  color: var(--encre);
+  font: inherit;
+}
+
+textarea.form-control { min-height: 5rem; resize: vertical; }
+
+button {
+  font: inherit;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--trait);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--encre);
+  cursor: pointer;
+}
+
+button:disabled { opacity: 0.5; cursor: default; }
+
+.field-description,
+.ecurie-etat-champ {
+  color: var(--sourdine);
+  font-size: 0.85rem;
+  margin: 0.15rem 0 0;
+}
+
+.required { color: var(--alerte); margin-left: 0.15rem; }
+
+.text-danger { color: var(--alerte); font-size: 0.9rem; }
+
+/* Le thème natif émet des classes de grille Bootstrap sans la grille. */
+.rjsf-array-item { gap: 0.75rem; }
+.array-item-toolbox .btn-group { gap: 0.3rem; }
+[class^="col-xs-"], [class*=" col-xs-"] { flex: 1 1 auto; min-width: 0; }
+
+fieldset {
+  border: 1px solid var(--trait);
+  border-radius: 5px;
+  padding: 0.8rem 1rem;
+  margin: 0 0 1rem;
+}
+
+legend { font-weight: 600; padding: 0 0.35rem; }
+
+.ecurie-json, .ecurie-texte {
+  background: color-mix(in srgb, var(--encre) 5%, transparent);
+  border: 1px solid var(--trait);
+  border-radius: 4px;
+  padding: 0.6rem 0.75rem;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}
+
+.ecurie-avis {
+  border: 1px solid var(--trait);
+  border-left: 3px solid var(--sourdine);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  margin-top: 1rem;
+}
+
+.ecurie-avis button { border: 0; padding: 0; text-align: left; }
+.ecurie-avis ul { margin: 0.5rem 0 0; padding-left: 1.1rem; font-size: 0.9rem; }
+.ecurie-avis li[data-severite="error"] { color: var(--alerte); }
+
+.ecurie-cout { font-weight: 600; }
+
+.ecurie-sorties { display: grid; gap: 1rem; }
+
+.ecurie-sortie {
+  margin: 0;
+  border: 1px solid var(--trait);
+  border-radius: 5px;
+  padding: 0.7rem 0.85rem;
+}
+
+.ecurie-sortie figcaption {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  margin-bottom: 0.4rem;
+}
+
+.ecurie-sortie-nom { font-weight: 600; }
+.ecurie-sortie-type { color: var(--sourdine); font-size: 0.8rem; }
+.ecurie-sortie-absente { color: var(--sourdine); font-family: ui-monospace, monospace; font-size: 0.85rem; margin: 0; }
+.ecurie-sortie-inline { display: flex; gap: 0.6rem; align-items: baseline; }
+
+.ecurie-sortie img, .ecurie-sortie video { max-width: 100%; height: auto; }
+.ecurie-zoom { cursor: zoom-out; max-width: none; width: auto; }
+.ecurie-sortie img { cursor: zoom-in; }

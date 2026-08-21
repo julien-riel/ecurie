@@ -1,0 +1,833 @@
+{
+  "issues": [
+    {
+      "file": "registry/models/trellis2.yaml",
+      "message": "trellis2@bf16 : révision non épinglée ('0000000') — un profil mesuré sur une révision flottante est caduc sans préavis",
+      "severity": "warning"
+    },
+    {
+      "file": "registry/models/trellis2.yaml",
+      "message": "trellis2@bf16 : runtime custom sans entrypoint",
+      "severity": "warning"
+    }
+  ],
+  "models": [
+    {
+      "capability": "image-matting",
+      "family": "birefnet",
+      "id": "birefnet",
+      "incumbent": false,
+      "license": "mit",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/ZhengPeng7/BiRefNet",
+        "homepage": "https://huggingface.co/ZhengPeng7/BiRefNet",
+        "paper": "https://arxiv.org/abs/2401.03407"
+      },
+      "name": "BiRefNet (détourage haute résolution)",
+      "notes": "Ce modèle exécute le code livré avec ses poids : son config.json déclare un auto_map, et le chargement passe par trust_remote_code. C'est un choix explicite de l'adaptateur, pas un défaut subi — les poids arrivent par `ecurie pull` à la révision épinglée ci-dessous, dans un environnement isolé où rien d'Écurie n'est installé. Réviser cette révision revient donc à relire du code, et c'est une raison de plus de l'épingler.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Poids publiés en demi-précision : l'entrée doit être convertie au type du modèle, l'adaptateur le lit plutôt que de le supposer.",
+            "Charge du code depuis le dépôt de poids (trust_remote_code).",
+            "Entraîné sur des entrées carrées de 1024 : une image très allongée est déformée avant passage, puis le masque est remis à ses proportions."
+          ],
+          "defaults": {
+            "edge_refine": true,
+            "max_side": 1024
+          },
+          "entrypoint": null,
+          "env": "torch-vision",
+          "heavy": false,
+          "id": "fp16",
+          "options": null,
+          "profile": {
+            "disk_bytes": 444571106,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 909,
+            "measured_at": "2026-08-21",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0 / transformers 5.15.1",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 8300331008,
+            "rtf": null,
+            "throughput": "1 sortie / 1.5 s",
+            "warmup_ms": 2192
+          },
+          "quantization": "fp16",
+          "ready": true,
+          "ref": "birefnet@fp16",
+          "runtime": "torch-vision",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.py",
+              "*.safetensors",
+              "*.txt"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "ZhengPeng7/BiRefNet",
+            "revision": "e2bf8e4460fc8fa32bba5ea4d94b3233d367b0e4",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Peng Zheng et al."
+    },
+    {
+      "capability": "image-to-mesh",
+      "family": "hunyuan3d",
+      "id": "hunyuan3d-2.1-shape-mlx",
+      "incumbent": true,
+      "license": "tencent-hunyuan-community",
+      "license_class": "restricted",
+      "links": null,
+      "name": "Hunyuan3D 2.1 Shape (MLX)",
+      "notes": "Géométrie de bonne tenue sur Apple Silicon. Le pipeline PBR complet n'est pas couvert : prévoir une passe de texturation séparée. Alternative TRELLIS.2 (MIT, meilleure sur le papier) bloquée par ses noyaux CUDA — voir candidate trellis2.\n",
+      "status": "active",
+      "variants": [
+        {
+          "blockers": [
+            "hunyuan3d-2.1-shape-mlx@mlx-bf16 : poids absents du cache — ecurie pull hunyuan3d-2.1-shape-mlx@mlx-bf16",
+            "hunyuan3d-2.1-shape-mlx@mlx-bf16 : venv de runtimes/hunyuan3d/ absent — ecurie env sync hunyuan3d",
+            "hunyuan3d-2.1-shape-mlx@mlx-bf16 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench hunyuan3d-2.1-shape-mlx@mlx-bf16"
+          ],
+          "caveats": [
+            "Géométrie seulement, pas de PBR complet.",
+            "Licence à restrictions : vérifier avant tout usage professionnel.",
+            "Le suffixe « mlx » de l'id est trompeur : aucun portage MLX de la partie shape 2.1 n'est publié (le portage communautaire s'arrête à 2.0/2mini). L'inférence passe par PyTorch/MPS, chemin non validé de bout en bout."
+          ],
+          "defaults": {
+            "num_inference_steps": 30,
+            "octree_resolution": 256
+          },
+          "entrypoint": "runtimes/hunyuan3d/run.py",
+          "env": "hunyuan3d",
+          "heavy": null,
+          "id": "mlx-bf16",
+          "options": null,
+          "profile": null,
+          "quantization": "bf16",
+          "ready": false,
+          "ref": "hunyuan3d-2.1-shape-mlx@mlx-bf16",
+          "runtime": "custom",
+          "source": {
+            "allow_patterns": [
+              "hunyuan3d-dit-v2-1/*",
+              "LICENSE",
+              "Notice.txt"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "tencent/Hunyuan3D-2.1",
+            "revision": "0b94677654c57bb9a6b6845cd7b704ccf551d327",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": null
+        }
+      ],
+      "vendor": "Tencent"
+    },
+    {
+      "capability": "text-to-music",
+      "family": "minimax-music",
+      "id": "minimax-music3",
+      "incumbent": false,
+      "license": "minimax-music3-community-license",
+      "license_class": "restricted",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/MiniMaxAI/MiniMax-Music3",
+        "paper": null
+      },
+      "name": "MiniMax Music 3 (MLX 4 bits)",
+      "notes": "Conversion communautaire, pas une publication officielle de MiniMax. Retenue en 4 bits : la bf16 pèse 26,6 Go sur le disque, la 8 bits 13,2 — hors de portée d'un parc qui n'a de place que pour un modèle à la fois. Le support amont est mergé mais absent des versions publiées de mlx-audio, d'où un environnement dédié épinglant un commit (runtimes/mlx-audio-music/).\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Le pic dépend de la durée demandée : environ 3,3 Gio de base plus 0,70 Gio par seconde d'audio (R² = 0,98, ajusté entre 15 et 30 s). Le contrôle d'admission calcule le pic attendu du job ; au-delà d'une vingtaine de secondes il refuse, et il a raison.",
+            "`guidance_scale` et `temperature` du contrat sont ignorés : ce modèle ne les expose pas.",
+            "La durée demandée est une borne haute — l'étage autorégressif peut clore le morceau plus tôt.",
+            "Licence à conditions d'usage acceptable et clauses commerciales : à lire avant tout emploi professionnel.",
+            "Contrôles de style, tempo et voix probabilistes, jamais stricts."
+          ],
+          "defaults": {
+            "duration_seconds": 30
+          },
+          "entrypoint": null,
+          "env": "mlx-audio-music",
+          "heavy": true,
+          "id": "4bit",
+          "options": {
+            "steps": 30
+          },
+          "profile": {
+            "disk_bytes": 9210759883,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 153013,
+            "measured_at": "2026-08-20",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1",
+            "peak_scaling": {
+              "base_bytes": 3581413350,
+              "bytes_per_unit": 747077532.9,
+              "measured_range": [
+                15.0,
+                30.0
+              ],
+              "parameter": "duration_seconds",
+              "r_squared": 0.9823
+            },
+            "peak_unified_memory_bytes": 25704234348,
+            "rtf": 7.915264,
+            "throughput": "0.13× temps réel",
+            "warmup_ms": 1546
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "minimax-music3@4bit",
+          "runtime": "mlx-audio",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.model"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/MiniMax-Music3-4bit",
+            "revision": "c7ea32923b245fe5afc22d740a1936ad2ac590f3",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "MiniMax"
+    },
+    {
+      "capability": "text-generation",
+      "family": "qwen2.5-coder",
+      "id": "qwen25-coder-7b",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit",
+        "paper": null
+      },
+      "name": "Qwen2.5-Coder 7B Instruct",
+      "notes": "7 milliards de paramètres en 4 bits : 4,3 Go sur le disque, donc un modèle léger au sens de la politique de résidence — il cohabitera avec la lecture de document ou la voix. C'est ce qui en fait le bon premier titulaire possible pour cette capacité : un modèle de code qu'il faut décharger pour lire un fichier n'est pas utilisable au quotidien.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Température abaissée à 0,2 par défaut : du code échantillonné à 0,7 compile moins souvent, et la valeur par défaut du contrat vise la prose.",
+            "Ne déclare pas d'outils dans son gabarit de conversation : pour l'appel d'outils, c'est qwen3-4b-outils qu'il faut."
+          ],
+          "defaults": {
+            "max_tokens": 2048,
+            "temperature": 0.2,
+            "top_p": 0.95
+          },
+          "entrypoint": null,
+          "env": "mlx-lm",
+          "heavy": false,
+          "id": "4bit",
+          "options": null,
+          "profile": {
+            "disk_bytes": 4295887638,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 17277,
+            "measured_at": "2026-08-21",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-lm 0.29.1",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 4449316356,
+            "rtf": null,
+            "throughput": "1 sortie / 12.8 s",
+            "warmup_ms": 916
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "qwen25-coder-7b@4bit",
+          "runtime": "mlx-lm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen2.5-Coder-7B-Instruct-4bit",
+            "revision": "019cc73c45c770444708a6dd8690c66243cc5c80",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "tool-use",
+      "family": "qwen3",
+      "id": "qwen3-4b-outils",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/mlx-community/Qwen3-4B-Instruct-2507-4bit",
+        "paper": null
+      },
+      "name": "Qwen3 4B Instruct (appel d'outils)",
+      "notes": "Écurie n'exécute aucun outil : elle juge le choix et le remplissage. Ce manifeste sert donc à mesurer une compétence, pas à brancher un agent — la boucle d'agent reste hors périmètre (ARCHITECTURE.md §11).\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Poids partagés avec qwen3-4b-traduction — un seul téléchargement pour les deux."
+          ],
+          "defaults": {
+            "parallel_calls": false,
+            "temperature": 0.0,
+            "tool_choice": "auto"
+          },
+          "entrypoint": null,
+          "env": "mlx-lm",
+          "heavy": false,
+          "id": "4bit",
+          "options": null,
+          "profile": {
+            "disk_bytes": 2278969697,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 958,
+            "measured_at": "2026-08-21",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-lm 0.29.1",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 2932723800,
+            "rtf": null,
+            "throughput": "1 sortie / 1.0 s",
+            "warmup_ms": 742
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "qwen3-4b-outils@4bit",
+          "runtime": "mlx-lm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3-4B-Instruct-2507-4bit",
+            "revision": "50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "translation",
+      "family": "qwen3",
+      "id": "qwen3-4b-traduction",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/mlx-community/Qwen3-4B-Instruct-2507-4bit",
+        "paper": null
+      },
+      "name": "Qwen3 4B Instruct (traduction)",
+      "notes": "Poids partagés avec qwen3-4b-outils, à la même révision : un seul téléchargement, un seul jeu de fichiers sur le disque, deux capacités. Le profil, lui, doit être mesuré pour chacune — traduire un paragraphe et remplir un appel d'outil ne produisent pas le même nombre de jetons, donc pas le même pic ni la même durée.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Ne détecte pas la langue de départ : il traduit ce qu'on lui donne. `detected_source_language` rend la langue déclarée, ou rien.",
+            "Poids partagés avec qwen3-4b-outils — les déporter déplace les deux."
+          ],
+          "defaults": {
+            "preserve_formatting": true,
+            "register": "neutre"
+          },
+          "entrypoint": null,
+          "env": "mlx-lm",
+          "heavy": false,
+          "id": "4bit",
+          "options": null,
+          "profile": {
+            "disk_bytes": 2278969697,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 1454,
+            "measured_at": "2026-08-21",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-lm 0.29.1",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 2763997636,
+            "rtf": null,
+            "throughput": "1 sortie / 1.6 s",
+            "warmup_ms": 746
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "qwen3-4b-traduction@4bit",
+          "runtime": "mlx-lm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3-4B-Instruct-2507-4bit",
+            "revision": "50d427756c6b1b2fe0c0a10f67fbda1fc8e82c1b",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "text-to-speech",
+      "family": "qwen3",
+      "id": "qwen3-tts-1.7b",
+      "incumbent": true,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": null,
+      "name": "Qwen3-TTS 1.7B",
+      "notes": "Retenu plutôt que Fish Speech S2, à réévaluer si un portage MLX de Fish Speech S2 apparaît. ATTENTION — la mesure du 20 août 2026 dément l'hypothèse d'origine (« reste résident sans entamer le budget des lourds ») : le pic est de 8,2 Go, au-dessus du seuil de 6 Go, donc ce variant compte comme un modèle lourd et occupe à lui seul la place unique que la politique du parc leur réserve. Un job image le déchargera systématiquement, et le warmup de 1,3 s sera repayé à chaque retour. Deux issues à trancher : relever `heavy_threshold_bytes`, ou essayer le 0.6B (mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-8bit) qui tiendrait chaud en permanence.\n",
+      "status": "active",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Sigles et nombres à valider sur le golden set FR.",
+            "`speed` n'est pas honoré : le source mlx-audio le note « not directly supported yet » pour Qwen3-TTS et generate_custom_voice n'a pas ce paramètre. Seule la valeur 1.0 est sincère.",
+            "Voix non évaluées en français : `french` figure bien dans codec_language_id, mais les 9 timbres sont documentés en chinois et en anglais."
+          ],
+          "defaults": {
+            "speed": 1.0,
+            "voice": "serena"
+          },
+          "entrypoint": null,
+          "env": "mlx-audio",
+          "heavy": false,
+          "id": "8bit-mlx",
+          "options": null,
+          "profile": {
+            "disk_bytes": 3080138901,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 7918,
+            "measured_at": "2026-08-20",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 8209951240,
+            "rtf": 0.440386,
+            "throughput": "2.27× temps réel",
+            "warmup_ms": 1268
+          },
+          "quantization": "8bit",
+          "ready": true,
+          "ref": "qwen3-tts-1.7b@8bit-mlx",
+          "runtime": "mlx-audio",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "merges.txt",
+              "speech_tokenizer/*"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit",
+            "revision": "41d3337e8b7f2843a75841595fc14e4b9a7a4b96",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "image-to-text",
+      "family": "qwen3-vl",
+      "id": "qwen3-vl-8b-describe",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/mlx-community/Qwen3-VL-8B-Instruct-4bit",
+        "paper": null
+      },
+      "name": "Qwen3-VL 8B Instruct (description d'image)",
+      "notes": "Aucun téléchargement : ce manifeste désigne le dépôt et la révision déjà employés par qwen3-vl-8b-ocr. Le profil doit néanmoins être mesuré pour lui-même — décrire une image et transcrire une page ne produisent pas le même nombre de jetons, donc pas le même pic ni la même durée, et un profil recopié d'un manifeste à l'autre serait exactement l'estimation à la main que le projet s'interdit.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Quantification 4 bits : les petits détails et le texte incrusté dans une image sont les premiers à se perdre.",
+            "Poids partagés avec qwen3-vl-8b-ocr — les déporter avec `ecurie store tier` déplace les deux."
+          ],
+          "defaults": {
+            "detail": "normal",
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": false,
+          "id": "4bit",
+          "options": null,
+          "profile": {
+            "disk_bytes": 5776625617,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 4961,
+            "measured_at": "2026-08-21",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 6598652074,
+            "rtf": null,
+            "throughput": "1 sortie / 6.6 s",
+            "warmup_ms": 1767
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "qwen3-vl-8b-describe@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3-VL-8B-Instruct-4bit",
+            "revision": "defcdea7cc7a4b0858fea563cbbce171d328e457",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "document-to-text",
+      "family": "qwen3-vl",
+      "id": "qwen3-vl-8b-ocr",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": null,
+      "name": "Qwen3-VL 8B Instruct (lecture de document)",
+      "notes": "Retenu en 4 bits pour tenir dans le budget à côté d'autre chose : la version 8 bits pèse 9,2 Go sur le disque et bien plus en mémoire, ce qui en ferait un modèle lourd de plus dans un parc qui n'a de place que pour un. La perte de qualité de la quantification 4 bits sur du texte imprimé est à mesurer sur le golden set OCR du v0.5, pas à supposer.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Quantification 4 bits : la fidélité sur les petits caractères et les chiffres reste à mesurer.",
+            "Un VLM transcrit, il ne localise pas : la sortie `layout` décrit les pages, pas des boîtes."
+          ],
+          "defaults": {
+            "detect_layout": true,
+            "dpi": 200,
+            "format": "markdown"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": false,
+          "id": "4bit",
+          "options": null,
+          "profile": {
+            "disk_bytes": 5776625617,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 7480,
+            "measured_at": "2026-08-20",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 6712856963,
+            "rtf": null,
+            "throughput": "1 sortie / 7.4 s",
+            "warmup_ms": 1348
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "qwen3-vl-8b-ocr@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3-VL-8B-Instruct-4bit",
+            "revision": "defcdea7cc7a4b0858fea563cbbce171d328e457",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "text-to-image",
+      "family": "stable-diffusion",
+      "id": "sdxl-base",
+      "incumbent": false,
+      "license": "openrail++",
+      "license_class": "restricted",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0",
+        "paper": null
+      },
+      "name": "Stable Diffusion XL 1.0 (base)",
+      "notes": "Retenu pour éprouver la chaîne image, pas pour la qualité : le modèle date de 2023 et se fait dépasser sur le texte dans l'image, les mains et la composition. Le raffineur (refiner) n'est pas téléchargé — la base seule suffit à la plupart des usages et épargne 6 Go.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Occupe 15,95 Gio sur les 17,76 du budget, soit 90 % : rien d'autre ne peut rester résident à côté. Tout job image déchargera le TTS, et son warmup sera repayé au retour.",
+            "Texte dans l'image : peu fiable. Ne pas compter dessus pour une enseigne ou une étiquette.",
+            "Licence openrail++ : restrictions d'usage, à lire avant tout emploi professionnel.",
+            "Raffineur non téléchargé : les rendus les plus fins demanderaient stable-diffusion-xl-refiner-1.0."
+          ],
+          "defaults": {
+            "guidance_scale": 7.0,
+            "height": 1024,
+            "steps": 30,
+            "width": 1024
+          },
+          "entrypoint": null,
+          "env": "diffusers-mps",
+          "heavy": true,
+          "id": "fp16",
+          "options": null,
+          "profile": {
+            "disk_bytes": 7106938904,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 56605,
+            "measured_at": "2026-08-20",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 17123246080,
+            "rtf": null,
+            "throughput": "1 sortie / 41.3 s",
+            "warmup_ms": 5098
+          },
+          "quantization": "fp16",
+          "ready": true,
+          "ref": "sdxl-base@fp16",
+          "runtime": "diffusers-mps",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.txt",
+              "*fp16.safetensors"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "stabilityai/stable-diffusion-xl-base-1.0",
+            "revision": "462165984030d82259a11f4367a4eed129e94a7b",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Stability AI"
+    },
+    {
+      "capability": "image-upscale",
+      "family": "swin2sr",
+      "id": "swin2sr",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/mv-lab/swin2sr",
+        "homepage": "https://huggingface.co/caidas/swin2SR-classical-sr-x2-64",
+        "paper": "https://arxiv.org/abs/2209.11345"
+      },
+      "name": "Swin2SR",
+      "notes": "Deux jeux de poids aux caractères opposés : le variant classique ×2 est entraîné sur des réductions bicubiques propres, donc excellent sur une image synthétique et décevant sur une photo ; le variant ×4 « monde réel » est entraîné sur des dégradations composées, donc l'inverse. Le golden set d'agrandissement les départage sur des réductions bicubiques, ce qui avantage structurellement le premier : c'est à savoir avant de lire son classement.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Facteur ×2 uniquement : toute autre valeur de `scale` est refusée avant calcul.",
+            "Entraîné sur des réductions bicubiques : sur une photo réelle, le variant monde réel fait mieux."
+          ],
+          "defaults": {
+            "scale": 2
+          },
+          "entrypoint": null,
+          "env": "torch-vision",
+          "heavy": false,
+          "id": "classique-x2",
+          "options": null,
+          "profile": {
+            "disk_bytes": 48461584,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 2799,
+            "measured_at": "2026-08-21",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0 / transformers 5.15.1",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 4593483776,
+            "rtf": null,
+            "throughput": "1 sortie / 5.1 s",
+            "warmup_ms": 1739
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "swin2sr@classique-x2",
+          "runtime": "torch-vision",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "caidas/swin2SR-classical-sr-x2-64",
+            "revision": "cee1c923c6a37361c6e5650b65dcf4be821e5d52",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [],
+          "caveats": [
+            "Facteur ×4 uniquement.",
+            "Publié en .bin et non en safetensors : `use_safetensors` ne s'applique pas à ce variant.",
+            "Pic de 6,28 Gio contre 4,28 pour le ×2 sur la même charge : c'est le nombre de pixels produits qui commande, et il quadruple."
+          ],
+          "defaults": {
+            "scale": 4
+          },
+          "entrypoint": null,
+          "env": "torch-vision",
+          "heavy": false,
+          "id": "reel-x4",
+          "options": null,
+          "profile": {
+            "disk_bytes": 48461065,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 2873,
+            "measured_at": "2026-08-21",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0 / transformers 5.15.1",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 6741032960,
+            "rtf": null,
+            "throughput": "1 sortie / 5.2 s",
+            "warmup_ms": 1549
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "swin2sr@reel-x4",
+          "runtime": "torch-vision",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.bin"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "caidas/swin2SR-realworld-sr-x4-64-bsrgan-psnr",
+            "revision": "bb13f02e45e88d00b6c202b3fbe6a181af144606",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Marcos V. Conde et al."
+    },
+    {
+      "capability": "image-to-mesh",
+      "family": "trellis",
+      "id": "trellis2",
+      "incumbent": false,
+      "license": "mit",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/microsoft/TRELLIS",
+        "homepage": null,
+        "paper": null
+      },
+      "name": "TRELLIS.2",
+      "notes": "Meilleur générateur 3D auto-hébergeable connu au 19 août 2026, sortie gaussian splatting incluse. BLOQUÉ sur Apple Silicon : opérations de voxels épars en noyaux CUDA, aucun portage Metal/MLX connu. Repli CPU inexploitable. Déclencheur de réévaluation : apparition d'un portage MLX ou d'une implémentation Metal des opérations éparses. Surveillé par veille-scan (watch: portage Metal).\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "trellis2@bf16 : poids absents du cache — ecurie pull trellis2@bf16",
+            "trellis2@bf16 : environnement runtimes/trellis/ absent — créer runtimes/trellis/pyproject.toml (voir CONCEPTION.md §5.3)",
+            "trellis2@bf16 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench trellis2@bf16"
+          ],
+          "caveats": [
+            "CUDA requis. Ne tourne pas sur M5."
+          ],
+          "defaults": null,
+          "entrypoint": null,
+          "env": "trellis",
+          "heavy": null,
+          "id": "bf16",
+          "options": null,
+          "profile": null,
+          "quantization": "bf16",
+          "ready": false,
+          "ref": "trellis2@bf16",
+          "runtime": "custom",
+          "source": {
+            "allow_patterns": null,
+            "kind": "huggingface",
+            "path": null,
+            "repo": "microsoft/TRELLIS-2",
+            "revision": "0000000",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "Microsoft Research"
+    }
+  ]
+}
