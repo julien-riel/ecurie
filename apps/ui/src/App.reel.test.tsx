@@ -11,11 +11,18 @@
  * faisait faute de passer `onNotices`. Le correctif durable est le test jsdom
  * qui garde ce cas ; cet essai-ci est ce qui l'a révélé.
  *
- * Le 4.4 lui donne un second sujet : le **bandeau de ressources**, qui sonde
+ * Le 4.4 lui a donné un second sujet : le **bandeau de ressources**, qui sonde
  * toutes les deux secondes. C'est le seul endroit du front qui répète une
  * requête, donc le seul qui puisse empiler des appels, faire clignoter des
  * chiffres ou tourner après un démontage — et rien de tout cela ne se voit sur
  * un double de `fetch` qui répond en une microseconde.
+ *
+ * Sa fin lui en donne un troisième, et c'est le seul qui prouve le jalon : un
+ * **vrai job**, du clic au wav qu'on écoute. Ce qui ne peut s'éprouver
+ * qu'ici : un flux d'événements servi par Starlette et découpé par le
+ * navigateur, une progression qui vient d'un modèle MLX et non d'un compteur,
+ * un fichier téléchargé depuis un autre port que celui de la page — donc soumis
+ * au CORS que le serveur configure exprès.
  *
  * Il est exclu par défaut, comme le marqueur `real` de la suite pytest, et pour
  * la même raison : il demande un serveur qui tourne sur cette machine, avec le
@@ -82,7 +89,12 @@ describe.skipIf(!REEL)("l'Atelier contre un vrai ecurie serve", () => {
       timeout: 15_000,
     });
     const coût = document.querySelector(".ecurie-chiffrage")!;
-    expect(coût.textContent).toMatch(/lancer (chargera|refusé)/);
+    // Les trois formes, et la troisième n'est pas une tolérance de confort :
+    // l'essai du job qui suit **charge le modèle**, et il reste résident après
+    // la fin de la suite. Le prochain lancement de ce fichier voit donc un parc
+    // chaud, où la bonne réponse est « déjà résident : lancer ne le rechargera
+    // pas ». Un essai réel change l'état de la machine qu'il éprouve.
+    expect(coût.textContent).toMatch(/lancer (chargera|refusé)|déjà résident/);
     expect(coût.textContent).toMatch(/7,65 Gio|déjà résident/);
   }, 60_000);
 
@@ -137,4 +149,83 @@ describe.skipIf(!REEL)("l'Atelier contre un vrai ecurie serve", () => {
     // `plan_admission` passe ses tailles par `fmt_memory`.
     expect(verdict.textContent).not.toMatch(/\d{10}/);
   }, 60_000);
+
+  test("un vrai job va du clic au wav qu_on peut ecouter", async () => {
+    // Le critère de sortie du jalon, vu depuis l'écran : « l'UI est le chemin
+    // par défaut pour lancer TTS et image, sans retomber sur les scripts
+    // d'origine ». Tout y est réel — le modèle, le flux d'événements, le
+    // fichier servi depuis un autre port que celui de la page.
+    render(<App />);
+    await choisirTTS();
+    await userEvent.type(await screen.findByLabelText(/^text/i), "L'atelier lance ses jobs.");
+
+    await userEvent.click(screen.getByRole("button", { name: /^Lancer/ }));
+
+    const panneau = await screen.findByLabelText("Job", {}, { timeout: 30_000 });
+    // Un job qui traverse un vrai modèle passe par le chargement puis
+    // l'inférence : l'écran doit dire ce qui se passe, et non se figer.
+    await within(panneau).findAllByText(/en file|en cours|terminé/, {}, { timeout: 30_000 });
+
+    // L'état se lit sur l'attribut et non sur le texte : « terminé » apparaît
+    // deux fois dans un job réussi — le libellé d'état et le bilan — et
+    // `getByText` refuse, à juste titre, de choisir entre deux éléments.
+    await waitFor(
+      () => expect(["done", "failed"]).toContain(panneau.getAttribute("data-etat")),
+      { timeout: 240_000 },
+    );
+    expect(panneau.getAttribute("data-etat"), panneau.textContent ?? "").toBe("done");
+    expect(within(panneau).getByText(/rtf/)).toBeInTheDocument();
+
+    // La sortie réelle a remplacé la promesse du contrat.
+    await screen.findByText(/Ce que ce job a produit/);
+    const lecteur = document.querySelector('[data-viewer="audio"]') as HTMLAudioElement;
+    const source = lecteur.getAttribute("src");
+    expect(source, "le lecteur n'a pas d'URL : le résolveur n'a rien trouvé").toBeTruthy();
+    expect(source).toContain("/files/");
+
+    // Et le fichier se télécharge vraiment, depuis l'origine de l'API — ce que
+    // le CORS du serveur doit autoriser, et qu'aucun test en jsdom ne dit.
+    const fichier = await fetch(source!);
+    expect(fichier.status).toBe(200);
+    expect(fichier.headers.get("content-type")).toBe("audio/wav");
+    expect((await fichier.arrayBuffer()).byteLength).toBeGreaterThan(1000);
+  }, 360_000);
+
+  test("un refus d_admission arrive par le flux, pas par un code HTTP", async () => {
+    // Le chemin le plus subtil de toute la route des jobs : l'admission ne se
+    // tranche qu'au moment de charger, après le tour de rôle, donc le job est
+    // **accepté** puis échoue. Trente secondes de musique demandent 24,2 Gio là
+    // où le budget entier en fait 17,76 : aucun modèle n'est chargé, rien n'est
+    // déchargé, et la phrase du refus est celle du contrôle d'admission.
+    render(<App />);
+    const capacités = (await screen.findByLabelText("Capacité")) as HTMLSelectElement;
+    await waitFor(() => expect(capacités.options.length).toBeGreaterThan(1));
+    await userEvent.selectOptions(capacités, "text-to-music");
+    const variants = (await screen.findByLabelText("Variant")) as HTMLSelectElement;
+    await waitFor(() => expect(variants.value).toBe("minimax-music3@4bit"));
+
+    // `prompt` est le seul champ requis du contrat, et `duration_seconds` vaut
+    // 30 par défaut — c'est-à-dire la durée qui dépasse le budget. Sans le
+    // prompt, le serveur refuserait l'entrée en 422 et aucun job n'existerait :
+    // ce serait l'autre chemin, celui qu'éprouve la suite en jsdom.
+    await userEvent.type(await screen.findByLabelText(/^prompt/i), "Une valse pour le parc.");
+    await userEvent.click(screen.getByRole("button", { name: /^Lancer/ }));
+
+    const panneau = await screen.findByLabelText("Job", {}, { timeout: 30_000 });
+    await waitFor(() => expect(panneau.getAttribute("data-etat")).toBe("failed"), {
+      timeout: 60_000,
+    });
+    const refus = within(panneau).getByText(/admission refusée/);
+    expect(refus.textContent).toMatch(/Gio/);
+    expect(refus.textContent).not.toMatch(/\d{10}/);
+  }, 120_000);
 });
+
+/** Choisit la synthèse vocale et attend son titulaire préselectionné. */
+async function choisirTTS(): Promise<void> {
+  const capacités = (await screen.findByLabelText("Capacité")) as HTMLSelectElement;
+  await waitFor(() => expect(capacités.options.length).toBeGreaterThan(1));
+  await userEvent.selectOptions(capacités, "text-to-speech");
+  const variants = (await screen.findByLabelText("Variant")) as HTMLSelectElement;
+  await waitFor(() => expect(variants.value).toBe("qwen3-tts-1.7b@8bit-mlx"));
+}

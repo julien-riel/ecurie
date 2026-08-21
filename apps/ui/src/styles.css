@@ -199,6 +199,59 @@ legend { font-weight: 600; padding: 0 0.35rem; }
 }
 
 .ecurie-actions p { flex: 1 1 22rem; margin: 0; }
+.ecurie-actions ul { flex: 1 1 100%; margin: 0; padding-left: 1.1rem; }
+
+/* Le seul bouton appuyé de l'écran : celui qui engage une exécution. */
+.ecurie-primaire {
+  border-color: var(--encre);
+  font-weight: 600;
+}
+
+/* Une action secondaire qui se lit dans une phrase, pas un bouton de plus. */
+.ecurie-lien {
+  border: 0;
+  padding: 0;
+  margin-left: 0.4rem;
+  text-decoration: underline;
+  font-size: inherit;
+}
+
+/* --- le job en cours ---------------------------------------------------------
+ *
+ * Encadré et non fondu dans la page : il est le seul bloc dont le contenu bouge
+ * tout seul, et l'œil doit pouvoir y revenir sans le chercher.
+ */
+.ecurie-job {
+  border: 1px solid var(--trait);
+  border-left: 3px solid var(--sourdine);
+  border-radius: 5px;
+  padding: 0.7rem 0.9rem;
+  margin-top: 1rem;
+}
+
+.ecurie-job[data-etat="failed"] { border-left-color: var(--alerte); }
+.ecurie-job[data-etat="done"] { border-left-color: var(--encre); }
+
+.ecurie-job-entete { margin: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: baseline; }
+
+.ecurie-progression {
+  display: block;
+  width: 100%;
+  max-width: 40rem;
+  height: 6px;
+  margin-top: 0.5rem;
+}
+
+.ecurie-bilan,
+.ecurie-metriques,
+.ecurie-avertissements {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+}
+
+.ecurie-metriques { color: var(--sourdine); }
+.ecurie-avertissements { color: var(--sourdine); font-style: italic; }
 
 .ecurie-chiffrage[data-severite="refus"] .ecurie-cout { color: var(--alerte); }
 

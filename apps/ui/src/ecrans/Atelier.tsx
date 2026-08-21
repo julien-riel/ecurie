@@ -1,5 +1,5 @@
 /**
- * L'Atelier — capacité, variant, formulaire, coût. Le premier des quatre écrans.
+ * L'Atelier — capacité, variant, formulaire, coût, **job**. Le premier des quatre écrans.
  *
  * Il remplace le banc de rendu du 4.3, qui prouvait que les deux tables
  * d'aiguillage fonctionnent sans prétendre être un écran. Ce qui change tient en
@@ -18,15 +18,32 @@
  * 4. **La projection de l'entrée est repliée.** Voir partir le JSON est un outil
  *    de mise au point, pas le sujet de l'écran.
  *
- * Ce qu'il ne fait pas, et pourquoi il ne le fait pas : **il n'y a pas de bouton
- * *Lancer*.** `POST /jobs` et le flux SSE attendent le déménagement du
- * superviseur dans le processus de l'API (tâche 4.6), et l'ordre est délibéré —
- * écrire la soumission avant reviendrait à faire vivre l'occupation des
- * résidents dans un fichier verrouillé pendant toute la durée d'un job, puis à
- * le défaire. Un bouton grisé, lui, serait un mensonge : l'écran dit ce qui
- * manque plutôt que de le suggérer.
+ * Le bouton *Lancer* est arrivé en dernier, et il fallait qu'il arrive en
+ * dernier : `POST /jobs` supposait un superviseur qui vive dans le processus de
+ * l'API (tâche 4.6), faute de quoi l'occupation d'un résident aurait vécu dans
+ * un fichier verrouillé pendant toute la durée d'un job. Trois décisions le
+ * gouvernent, et aucune n'était écrite au plan.
  *
- * Le chiffrage reste donc sur clic. Le bandeau chiffre le **variant** en
+ * **Il n'est jamais grisé pour un variant qu'on croit incapable.** « Ce morceau
+ * de 30 s demanderait 24,2 Gio » vaut mieux qu'un bouton mort, et c'est
+ * l'exigence du §4 du plan. Un variant dont les poids manquent part quand même :
+ * le serveur refuse en 409 avec la commande qui répare, et l'écran la montre. Il
+ * ne se grise que pendant qu'un job de cet écran tourne, ce qui n'est pas un
+ * jugement mais un fait affiché juste en dessous.
+ *
+ * **Un écran, un job.** Le serveur en accepte seize et les sérialise par
+ * variant ; l'écran n'en suit qu'un, parce qu'il n'a qu'une zone de sortie et
+ * qu'un second job y remplacerait le premier sans le dire. Ce que cela coûte —
+ * lancer une synthèse pendant qu'une image se calcule — est exactement ce que la
+ * Bibliothèque (5.5) rendra visible ; en attendant, la ligne de commande le fait.
+ *
+ * **Changer de capacité retire le job de l'écran.** Sa sortie s'aiguille sur les
+ * `output_media_types` du contrat qui l'a produit : la garder à l'écran pendant
+ * qu'on compose une autre capacité la ferait aplatir avec la mauvaise table.
+ * Elle n'est pas perdue pour autant — le dossier du job et son manifeste sont
+ * sur le disque, et `GET /jobs/{id}` les relit.
+ *
+ * Le chiffrage, lui, reste sur clic. Le bandeau chiffre le **variant** en
  * continu, `POST /runtime/admission` chiffre l'**entrée** : c'est le second qui
  * fait parler `peak_scaling`, et le fusionner dans une frappe de clavier est
  * nommément la tâche 4.7.
@@ -46,14 +63,19 @@ import * as api from "../api/endpoints";
 import { phraseErreur } from "../api/errors";
 import { optionsFor } from "../api/residents";
 import type { Admission, Capability, Variant } from "../api/types";
+import { useJob } from "../api/useJob";
 import { useResource } from "../api/useResource";
 import { PERIODE_MS, useSondage } from "../api/useSondage";
 import { CapabilityForm } from "../form/CapabilityForm";
 import { formatBytes, phraseLourdeur } from "../format/bytes";
 import { jourMesure } from "../format/dates";
+import { aUneSortie, enCours } from "../jobs/job";
+import { PanneauJob } from "../jobs/PanneauJob";
 import type { Notice } from "../notices/notices";
 import { NoticeBanner } from "../notices/NoticeBanner";
 import { fromIssues, uniques } from "../notices/notices";
+import { resolveurDeJob } from "../output/files";
+import { OutputPanel } from "../output/OutputPanel";
 import { SortiesPromises } from "../output/SortiesPromises";
 import { BandeauRessources } from "../ressources/BandeauRessources";
 import { parametreDuPic, phrasesAdmission, severiteAdmission } from "../ressources/ressources";
@@ -69,6 +91,16 @@ export interface AtelierProps {
 
 /** Le chiffrage d'une entrée : ce que le serveur a répondu, ou pourquoi il n'a pas répondu. */
 interface Chiffrage {
+  /**
+   * Le variant pour lequel la question a été posée.
+   *
+   * Il est gardé pour la même raison que dans le bandeau : une réponse en vol
+   * revient après un changement de variant, et l'afficher annoncerait le coût
+   * d'un autre modèle sous le nom de celui qu'on vient de choisir.
+   * `poserVariant` efface bien le chiffrage, mais il ne peut rien contre une
+   * requête déjà partie.
+   */
+  ref: string;
   admission: Admission | null;
   /** Reproches du contrat et blockers du variant — deux listes, un seul affichage. */
   reproches: readonly string[];
@@ -83,6 +115,7 @@ export function Atelier({ periodeBandeau }: AtelierProps) {
   const [avisFormulaire, setAvisFormulaire] = useState<readonly Notice[]>([]);
   const [chiffrage, setChiffrage] = useState<Chiffrage | null>(null);
   const [projectionOuverte, setProjectionOuverte] = useState(false);
+  const suivi = useJob();
 
   const capacités = contrats.données?.capabilities ?? [];
   const capacité: Capability | null = capacités.find((c) => c.id === capId) ?? null;
@@ -135,6 +168,11 @@ export function Atelier({ periodeBandeau }: AtelierProps) {
     setRef(null);
     setFormData({});
     setChiffrage(null);
+    // La sortie d'un job s'aiguille sur les `output_media_types` du contrat qui
+    // l'a produit : la laisser à l'écran pendant qu'on compose une autre
+    // capacité l'aplatirait avec la mauvaise table. Le job continue côté serveur
+    // et son manifeste est sur le disque ; c'est l'écran qui change de sujet.
+    suivi.oublier();
   }
 
   // La préselection attend les modèles : `ready_variants` suffirait à nommer le
@@ -156,16 +194,23 @@ export function Atelier({ periodeBandeau }: AtelierProps) {
 
   async function chiffrerLeJob() {
     if (!capacité || !ref) return;
+    const demandé = ref;
     try {
-      const réponse = await api.admission(ref, toContractInput(formData, capacité));
+      const réponse = await api.admission(demandé, toContractInput(formData, capacité));
       setChiffrage({
+        ref: demandé,
         admission: réponse.admission,
         reproches: [...réponse.input_errors, ...réponse.blockers],
         erreur: null,
       });
     } catch (cause) {
-      setChiffrage({ admission: null, reproches: [], erreur: phraseErreur(cause) });
+      setChiffrage({ ref: demandé, admission: null, reproches: [], erreur: phraseErreur(cause) });
     }
+  }
+
+  function lancerLeJob() {
+    if (!capacité || !ref) return;
+    void suivi.lancer(ref, toContractInput(formData, capacité));
   }
 
   const avis = uniques([
@@ -175,6 +220,14 @@ export function Atelier({ periodeBandeau }: AtelierProps) {
   ]);
 
   const entrée = capacité ? toContractInput(formData, capacité) : {};
+
+  // Le job n'est montré que sous la capacité qui l'a produit : sa sortie
+  // s'aiguille sur les `output_media_types` de ce contrat-là, et l'afficher sous
+  // un autre l'aplatirait avec la mauvaise table. `choisirCapacite` l'oublie
+  // déjà ; ceci tient aussi pendant le temps où les deux se croisent.
+  const job = suivi.job && capacité && suivi.job.capability === capacité.id ? suivi.job : null;
+  const travailEnCours = enCours(suivi.job);
+  const sortieDuJob = aUneSortie(job) ? job : null;
 
   return (
     <section className="ecurie-atelier" aria-label="Atelier">
@@ -252,17 +305,42 @@ export function Atelier({ periodeBandeau }: AtelierProps) {
           />
 
           <div className="ecurie-actions">
+            <button
+              type="button"
+              className="ecurie-primaire"
+              onClick={lancerLeJob}
+              disabled={!ref || suivi.envoi || travailEnCours}
+            >
+              {suivi.envoi ? "envoi…" : "Lancer"}
+            </button>
             <button type="button" onClick={chiffrerLeJob} disabled={!ref}>
               Chiffrer ce job
             </button>
-            <p className="ecurie-etat-champ">
-              Pas de bouton <em>Lancer</em> : la soumission d'un job et sa progression en
-              SSE attendent le déménagement du superviseur dans le processus de l'API
-              (tâche 4.6). En attendant, <code>ecurie run {ref ?? "<ref>"}</code>.
-            </p>
+            {travailEnCours ? (
+              <p className="ecurie-etat-champ">
+                Cet écran ne suit qu'un job à la fois. Pour en lancer un second sans
+                attendre celui-ci : <code>ecurie run {ref ?? "<ref>"}</code>.
+              </p>
+            ) : null}
+            {suivi.erreur.length && !suivi.interrompu ? (
+              <ul className="text-danger">
+                {suivi.erreur.map((ligne) => (
+                  <li key={ligne}>{ligne}</li>
+                ))}
+              </ul>
+            ) : null}
           </div>
 
-          {chiffrage ? (
+          {job ? (
+            <PanneauJob
+              job={job}
+              erreurDeSuivi={suivi.interrompu ? suivi.erreur : []}
+              onReprendre={() => void suivi.reprendre()}
+              onOublier={suivi.oublier}
+            />
+          ) : null}
+
+          {chiffrage && chiffrage.ref === ref ? (
             <>
               <h3>Pour l'entrée saisie</h3>
               <ResultatChiffrage chiffrage={chiffrage} />
@@ -274,8 +352,28 @@ export function Atelier({ periodeBandeau }: AtelierProps) {
             <pre className="ecurie-json">{JSON.stringify(entrée, null, 2)}</pre>
           </details>
 
-          <h3>Ce que ce job produirait</h3>
-          <SortiesPromises capability={capacité} />
+          {/*
+            Avant le premier job, l'écran annonce ce que le contrat **promet** ;
+            après, il montre ce qui a été **produit**. Les deux composants sont
+            distincts et le titre change avec eux : une sortie fabriquée passée
+            au panneau des vraies sorties prouverait l'aiguillage en mentant sur
+            l'état du job — c'est ce que faisait le banc du 4.3.
+          */}
+          {sortieDuJob ? (
+            <>
+              <h3>Ce que ce job a produit</h3>
+              <OutputPanel
+                sortie={sortieDuJob.output}
+                mediaTypes={capacité.output_media_types}
+                resoudre={resolveurDeJob(sortieDuJob.files)}
+              />
+            </>
+          ) : (
+            <>
+              <h3>Ce que ce job produirait</h3>
+              <SortiesPromises capability={capacité} />
+            </>
+          )}
         </>
       ) : null}
     </section>

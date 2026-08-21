@@ -7,9 +7,15 @@
  * la place de ce qu'il contient, et le défaut ne se verrait qu'au premier vrai
  * job.
  *
- * Tant qu'aucune route ne sert les fichiers (`href` vaut toujours `null` au
- * 4.3), ce hook ne déclenche aucune requête. Il est écrit et éprouvé dès
- * maintenant pour que la tâche 4.4 n'ait qu'un résolveur à brancher.
+ * Il a été écrit au 4.3, alors qu'`href` valait toujours `null` et qu'aucune
+ * requête n'en partait, pour que la fin du 4.4 n'ait qu'un résolveur à brancher.
+ * C'est ce qui est arrivé : la route des fichiers existe, le résolveur lit
+ * l'URL que le serveur compose, et pas une ligne d'ici n'a bougé.
+ *
+ * L'URL est absolue et pointe l'API, non la page : ce `fetch` est donc soumis au
+ * CORS, comme toutes les lectures du front, et `credentials: "omit"` est posé
+ * pour la même raison qu'ailleurs — le serveur n'autorise pas les requêtes
+ * porteuses de cookies, et le navigateur les rejetterait sans message lisible.
  */
 
 import { useEffect, useState } from "react";

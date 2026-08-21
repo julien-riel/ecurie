@@ -7,90 +7,20 @@
  * les briques n'aurait aucune couverture dans `npm test`. Les briques peuvent
  * toutes être justes et le montage faux.
  *
- * Les réponses viennent des fixtures capturées sur le vrai registre par
- * `tools/ui_fixtures.py` : ce sont les octets que le serveur envoie. Celles de
- * `/runtime/residents` n'en font pas partie, et ne le peuvent pas — un résident
- * est un processus vivant au moment de la capture, et la capture ne charge
- * aucun modèle. Elles sont donc fabriquées ici, à partir du schéma.
+ * Ce fichier couvre le **choix** et le **chiffrage** ; `App.jobs.test.tsx`
+ * couvre ce qui se passe après le clic sur *Lancer*. Le parc que les deux
+ * montent est le même, et il vit dans `__essais__/parc.ts`.
  */
 
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test } from "vitest";
 import { repond, requetes } from "../vitest.setup";
-import capacités from "./api/__fixtures__/capabilities.json";
-import modèles from "./api/__fixtures__/models.json";
-import type { Capability, Model, ResidentsResponse } from "./api/types";
+import { CAPACITES, GIO, choisir, parc, poserLeParc, resident } from "./__essais__/parc";
 import { App } from "./App";
 import { Atelier } from "./ecrans/Atelier";
 
-const CAPACITES = capacités as unknown as { capabilities: Capability[]; issues: unknown[] };
-const MODELES = modèles as unknown as { models: Model[]; issues: unknown[] };
-
-const GIO = 1024 ** 3;
-
-function modèlesDe(capability: string) {
-  return {
-    models: MODELES.models.filter((m) => m.capability === capability),
-    issues: MODELES.issues,
-  };
-}
-
-/** Une réponse `/runtime/residents` complète, dans la forme du schéma OpenAPI. */
-function parc(partiel: Partial<ResidentsResponse> = {}): ResidentsResponse {
-  const résidents = partiel.residents ?? [];
-  const occupé = résidents.reduce((n, r) => n + r.peak_bytes, 0);
-  return {
-    budget_bytes: 16 * GIO,
-    budget_source: "metal, via le mlx de runtimes/mlx-audio",
-    budget_measured: true,
-    used_bytes: occupé,
-    free_bytes: 16 * GIO - occupé,
-    policy: { budget_bytes: 16 * GIO, max_heavy_resident: 1, heavy_threshold_bytes: 8 * GIO },
-    residents: résidents,
-    stale: [],
-    admission: null,
-    ...partiel,
-  } as ResidentsResponse;
-}
-
-function resident(ref: string, peak_bytes: number, partiel: Record<string, unknown> = {}) {
-  return {
-    ref,
-    pid: 4242,
-    peak_bytes,
-    heavy: peak_bytes > 8 * GIO,
-    runtime: "mlx-audio",
-    env: "mlx-audio",
-    loaded_at: "2026-08-21T10:00:00+00:00",
-    last_used: 1_755_712_345.6,
-    pinned: false,
-    busy: false,
-    busy_by: 0,
-    busy_since: 0,
-    warmup_ms: 2400,
-    options: {},
-    socket: "/tmp/a.sock",
-    log: "/tmp/a.log",
-    ...partiel,
-  } as ResidentsResponse["residents"][number];
-}
-
-beforeEach(() => {
-  repond("/registry/capabilities", { body: CAPACITES });
-  repond("/runtime/residents", { body: parc() });
-  repond("/registry/models", (requête) => {
-    const capability = new URL(requête.url).searchParams.get("capability");
-    return { body: capability ? modèlesDe(capability) : MODELES };
-  });
-});
-
-async function choisir(capability: string) {
-  await userEvent.selectOptions(await screen.findByLabelText("Capacité"), capability);
-  const variants = (await screen.findByLabelText("Variant")) as HTMLSelectElement;
-  await waitFor(() => expect(variants.options.length).toBeGreaterThan(1));
-  return variants;
-}
+beforeEach(poserLeParc);
 
 describe("le choix de la capacité et du variant", () => {
   test("les capacites du parc sont groupees, les executables d_abord", async () => {
@@ -398,6 +328,51 @@ describe("le chiffrage du job", () => {
     expect(document.querySelector("form.rjsf")).toBeTruthy();
   });
 
+  test("un chiffrage en vol n_atterrit jamais sous un autre variant", async () => {
+    // Le bandeau garde déjà cette règle — « l'admission affichée est vérifiée
+    // contre le variant demandé ». Le chiffrage l'a apprise en revue : changer
+    // de variant efface bien le résultat précédent, mais ne peut rien contre
+    // une requête déjà partie, qui revenait annoncer le coût de `classique-x2`
+    // sous le nom de `reel-x4`.
+    let libérer!: () => void;
+    const attente = new Promise<void>((r) => {
+      libérer = r;
+    });
+    repond("/runtime/admission", async (requête) => {
+      const corps = JSON.parse(await requête.clone().text());
+      if (corps.ref === "swin2sr@classique-x2") await attente;
+      return {
+        body: {
+          ref: corps.ref,
+          admission: {
+            ref: corps.ref,
+            admitted: true,
+            reason: `chiffre de ${corps.ref}`,
+            evict: [],
+            blockers: [],
+            peak_bytes: 3 * GIO,
+            peak_note: null,
+          },
+          input: {},
+          input_errors: [],
+          ready: true,
+          blockers: [],
+        },
+      };
+    });
+    render(<App />);
+    const variants = await choisir("image-upscale");
+    await waitFor(() => expect(variants.value).toBe("swin2sr@classique-x2"));
+
+    await userEvent.click(screen.getByRole("button", { name: /Chiffrer/ }));
+    await userEvent.selectOptions(variants, "swin2sr@reel-x4");
+    libérer();
+
+    await waitFor(() => expect(variants.value).toBe("swin2sr@reel-x4"));
+    expect(screen.queryByText(/Pour l'entrée saisie/)).toBeNull();
+    expect(screen.queryByText(/chiffre de swin2sr@classique-x2/)).toBeNull();
+  });
+
   test("le chiffrage ne part que sur demande", async () => {
     // Le recalcul à chaque frappe est nommément la tâche 4.7 : l'installer
     // maintenant enverrait une requête par caractère tapé.
@@ -410,13 +385,24 @@ describe("le chiffrage du job", () => {
 });
 
 describe("ce que l'écran dit de lui-même", () => {
-  test("il n_y a pas de bouton lancer, et l_ecran dit pourquoi", async () => {
+  test("le bouton lancer n_est jamais grise pour un variant qu_on croit incapable", async () => {
+    // « ce morceau de 30 s demanderait 24,2 Gio » vaut mieux qu'un bouton mort :
+    // c'est l'exigence du §4 du plan. `image-to-mesh` n'a aucun variant
+    // exécutable — poids absents, environnement non synchronisé — et le bouton
+    // part quand même ; c'est le serveur qui refuse, avec la commande qui répare.
     render(<App />);
-    await choisir("text-to-speech");
+    const variants = await choisir("image-to-mesh");
+    await userEvent.selectOptions(variants, "hunyuan3d-2.1-shape-mlx@mlx-bf16");
 
-    expect(screen.queryByRole("button", { name: /^Lancer/ })).toBeNull();
-    expect(screen.getByText(/attendent le déménagement du superviseur/)).toBeInTheDocument();
-    expect(screen.getByText(/ecurie run qwen3-tts-1.7b@8bit-mlx/)).toBeInTheDocument();
+    const lancer = screen.getByRole("button", { name: /^Lancer/ });
+    expect(lancer).toBeEnabled();
+  });
+
+  test("sans variant choisi, il n_y a rien a lancer", async () => {
+    render(<App />);
+    await userEvent.selectOptions(await screen.findByLabelText("Capacité"), "image-to-mesh");
+
+    expect(await screen.findByRole("button", { name: /^Lancer/ })).toBeDisabled();
   });
 
   test("les sorties promises viennent du contrat, pas d_un job", async () => {

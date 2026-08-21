@@ -401,6 +401,12 @@
             "title": "Note",
             "type": "string"
           },
+          "output": {
+            "additionalProperties": true,
+            "description": "Ce que le worker a rendu, tel quel. `outputs` n'en retient que les fichiers ; il faut aussi ce qui n'en est pas — une langue détectée, un nombre de pages, une liste d'appels d'outils. Le client aplatit cette réponse-là, et non les `properties` du contrat : `audio-separation` déclare cinq pistes et n'en produit que deux ou quatre.",
+            "title": "Output",
+            "type": "object"
+          },
           "outputs": {
             "additionalProperties": {
               "type": "string"
@@ -553,6 +559,12 @@
             "description": "Ce qui se passe maintenant, en clair.",
             "title": "Note",
             "type": "string"
+          },
+          "output": {
+            "additionalProperties": true,
+            "description": "Ce que le worker a rendu, tel quel. `outputs` n'en retient que les fichiers ; il faut aussi ce qui n'en est pas — une langue détectée, un nombre de pages, une liste d'appels d'outils. Le client aplatit cette réponse-là, et non les `properties` du contrat : `audio-separation` déclare cinq pistes et n'en produit que deux ou quatre.",
+            "title": "Output",
+            "type": "object"
           },
           "outputs": {
             "additionalProperties": {

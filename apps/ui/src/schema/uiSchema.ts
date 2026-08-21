@@ -96,8 +96,8 @@ function compilerChamp(champ: Champ, chemin: string, ctx: CompilationCtx): Compi
 /** Compile le schéma d'entrée d'un contrat. Ne lève jamais. */
 export function compileUiSchema(entree: SchemaEntree, ctx: CompilationCtx): Compilation {
   const uiSchema: UiSchema = {
-    // Le socle ne fournit aucun bouton : `POST /jobs` n'existe pas et attend la
-    // tâche 4.6, et un bouton « Lancer » inerte serait un mensonge.
+    // Le socle ne fournit aucun bouton : *Lancer* appartient à l'écran, qui
+    // seul sait quel variant est choisi et si un job tourne déjà.
     "ui:submitButtonOptions": { norender: true },
   };
   const notices: Notice[] = [];

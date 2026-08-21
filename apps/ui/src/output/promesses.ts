@@ -5,9 +5,10 @@
  * dernier parcourt la **réponse** d'un job, parce qu'`audio-separation` déclare
  * cinq pistes et n'en produit que deux ou quatre selon `stems` : montrer le
  * contrat afficherait des lecteurs pour des fichiers absents. Ici il n'y a pas
- * de réponse — aucun job ne se lance avant la tâche 4.6 —, et la question n'est
- * plus « qu'a-t-on obtenu » mais « qu'obtiendrait-on ». Le contrat est alors la
- * seule source possible, et la bonne.
+ * encore de réponse — l'écran annonce ce qu'un job produirait **avant** qu'on le
+ * lance —, et la question n'est plus « qu'a-t-on obtenu » mais « qu'obtiendrait
+ * -on ». Le contrat est alors la seule source possible, et la bonne. Dès qu'un
+ * job a tourné, `OutputPanel` prend cette place et le titre change avec lui.
  *
  * Les sorties qui ne sont pas des fichiers y figurent aussi. `page_count`,
  * `detected_source_language`, `finish_reason` : aucune n'a de type de média,

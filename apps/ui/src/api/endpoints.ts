@@ -1,5 +1,5 @@
 /**
- * Les sept routes de l'API, une fonction chacune.
+ * Les dix routes de l'API, une fonction chacune.
  *
  * C'est le seul fichier du front où une chaîne d'URL apparaît, et le seul où
  * apparaît le nom du paramètre `for`. Ce dernier point n'est pas cosmétique :
@@ -7,17 +7,24 @@
  * et le nom Python derrière l'alias est `for_ref` — deux occasions de se
  * tromper, réduites à un endroit qu'un test surveille.
  *
- * Il n'y a pas de huitième fonction : `POST /jobs`, le flux SSE et les fichiers
- * de sortie **n'existent pas encore côté serveur**. Ils attendent délibérément
- * le déménagement du superviseur dans le processus de l'API (tâche 4.6), et
- * écrire ici un client qui frapperait des 404 reviendrait à le défaire ensuite.
+ * Les trois dernières sont celles des jobs, et elles ont attendu que le serveur
+ * les serve : le déménagement du superviseur dans le processus de l'API (tâche
+ * 4.6) était le préalable, écrire ici un client qui aurait frappé des 404
+ * revenait à le défaire ensuite. **Il n'y en a pas de onzième** : l'URL d'un
+ * fichier de sortie n'est pas composée ici, elle est *lue* dans la réponse du
+ * job. Le serveur la donne déjà faite, parce qu'une sortie imbriquée —
+ * `tracks/vocals.wav` sous la clé `tracks.vocals` — est un chemin à plusieurs
+ * segments que le client n'a pas à savoir recomposer.
  */
 
-import { get, post } from "./http";
+import { get, post, urlAbsolue } from "./http";
+import { suivreFlux, type EvenementSSE } from "./sse";
 import type {
   AdmissionResponse,
   CapabilitiesResponse,
   IndexResponse,
+  Job,
+  JobDetail,
   ModelsResponse,
   ResidentsResponse,
   StoreSummaryResponse,
@@ -92,4 +99,63 @@ export function admission(
   signal?: AbortSignal,
 ): Promise<AdmissionResponse> {
   return post<AdmissionResponse>("/runtime/admission", { ref, input }, signal);
+}
+
+/**
+ * Soumet un job. Rend **202** et l'identifiant : rien n'est encore produit.
+ *
+ * Ce que la réponse garantit, c'est qu'un job existe et qu'il est suivable. Ce
+ * qu'elle ne dit pas, et ne peut pas dire, c'est qu'il tiendra en mémoire :
+ * l'admission ne se tranche qu'au moment de charger, après le tour de rôle, et
+ * son refus arrive donc par le flux, en état `failed`, avec la phrase que le
+ * contrôle d'admission compose. Un client qui n'écouterait que le code HTTP
+ * croirait tous ses jobs partis.
+ *
+ * Le `seed` n'est pas passé au niveau racine, comme pour `admission()` : il
+ * appartient à l'entrée comme n'importe quel paramètre du contrat.
+ */
+export function lancerJob(
+  ref: string,
+  input: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<Job> {
+  return post<Job>("/jobs", { ref, input }, signal);
+}
+
+/**
+ * L'état d'un job et son manifeste.
+ *
+ * Répond aussi pour un job d'une session précédente : la table du serveur ne
+ * survit pas à son redémarrage, le dossier du job si, et c'est le manifeste qui
+ * fait foi sur ce qui a été exécuté.
+ */
+export function job(id: string, signal?: AbortSignal): Promise<JobDetail> {
+  return get<JobDetail>(`/jobs/${encodeURIComponent(id)}`, undefined, signal);
+}
+
+/**
+ * Suit un job en direct. Rend la main quand le flux se termine.
+ *
+ * Le flux **rejoue depuis le début** : s'abonner en retard, ou se rabonner après
+ * une coupure, redonne l'histoire entière et non le silence jusqu'au prochain
+ * changement. C'est ce qui rend la reprise du suivi triviale — il n'y a rien à
+ * rattraper.
+ */
+export function evenementsDuJob(
+  id: string,
+  surEvenement: (evenement: EvenementSSE) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  return suivreFlux(`/jobs/${encodeURIComponent(id)}/events`, surEvenement, signal);
+}
+
+/**
+ * L'URL d'un fichier de sortie, telle que le navigateur peut la charger.
+ *
+ * Une **lecture**, pas une construction : `job.files` porte déjà le chemin
+ * composé par le serveur, et tout ce qui reste à faire est de lui donner
+ * l'hôte de l'API — la page vient de Vite en 5173, l'API écoute en 8765.
+ */
+export function fichierDuJob(url: string): string {
+  return urlAbsolue(url);
 }

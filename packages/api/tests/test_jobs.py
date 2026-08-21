@@ -14,6 +14,8 @@ import json
 import time
 import wave
 
+from ecurie_api.jobs import Job
+
 TIMEOUT_JOB_S = 30
 
 
@@ -48,6 +50,7 @@ def test_un_job_soumis_produit_un_fichier_telechargeable(client):
     fini = _attendre(client, soumis["id"])
     assert fini["state"] == "done", fini["error"]
     assert fini["progress"] == 100
+    assert fini["output"] == {"audio": "audio.wav"}, "la réponse du worker, telle qu'il l'a rendue"
     assert fini["files"]["audio"] == f"/jobs/{soumis['id']}/files/audio.wav"
 
     fichier = client.get(fini["files"]["audio"])
@@ -134,6 +137,9 @@ def test_le_flux_rejoue_depuis_le_debut_puis_se_termine(client):
     assert états[-1] == "done"
     dernier = événements[-2]["data"]
     assert dernier["files"]["audio"].endswith("audio.wav")
+    # Le flux se suffit à lui-même : un client qui n'écoute que lui doit pouvoir
+    # afficher la sortie sans relire le job ni son manifeste.
+    assert dernier["output"] == {"audio": "audio.wav"}
 
 
 def test_le_flux_d_un_job_deja_fini_rend_son_histoire_entiere(client):
@@ -150,6 +156,60 @@ def test_le_flux_d_un_job_deja_fini_rend_son_histoire_entiere(client):
 
 def test_le_flux_d_un_job_inconnu_est_404(client):
     assert client.get("/jobs/20260821-120000-abcdef/events").status_code == 404
+
+
+def test_un_job_qui_finit_entre_deux_lectures_ne_perd_pas_son_dernier_evenement():
+    """La course que seul un client suivant le flux fait payer.
+
+    Le flux lisait le journal, puis demandait si le job était terminé. Entre les
+    deux, le fil du job pouvait exécuter `finish()` en entier — dernier événement
+    compris —, si bien que la lecture rendait « rien de neuf » et que le test de
+    terminaison concluait « plus rien à venir ». Le `end` partait sans que l'état
+    final soit passé : le client restait sur l'avant-dernier, en cours à jamais,
+    barre figée et sortie jamais montrée.
+
+    La course se joue en quelques bytecodes et ne s'attrape pas en lançant de
+    vrais jobs. On la provoque donc à l'endroit exact où elle se produit : une
+    lecture qui laisse le job finir avant de rendre sa liste vide.
+    """
+    import asyncio
+
+    from ecurie_api.routers.jobs import _flux
+
+    class JobQuiFinitPendantLaLecture(Job):
+        def events_since(self, index: int) -> list:
+            vus = super().events_since(index)
+            if not vus and not self.terminal:
+                with self._lock:
+                    self.state = "done"
+                    self.progress = 100
+                    self.outputs = {"audio": "audio.wav"}
+                    self._emit("state")
+            return vus
+
+    job = JobQuiFinitPendantLaLecture(
+        id="20260821-120000-abcdef",
+        ref="tts-test@essai",
+        model="tts-test",
+        variant="essai",
+        capability="text-to-speech",
+        input={"text": "x"},
+    )
+
+    class RequeteConnectee:
+        async def is_disconnected(self) -> bool:
+            return False
+
+    async def collecter() -> list[str]:
+        return [trame async for trame in _flux(job, RequeteConnectee())]
+
+    trames = asyncio.run(collecter())
+
+    assert trames[-1].startswith("event: end"), "le flux doit finir par un end explicite"
+    états = [t for t in trames if t.startswith("event: state")]
+    assert json.loads(états[-1].split("data: ", 1)[1])["state"] == "done", (
+        "le dernier état passé au client doit être l'état final, jamais l'avant-dernier"
+    )
 
 
 # --- ce qui est refusé avant de créer un job ------------------------------------
@@ -298,7 +358,7 @@ def test_un_job_d_une_session_precedente_se_relit_sur_le_disque(client, ecurie_h
                 "model": "tts-test",
                 "variant": "essai",
                 "input": {"text": "d'avant le redémarrage"},
-                "output": {"audio": "audio.wav"},
+                "output": {"audio": "audio.wav", "duration_seconds": 1.83},
                 "metrics": {"rtf": 0.05},
                 "contract": {"id": "text-to-speech", "outputs": {"audio": "audio/wav"}},
             },
@@ -310,6 +370,11 @@ def test_un_job_d_une_session_precedente_se_relit_sur_le_disque(client, ecurie_h
 
     assert corps["state"] == "done"
     assert corps["input"]["text"] == "d'avant le redémarrage"
+    # Deux clés dans la réponse du worker, une seule qui soit un fichier. Les
+    # confondre ferait disparaître de l'écran tout ce qui n'est pas un fichier —
+    # une langue détectée, un nombre de pages, une liste d'appels d'outils.
+    assert corps["output"] == {"audio": "audio.wav", "duration_seconds": 1.83}
+    assert corps["outputs"] == {"audio": "audio.wav"}
     assert corps["files"]["audio"] == f"/jobs/{job_id}/files/audio.wav"
     fichier = client.get(corps["files"]["audio"])
     assert fichier.status_code == 200

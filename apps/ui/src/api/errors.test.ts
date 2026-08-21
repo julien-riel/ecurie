@@ -1,9 +1,9 @@
-/** Les quatre formes d'échec du serveur, ramenées à des phrases. */
+/** Les cinq formes d'échec du serveur, ramenées à des phrases. */
 
 import { describe, expect, test } from "vitest";
 import { repond } from "../../vitest.setup";
 import * as api from "./endpoints";
-import { ApiError, detailToMessages, phraseErreur } from "./errors";
+import { ApiError, detailToMessages, messagesErreur, phraseErreur } from "./errors";
 
 describe("la normalisation des erreurs", () => {
   test("un detail en chaine passe tel quel", () => {
@@ -37,6 +37,33 @@ describe("la normalisation des erreurs", () => {
   test("un corps en texte brut est rendu", () => {
     // Un refus de CORS de Starlette ne traverse pas FastAPI : c'est du texte.
     expect(detailToMessages("Disallowed CORS method")).toEqual(["Disallowed CORS method"]);
+  });
+
+  test("un refus de variant rend sa phrase et chacune de ses commandes", () => {
+    // `POST /jobs` est le seul endroit où une réparation voyage dans une
+    // **erreur** : le 409 porte un `detail` objet. `JSON.stringify` l'aurait
+    // rendu illisible au moment précis où il dit quoi taper.
+    const corps = {
+      detail: {
+        ref: "hunyuan3d-2.1-shape-mlx@mlx-bf16",
+        message: "hunyuan3d-2.1-shape-mlx@mlx-bf16 n'est pas exécutable en l'état",
+        blockers: [
+          "poids absents du cache — ecurie pull hunyuan3d-2.1-shape-mlx@mlx-bf16",
+          "environnement non synchronisé — ecurie env sync hunyuan3d",
+        ],
+      },
+    };
+    expect(detailToMessages(corps)).toEqual([
+      "hunyuan3d-2.1-shape-mlx@mlx-bf16 n'est pas exécutable en l'état",
+      "poids absents du cache — ecurie pull hunyuan3d-2.1-shape-mlx@mlx-bf16",
+      "environnement non synchronisé — ecurie env sync hunyuan3d",
+    ]);
+  });
+
+  test("un refus sans blockers reste une phrase", () => {
+    expect(detailToMessages({ detail: { message: "rien de plus à dire" } })).toEqual([
+      "rien de plus à dire",
+    ]);
   });
 
   test("un corps vide ne fabrique pas de message", () => {
@@ -91,5 +118,14 @@ describe("les échecs de transport", () => {
     expect(phraseErreur(new Error("cassé"))).toBe("cassé");
     expect(phraseErreur("brut")).toBe("brut");
     expect(phraseErreur(new ApiError("/x", 404, ["introuvable"]))).toBe("introuvable");
+  });
+
+  test("les messages restent separes pour qui veut les afficher en lignes", () => {
+    // Une commande de réparation par ligne : les recoller en une seule rendrait
+    // la seconde impossible à copier.
+    const erreur = new ApiError("/jobs", 409, ["pas exécutable", "ecurie pull x", "ecurie env sync y"]);
+    expect(messagesErreur(erreur)).toHaveLength(3);
+    expect(messagesErreur(new Error("cassé"))).toEqual(["cassé"]);
+    expect(messagesErreur(new ApiError("/x", 503, []))).toEqual(["échec 503"]);
   });
 });
