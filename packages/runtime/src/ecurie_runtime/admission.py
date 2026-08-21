@@ -6,9 +6,16 @@ intégralement en test, et c'est important : c'est le seul endroit du projet où
 une erreur se paie en swap de trente secondes ou en OOM.
 
 La politique par défaut est celle du §7 de l'architecture : un seul modèle lourd
-(pic > 6 Go) résident à la fois, les petits restent chauds. Un `warmup_ms` de
-2,4 s payé à chaque phrase de synthèse rend l'outil désagréable ; c'est la raison
-d'être des résidents.
+résident à la fois, les petits restent chauds. Un `warmup_ms` de 2,4 s payé à
+chaque phrase de synthèse rend l'outil désagréable ; c'est la raison d'être des
+résidents.
+
+Le seuil de lourdeur vaut 8 Gio, corrigé des 6 Go que l'architecture avançait
+avant toute mesure : à 6 Go, les quatre profils du parc réel sont tous lourds et
+la règle ne discrimine plus rien. Il doit rester d'accord avec le défaut de
+`Config.heavy_threshold_bytes` — `core` ne peut pas dépendre de `runtime`, donc
+la constante est écrite deux fois et un test vérifie qu'elles disent la même
+chose.
 
 Deux refus explicites valent mieux qu'un swap subi :
 - un variant **sans profil mesuré** n'est pas admis en usage courant. Il passe
@@ -21,7 +28,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 
 GIB = 1 << 30
-DEFAULT_HEAVY_THRESHOLD = 6 * GIB
+DEFAULT_HEAVY_THRESHOLD = 8 * GIB
 DEFAULT_MAX_HEAVY_RESIDENT = 1
 
 

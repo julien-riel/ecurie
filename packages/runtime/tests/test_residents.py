@@ -323,12 +323,12 @@ def test_as_resident_transporte_le_pic_et_l_epinglage():
         ref="mesh@shape",
         pid=os.getpid(),
         socket="/tmp/w-abcdef.sock",
-        peak_bytes=7 * GIB,
+        peak_bytes=9 * GIB,
         last_used=INSTANT,
         pinned=True,
     )
 
     assert entrée.as_resident() == Resident(
-        ref="mesh@shape", peak_bytes=7 * GIB, last_used=INSTANT, pinned=True
+        ref="mesh@shape", peak_bytes=9 * GIB, last_used=INSTANT, pinned=True
     )
     assert entrée.as_resident().heavy() is True

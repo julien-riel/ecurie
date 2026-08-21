@@ -11,6 +11,7 @@ listes de résidents sont volontairement données dans un ordre qui n'est pas
 l'ordre LRU.
 """
 
+from ecurie_core.config import Config
 from ecurie_runtime.admission import (
     DEFAULT_HEAVY_THRESHOLD,
     DEFAULT_MAX_HEAVY_RESIDENT,
@@ -33,8 +34,19 @@ def test_la_politique_par_defaut_est_celle_de_l_architecture():
     politique = Policy(budget_bytes=16 * GIB)
 
     assert politique.max_heavy_resident == 1
-    assert politique.heavy_threshold_bytes == 6 * GIB
-    assert (DEFAULT_MAX_HEAVY_RESIDENT, DEFAULT_HEAVY_THRESHOLD) == (1, 6 * GIB)
+    assert politique.heavy_threshold_bytes == 8 * GIB
+    assert (DEFAULT_MAX_HEAVY_RESIDENT, DEFAULT_HEAVY_THRESHOLD) == (1, 8 * GIB)
+
+
+def test_le_seuil_par_defaut_est_le_meme_des_deux_cotes():
+    """`core` ne peut pas dépendre de `runtime` : le seuil est donc écrit deux fois.
+
+    Deux valeurs qui divergent ne donneraient pas une erreur mais deux politiques
+    — celle d'une machine configurée et celle d'un `Policy()` construit sans
+    config — dont une seule serait celle qu'on croit appliquer.
+    """
+    assert Config().heavy_threshold_bytes == DEFAULT_HEAVY_THRESHOLD
+    assert Config().max_heavy_resident == DEFAULT_MAX_HEAVY_RESIDENT
 
 
 # --- parc vide, et le refus qu'aucune éviction ne sauverait ------------------------
@@ -169,14 +181,14 @@ def test_un_candidat_deja_resident_est_admis_sans_rien_decharger():
 def test_un_lourd_deja_resident_ne_s_evince_pas_lui_meme():
     """Sans le court-circuit « déjà résident », la règle du parc verrait un lourd de
     trop et déchargerait précisément le modèle qu'on vient de demander."""
-    résidents = [Resident("gros@v1", 7 * GIB, 1.0), Resident("petit@v1", 1 * GIB, 2.0)]
+    résidents = [Resident("gros@v1", 9 * GIB, 1.0), Resident("petit@v1", 1 * GIB, 2.0)]
 
-    décision = plan_admission("gros@v1", 7 * GIB, résidents, BUDGET_16)
+    décision = plan_admission("gros@v1", 9 * GIB, résidents, BUDGET_16)
 
     assert décision.admitted is True
     assert décision.already_resident is True
     assert décision.evict == ()
-    assert décision.headroom_bytes == 8 * GIB
+    assert décision.headroom_bytes == 6 * GIB
 
 
 # --- éviction LRU -------------------------------------------------------------------
@@ -216,15 +228,15 @@ def test_l_eviction_lru_enchaine_du_plus_ancien_au_plus_recent():
 
 
 def test_un_candidat_lourd_evince_le_lourd_resident_meme_si_le_budget_suffisait():
-    résidents = [Resident("lourd-a@v1", 7 * GIB, 1.0)]
+    résidents = [Resident("lourd-a@v1", 9 * GIB, 1.0)]
 
-    décision = plan_admission("lourd-b@v1", 7 * GIB, résidents, BUDGET_32)
+    décision = plan_admission("lourd-b@v1", 9 * GIB, résidents, BUDGET_32)
 
-    # 7 + 7 = 14 Gio tiendraient dans 32 : c'est la règle du parc, pas l'arithmétique,
+    # 9 + 9 = 18 Gio tiendraient dans 32 : c'est la règle du parc, pas l'arithmétique,
     # qui décharge — deux lourds « qui tiennent » ne laissent rien au reste de la machine.
     assert décision.admitted is True
     assert décision.evict == ("lourd-a@v1",)
-    assert décision.headroom_bytes == 25 * GIB
+    assert décision.headroom_bytes == 23 * GIB
     assert "lourd-a@v1" in décision.reason
 
 
@@ -238,47 +250,89 @@ def test_deux_legers_restent_chauds_ensemble():
     assert décision.headroom_bytes == 11 * GIB
 
 
+def test_le_seuil_recalibre_laisse_cohabiter_la_voix_et_la_lecture_de_document():
+    """La raison d'être du seuil à 8 Gio, sur les chiffres du parc réel.
+
+    Ce ne sont pas des valeurs d'exemple : ce sont les quatre pics de
+    `registry/measurements/`, et le budget relevé par Metal sur la machine de
+    référence. À 6 Go — le seuil qu'avançait l'architecture avant toute mesure —
+    les quatre modèles sont lourds, donc aucun ne cohabite jamais avec un autre
+    et la politique ne distingue plus rien. Le test le vérifie dans les deux
+    sens : si un jour quelqu'un remet le seuil sous 7,65 Gio, l'usage quotidien
+    redevient une succession de rechargements et c'est ici qu'on l'apprend.
+    """
+    budget = Policy(budget_bytes=19_069_665_280)  # Metal, Mac17,4 24 Gio
+    voix = 8_209_951_240  # qwen3-tts-1.7b@8bit-mlx
+    document = 6_712_856_963  # qwen3-vl-8b-ocr@4bit
+    image = 17_123_246_080  # sdxl-base@fp16
+
+    ensemble = plan_admission("ocr@4bit", document, [Resident("tts@mlx", voix, 1.0)], budget)
+    assert ensemble.evict == ()
+    assert ensemble.headroom_bytes == 4_146_857_077
+
+    # L'image, elle, reste lourde et prend toute la place : la mesure ne laisse
+    # pas le choix, elle occupe 90 % du budget à elle seule.
+    seule = plan_admission(
+        "sdxl@fp16",
+        image,
+        [Resident("tts@mlx", voix, 2.0), Resident("ocr@4bit", document, 1.0)],
+        budget,
+    )
+    assert seule.evict == ("ocr@4bit", "tts@mlx")
+
+    # Le même parc sous l'ancien seuil : la voix devient lourde, et charger l'OCR
+    # la décharge pour rien — 13,9 Gio tenaient pourtant dans 17,76.
+    ancien = Policy(budget_bytes=19_069_665_280, heavy_threshold_bytes=6 * GIB)
+    assert plan_admission("ocr@4bit", document, [Resident("tts@mlx", voix, 1.0)], ancien).evict == (
+        "tts@mlx",
+    )
+
+
 def test_un_candidat_leger_n_evince_pas_un_lourd_s_il_y_a_la_place():
-    résidents = [Resident("lourd@v1", 7 * GIB, 1.0)]
+    résidents = [Resident("lourd@v1", 9 * GIB, 1.0)]
 
     décision = plan_admission("leger@v1", 2 * GIB, résidents, BUDGET_16)
 
     assert décision.evict == ()
-    assert décision.headroom_bytes == 7 * GIB
+    assert décision.headroom_bytes == 5 * GIB
 
 
 def test_un_candidat_pile_au_seuil_n_est_pas_lourd():
-    """Le seuil est strict des deux côtés : à 6 Gio pile le candidat n'est pas lourd
-    et ne déclenche pas la règle du parc — sinon tout modèle de 6 Gio la déclencherait."""
-    résidents = [Resident("lourd@v1", 7 * GIB, 1.0)]
+    """Le seuil est strict des deux côtés : à 8 Gio pile le candidat n'est pas lourd
+    et ne déclenche pas la règle du parc — sinon tout modèle de 8 Gio la déclencherait.
 
-    décision = plan_admission("pile@v1", 6 * GIB, résidents, BUDGET_32)
+    Ce n'est pas une subtilité gratuite : la voix du parc réel pèse 7,65 Gio, et
+    c'est précisément pour la garder chaude que le seuil a été porté à 8.
+    """
+    résidents = [Resident("lourd@v1", 9 * GIB, 1.0)]
+
+    décision = plan_admission("pile@v1", 8 * GIB, résidents, BUDGET_32)
 
     assert décision.evict == ()
-    assert décision.headroom_bytes == 19 * GIB
+    assert décision.headroom_bytes == 15 * GIB
 
 
 def test_un_resident_pile_au_seuil_n_est_pas_lourd():
-    résidents = [Resident("pile@v1", 6 * GIB, 1.0)]
+    résidents = [Resident("pile@v1", 8 * GIB, 1.0)]
 
-    décision = plan_admission("lourd@v1", 7 * GIB, résidents, BUDGET_32)
+    décision = plan_admission("lourd@v1", 9 * GIB, résidents, BUDGET_32)
 
     assert décision.evict == ()
-    assert décision.headroom_bytes == 19 * GIB
+    assert décision.headroom_bytes == 15 * GIB
 
 
 def test_un_parc_qui_a_derive_revient_a_un_seul_lourd():
     """Deux lourds déjà résidents — un profil révisé à la hausse suffit à en arriver
     là : le candidat lourd les décharge tous les deux, pas seulement le premier."""
     résidents = [
-        Resident("lourd-b@v1", 7 * GIB, 2.0),
-        Resident("lourd-a@v1", 7 * GIB, 1.0),
+        Resident("lourd-b@v1", 9 * GIB, 2.0),
+        Resident("lourd-a@v1", 9 * GIB, 1.0),
     ]
 
-    décision = plan_admission("lourd-c@v1", 8 * GIB, résidents, BUDGET_32)
+    décision = plan_admission("lourd-c@v1", 10 * GIB, résidents, BUDGET_32)
 
     assert décision.evict == ("lourd-a@v1", "lourd-b@v1")
-    assert décision.headroom_bytes == 24 * GIB
+    assert décision.headroom_bytes == 22 * GIB
 
 
 # --- la politique vient de `Policy`, pas du code -------------------------------------
@@ -299,22 +353,22 @@ def test_le_seuil_de_lourdeur_vient_de_la_politique():
 def test_max_heavy_resident_a_deux_laisse_deux_lourds_ensemble():
     politique = Policy(budget_bytes=32 * GIB, max_heavy_resident=2)
     résidents = [
-        Resident("lourd-b@v1", 7 * GIB, 2.0),
-        Resident("lourd-a@v1", 7 * GIB, 1.0),
+        Resident("lourd-b@v1", 9 * GIB, 2.0),
+        Resident("lourd-a@v1", 9 * GIB, 1.0),
     ]
 
-    seul = plan_admission("lourd-c@v1", 7 * GIB, résidents[:1], politique)
+    seul = plan_admission("lourd-c@v1", 9 * GIB, résidents[:1], politique)
     assert seul.evict == ()  # un lourd résident, deux autorisés
 
-    plein = plan_admission("lourd-c@v1", 7 * GIB, résidents, politique)
+    plein = plan_admission("lourd-c@v1", 9 * GIB, résidents, politique)
     assert plein.evict == ("lourd-a@v1",)  # le troisième déloge le plus ancien, un seul
-    assert plein.headroom_bytes == 18 * GIB
+    assert plein.headroom_bytes == 14 * GIB
 
 
 def test_max_heavy_resident_a_zero_interdit_tout_lourd():
     politique = Policy(budget_bytes=32 * GIB, max_heavy_resident=0)
 
-    décision = plan_admission("lourd@v1", 7 * GIB, [], politique)
+    décision = plan_admission("lourd@v1", 9 * GIB, [], politique)
 
     assert décision.admitted is False
 
@@ -404,9 +458,9 @@ def test_quand_tout_est_occupe_le_refus_le_dit():
 
 
 def test_un_lourd_epingle_bloque_un_candidat_lourd_meme_avec_du_budget():
-    résidents = [Resident("lourd-epingle@v1", 7 * GIB, 1.0, pinned=True)]
+    résidents = [Resident("lourd-epingle@v1", 9 * GIB, 1.0, pinned=True)]
 
-    décision = plan_admission("lourd@v1", 7 * GIB, résidents, BUDGET_32)
+    décision = plan_admission("lourd@v1", 9 * GIB, résidents, BUDGET_32)
 
     assert décision.admitted is False
     assert décision.blockers == ("lourd-epingle@v1",)
@@ -415,13 +469,13 @@ def test_un_lourd_epingle_bloque_un_candidat_lourd_meme_avec_du_budget():
 
 def test_un_refus_du_a_la_regle_du_parc_ne_parle_pas_d_octets_manquants():
     résidents = [
-        Resident("lourd-epingle@v1", 7 * GIB, 1.0, pinned=True),
+        Resident("lourd-epingle@v1", 9 * GIB, 1.0, pinned=True),
         Resident("leger-epingle@v1", 1 * GIB, 2.0, pinned=True),
     ]
 
-    décision = plan_admission("lourd@v1", 7 * GIB, résidents, BUDGET_32)
+    décision = plan_admission("lourd@v1", 9 * GIB, résidents, BUDGET_32)
 
-    # 7 + 7 + 1 tiennent largement dans 32 : rien ne manque en octets, et le léger
+    # 9 + 9 + 1 tiennent largement dans 32 : rien ne manque en octets, et le léger
     # épinglé n'a aucune part au blocage. Le désépingler ne débloquerait rien.
     assert décision.admitted is False
     assert "il manque 0 octets" not in décision.reason
@@ -434,7 +488,7 @@ def test_un_refus_du_a_la_regle_du_parc_ne_parle_pas_d_octets_manquants():
 def test_les_deux_regles_se_cumulent_sans_evincer_deux_fois_le_meme():
     résidents = [
         Resident("leger-ancien@v1", 3 * GIB, 1.0),
-        Resident("lourd@v1", 7 * GIB, 2.0),
+        Resident("lourd@v1", 9 * GIB, 2.0),
         Resident("leger-recent@v1", 3 * GIB, 3.0),
     ]
 
@@ -453,7 +507,7 @@ def test_les_deux_regles_se_cumulent_sans_evincer_deux_fois_le_meme():
 def test_la_decision_ne_touche_pas_au_parc_qu_on_lui_passe():
     """La table des résidents appartient au superviseur : l'admission la lit, c'est
     lui qui l'amende une fois les workers réellement tués."""
-    résidents = [Resident("lourd@v1", 7 * GIB, 1.0), Resident("leger@v1", 3 * GIB, 2.0)]
+    résidents = [Resident("lourd@v1", 9 * GIB, 1.0), Resident("leger@v1", 3 * GIB, 2.0)]
     copie = list(résidents)
 
     plan_admission("lourd-neuf@v1", 12 * GIB, résidents, BUDGET_16)
@@ -480,9 +534,9 @@ def test_residual_bytes_devient_negatif_sur_un_parc_surcharge():
 
 
 def test_resident_heavy_est_strictement_au_dessus_du_seuil():
-    assert Resident("pile@v1", 6 * GIB, 1.0).heavy() is False
-    assert Resident("au-dessus@v1", 6 * GIB + 1, 1.0).heavy() is True
-    assert Resident("en-dessous@v1", 6 * GIB - 1, 1.0).heavy() is False
+    assert Resident("pile@v1", 8 * GIB, 1.0).heavy() is False
+    assert Resident("au-dessus@v1", 8 * GIB + 1, 1.0).heavy() is True
+    assert Resident("en-dessous@v1", 8 * GIB - 1, 1.0).heavy() is False
 
 
 def test_resident_heavy_accepte_un_autre_seuil():
