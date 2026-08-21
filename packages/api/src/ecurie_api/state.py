@@ -20,6 +20,12 @@ n'est pas un fardeau.
 Les **résidents**, enfin, ne sont ni l'un ni l'autre : ils se relisent
 intégralement à chaque fois, sans cache, parce qu'un worker peut mourir entre
 deux requêtes et qu'un budget calculé sur un fantôme est un budget faux.
+
+Le **superviseur**, lui, est unique et vit aussi longtemps que le serveur (tâche
+4.6). Ce n'est pas une économie : c'est là que se tiennent le tour de rôle des
+jobs sur un même worker et l'occupation des résidents, deux choses qu'un objet
+reconstruit à chaque requête ne peut pas savoir. Il ne fige pas le registre pour
+autant — il le redemande, et le rechargement à chaud continue de valoir.
 """
 
 import threading
@@ -90,6 +96,8 @@ class AppState:
         # secondes sur un sous-processus, et une lecture du registre n'a aucune
         # raison de l'attendre.
         self._budget_lock = threading.Lock()
+        self._supervisor: Supervisor | None = None
+        self._supervisor_lock = threading.Lock()
 
     def registry(self) -> Registry:
         empreinte = registry_signature(self.root)
@@ -107,22 +115,37 @@ class AppState:
             return self._budget
 
     def supervisor(self) -> Supervisor:
-        """Un superviseur neuf par requête, sur le registre courant et le budget mesuré.
+        """Le superviseur du processus — un seul, du démarrage à l'arrêt.
 
-        Neuf, parce qu'il porte le registre : le garder en vie ferait servir à
-        l'admission un manifeste que le rechargement a déjà remplacé. Le
-        superviseur lui-même ne tient aucun état — celui des résidents vit dans
-        `~/.ecurie/residents.json`, sous verrou de fichier. Ce n'est plus vrai à
-        partir de la tâche 4.6, où il déménage dans le processus de l'API.
+        Il en existait un par requête tant qu'il ne tenait aucun état : celui des
+        résidents vivait dans `~/.ecurie/residents.json`, sous verrou de fichier.
+        La tâche 4.6 y a mis deux choses qu'un objet jetable ne peut pas porter —
+        le tour de rôle des jobs sur un même worker, et l'occupation de chaque
+        résident. Un superviseur neuf par requête les oublierait entre la
+        soumission d'un job et la question de savoir s'il tourne encore.
+
+        Le registre, lui, n'est pas figé pour autant : il est **redemandé** à
+        chaque lecture, et le rechargement à chaud du §6 de la conception
+        continue de valoir.
         """
-        return Supervisor(
-            self.root,
-            self.registry(),
-            self.config,
-            home=self.home,
-            timeouts=self.timeouts,
-            budget=self.budget,
-        )
+        with self._supervisor_lock:
+            if self._supervisor is None:
+                self._supervisor = Supervisor(
+                    self.root,
+                    self.registry(),
+                    self.config,
+                    home=self.home,
+                    timeouts=self.timeouts,
+                    budget=self.budget,
+                    registry_provider=self.registry,
+                )
+            return self._supervisor
+
+    def close(self) -> None:
+        """Le serveur s'arrête : ses workers restent, l'occupation qu'il publiait non."""
+        with self._supervisor_lock:
+            if self._supervisor is not None:
+                self._supervisor.close()
 
     def open_db(self) -> StateDB:
         return StateDB(self.config.state_db)

@@ -306,10 +306,16 @@ def unload_command(
     ref: Annotated[str | None, typer.Argument(help="Variant à décharger.")] = None,
     all_residents: Annotated[bool, typer.Option("--all", help="Tout décharger.")] = False,
     force: Annotated[
-        bool, typer.Option("--force", help="Décharger même ce qui est épinglé.")
+        bool,
+        typer.Option("--force", help="Décharger même ce qui est épinglé ou en plein job."),
     ] = False,
 ) -> None:
-    """Rend la mémoire d'un modèle résident."""
+    """Rend la mémoire d'un modèle résident.
+
+    Un modèle sur lequel un job tourne n'est pas déchargé sans `--force` : le
+    tuer ne rendrait pas la mémoire tout de suite, cela détruirait un travail en
+    cours — celui d'un autre terminal, ou celui de l'Atelier.
+    """
     root = _root()
     registry = load_registry(root)
     supervisor = _supervisor(root, registry, load_config())
@@ -318,6 +324,11 @@ def unload_command(
         déchargés = supervisor.unload_all(force=force)
         détail = f" : {', '.join(déchargés)}" if déchargés else ""
         console.print(f"{len(déchargés)} modèle(s) déchargé(s){détail}")
+        for restant in supervisor.residents():
+            # Dire ce qui a été épargné, et pourquoi : « 0 modèle déchargé » sur
+            # un parc plein laisserait croire à une commande sans effet.
+            raison = f"job en cours (pid {restant.busy_by})" if restant.busy else "épinglé"
+            console.print(f"[yellow]{restant.ref} gardé — {raison}[/yellow]")
         return
     if not ref:
         raise typer.BadParameter("préciser un variant, ou --all")
@@ -373,6 +384,12 @@ def run_command(
             def progression(pct: int, note: str) -> None:
                 statut.update(f"{résolu} : {pct} % {note}")
 
+            def en_file(job: str) -> None:
+                # Un modèle sert un job à la fois. Sans cette ligne, une commande
+                # lancée pendant qu'un job tourne ailleurs — l'Atelier, un autre
+                # terminal — paraîtrait avoir cessé de répondre.
+                statut.update(f"{résolu} : un job occupe déjà ce modèle ({job}) — en file")
+
             try:
                 outcome = run_job(
                     supervisor,
@@ -384,6 +401,7 @@ def run_command(
                     db=db,
                     pin=pin,
                     on_progress=progression,
+                    on_wait=en_file,
                 )
             except InputError as exc:
                 console.print(f"[red]{exc}[/red]")

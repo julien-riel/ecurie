@@ -153,6 +153,27 @@ def test_le_mode_mesure_decharge_meme_le_candidat_deja_resident():
     assert décision.already_resident is False
 
 
+def test_le_mode_mesure_ne_passe_pas_sur_un_job_en_cours():
+    """L'épingle est une préférence, un job en cours est un travail.
+
+    Le banc d'essai vide le parc, et c'est sa raison d'être ; mais évincer un
+    worker en pleine inférence ne rend pas la mémoire tout de suite, cela détruit
+    une sortie que plus personne n'attendra. Le cas ne pouvait pas se poser tant
+    qu'une commande tenait seule le parc.
+    """
+    résidents = [
+        Resident("libre@v1", 2 * GIB, 3.0),
+        Resident("occupe@v1", 5 * GIB, 1.0, busy=True),
+    ]
+
+    décision = plan_admission("a-mesurer@v1", 4 * GIB, résidents, BUDGET_16, measure=True)
+
+    assert décision.admitted is False
+    assert décision.blockers == ("occupe@v1",)
+    assert "occupe@v1 a un job en cours" in décision.reason
+    assert décision.evict == (), "un refus n'annonce pas d'éviction"
+
+
 def test_le_mode_mesure_sur_un_parc_vide_n_evince_rien():
     décision = plan_admission("neuf@v1", 4 * GIB, [], BUDGET_16, measure=True)
 

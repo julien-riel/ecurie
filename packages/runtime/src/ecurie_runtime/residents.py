@@ -1,9 +1,15 @@
-"""Registre des workers résidents — l'état partagé entre deux commandes de la CLI.
+"""Registre des workers résidents — ce que les processus se disent l'un à l'autre.
 
 Un worker survit à la commande qui l'a lancé (c'est tout l'intérêt : ne pas
-repayer le warmup à chaque phrase). Il faut donc un endroit où la commande
-suivante retrouve ce qui est déjà chaud, et combien de mémoire c'est censé
+repayer le warmup à chaque phrase). Il faut donc un endroit où le processus
+suivant retrouve ce qui est déjà chaud, et combien de mémoire c'est censé
 occuper : `~/.ecurie/residents.json`, protégé par un verrou de fichier.
+
+Depuis la tâche 4.6, ce fichier n'est plus l'état du superviseur, qui vit en
+mémoire aussi longtemps que son processus : c'en est le **miroir**. Ce qu'il
+porte encore, et qui ne peut vivre ailleurs : la liste des workers qu'un autre
+processus a chargés, et le verrou exclusif qui empêche deux superviseurs de
+décider chacun de son côté qu'il reste de la place.
 
 C'est de l'état **observé**, au sens du §1.1 de la conception : reconstructible,
 jamais versionné, et toujours vérifié avant d'être cru. Une entrée dont le
@@ -58,10 +64,12 @@ class ResidentEntry:
     # chargé. Réutiliser sans comparer ferait écrire au manifeste du job une
     # révision qui n'est pas celle qui a produit la sortie.
     document: str = ""
-    # Processus qui tient le worker pour un job. On retient le pid plutôt qu'un
-    # simple drapeau : une commande tuée en plein job ne rend rien, et un drapeau
-    # posé pour toujours rendrait le résident inévinçable jusqu'au prochain
-    # redémarrage. Un pid, lui, se vérifie.
+    # Processus qui tient le worker pour un job, tel que ce processus l'a publié.
+    # C'est de l'information **pour les autres** : le superviseur qui tient le
+    # job, lui, le sait de sa propre mémoire (supervisor.py, tâche 4.6). On
+    # retient le pid plutôt qu'un drapeau parce qu'il se vérifie : une commande
+    # tuée en plein job ne rend rien, et un drapeau posé pour toujours rendrait
+    # le résident inévinçable jusqu'au prochain redémarrage.
     busy_by: int = 0
     busy_since: float = 0.0
 

@@ -13,17 +13,39 @@ Deux modes, et la différence compte :
   d'essai, qui mesure un modèle seul dans la machine et ne doit rien laisser
   derrière lui.
 
+**Un superviseur vit aussi longtemps que son processus** — la durée d'une
+commande dans la CLI, celle du serveur dans `ecurie serve` (tâche 4.6). Deux
+choses vivent alors dans sa mémoire, et nulle part ailleurs :
+
+- **le tour de rôle par variant.** Un worker résident n'accepte qu'une connexion
+  à la fois (`listen(1)`, `workers/base.py`). Deux jobs lancés sur le même modèle
+  attendaient donc dans le backlog du socket : rien ne disait pourquoi, et le
+  délai d'inférence du second courait déjà pendant que le premier travaillait. Un
+  verrou par variant les sérialise en amont — le second attend son tour, pas une
+  connexion ;
+- **l'occupation.** Elle était le pid du processus détenteur, écrit dans
+  `residents.json`. Un pid suffit tant qu'un processus ne tient qu'un job à la
+  fois ; le serveur, lui, en tient plusieurs, et la fin du premier déclarait
+  libre un worker qui ne l'était pas — un job évinçable en pleine inférence.
+
+`residents.json` reste, en **miroir** : le superviseur y publie ce qu'il sait,
+pour qu'un autre processus le lise — `ecurie ps` pendant qu'un serveur tourne —
+et il continue d'y prendre un verrou exclusif le temps d'une admission, parce que
+deux processus qui décideraient chacun de leur côté qu'il reste de la place,
+c'est exactement le double chargement que le contrôle d'admission existe pour
+empêcher. Ce qu'il n'y lit plus, c'est l'état de ses propres workers : là, c'est
+la mémoire qui fait foi.
+
 Le verrou du registre est tenu pendant tout le chargement, y compris s'il dure
-des minutes. C'est délibéré : deux commandes lancées en même temps qui
-décideraient chacune de leur côté qu'il reste de la place, c'est exactement le
-double chargement que le contrôle d'admission existe pour empêcher. Les lectures
-(`ecurie ps`) ne prennent pas ce verrou et ne sont donc jamais bloquées.
+des minutes, et pour la même raison. Les lectures (`ecurie ps`) ne le prennent
+pas et ne sont donc jamais bloquées.
 """
 
 import hashlib
 import json
 import os
 import socket
+import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
@@ -59,6 +81,10 @@ from ecurie_runtime.worker import (
 
 ProgressFn = Callable[[int, str], None]
 SpecFactory = Callable[..., WorkerSpec]
+RegistryProvider = Callable[[], Registry]
+WaitFn = Callable[[str], None]  # prévenu du job qui précède, quand il faut attendre
+
+SANS_IDENTIFIANT = "sans identifiant"
 
 
 class AdmissionRefused(RuntimeError):
@@ -71,6 +97,24 @@ class AdmissionRefused(RuntimeError):
 
 class RefError(RuntimeError):
     """Référence de variant inconnue ou ambiguë."""
+
+
+class QueueTimeout(RuntimeError):
+    """Le tour n'est jamais venu : un job occupe ce worker depuis trop longtemps.
+
+    Attendre est normal — un modèle sert un job à la fois. Attendre plus long-
+    temps qu'un job entier ne l'est pas : c'est le signe d'un bail qu'on n'a pas
+    rendu, et un blocage sans fin ne se diagnostique pas.
+    """
+
+
+class ReentrantJob(RuntimeError):
+    """Le même fil demande deux fois le même worker sans avoir rendu son bail.
+
+    Sans ce constat, l'appelant s'attendrait lui-même : le tour de rôle n'a
+    aucune raison de distinguer un second job d'un fil qui s'est oublié, et le
+    symptôme serait un serveur figé sans une ligne de journal.
+    """
 
 
 def parse_ref(registry: Registry, text: str) -> tuple[Model, Variant, str]:
@@ -156,19 +200,24 @@ class Lease:
         return self.loaded.options if self.loaded else (self.entry.options if self.entry else {})
 
     def release(self) -> None:
-        """Rend la main. Un worker résident reste chargé, un éphémère est tué."""
-        if self.on_release is not None:
-            self.on_release()
-        if self.resident:
+        """Rend la main. Un worker résident reste chargé, un éphémère est tué.
+
+        La connexion se ferme **avant** que le tour ne soit rendu, et l'ordre
+        n'est pas cosmétique : le worker n'accepte qu'une connexion à la fois, et
+        rendre le tour d'abord laisserait le job suivant en ouvrir une seconde
+        pendant que la nôtre est encore là — le backlog que le tour de rôle
+        existe pour éviter.
+        """
+        try:
+            if not self.resident and isinstance(self.session, WorkerProcess):
+                try:
+                    self.session.unload()
+                except Exception:  # noqa: BLE001 — on le tue juste après, l'échec n'apprend rien
+                    pass
             self.session.close()
-        elif isinstance(self.session, WorkerProcess):
-            try:
-                self.session.unload()
-            except Exception:  # noqa: BLE001 — on le tue juste après, l'échec n'apprend rien
-                pass
-            self.session.close()
-        else:
-            self.session.close()
+        finally:
+            if self.on_release is not None:
+                self.on_release()
 
 
 class ResidentSession(WorkerSession):
@@ -186,6 +235,44 @@ class ResidentSession(WorkerSession):
             pass
 
 
+@dataclass
+class WorkerHandle:
+    """Ce que **ce** processus sait d'un worker, et le tour de rôle qui va avec.
+
+    Un handle existe dès qu'un variant a été demandé, même si son worker n'a
+    jamais été chargé : c'est lui qui porte le verrou, et il faut le prendre
+    avant de savoir s'il y a un worker à retrouver. Il n'est jamais retiré de la
+    table — treize variants au parc réel, et un verrou qu'on jetterait pendant
+    qu'un autre fil l'attend serait un verrou pour rien.
+    """
+
+    ref: str
+    gate: threading.Lock = field(default_factory=threading.Lock)
+    # Le résident tel que nous le connaissons. `None` veut dire « pas de worker
+    # vivant de notre fait » : jamais chargé, déchargé, ou tué par ailleurs.
+    entry: ResidentEntry | None = None
+    job: str | None = None  # identifiant du job en cours ; l'occupation, en mémoire
+    since: float = 0.0
+    holder: int | None = None  # fil qui tient le tour, pour reconnaître un appel réentrant
+    waiting: int = 0
+
+    @property
+    def busy(self) -> bool:
+        return self.job is not None
+
+    def publish(self) -> None:
+        """Reporte l'occupation dans l'entrée qui part au miroir.
+
+        Le pid publié est le nôtre : c'est ce qu'un autre processus peut vérifier
+        — un détenteur mort ne retient rien —, et c'est tout ce dont il a besoin.
+        Quel job précisément occupe le worker ne regarde que nous.
+        """
+        if self.entry is None:
+            return
+        self.entry.busy_by = os.getpid() if self.job else 0
+        self.entry.busy_since = self.since if self.job else 0.0
+
+
 class Supervisor:
     def __init__(
         self,
@@ -197,13 +284,17 @@ class Supervisor:
         timeouts: Timeouts | None = None,
         spec_factory: SpecFactory | None = None,
         budget: Budget | None = None,
+        registry_provider: RegistryProvider | None = None,
     ) -> None:
         self.repo_root = repo_root
-        self.registry = registry
         self.config = config
         self.home = home or ecurie_home()
         self.timeouts = timeouts or Timeouts()
         self.registry_file = ResidentRegistry(self.home)
+        # Le registre se recharge à chaud côté serveur (CONCEPTION.md §6) et le
+        # superviseur, lui, vit désormais aussi longtemps que le processus. Il ne
+        # le fige donc pas : il le redemande.
+        self._registry_provider = registry_provider or (lambda: registry)
         self._spec_factory = spec_factory or (
             lambda root, variant, ref, capability=None: spec_for_variant(
                 root, variant, ref=ref, capability=capability
@@ -211,11 +302,19 @@ class Supervisor:
         )
         # Le budget se détecte en lançant un sous-processus dans le venv d'un
         # runtime pour y interroger MLX : c'est bon marché une fois par commande,
-        # ruineux à chaque requête HTTP. Un serveur qui reconstruit un superviseur
-        # par requête le mesure donc une fois et le passe ici.
+        # ruineux à chaque requête HTTP. Un serveur qui construit son superviseur
+        # une fois le mesure donc une fois et le passe ici.
         self._budget: Budget | None = budget
+        self._live: dict[str, WorkerHandle] = {}
+        # Protège la table et les compteurs, jamais tenu pendant une E/S : c'est
+        # le verrou de fichier, et lui seul, qui sérialise les admissions.
+        self._mutex = threading.RLock()
 
     # --- lecture -------------------------------------------------------------
+
+    @property
+    def registry(self) -> Registry:
+        return self._registry_provider()
 
     @property
     def budget(self) -> Budget:
@@ -232,7 +331,24 @@ class Supervisor:
         )
 
     def residents(self) -> list[ResidentEntry]:
-        return sorted(self.registry_file.read().values(), key=lambda e: -e.last_used)
+        return sorted(self._entries().values(), key=lambda e: -e.last_used)
+
+    def _entries(self) -> dict[str, ResidentEntry]:
+        """Vue autoritaire : le miroir pour les workers des autres, la mémoire pour les nôtres.
+
+        Ne réécrit rien, et ne retire rien de la mémoire : une lecture est sans
+        effet, y compris sur nos propres tables. Un worker que le miroir ne
+        connaît plus sera oublié à la prochaine transaction, où il y a de quoi
+        conclure.
+        """
+        entrées = self.registry_file.read()
+        with self._mutex:
+            for ref, poignée in self._live.items():
+                if poignée.entry is None or ref not in entrées:
+                    continue
+                poignée.publish()
+                entrées[ref] = poignée.entry
+        return entrées
 
     def peak_bytes(
         self, variant: Variant, values: dict[str, Any] | None = None
@@ -256,8 +372,98 @@ class Supervisor:
 
     def simulate(self, ref: str, peak_bytes: int | None, *, measure: bool = False) -> Admission:  # noqa: E501
         """Ce que ferait `acquire`, sans rien charger — c'est ce qu'affiche `ecurie ps`."""
-        residents = [e.as_resident() for e in self.registry_file.read().values()]
+        residents = [e.as_resident() for e in self._entries().values()]
         return plan_admission(ref, peak_bytes, residents, self.policy, measure=measure)
+
+    # --- tour de rôle --------------------------------------------------------
+
+    def _handle(self, ref: str) -> WorkerHandle:
+        with self._mutex:
+            poignée = self._live.get(ref)
+            if poignée is None:
+                poignée = self._live[ref] = WorkerHandle(ref=ref)
+            return poignée
+
+    def _enter(self, poignée: WorkerHandle, job_id: str, on_wait: WaitFn | None = None) -> None:
+        """Prend le tour de ce variant, en attendant le job qui le précède.
+
+        Une attente qui ne se dit pas est indiscernable d'un blocage : `on_wait`
+        est prévenu quand le tour n'est pas libre, avec le job qui l'occupe.
+        C'est ce qui distingue « en file derrière le job de l'Atelier » d'un
+        `ecurie run` qui semble avoir cessé de répondre.
+        """
+        moi = threading.get_ident()
+        with self._mutex:
+            if poignée.holder == moi:
+                raise ReentrantJob(
+                    f"{poignée.ref} : ce fil tient déjà un bail sur ce worker "
+                    f"(job {poignée.job}) — le relâcher avant d'en prendre un autre"
+                )
+            poignée.waiting += 1
+            devant = poignée.waiting
+        try:
+            obtenu = poignée.gate.acquire(blocking=False)
+            if not obtenu:
+                if on_wait is not None:
+                    on_wait(poignée.job or SANS_IDENTIFIANT)
+                obtenu = poignée.gate.acquire(timeout=self.timeouts.queue_s)
+        finally:
+            with self._mutex:
+                poignée.waiting -= 1
+        if not obtenu:
+            raise QueueTimeout(
+                f"{poignée.ref} : le tour n'est pas venu en {self.timeouts.queue_s:g} s — "
+                f"un job occupe ce worker depuis plus longtemps qu'un job entier "
+                f"({devant} en attendaient la fin) ; ecurie ps --ping dit s'il répond encore"
+            )
+        with self._mutex:
+            poignée.holder = moi
+            poignée.job = job_id
+            poignée.since = time.time()
+
+    def _leave(self, poignée: WorkerHandle) -> None:
+        """Rend le tour. Un second appel ne casse rien : il n'a plus rien à rendre."""
+        with self._mutex:
+            tenu = poignée.holder is not None
+            poignée.holder = None
+            poignée.job = None
+            poignée.since = 0.0
+            poignée.publish()
+        if tenu:
+            poignée.gate.release()
+
+    def _release(self, poignée: WorkerHandle) -> None:
+        """Le job est fini : le résident redevient évinçable, et le miroir le dit."""
+        try:
+            with self._mutex:
+                poignée.job = None
+                if poignée.entry is not None:
+                    poignée.entry.last_used = time.time()
+            with self.registry_file.locked() as entries:
+                self._sync(entries)
+        finally:
+            self._leave(poignée)
+
+    def _sync(self, entries: dict[str, ResidentEntry]) -> None:
+        """Rapproche le miroir de la mémoire, dans les deux sens.
+
+        Nos workers s'y écrivent — c'est ainsi qu'un autre processus apprend
+        qu'un job tourne. Ceux que le miroir ne connaît plus sortent de la
+        mémoire : `locked()` écarte à l'entrée les entrées dont le processus est
+        mort ou le socket disparu, et un autre superviseur a pu évincer le nôtre
+        pour faire de la place. Le tour de rôle, lui, reste : le job qui parlait
+        à ce worker doit apprendre sa mort par le canal, pas par une table qu'on
+        lui retire sous les pieds.
+        """
+        with self._mutex:
+            for ref, poignée in self._live.items():
+                if poignée.entry is None:
+                    continue
+                if ref not in entries:
+                    poignée.entry = None
+                    continue
+                poignée.publish()
+                entries[ref] = poignée.entry
 
     # --- chargement ----------------------------------------------------------
 
@@ -270,51 +476,90 @@ class Supervisor:
         pin: bool = False,
         on_progress: ProgressFn | None = None,
         values: dict[str, Any] | None = None,
+        job_id: str | None = None,
+        on_wait: WaitFn | None = None,
     ) -> Lease:
         """Rend un worker prêt pour ce variant, en respectant le budget mémoire.
 
         `values` est l'entrée résolue du job : elle sert au calcul du pic attendu
-        quand le profil déclare une pente (`peak_scaling`).
+        quand le profil déclare une pente (`peak_scaling`). `job_id` nomme
+        l'occupation — un worker occupé se lit mieux quand on sait par quoi.
+
+        L'appel **attend son tour** si un job tourne déjà sur ce variant. C'est le
+        seul endroit du projet où l'on patiente volontairement : un modèle sert
+        un job à la fois, et le savoir ici vaut mieux que de le découvrir dans le
+        backlog d'un socket.
         """
         ref = f"{model.id}@{variant.id}"
         weights = resolve_weights(self.config, variant, ref=ref)
         spec = self._spec_factory(self.repo_root, variant, ref, model.capability)
         document = variant_document(model, variant, weights)
 
-        with self.registry_file.locked() as entries:
-            residents = [e.as_resident() for e in entries.values()]
-            admission = plan_admission(
-                ref, self.peak_bytes(variant, values), residents, self.policy, measure=measure
-            )
-            if not admission.admitted:
-                raise AdmissionRefused(admission)
-
-            for victime in admission.evict:
-                self._evict(entries, victime)
-
-            if measure:
+        if measure:
+            # Le banc d'essai ne prend pas de tour : il ne réutilise jamais un
+            # résident, il vide le parc et lance un worker qui n'appartient qu'à
+            # lui. L'attendre reviendrait à attendre un worker qu'on va tuer.
+            with self.registry_file.locked() as entries:
+                self._sync(entries)
+                admission = self._plan(ref, variant, values, entries, measure=True)
+                if not admission.admitted:
+                    raise AdmissionRefused(admission)
+                for victime in admission.evict:
+                    self._evict(entries, victime)
                 return self._ephemeral(ref, spec, document, admission, on_progress)
 
-            entrée = entries.get(ref)
-            empreinte = document_fingerprint(document)
-            if entrée is not None and entrée.document not in ("", empreinte):
-                # Le manifeste a changé depuis le chargement : le worker en
-                # mémoire n'est plus celui que le registre décrit.
-                self._evict(entries, ref)
-                entrée = None
-            if entrée is not None:
-                lease = self._reconnect(ref, entrée, admission, on_progress)
-                if lease is not None:
-                    entrée.last_used = time.time()
-                    entrée.pinned = entrée.pinned or pin
-                    self._mark_busy(entrée)
-                    return lease
-                # Socket mort : le worker n'est plus là malgré son entrée.
-                self._evict(entries, ref)
+        poignée = self._handle(ref)
+        self._enter(poignée, job_id or SANS_IDENTIFIANT, on_wait)
+        try:
+            with self.registry_file.locked() as entries:
+                self._sync(entries)
+                admission = self._plan(ref, variant, values, entries)
+                if not admission.admitted:
+                    raise AdmissionRefused(admission)
 
-            return self._start_resident(
-                entries, ref, variant, spec, document, admission, pin, on_progress
-            )
+                for victime in admission.evict:
+                    self._evict(entries, victime)
+
+                entrée = entries.get(ref)
+                empreinte = document_fingerprint(document)
+                if entrée is not None and entrée.document not in ("", empreinte):
+                    # Le manifeste a changé depuis le chargement : le worker en
+                    # mémoire n'est plus celui que le registre décrit.
+                    self._evict(entries, ref)
+                    entrée = None
+                if entrée is not None:
+                    lease = self._reconnect(ref, entrée, admission, poignée, on_progress)
+                    if lease is not None:
+                        entrée.last_used = time.time()
+                        entrée.pinned = entrée.pinned or pin
+                        with self._mutex:
+                            poignée.entry = entrée
+                            poignée.publish()
+                        entries[ref] = entrée
+                        return lease
+                    # Socket mort : le worker n'est plus là malgré son entrée.
+                    self._evict(entries, ref)
+
+                return self._start_resident(
+                    entries, poignée, ref, variant, spec, document, admission, pin, on_progress
+                )
+        except BaseException:
+            self._leave(poignée)
+            raise
+
+    def _plan(
+        self,
+        ref: str,
+        variant: Variant,
+        values: dict[str, Any] | None,
+        entries: dict[str, ResidentEntry],
+        *,
+        measure: bool = False,
+    ) -> Admission:
+        residents = [e.as_resident() for e in entries.values()]
+        return plan_admission(
+            ref, self.peak_bytes(variant, values), residents, self.policy, measure=measure
+        )
 
     def _ephemeral(
         self,
@@ -347,6 +592,7 @@ class Supervisor:
     def _start_resident(
         self,
         entries: dict[str, ResidentEntry],
+        poignée: WorkerHandle,
         ref: str,
         variant: Variant,
         spec: WorkerSpec,
@@ -395,7 +641,9 @@ class Supervisor:
             log=str(journal),
             document=document_fingerprint(document),
         )
-        self._mark_busy(entrée)
+        with self._mutex:
+            poignée.entry = entrée
+            poignée.publish()
         entries[ref] = entrée
         avertissements = []
         if annoncé and mesuré and mesuré > annoncé * 1.15:
@@ -412,34 +660,26 @@ class Supervisor:
             entry=entrée,
             evicted=admission.evict,
             warnings=avertissements,
-            on_release=lambda: self._free(ref),
+            on_release=lambda: self._release(poignée),
         )
 
-    def _mark_busy(self, entrée: ResidentEntry) -> None:
-        entrée.busy_by = os.getpid()
-        entrée.busy_since = time.time()
-
-    def _free(self, ref: str) -> None:
-        """Le job est fini : le résident redevient évinçable."""
-        with self.registry_file.locked() as entries:
-            entrée = entries.get(ref)
-            if entrée is not None and entrée.busy_by == os.getpid():
-                entrée.busy_by = 0
-                entrée.busy_since = 0.0
-                entrée.last_used = time.time()
-
     def _reconnect(
-        self, ref: str, entrée: ResidentEntry, admission: Admission, on_progress: ProgressFn | None
+        self,
+        ref: str,
+        entrée: ResidentEntry,
+        admission: Admission,
+        poignée: WorkerHandle,
+        on_progress: ProgressFn | None,
     ) -> Lease | None:
         """Se rattache à un worker résident, sans le déranger.
 
-        Aucun ping ici, et c'est délibéré : un worker occupé par un autre job ne
-        lit pas son socket, donc il ne répondrait pas — et le prendre pour un
-        fantôme reviendrait à tuer un job en cours pour récupérer sa place. La
-        preuve de vie est ailleurs : le processus existe (vérifié à la lecture du
-        registre) et le socket accepte la connexion. Deux commandes lancées sur
-        le même variant se sérialisent alors dans la file d'écoute du worker, ce
-        qui est le comportement voulu — un modèle sert un job à la fois.
+        Aucun ping ici, et c'est délibéré : la preuve de vie est que le processus
+        existe (vérifié à la lecture du registre) et que le socket accepte la
+        connexion. Un worker que **nous** occupons ne peut pas se présenter ici —
+        le tour de rôle l'interdit ; un worker qu'un autre processus occupe, si,
+        et les deux jobs se sérialiseront alors dans la file d'écoute du worker.
+        C'est le comportement voulu : un modèle sert un job à la fois, quel que
+        soit le nombre de processus qui le lui demandent.
         """
         try:
             session = self._connect(Path(entrée.socket), on_progress)
@@ -453,7 +693,7 @@ class Supervisor:
             entry=entrée,
             evicted=admission.evict,
             reused=True,
-            on_release=lambda: self._free(ref),
+            on_release=lambda: self._release(poignée),
         )
 
     def _connect(self, sock_path: Path, on_progress: ProgressFn | None) -> ResidentSession:
@@ -465,9 +705,25 @@ class Supervisor:
 
     def unload(self, ref: str, *, force: bool = False) -> bool:
         with self.registry_file.locked() as entries:
+            self._sync(entries)
             entrée = entries.get(ref)
             if entrée is None:
                 return False
+            if entrée.busy and not force:
+                # Le refus vaut pour nos jobs comme pour ceux d'un autre
+                # processus : après `_sync`, le miroir dit la même chose que la
+                # mémoire, et c'est tout l'intérêt de le tenir à jour.
+                raise AdmissionRefused(
+                    Admission(
+                        admitted=False,
+                        reason=(
+                            f"{ref} : un job est en cours dessus (pid {entrée.busy_by}) — "
+                            f"le décharger détruirait ce travail ; attendre, ou "
+                            f"ecurie unload {ref} --force"
+                        ),
+                        blockers=(ref,),
+                    )
+                )
             if entrée.pinned and not force:
                 raise AdmissionRefused(
                     Admission(
@@ -481,7 +737,8 @@ class Supervisor:
 
     def unload_all(self, *, force: bool = False) -> list[str]:
         with self.registry_file.locked() as entries:
-            cibles = [ref for ref, e in entries.items() if force or not e.pinned]
+            self._sync(entries)
+            cibles = [ref for ref, e in entries.items() if force or not (e.pinned or e.busy)]
             for ref in cibles:
                 self._evict(entries, ref)
             return cibles
@@ -489,6 +746,11 @@ class Supervisor:
     def _evict(self, entries: dict[str, ResidentEntry], ref: str) -> None:
         """Décharge poliment, puis tue. La mémoire doit être rendue avant le prochain load."""
         entrée = entries.pop(ref, None)
+        with self._mutex:
+            poignée = self._live.get(ref)
+            if poignée is not None:
+                entrée = entrée or poignée.entry
+                poignée.entry = None
         if entrée is None:
             return
         try:
@@ -511,6 +773,25 @@ class Supervisor:
         kill_pid(entrée.pid, grace_s=self.timeouts.grace_s)
         Path(entrée.socket).unlink(missing_ok=True)
 
+    def close(self) -> None:
+        """Le processus s'arrête : ses workers restent, son occupation non.
+
+        Un résident survit délibérément à qui l'a lancé — c'est ce qui évite de
+        repayer le warmup. Ce qui ne doit pas lui survivre, c'est la ligne qui dit
+        qu'un job tourne dessus : le pid mort finirait par la démentir, mais
+        seulement à qui pense à le vérifier.
+        """
+        with self._mutex:
+            for poignée in self._live.values():
+                poignée.job = None
+                poignée.since = 0.0
+                poignée.holder = None
+        try:
+            with self.registry_file.locked() as entries:
+                self._sync(entries)
+        except OSError:  # le home a disparu sous nos pieds : il n'y a plus de miroir à tenir
+            pass
+
     def health(self, *, timeout_s: float = 5) -> dict[str, bool]:
         """Interroge chaque résident : répond-il encore ?
 
@@ -518,12 +799,20 @@ class Supervisor:
         job et un worker bloqué se ressemblent — aucun des deux ne lit son
         socket. Trancher à leur place reviendrait à tuer un job en cours pour
         cause de lenteur. On rapporte, l'utilisateur décide (`ecurie unload
-        --force`). C'est la limite honnête de la règle du §5.1 de la conception
-        appliquée depuis une CLI plutôt que depuis un serveur qui, lui, saura
-        qu'un job tourne (v0.4).
+        --force`).
+
+        La limite s'est déplacée avec la tâche 4.6 : les jobs que **nous** tenons,
+        nous les connaissons. On ne les interroge pas — le ping attendrait la fin
+        du job dans le backlog du socket pour apprendre ce que la mémoire dit
+        déjà. Reste le cas honnêtement indécidable : un worker qu'un autre
+        processus occupe.
         """
         états: dict[str, bool] = {}
-        for entrée in self.registry_file.read().values():
+        for entrée in self._entries().values():
+            poignée = self._live.get(entrée.ref)
+            if poignée is not None and poignée.busy:
+                états[entrée.ref] = True
+                continue
             try:
                 session = self._connect(Path(entrée.socket), None)
             except OSError:
@@ -555,8 +844,10 @@ class Supervisor:
                 kill_pid(entrée.pid, grace_s=self.timeouts.grace_s)
                 Path(entrée.socket).unlink(missing_ok=True)
         if périmées:
-            with self.registry_file.locked():
-                pass  # `locked()` retire les entrées périmées en entrant
+            with self.registry_file.locked() as entries:
+                # `locked()` retire les entrées périmées en entrant ; `_sync` en
+                # tire les conséquences côté mémoire.
+                self._sync(entries)
         return [e.ref for e in périmées]
 
     def env_problems(self, variant: Variant, ref: str) -> str | None:

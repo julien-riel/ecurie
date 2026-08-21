@@ -59,9 +59,10 @@ def test_les_routes_figees_sont_celles_que_le_front_appelle():
     """Le front n'a que sept fonctions d'appel : elles doivent toutes exister.
 
     Ce test dit aussi ce qui n'existe PAS encore, et c'est le point : `POST
-    /jobs`, le flux SSE et les fichiers de sortie attendent délibérément le
-    déménagement du superviseur dans le processus de l'API (tâche 4.6). Le jour
-    où ils arriveront, cette liste changera, et le front pourra les appeler.
+    /jobs`, le flux SSE et les fichiers de sortie sont le reste de la tâche 4.1.
+    Ce qui les retenait — le superviseur reconstruit à chaque requête, incapable
+    de savoir qu'un job tourne — a été levé par la tâche 4.6. Le jour où ils
+    arriveront, cette liste changera, et le front pourra les appeler.
     """
     if not FIGE.exists():
         pytest.skip("apps/ui absent : le front n'est pas installé dans cette copie")

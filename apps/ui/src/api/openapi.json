@@ -1185,7 +1185,7 @@
     }
   },
   "info": {
-    "description": "\nSurface de lecture du parc Écurie (v0.4, tâche 4.1).\n\n* `/registry/capabilities` — les contrats qui engendrent les formulaires\n* `/registry/models` — les manifestes, avec ce que le disque en dit\n* `/store/summary` — les trois chiffres d'occupation\n* `/runtime/residents` — mémoire occupée, budget, et ce que coûterait un job\n* `/runtime/admission` — le même calcul pour une entrée précise\n\nAucune de ces routes ne charge un modèle, n'écrit un manifeste ni ne déplace un\noctet. Les jobs arrivent au 4.2, après le déménagement du superviseur (4.6).\n",
+    "description": "\nSurface de lecture du parc Écurie (v0.4, tâche 4.1).\n\n* `/registry/capabilities` — les contrats qui engendrent les formulaires\n* `/registry/models` — les manifestes, avec ce que le disque en dit\n* `/store/summary` — les trois chiffres d'occupation\n* `/runtime/residents` — mémoire occupée, budget, et ce que coûterait un job\n* `/runtime/admission` — le même calcul pour une entrée précise\n\nAucune de ces routes ne charge un modèle, n'écrit un manifeste ni ne déplace un\noctet. Le superviseur, lui, a emménagé ici (tâche 4.6) : il tient le tour de rôle\ndes jobs sur un même worker et l'occupation des résidents. `POST /jobs` et son\nflux SSE suivent.\n",
     "summary": "Parc de modèles locaux — registre, disque, mémoire.",
     "title": "Écurie",
     "version": "0.4.0"

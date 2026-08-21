@@ -90,6 +90,23 @@ def plan_admission(
     if measure:
         # Mode mesure : le parc est vidé, épinglés compris. Un profil mesuré avec
         # d'autres modèles en mémoire ne mesure pas le modèle, il mesure la machine.
+        # Un job en cours, lui, n'est pas une préférence qu'on passe outre : c'est
+        # un travail que l'éviction détruirait, et dont le banc ne saurait rien.
+        # Le cas ne pouvait pas se poser tant qu'une commande tenait seule le
+        # parc ; il se pose depuis qu'un serveur exécute (tâche 4.6).
+        occupés = [r for r in parc if r.busy]
+        if occupés:
+            return Admission(
+                admitted=False,
+                reason=(
+                    "le banc d'essai décharge tout le parc avant de mesurer, et "
+                    f"{', '.join(r.ref for r in occupés)} a un job en cours — "
+                    "l'évincer détruirait ce travail ; attendre la fin, ou "
+                    "ecurie unload --force"
+                ),
+                blockers=tuple(r.ref for r in occupés),
+                measure_mode=True,
+            )
         return Admission(
             admitted=True,
             reason="mode mesure : parc entièrement déchargé avant la mesure",

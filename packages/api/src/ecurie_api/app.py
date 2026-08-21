@@ -17,7 +17,8 @@ autorise donc les origines locales connues, sans cookies (`allow_credentials`
 reste faux), et on ajoute les autres à la main.
 """
 
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Sequence
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,16 +47,27 @@ Surface de lecture du parc Écurie (v0.4, tâche 4.1).
 * `/runtime/admission` — le même calcul pour une entrée précise
 
 Aucune de ces routes ne charge un modèle, n'écrit un manifeste ni ne déplace un
-octet. Les jobs arrivent au 4.2, après le déménagement du superviseur (4.6).
+octet. Le superviseur, lui, a emménagé ici (tâche 4.6) : il tient le tour de rôle
+des jobs sur un même worker et l'occupation des résidents. `POST /jobs` et son
+flux SSE suivent.
 """
 
 
 def create_app(state: AppState, *, cors_origins: Sequence[str] | None = None) -> FastAPI:
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        yield
+        # Les workers survivent au serveur — c'est ce qu'être résident veut dire.
+        # Ce qui ne doit pas lui survivre, c'est l'occupation qu'il publiait : un
+        # `ecurie ps` lancé juste après annoncerait des jobs qui n'existent plus.
+        state.close()
+
     app = FastAPI(
         title="Écurie",
         version=__version__,
         description=DESCRIPTION,
         summary="Parc de modèles locaux — registre, disque, mémoire.",
+        lifespan=lifespan,
     )
     app.state.ecurie = state
 

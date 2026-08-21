@@ -71,6 +71,20 @@ def test_un_job_complet_puis_ps_puis_unload(parc, cli):
     assert json.loads(cli("ps", "--json").stdout)["residents"] == []
 
 
+def test_unload_all_dit_ce_qu_il_garde(parc, cli):
+    """« 0 modèle déchargé » sur un parc plein passerait pour une commande sans effet."""
+    parc.capability().model()
+    assert cli("run", "tts-test", "-p", "text=Bonjour.", "--pin").exit_code == 0
+
+    gardé = cli("unload", "--all")
+    assert gardé.exit_code == 0
+    assert "0 modèle(s) déchargé(s)" in gardé.stdout
+    assert "tts-test@essai gardé — épinglé" in gardé.stdout
+
+    assert cli("unload", "--all", "--force").exit_code == 0
+    assert json.loads(cli("ps", "--json").stdout)["residents"] == []
+
+
 def test_run_json_donne_un_manifeste_rejouable(parc, cli):
     parc.capability().model()
     résultat = cli("run", "tts-test", "-p", "text=essai", "--json")

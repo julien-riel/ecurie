@@ -30,8 +30,9 @@ describe("les types engendrés depuis l'OpenAPI", () => {
   }, 30_000);
 
   test("le schema fige n_annonce aucune route de job", () => {
-    // POST /jobs et le flux SSE attendent délibérément la tâche 4.6 : le front
-    // ne doit pas se mettre à les appeler par inadvertance.
+    // POST /jobs et le flux SSE sont le reste de la tâche 4.1 — ce qui les
+    // retenait, le superviseur hors du processus de l'API, est levé depuis la
+    // 4.6. Le front ne doit pas se mettre à les appeler par inadvertance.
     const schéma = JSON.parse(readFileSync(resolve(DOSSIER, "openapi.json"), "utf8"));
     expect(Object.keys(schéma.paths).sort()).toEqual([
       "/",

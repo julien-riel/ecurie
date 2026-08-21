@@ -32,7 +32,7 @@ from ecurie_store.db import StateDB
 from jsonschema import Draft202012Validator
 
 from ecurie_runtime import __version__ as HARNESS_VERSION
-from ecurie_runtime.supervisor import Lease, Supervisor
+from ecurie_runtime.supervisor import Lease, Supervisor, WaitFn
 from ecurie_runtime.worker import JobResult, ProgressFn
 
 INPUTS_DIR = "inputs"
@@ -330,6 +330,7 @@ def run_job(
     db: StateDB | None = None,
     outputs_dir: Path | None = None,
     on_progress: ProgressFn | None = None,
+    on_wait: WaitFn | None = None,
     pin: bool = False,
     job_id: str | None = None,
 ) -> JobOutcome:
@@ -354,7 +355,13 @@ def run_job(
     erreur: str | None = None
     try:
         lease = supervisor.acquire(
-            model, variant, pin=pin, on_progress=on_progress, values=résolu.values
+            model,
+            variant,
+            pin=pin,
+            on_progress=on_progress,
+            values=résolu.values,
+            job_id=job_id,
+            on_wait=on_wait,
         )
         résultat = lease.session.infer(
             job_id,

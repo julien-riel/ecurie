@@ -1,16 +1,29 @@
-"""Le superviseur : résidence, réutilisation, éviction, mode mesure.
+"""Le superviseur : résidence, réutilisation, éviction, mode mesure, tour de rôle.
 
 Ces tests lancent de vrais sous-processus détachés qui écoutent de vrais sockets
 Unix. C'est voulu : le mécanisme qu'on éprouve ici est précisément celui qui fait
 qu'un modèle survit entre deux commandes, et il ne se simule pas.
+
+Deux superviseurs construits sur le même `ecurie_home` tiennent lieu de deux
+processus : c'est ce que sont un `ecurie serve` et un `ecurie run` lancés en même
+temps. Ils ne partagent que `residents.json`, ce qui est exactement le sujet
+depuis la tâche 4.6 — le miroir dit ce que la mémoire d'en face sait.
 """
 
+import os
+import threading
 import time
 
 import pytest
 from ecurie_runtime.admission import Resident
-from ecurie_runtime.supervisor import AdmissionRefused, RefError, parse_ref
-from ecurie_runtime.worker import pid_alive
+from ecurie_runtime.supervisor import (
+    AdmissionRefused,
+    QueueTimeout,
+    ReentrantJob,
+    RefError,
+    parse_ref,
+)
+from ecurie_runtime.worker import Timeouts, pid_alive
 
 GIB = 1 << 30
 
@@ -18,6 +31,21 @@ GIB = 1 << 30
 def _acquire(supervisor, registry, ref="tts-test", **kwargs):
     model, variant, _ = parse_ref(registry, ref)
     return supervisor.acquire(model, variant, **kwargs)
+
+
+def _en_fil(cible):
+    """Lance `cible` dans un fil et rend de quoi l'attendre et le juger."""
+    résultat: dict = {}
+
+    def travail() -> None:
+        try:
+            résultat["valeur"] = cible()
+        except BaseException as exc:  # noqa: BLE001 — le test juge ce qui a été levé
+            résultat["erreur"] = exc
+
+    fil = threading.Thread(target=travail, daemon=True)
+    fil.start()
+    return fil, résultat
 
 
 def test_un_worker_reste_resident_entre_deux_prises(parc, supervisor_factory):
@@ -234,29 +262,318 @@ def test_un_job_en_cours_n_est_pas_evince_par_le_job_suivant(parc, supervisor_fa
 
 
 def test_une_occupation_orpheline_ne_bloque_pas_le_parc(parc, supervisor_factory):
-    """Une commande tuée en plein job ne rend pas son bail.
+    """Un processus tué en plein job ne rend pas son bail.
 
-    Si l'occupation était un simple drapeau, le résident deviendrait
-    inévinçable jusqu'au prochain redémarrage. On retient le pid du détenteur :
-    un détenteur mort ne retient plus rien.
+    Le cas ne se pose plus qu'entre processus : chez nous, l'occupation vit en
+    mémoire et disparaît avec le fil qui la portait. Ce que le miroir transporte,
+    lui, survit à qui l'a écrit — d'où le pid, qui se vérifie, plutôt qu'un
+    drapeau qui rendrait le résident inévinçable jusqu'au prochain redémarrage.
     """
     parc.capability().model("occupe", peak_bytes=5 * GIB)
     parc.model("nouveau", peak_bytes=5 * GIB)
     superviseur = supervisor_factory(parc)
+    autre = supervisor_factory(parc)  # l'autre processus, qui ne lit que le miroir
 
     bail = _acquire(superviseur, superviseur.registry, "occupe")
     try:
-        with superviseur.registry_file.locked() as entries:
-            # Un pid qui n'existe pas : le processus détenteur a disparu.
-            entries["occupe@essai"].busy_by = 2**22
-        assert not superviseur.registry_file.read()["occupe@essai"].busy
+        assert autre.residents()[0].busy, "l'autre processus doit voir le job en cours"
 
-        suivant = _acquire(superviseur, superviseur.registry, "nouveau")
+        with autre.registry_file.locked() as entries:
+            # Un pid qui n'existe pas : le processus détenteur a disparu sans
+            # rendre son bail. Le superviseur qui l'a écrit ne repassera plus.
+            entries["occupe@essai"].busy_by = 2**22
+        assert not autre.residents()[0].busy
+
+        suivant = _acquire(autre, autre.registry, "nouveau")
         assert suivant.evicted == ("occupe@essai",)
         suivant.release()
     finally:
         bail.release()
         superviseur.unload_all(force=True)
+        autre.unload_all(force=True)
+
+
+# --- tour de rôle : un modèle sert un job à la fois ---------------------------
+
+
+def test_deux_jobs_sur_le_meme_worker_attendent_leur_tour(parc, supervisor_factory):
+    """Le second job attend que le premier ait rendu la main, pas une connexion.
+
+    Un worker résident écoute une connexion à la fois (`listen(1)`) : sans tour
+    de rôle, le second job ouvrait un socket qui restait dans le backlog, sans
+    que rien ne dise pourquoi, pendant que son délai d'inférence courait déjà.
+    """
+    parc.capability().model()
+    superviseur = supervisor_factory(parc)
+
+    premier = _acquire(superviseur, superviseur.registry, job_id="job-1")
+    entré = threading.Event()
+
+    def second():
+        bail = _acquire(superviseur, superviseur.registry, job_id="job-2")
+        entré.set()
+        bail.release()
+        return bail
+
+    fil, résultat = _en_fil(second)
+    try:
+        assert not entré.wait(0.4), "le second job n'entre pas tant que le premier tient le worker"
+        assert superviseur.residents()[0].busy_by == os.getpid()
+        premier.release()
+        assert entré.wait(5), "le tour passe dès que le premier a rendu la main"
+        fil.join(5)
+        assert "erreur" not in résultat, résultat.get("erreur")
+        assert résultat["valeur"].reused, "le second retrouve le worker chaud"
+    finally:
+        superviseur.unload_all(force=True)
+
+
+def test_la_fin_d_un_job_ne_libere_pas_un_worker_qu_un_autre_occupe(parc, supervisor_factory):
+    """Le défaut que le déménagement corrige : deux jobs, un seul pid.
+
+    L'occupation était le pid du processus détenteur, écrit dans le fichier des
+    résidents. Deux jobs du même processus y inscrivaient le même chiffre, et le
+    premier à finir l'effaçait : le worker redevenait évinçable alors qu'une
+    inférence tournait dessus. Une commande ne tenait qu'un job à la fois et ne
+    l'a jamais rencontré ; un serveur en tient plusieurs, et le rencontre au
+    premier usage à deux fenêtres.
+    """
+    parc.capability().model("occupe", peak_bytes=5 * GIB)
+    parc.model("nouveau", peak_bytes=5 * GIB)
+    superviseur = supervisor_factory(parc)
+
+    premier = _acquire(superviseur, superviseur.registry, "occupe", job_id="job-1")
+    pris = threading.Event()
+    rendre = threading.Event()
+
+    def second():
+        bail = _acquire(superviseur, superviseur.registry, "occupe", job_id="job-2")
+        pris.set()
+        rendre.wait(10)
+        bail.release()
+
+    fil, résultat = _en_fil(second)
+    try:
+        time.sleep(0.2)  # le second est en file derrière le premier
+        premier.release()
+        assert pris.wait(5), "le second job doit avoir pris le relais"
+
+        # Le premier job est fini ; le second tourne. Le worker n'est pas libre.
+        with pytest.raises(AdmissionRefused) as exc:
+            _acquire(superviseur, superviseur.registry, "nouveau")
+        assert "en cours de job" in str(exc.value)
+        assert superviseur.residents()[0].busy
+    finally:
+        rendre.set()
+        fil.join(5)
+        assert "erreur" not in résultat, résultat.get("erreur")
+        superviseur.unload_all(force=True)
+
+
+def test_l_attente_se_dit_a_qui_la_subit(parc, supervisor_factory):
+    """Une attente muette est indiscernable d'un blocage.
+
+    C'est le cas d'un `ecurie run` lancé pendant qu'un job de l'Atelier occupe le
+    même modèle : sans un mot, la commande paraît avoir cessé de répondre.
+    """
+    parc.capability().model()
+    superviseur = supervisor_factory(parc)
+
+    annonces: list[str] = []
+    libre = _acquire(superviseur, superviseur.registry, job_id="job-1", on_wait=annonces.append)
+    assert annonces == [], "un tour libre ne s'annonce pas"
+
+    entré = threading.Event()
+
+    def second():
+        bail = _acquire(
+            superviseur, superviseur.registry, job_id="job-2", on_wait=annonces.append
+        )
+        entré.set()
+        bail.release()
+
+    fil, résultat = _en_fil(second)
+    try:
+        time.sleep(0.3)
+        assert annonces == ["job-1"], "le job qui précède se nomme, il ne se compte pas"
+        libre.release()
+        assert entré.wait(5)
+        fil.join(5)
+        assert "erreur" not in résultat, résultat.get("erreur")
+    finally:
+        superviseur.unload_all(force=True)
+
+
+def test_le_meme_fil_ne_peut_pas_prendre_deux_bails_sur_un_worker(parc, supervisor_factory):
+    """Un fil qui s'oublie s'attendrait lui-même, et rien ne le dirait."""
+    parc.capability().model()
+    superviseur = supervisor_factory(parc)
+
+    bail = _acquire(superviseur, superviseur.registry, job_id="job-1")
+    try:
+        with pytest.raises(ReentrantJob) as exc:
+            _acquire(superviseur, superviseur.registry, job_id="job-2")
+        assert "job-1" in str(exc.value)
+    finally:
+        bail.release()
+        superviseur.unload_all(force=True)
+
+
+def test_un_bail_rendu_deux_fois_ne_bloque_pas_le_variant(parc, supervisor_factory):
+    """Rendre deux fois n'est pas rendre à quelqu'un d'autre.
+
+    Un `release()` en trop relâcherait le tour du job suivant, qui se croirait
+    seul sur un worker occupé — la panne la plus difficile à lire de toutes.
+    """
+    parc.capability().model()
+    superviseur = supervisor_factory(parc)
+
+    bail = _acquire(superviseur, superviseur.registry, job_id="job-1")
+    bail.release()
+    bail.release()
+    try:
+        suivant = _acquire(superviseur, superviseur.registry, job_id="job-2")
+        assert suivant.reused
+        suivant.release()
+    finally:
+        superviseur.unload_all(force=True)
+
+
+def test_un_tour_qui_ne_vient_jamais_se_dit(parc, supervisor_factory):
+    """Attendre est normal ; attendre plus longtemps qu'un job entier ne l'est pas."""
+    parc.capability().model()
+    superviseur = supervisor_factory(
+        parc, timeouts=Timeouts(load_s=30, infer_s=30, ping_s=5, grace_s=2, queue_s=0.2)
+    )
+
+    bail = _acquire(superviseur, superviseur.registry, job_id="job-1")
+    fil, résultat = _en_fil(lambda: _acquire(superviseur, superviseur.registry, job_id="job-2"))
+    try:
+        fil.join(5)
+        assert isinstance(résultat.get("erreur"), QueueTimeout), résultat
+        assert "ecurie ps --ping" in str(résultat["erreur"])
+    finally:
+        bail.release()
+        superviseur.unload_all(force=True)
+
+
+def test_health_ne_derange_pas_un_worker_que_nous_occupons(parc, supervisor_factory, monkeypatch):
+    """Le pinger reviendrait à faire la queue derrière notre propre job.
+
+    C'est la limite que la docstring de `health` annonçait pour le v0.4 : depuis
+    une CLI, un worker occupé et un worker bloqué se ressemblent ; depuis le
+    processus qui tient le job, non.
+    """
+    parc.capability().model()
+    superviseur = supervisor_factory(parc)
+    bail = _acquire(superviseur, superviseur.registry, job_id="job-1")
+
+    connexions: list[object] = []
+    vrai_connect = superviseur._connect
+
+    def compter(*args, **kwargs):
+        connexions.append(args)
+        return vrai_connect(*args, **kwargs)
+
+    monkeypatch.setattr(superviseur, "_connect", compter)
+    try:
+        assert superviseur.health() == {"tts-test@essai": True}
+        assert connexions == [], "un worker que nous occupons n'a pas à être interrogé"
+    finally:
+        monkeypatch.undo()
+        bail.release()
+        superviseur.unload_all(force=True)
+
+
+# --- le miroir : ce que les autres processus en lisent ------------------------
+
+
+def test_le_miroir_publie_l_occupation_pour_les_autres_processus(parc, supervisor_factory):
+    parc.capability().model()
+    superviseur = supervisor_factory(parc)
+    autre = supervisor_factory(parc)
+
+    bail = _acquire(superviseur, superviseur.registry, job_id="job-1")
+    try:
+        vu = autre.residents()[0]
+        assert vu.busy and vu.busy_by == os.getpid()
+        assert vu.busy_since > 0
+    finally:
+        bail.release()
+    try:
+        assert not autre.residents()[0].busy, "le miroir suit la fin du job, sans attendre"
+    finally:
+        superviseur.unload_all(force=True)
+
+
+def test_un_superviseur_n_efface_pas_les_workers_d_un_autre(parc, supervisor_factory):
+    """Publier sa vue ne doit pas revenir à publier que les autres n'existent pas."""
+    parc.capability().model("un", peak_bytes=1 * GIB)
+    parc.model("deux", peak_bytes=1 * GIB)
+    a = supervisor_factory(parc)
+    b = supervisor_factory(parc)
+
+    _acquire(a, a.registry, "un").release()
+    _acquire(b, b.registry, "deux").release()
+    try:
+        assert {e.ref for e in a.residents()} == {"un@essai", "deux@essai"}
+        assert {e.ref for e in b.residents()} == {"un@essai", "deux@essai"}
+    finally:
+        a.unload_all(force=True)
+
+
+def test_un_worker_evince_par_un_autre_processus_sort_de_notre_memoire(parc, supervisor_factory):
+    parc.capability().model("un", peak_bytes=5 * GIB)
+    parc.model("deux", peak_bytes=5 * GIB)
+    a = supervisor_factory(parc)
+    b = supervisor_factory(parc)
+
+    _acquire(a, a.registry, "un").release()
+    évinceur = _acquire(b, b.registry, "deux")
+    évinceur.release()
+    try:
+        assert évinceur.evicted == ("un@essai",)
+        assert [e.ref for e in a.residents()] == ["deux@essai"]
+        # A relance son modèle sans croire qu'il est encore chaud — et il prend à
+        # son tour la place de celui de B, les deux étant lourds.
+        repris = _acquire(a, a.registry, "un")
+        assert not repris.reused
+        assert repris.evicted == ("deux@essai",)
+        repris.release()
+    finally:
+        a.unload_all(force=True)
+        b.unload_all(force=True)
+
+
+def test_unload_refuse_un_worker_en_plein_job(parc, supervisor_factory):
+    """`--force` reste possible : ce qui manquait, c'est de savoir ce qu'on casse."""
+    parc.capability().model()
+    superviseur = supervisor_factory(parc)
+    bail = _acquire(superviseur, superviseur.registry, job_id="job-1")
+    try:
+        with pytest.raises(AdmissionRefused) as exc:
+            superviseur.unload("tts-test@essai")
+        assert "un job est en cours" in str(exc.value)
+        assert superviseur.unload("tts-test@essai", force=True)
+    finally:
+        bail.release()
+        superviseur.unload_all(force=True)
+
+
+def test_close_retire_l_occupation_sans_tuer_les_workers(parc, supervisor_factory):
+    """Un serveur qui s'arrête en plein job laisse un worker chaud, pas un job fantôme."""
+    parc.capability().model()
+    superviseur = supervisor_factory(parc)
+    bail = _acquire(superviseur, superviseur.registry, job_id="job-1")
+    pid = bail.entry.pid
+
+    superviseur.close()
+    autre = supervisor_factory(parc)
+    try:
+        assert pid_alive(pid), "le résident survit au processus qui l'a chargé"
+        assert not autre.residents()[0].busy
+    finally:
+        autre.unload_all(force=True)
 
 
 def test_health_rapporte_sans_tuer(parc, supervisor_factory):

@@ -17,6 +17,7 @@ C'est le dernier maillon du critère de sortie du v0.3 : le reste de la suite
 tourne derrière la même mécanique.
 """
 
+import threading
 import wave
 from pathlib import Path
 
@@ -93,32 +94,73 @@ def test_le_second_job_ne_repaie_pas_le_warmup():
         superviseur.unload_all(force=True)
 
 
+def test_deux_jobs_concurrents_se_partagent_un_seul_worker():
+    """La situation du serveur : un superviseur, deux jobs, un modèle (tâche 4.6).
+
+    Le reste de la suite éprouve le tour de rôle avec un worker d'essai. Ici,
+    c'est un vrai modèle MLX qui reçoit deux inférences venues de deux fils :
+    le point est qu'il n'y en ait qu'un en mémoire, chargé une seule fois, et que
+    les deux jobs aboutissent — un seul des deux paie le warmup.
+    """
+    superviseur, model, variant, contract = _pret(REF_TTS)
+    résultats: dict[str, object] = {}
+
+    def job(nom: str, texte: str) -> None:
+        résultats[nom] = run_job(superviseur, model, variant, contract, {"text": texte}, seed=1)
+
+    fils = [
+        threading.Thread(target=job, args=(nom, texte))
+        for nom, texte in (("a", "Premier job."), ("b", "Deuxième job, en même temps."))
+    ]
+    try:
+        for fil in fils:
+            fil.start()
+        for fil in fils:
+            fil.join(600)
+        assert set(résultats) == {"a", "b"}, "les deux jobs doivent avoir rendu la main"
+        for nom, outcome in résultats.items():
+            assert outcome.ok, f"{nom} : {outcome.error}"
+            assert (outcome.job_dir / "audio.wav").is_file()
+        assert [e.ref for e in superviseur.residents()] == [REF_TTS]
+        assert sum(1 for o in résultats.values() if o.reused) == 1, (
+            "un seul des deux jobs paie le warmup ; l'autre retrouve le worker chaud"
+        )
+    finally:
+        superviseur.unload_all(force=True)
+
+
 def test_un_job_lourd_decharge_le_tts_sans_swap():
     """Le critère de sortie du v0.3, tel quel : le second modèle chasse le premier.
 
     Saute tant qu'un second variant mesuré n'est pas installé — l'éviction ne se
     vérifie qu'avec deux modèles qui ne tiennent pas ensemble dans le budget.
+
+    Encore faut-il que le chasseur tienne **seul** dans le budget : depuis que le
+    parc compte un profil paramétré, le premier lourd venu peut être une musique
+    de trente secondes à 23,94 Gio, que rien n'admet jamais. Le prendre pour
+    victime ferait échouer ce test sur un refus parfaitement correct.
     """
     superviseur, model, variant, contract = _pret(REF_TTS)
     lourds = [
-        (m, v)
+        (m, v, pic)
         for m in superviseur.registry.models.values()
         for v in m.variants
-        if v.profile
-        and v.profile.peak_unified_memory_bytes > superviseur.config.heavy_threshold_bytes
+        if (pic := superviseur.peak_bytes(v)) is not None
+        and superviseur.config.heavy_threshold_bytes < pic <= superviseur.budget.bytes
         and f"{m.id}@{v.id}" != REF_TTS
     ]
     if not lourds:
-        pytest.skip("aucun second variant lourd mesuré au registre — rien à faire chasser")
+        pytest.skip(
+            "aucun second variant lourd mesuré qui tienne seul dans le budget — "
+            "rien qui puisse faire chasser le TTS"
+        )
 
     try:
         run_job(superviseur, model, variant, contract, {"text": "Trois."}, seed=1)
         assert [e.ref for e in superviseur.residents()] == [REF_TTS]
 
-        autre_model, autre_variant = lourds[0]
-        décision = superviseur.simulate(
-            f"{autre_model.id}@{autre_variant.id}", superviseur.peak_bytes(autre_variant)
-        )
+        autre_model, autre_variant, pic = lourds[0]
+        décision = superviseur.simulate(f"{autre_model.id}@{autre_variant.id}", pic)
         assert décision.admitted, décision.reason
         assert REF_TTS in décision.evict
     finally:

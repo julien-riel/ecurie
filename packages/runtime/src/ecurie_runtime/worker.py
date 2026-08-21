@@ -52,6 +52,11 @@ class Timeouts:
     ping_s: float = 10
     unload_s: float = 60
     grace_s: float = 10  # entre SIGTERM et SIGKILL
+    # Attente du tour de rôle sur un worker déjà occupé (supervisor.py). Un
+    # modèle sert un job à la fois : patienter est normal, patienter plus
+    # longtemps qu'un job entier ne l'est plus — c'est un bail qu'on n'a pas
+    # rendu, et un blocage sans fin ne se diagnostique pas.
+    queue_s: float = 3600
 
 
 @dataclass
