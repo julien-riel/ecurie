@@ -1,0 +1,11 @@
+Note de service — politique de résidence mémoire
+
+Objet : révision du seuil de lourdeur, applicable le 20 août 2026.
+
+Les quatre profils relevés cette semaine invalident le seuil de six gigaoctets retenu à la conception. La synthèse vocale occupe 7,65 Gio, la lecture de document 6,25, la génération d'image 15,95, et la génération musicale varie de 13,8 à 23,9 selon la durée demandée. Avec un seuil à six gigaoctets, les quatre modèles sont classés lourds, aucun ne cohabite jamais avec un autre, et la règle cesse de distinguer quoi que ce soit.
+
+Le seuil passe donc à huit gigaoctets. La voix et la lecture de document restent alors résidentes ensemble — treize gigaoctets et neuf dixièmes sur les dix-sept virgule soixante-seize disponibles — tandis que l'image et la musique continuent de se disputer la place, ce qui est le comportement attendu.
+
+Trois conséquences pratiques. D'abord, celui qui enchaîne une dictée et la lecture d'une page ne paie plus deux chargements. Ensuite, le bandeau de ressources cesse d'annoncer un déchargement à chaque changement de tâche. Enfin, la mesure prime désormais sur l'hypothèse : le chiffre de six gigaoctets avait été écrit avant tout relevé, et c'est la troisième affirmation de ce genre que la mesure dément.
+
+Rappel : un profil se mesure, il ne s'estime pas. Un bloc saisi à la main est un bloc faux, et il ne se paie pas en avertissement mais en trente secondes d'échange de pages.

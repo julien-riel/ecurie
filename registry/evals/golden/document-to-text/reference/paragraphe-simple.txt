@@ -1,0 +1,3 @@
+Le parc de modèles n'a pas de valeur en soi. Ce qui en a, c'est de savoir à tout moment ce qu'il occupe, ce qu'il sait faire et ce qu'il coûterait de lancer. Un dossier de vingt gigaoctets dont on ignore la provenance n'est pas un actif : c'est une dette de disque que personne n'ose effacer.
+
+La discipline tient en trois gestes. Déclarer ce qu'on installe, mesurer ce qu'on exécute, et jeter ce qui n'a servi à rien depuis trois mois. Les deux premiers demandent un registre ; le troisième demande du courage, et une corbeille dont on peut encore sortir un fichier le lendemain.

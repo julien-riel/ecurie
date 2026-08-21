@@ -1,0 +1,5 @@
+Quarantaine du 12 août 2026
+
+Sept fichiers ont été déplacés hors de leur emplacement d'origine et attendent trente jours avant effacement définitif. Aucune suppression n'a eu lieu. Le journal d'application conserve, pour chacun, son chemin d'origine et la commande exacte qui le remet en place.
+
+Deux d'entre eux appartenaient à une révision que le dépôt amont a retirée depuis. Les remettre en place reste possible ; les retélécharger ne l'est plus.

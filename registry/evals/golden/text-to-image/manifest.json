@@ -1,0 +1,59 @@
+{
+  "$schema": "../../../schema/golden.schema.json",
+  "capability": "text-to-image",
+  "version": 1,
+  "status": "complet",
+  "description": "Dix descriptions figées pour juger la QUALITÉ d'un générateur d'images, là où registry/evals/bench/text-to-image.json mesure un coût. Aucune référence : deux images également réussies n'ont aucune raison de se ressembler, et une distance à une image de référence noterait la ressemblance, pas la réussite. Ces cas alimentent la Confrontation. Seuls la description, les dimensions et la graine sont fixés — ni les pas de débruitage ni le guidage, qui restent ceux du variant : imposer trente pas à un modèle distillé conçu pour en faire quatre le jugerait sur un réglage fait pour un autre.",
+  "cases": [
+    {
+      "id": "texte-dans-image",
+      "input": { "prompt": "La devanture d'une quincaillerie de quartier, enseigne peinte à la main portant le mot QUINCAILLERIE en lettres capitales, fin d'après-midi.", "width": 1024, "height": 1024, "seed": 201 },
+      "notes": "Du texte lisible dans l'image. C'est la faiblesse la plus visible et la plus vite corrigée d'une génération à l'autre : c'est donc le meilleur indicateur de génération."
+    },
+    {
+      "id": "mains",
+      "input": { "prompt": "Gros plan des mains d'un luthier ajustant une cheville de violon, doigts nettement séparés, lumière d'établi.", "width": 1024, "height": 1024, "seed": 202 },
+      "notes": "Des mains en gros plan, doigts comptables. Le défaut classique, et celui qu'un œil non entraîné repère sans qu'on le lui explique."
+    },
+    {
+      "id": "comptage",
+      "input": { "prompt": "Exactement trois pommes rouges alignées sur un rebord de fenêtre en bois, rien d'autre sur le rebord.", "width": 1024, "height": 1024, "seed": 203 },
+      "notes": "Un nombre exact d'objets. Le résultat se note sans discussion — on compte —, ce qui en fait un des rares cas de cette liste où deux juges tombent toujours d'accord."
+    },
+    {
+      "id": "matieres",
+      "input": { "prompt": "Nature morte : un verre gravé, une clé en laiton bruni et une planche de chêne mouillée, sur fond sombre.", "width": 1024, "height": 1024, "seed": 204 },
+      "notes": "Trois matières aux comportements optiques opposés — réfraction, réflexion diffuse métallique, absorption humide — dans une seule image et sous une seule lumière."
+    },
+    {
+      "id": "contre-jour",
+      "input": { "prompt": "Silhouette d'une femme debout dans l'embrasure d'une porte de grange, soleil bas derrière elle, poussière en suspension.", "width": 1024, "height": 1024, "seed": 205 },
+      "notes": "Contre-jour franc. La tentation du modèle est de rééclairer le sujet de face ; céder produit une image agréable et fausse."
+    },
+    {
+      "id": "perspective",
+      "input": { "prompt": "Un couloir de bibliothèque en perspective centrale, rayonnages fuyant vers une fenêtre au fond, carrelage à damier.", "width": 1024, "height": 1024, "seed": 206 },
+      "notes": "Perspective à point de fuite unique, avec un damier qui rend toute dérive géométrique mesurable à l'œil."
+    },
+    {
+      "id": "reflets",
+      "input": { "prompt": "Un quai de bois sur un lac parfaitement calme au lever du jour, reflet complet du quai et des arbres dans l'eau.", "width": 1024, "height": 1024, "seed": 207 },
+      "notes": "Un reflet doit être cohérent avec ce qu'il reflète. C'est une contrainte globale sur l'image, que le bruit local n'aide pas à satisfaire."
+    },
+    {
+      "id": "espace-negatif",
+      "input": { "prompt": "Un unique bouleau nu dans un champ de neige, sujet à gauche, les trois quarts droits de l'image vides et blancs.", "width": 1216, "height": 832, "seed": 208 },
+      "notes": "Composition très asymétrique et grande surface vide. Beaucoup de modèles remplissent l'espace vide parce que leur entraînement l'a rarement vu vide."
+    },
+    {
+      "id": "style-graphique",
+      "input": { "prompt": "Affiche sérigraphiée en trois couleurs plates, un traversier stylisé sur le fleuve, aplats sans dégradé, trame visible.", "width": 1024, "height": 1024, "seed": 209 },
+      "notes": "Un style non photographique, tenu jusqu'au bout. Retomber dans le photoréalisme est l'échec attendu, et il est immédiat à juger."
+    },
+    {
+      "id": "scene-complexe",
+      "input": { "prompt": "Un marché public couvert un samedi matin : étal de légumes au premier plan, marchande qui pèse des pommes de terre, deux clients qui attendent, guirlandes d'ampoules au plafond.", "width": 1216, "height": 832, "seed": 210 },
+      "notes": "Plusieurs sujets en interaction, à des profondeurs différentes. C'est le respect de la description dans son ensemble qu'on juge, pas la beauté d'un détail."
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "$schema": "../../../schema/golden.schema.json",
+  "capability": "speech-to-text",
+  "version": 1,
+  "status": "incomplet",
+  "normalization": "whitespace",
+  "description": "Douze extraits pour juger la QUALITÉ d'une transcription, dont sept en français québécois. Les textes de référence sont figés dès aujourd'hui ; les enregistrements, eux, restent à produire — voir SOURCING.md. Chaque cas nomme déjà son fichier : le jour où le wav arrive, rien du cas ne change, seule la clé `pending` disparaît. C'est délibéré, et c'est la seule façon de figer une vérité terrain avant d'avoir le son. Aucun modèle de cette capacité n'est encore au parc, ce qui ne rend pas ce jeu inutile : c'est lui qui dira, le jour où l'on en évalue un, si le québécois lui pose un problème.",
+  "cases": [
+    {
+      "id": "qc-quotidien",
+      "input": { "audio": "assets/qc-quotidien.wav", "language": "fr" },
+      "reference": { "text": "Il fait pas chaud à matin, mais on va quand même aller faire un tour au marché avant que ça ferme." },
+      "pending": { "reason": "à enregistrer — locuteur québécois, registre familier, voir SOURCING.md" },
+      "notes": "Registre familier ordinaire, avec la négation sans « ne » et « à matin ». C'est la façon dont la langue se parle réellement ici, et le premier écart avec le français des corpus d'entraînement."
+    },
+    {
+      "id": "qc-accent-marque",
+      "input": { "audio": "assets/qc-accent-marque.wav", "language": "fr" },
+      "reference": { "text": "Le char est encore pogné dans le banc de neige ; va falloir pelleter avant de partir travailler." },
+      "pending": { "reason": "à enregistrer — locuteur québécois, accent marqué, voir SOURCING.md" },
+      "notes": "Lexique régional et diphtongaison des voyelles longues. C'est le cas qui sépare un modèle qui a vu du québécois d'un modèle qui n'en a jamais vu."
+    },
+    {
+      "id": "qc-technique",
+      "input": { "audio": "assets/qc-technique.wav", "language": "fr" },
+      "reference": { "text": "On a mesuré le pic à quinze virgule quatre-vingt-quinze gibioctets, ça prend quatre-vingt-dix pour cent du budget." },
+      "pending": { "reason": "à enregistrer — locuteur québécois, vocabulaire technique, voir SOURCING.md" },
+      "notes": "Accent québécois sur du vocabulaire technique et des nombres dits en toutes lettres. Deux difficultés qui se cumulent rarement dans les corpus publics."
+    },
+    {
+      "id": "qc-alternance-anglais",
+      "input": { "audio": "assets/qc-alternance-anglais.wav", "language": "fr" },
+      "reference": { "text": "J'ai poussé la branche, mais le build a planté sur le test de coverage ; je vais checker les logs après le lunch." },
+      "pending": { "reason": "à enregistrer — locuteur québécois, alternance codique, voir SOURCING.md" },
+      "notes": "Alternance codique en pleine phrase, avec des mots anglais prononcés à l'anglaise dans une syntaxe française. La détection automatique de langue bascule volontiers en anglais au milieu."
+    },
+    {
+      "id": "qc-noms-propres",
+      "input": { "audio": "assets/qc-noms-propres.wav", "language": "fr" },
+      "reference": { "text": "Elle est partie de Kamouraska jeudi, a couché à Rivière-du-Loup, puis a continué jusqu'à Sainte-Anne-des-Monts." },
+      "pending": { "reason": "à enregistrer — locuteur québécois, toponymes, voir SOURCING.md" },
+      "notes": "Toponymes composés, à trait d'union et d'origine autochtone. Ils ne se devinent pas par le contexte, et leur graphie exacte fait partie de la réponse."
+    },
+    {
+      "id": "qc-hesitations",
+      "input": { "audio": "assets/qc-hesitations.wav", "language": "fr" },
+      "reference": { "text": "Euh, on avait dit mardi, non, mercredi plutôt, parce que le, le rapport était pas prêt avant." },
+      "pending": { "reason": "à enregistrer — locuteur québécois, parole spontanée, voir SOURCING.md" },
+      "notes": "Hésitations, autocorrection, répétition. La référence les conserve : un modèle qui nettoie rend un texte plus lisible et une transcription moins fidèle, et il faut pouvoir mesurer ce choix plutôt que de le subir."
+    },
+    {
+      "id": "qc-debit-rapide",
+      "input": { "audio": "assets/qc-debit-rapide.wav", "language": "fr" },
+      "reference": { "text": "Fait que là je lui ai dit qu'on pouvait pas commencer avant d'avoir la signature, pis il a raccroché." },
+      "pending": { "reason": "à enregistrer — locuteur québécois, débit rapide, voir SOURCING.md" },
+      "notes": "Débit soutenu, avec « fait que » et « pis » réduits à l'oral. Les mots-outils sont les premiers à disparaître quand le débit monte."
+    },
+    {
+      "id": "fr-standard",
+      "input": { "audio": "assets/fr-standard.wav", "language": "fr" },
+      "reference": { "text": "Le contrat de capacité déclare un schéma d'entrée et un schéma de sortie, et tous les modèles de cette capacité sont interchangeables derrière lui." },
+      "pending": { "reason": "à enregistrer — français standard, diction soignée, voir SOURCING.md" },
+      "notes": "Français standard, diction soignée, phrase longue. C'est l'étalon : l'écart entre ce cas et les sept québécois est ce qui se mesure réellement."
+    },
+    {
+      "id": "chiffres-montants",
+      "input": { "audio": "assets/chiffres-montants.wav", "language": "fr" },
+      "reference": { "text": "La facture du 3 septembre 2026 s'élève à deux mille six cent soixante-sept dollars et quarante-deux cents, taxes comprises." },
+      "pending": { "reason": "à enregistrer — voir SOURCING.md" },
+      "notes": "Date et montant dits en toutes lettres, à restituer en toutes lettres. La normalisation en chiffres est une transformation, pas une transcription, et elle doit se voir dans le score."
+    },
+    {
+      "id": "sigles-codes",
+      "input": { "audio": "assets/sigles-codes.wav", "language": "fr" },
+      "reference": { "text": "Le dossier R tiret quatorze vingt-huit a été transmis à la CNESST, avec copie à l'IRSST." },
+      "pending": { "reason": "à enregistrer — voir SOURCING.md" },
+      "notes": "Un code épelé et deux sigles. Ce qui est jugé, c'est la restitution littérale de ce qui a été dit, pas la reconstitution du code sous sa forme écrite."
+    },
+    {
+      "id": "bruit-de-fond",
+      "input": { "audio": "assets/bruit-de-fond.wav", "language": "fr" },
+      "reference": { "text": "On se rappelle demain matin, je serai au bureau à partir de huit heures et demie." },
+      "pending": { "reason": "à enregistrer — même phrase que le cas propre, avec fond de café à environ 10 dB de rapport signal sur bruit, voir SOURCING.md" },
+      "notes": "Phrase simple dans du bruit ambiant. Elle n'a d'intérêt que par comparaison avec sa jumelle propre : c'est l'écart entre les deux qui mesure la robustesse."
+    },
+    {
+      "id": "bruit-de-fond-temoin",
+      "input": { "audio": "assets/bruit-de-fond-temoin.wav", "language": "fr" },
+      "reference": { "text": "On se rappelle demain matin, je serai au bureau à partir de huit heures et demie." },
+      "pending": { "reason": "à enregistrer — même phrase et même locuteur que bruit-de-fond, en studio, voir SOURCING.md" },
+      "notes": "Le témoin du cas précédent : même phrase, même locuteur, sans bruit. Sans lui, un mauvais score sur la version bruitée ne dit pas si c'est le bruit ou la phrase qui a gêné."
+    }
+  ]
+}

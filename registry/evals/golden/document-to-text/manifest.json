@@ -1,0 +1,170 @@
+{
+  "$schema": "../../../schema/golden.schema.json",
+  "capability": "document-to-text",
+  "version": 1,
+  "status": "complet",
+  "normalization": "whitespace",
+  "description": "Seize pages à vérité terrain exacte, rendues depuis les textes de reference/ par tools/golden_assets.py. Elles jugent la QUALITÉ de lecture, là où registry/evals/bench/document-to-text.json mesure un coût. Toutes demandent format=text et non markdown : la mise en Markdown d'un tableau a plusieurs formes défendables, et la noter reviendrait à mesurer la conformité à une préférence plutôt que l'exactitude de la lecture. La structure se juge par les champs.",
+  "cases": [
+    {
+      "id": "paragraphe-simple",
+      "input": { "document": "assets/paragraphe-simple.png", "format": "text", "detect_layout": false },
+      "reference": { "text_file": "reference/paragraphe-simple.txt" },
+      "notes": "Le cas de référence : prose courante, corps confortable, aucun piège. Un modèle qui le rate ne mérite aucun des quinze autres.",
+      "source": { "recipe": "page", "layout": "paragraphe", "font": "serif", "size": 26 }
+    },
+    {
+      "id": "paragraphe-bruite",
+      "input": { "document": "assets/paragraphe-bruite.png", "format": "text", "detect_layout": false },
+      "reference": { "text_file": "reference/paragraphe-bruite.txt" },
+      "notes": "Même mise en page, page salie : grain gaussien et légère variation d'éclairement. C'est l'écart avec le cas propre qui intéresse, pas le score absolu.",
+      "source": { "recipe": "page", "layout": "paragraphe", "font": "serif", "size": 26, "degrade": "bruit" }
+    },
+    {
+      "id": "accents-typographie",
+      "input": { "document": "assets/accents-typographie.png", "format": "text", "detect_layout": false },
+      "reference": { "text_file": "reference/accents-typographie.txt" },
+      "notes": "Diacritiques serrés, ligatures œ et æ, guillemets français, apostrophes typographiques, tirets cadratins. Un moteur entraîné surtout sur l'anglais s'y trahit tout de suite.",
+      "source": { "recipe": "page", "layout": "paragraphe", "font": "serif", "size": 26 }
+    },
+    {
+      "id": "tableau-budget",
+      "input": { "document": "assets/tableau-budget.png", "format": "text", "detect_layout": true },
+      "reference": {
+        "text_file": "reference/tableau-budget.txt",
+        "fields": {
+          "total_prevu": "14 250 $",
+          "total_reel": "16 168 $",
+          "ecart_electricite": "-332 $"
+        }
+      },
+      "notes": "Quatre colonnes régulières, montants alignés à droite, signes + et -. Les trois champs se recoupent arithmétiquement : une colonne lue de travers se voit au total.",
+      "source": { "recipe": "page", "layout": "tableau", "font": "sans", "size": 24 }
+    },
+    {
+      "id": "tableau-irregulier",
+      "input": { "document": "assets/tableau-irregulier.png", "format": "text", "detect_layout": true },
+      "reference": {
+        "text_file": "reference/tableau-irregulier.txt",
+        "fields": { "pic_sdxl": "15,95 Gio", "mesure_trellis": "jamais" }
+      },
+      "notes": "Colonnes de largeurs très inégales et une cellule vide. La cellule vide est le piège : un lecteur qui la comble en décalant la ligne rend un tableau plausible et faux.",
+      "source": { "recipe": "page", "layout": "tableau", "font": "sans", "size": 22 }
+    },
+    {
+      "id": "formulaire-champs",
+      "input": { "document": "assets/formulaire-champs.png", "format": "text", "detect_layout": true },
+      "reference": {
+        "text_file": "reference/formulaire-champs.txt",
+        "fields": {
+          "dossier": "R-1428",
+          "poste": "4021",
+          "date": "14 juillet 2026",
+          "decision": "accordée"
+        }
+      },
+      "notes": "Paires étiquette / valeur à taquet fixe. C'est la forme dont l'extraction par champs a le plus besoin, et celle où une valeur rattachée à la mauvaise étiquette passe le plus facilement inaperçue.",
+      "source": { "recipe": "page", "layout": "formulaire", "font": "sans", "size": 24 }
+    },
+    {
+      "id": "facture",
+      "input": { "document": "assets/facture.png", "format": "text", "detect_layout": true },
+      "reference": {
+        "text_file": "reference/facture.txt",
+        "fields": {
+          "numero": "2026-0417",
+          "echeance": "3 octobre 2026",
+          "tvq": "231,42 $",
+          "total": "2 667,42 $"
+        }
+      },
+      "notes": "En-tête d'adresse, tableau de lignes, bloc de taxes québécoises. Les montants se vérifient entre eux : 700 + 1 140 + 480, puis 5 % et 9,975 %. Une page lue à 98 % dont le total est faux est une page inutilisable.",
+      "source": { "recipe": "page", "layout": "tableau", "font": "serif", "size": 22 }
+    },
+    {
+      "id": "deux-colonnes",
+      "input": { "document": "assets/deux-colonnes.png", "format": "text", "detect_layout": true },
+      "reference": { "text_file": "reference/deux-colonnes.txt" },
+      "notes": "Deux colonnes de prose. C'est l'ordre de lecture qui est jugé : un moteur qui lit ligne à ligne en travers de la gouttière rend un texte dont chaque mot est juste et dont aucune phrase ne l'est.",
+      "source": { "recipe": "page", "layout": "colonnes", "font": "serif", "size": 24 }
+    },
+    {
+      "id": "liste-imbriquee",
+      "input": { "document": "assets/liste-imbriquee.png", "format": "text", "detect_layout": true },
+      "reference": { "text_file": "reference/liste-imbriquee.txt" },
+      "notes": "Numérotation à deux niveaux, indentation porteuse de sens. Les puces et les lettres font partie du texte attendu : les perdre, c'est perdre la structure de la procédure.",
+      "source": { "recipe": "page", "layout": "liste", "font": "sans", "size": 24 }
+    },
+    {
+      "id": "sigles-references",
+      "input": { "document": "assets/sigles-references.png", "format": "text", "detect_layout": false },
+      "reference": {
+        "text_file": "reference/sigles-references.txt",
+        "fields": {
+          "rapport": "R-1428",
+          "cas": "3 247",
+          "code_postal": "H2L 2H2",
+          "telephone": "514 555-0142",
+          "neq": "1167891234"
+        }
+      },
+      "notes": "Sigles, codes de dossier, code postal, numéros à dix chiffres, courriel. Rien ici ne se devine par le contexte : c'est la lecture caractère par caractère qui est éprouvée.",
+      "source": { "recipe": "page", "layout": "paragraphe", "font": "serif", "size": 24 }
+    },
+    {
+      "id": "code-monospace",
+      "input": { "document": "assets/code-monospace.png", "format": "text", "detect_layout": true },
+      "reference": { "text_file": "reference/code-monospace.txt" },
+      "normalization": "strict",
+      "notes": "Extrait de code à chasse fixe, comparé caractère pour caractère — indentation comprise. C'est le seul cas où la mise en ligne fait partie du contenu, et le seul dont la note est impitoyable.",
+      "source": { "recipe": "page", "layout": "code", "font": "mono", "size": 22 }
+    },
+    {
+      "id": "titres-hierarchie",
+      "input": { "document": "assets/titres-hierarchie.png", "format": "text", "detect_layout": true },
+      "reference": { "text_file": "reference/titres-hierarchie.txt" },
+      "notes": "Un titre de niveau un et trois de niveau deux, distingués par le corps et la graisse. En texte brut, un titre est une ligne comme une autre : c'est l'ordre et la complétude qui sont jugés, la mise en Markdown viendra quand une métrique saura la noter.",
+      "source": {
+        "recipe": "page",
+        "layout": "titres",
+        "font": "sans",
+        "size": 24,
+        "headings": { "0": 1, "3": 2, "6": 2, "9": 2 }
+      }
+    },
+    {
+      "id": "dense-petit-corps",
+      "input": { "document": "assets/dense-petit-corps.png", "format": "text", "detect_layout": false },
+      "reference": { "text_file": "reference/dense-petit-corps.txt" },
+      "notes": "Corps réduit, interligne serré, page pleine. C'est la densité qui pilote le nombre de jetons produits, donc la durée — et c'est là que les modèles à fenêtre courte commencent à sauter des lignes.",
+      "source": { "recipe": "page", "layout": "paragraphe", "font": "serif", "size": 16, "interligne": 1.25 }
+    },
+    {
+      "id": "faible-contraste",
+      "input": { "document": "assets/faible-contraste.png", "format": "text", "detect_layout": false },
+      "reference": { "text_file": "reference/faible-contraste.txt" },
+      "notes": "Gris moyen sur gris clair, comme une photocopie fatiguée. Le texte est court à dessein : ce qu'on mesure, c'est le seuil à partir duquel le moteur cesse de voir, pas son endurance.",
+      "source": { "recipe": "page", "layout": "paragraphe", "font": "serif", "size": 26, "degrade": "contraste" }
+    },
+    {
+      "id": "inclinee",
+      "input": { "document": "assets/inclinee.png", "format": "text", "detect_layout": false },
+      "reference": {
+        "text_file": "reference/inclinee.txt",
+        "fields": { "avance": "1 200,00 $", "solde": "1 467,42 $" }
+      },
+      "notes": "Page numérisée de travers, 1,6 degré. Le solde complète le total de la facture — 2 667,42 moins 1 200 — ce qui donne un second point de contrôle indépendant du reste de la page.",
+      "source": { "recipe": "page", "layout": "paragraphe", "font": "serif", "size": 26, "degrade": "incline" }
+    },
+    {
+      "id": "main-courante",
+      "input": { "document": "assets/main-courante.png", "format": "text", "detect_layout": true },
+      "reference": {
+        "text_file": "reference/main-courante.txt",
+        "fields": { "premiere_heure": "08 h 12", "pic_sdxl": "15,95 Gio", "refus": "24,2 Gio" }
+      },
+      "notes": "Journal horodaté à la québécoise — « 08 h 12 » et non « 08:12 » — mêlant heures, unités et pourcentages sur chaque ligne. Les formats d'heure sont ce que les moteurs normalisent le plus volontiers sans qu'on le leur demande.",
+      "source": { "recipe": "page", "layout": "liste", "font": "mono", "size": 20 }
+    }
+  ]
+}

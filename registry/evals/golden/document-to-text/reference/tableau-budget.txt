@@ -1,0 +1,6 @@
+Poste	Prévu	Réel	Écart
+Poids des modèles	12 000 $	14 250 $	+2 250 $
+Stockage externe	800 $	800 $	0 $
+Électricité	1 450 $	1 118 $	-332 $
+Licences	0 $	0 $	0 $
+Total	14 250 $	16 168 $	+1 918 $

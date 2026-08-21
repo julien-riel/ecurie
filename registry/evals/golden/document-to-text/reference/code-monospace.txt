@@ -1,0 +1,10 @@
+def expected_peak(self, values):
+    echelle = self.peak_scaling
+    if echelle is None or not values:
+        return self.peak_unified_memory_bytes, None
+
+    valeur = float(values[echelle.parameter])
+    attendu = echelle.expected(valeur)
+    if echelle.extrapolates(valeur):
+        return max(attendu, self.peak_unified_memory_bytes), "extrapole"
+    return attendu, None

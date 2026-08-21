@@ -1,0 +1,6 @@
+Variant	Quantification	Pic mémoire	Mesuré le
+qwen3-tts-1.7b@8bit-mlx	8 bits	7,65 Gio	2026-08-20
+sdxl-base@fp16	fp16	15,95 Gio	2026-08-20
+qwen3-vl-8b-ocr@4bit	4 bits	6,25 Gio	2026-08-20
+minimax-music3@4bit	4 bits	23,94 Gio	2026-08-20
+trellis2@bf16	bf16		jamais
