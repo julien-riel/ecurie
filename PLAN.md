@@ -14,13 +14,13 @@
 | v0.1 — Voir le parc | **livré** | atteint |
 | v0.2 — Récupérer des gigaoctets | **livré** | atteint |
 | v0.3 — Exécuter sans OOM | **livré** | atteint : `run` TTS produit un wav, un job image décharge le TTS proprement, sans swap |
-| v0.4 — Utilisable au quotidien | **en cours** | 4.1 : `ecurie serve` sert le parc **et lance ses jobs** — un POST, un flux SSE, un wav téléchargeable, éprouvés sur le vrai parc. 4.3 : les 17 contrats engendrent leur formulaire, sans un formulaire écrit à la main. 4.4 : l'Atelier existe, avec son bandeau de ressources, et il est complet sauf son bouton *Lancer*. 4.6 : le superviseur vit dans le processus de l'API, et `residents.json` n'est plus qu'un miroir |
+| v0.4 — Utilisable au quotidien | **en cours** | 4.1 : `ecurie serve` sert le parc **et lance ses jobs** — un POST, un flux SSE, un wav téléchargeable, éprouvés sur le vrai parc. 4.3 : les 17 contrats engendrent leur formulaire, sans un formulaire écrit à la main. 4.4 : l'Atelier lance, suit et montre — du clic au wav qu'on écoute, éprouvé contre un vrai serveur. 4.6 : le superviseur vit dans le processus de l'API, et `residents.json` n'est plus qu'un miroir |
 | v0.5 → v0.7 | à faire | — |
 
 Le parc réel compte **dix capacités exécutables** sur dix-sept déclarées, douze
 manifestes et treize variants, dont onze prêts. Sept environnements de runtime,
-quatre paquets Python et un front, **770 tests Python et 231 tests de front**,
-plus cinq essais sur le vrai parc et trois contre un vrai serveur, exclus par
+quatre paquets Python et un front, **771 tests Python et 281 tests de front**,
+plus cinq essais sur le vrai parc et cinq contre un vrai serveur, exclus par
 défaut.
 
 Deux choses ont été faites en marge du jalon, et elles n'attendaient personne :
@@ -133,7 +133,7 @@ vendoré, 7,37 Go de poids non téléchargés (conception §13.4).
 | 4.1 | ✓ FastAPI : registre, jobs + SSE, `store/summary`, résidents | Les **lectures** (`/registry/*`, `/store/summary`, `/runtime/residents`, `/runtime/admission`), puis les **jobs** : `POST /jobs` rend 202 et un identifiant, `GET /jobs/{id}` l'état et son manifeste, `/events` un flux SSE qui rejoue depuis le début et se termine par un `end`, `/files/{chemin}` les fichiers — avec l'URL composée par le serveur et le type de média que le contrat promettait |
 | 4.2 | Bibliothèque côté serveur : manifeste de job complet, rejeu | reproductibilité effective |
 | 4.3 | ✓ UI : socle React+Vite+RJSF, mapping `x-ui`, visualiseurs par media type | `apps/ui` : deux tables d'aiguillage totales, les **17 contrats** rendus par une suite qui les lit sur le disque, 145 tests. Le typage vient du serveur — schéma OpenAPI figé et fixtures du vrai registre, gardés par deux tests pytest |
-| 4.4 | ◑ Écran **Atelier** (capacité → variant → formulaire → progression SSE → sortie) + bandeau de ressources | `src/ecrans/Atelier.tsx` : capacités groupées par ce qui marche, variant préselectionné sur le titulaire **exécutable**, formulaire engendré, chiffrage de l'entrée, sorties promises par le contrat. Bandeau permanent sondé toutes les 2 s. **Le bouton *Lancer*, la progression SSE et la sortie réelle restent à brancher** — le serveur les sert depuis le 4.1, l'écran ne les appelle pas encore |
+| 4.4 | ✓ Écran **Atelier** (capacité → variant → formulaire → progression SSE → sortie) + bandeau de ressources | `src/ecrans/Atelier.tsx` : capacités groupées par ce qui marche, variant préselectionné sur le titulaire **exécutable**, formulaire engendré, chiffrage de l'entrée, bandeau permanent sondé toutes les 2 s. Puis le **lancement** : un bouton qui n'est jamais grisé pour un variant qu'on croit incapable, un flux d'événements lu par `fetch`, une progression, un bilan qui dit ce qui a été déchargé, et la sortie réelle servie par le résolveur de fichiers. Éprouvé contre un vrai `ecurie serve` : un wav de 2,48 s produit, téléchargé et lu dans l'écran qui l'a demandé |
 | 4.5 | Écran **Parc** (trois chiffres, arbre de duplication, plan de GC dry-run, tiering) | parité avec la CLI |
 | 4.6 | ✓ Le superviseur passe dans le processus de l'API : l'occupation des résidents cesse d'être un pid dans un fichier verrouillé et redevient un état en mémoire, et deux jobs sur un même worker se sérialisent au lieu d'attendre dans le backlog du socket | Un superviseur par processus, un verrou par variant tenu de l'admission à la fin du job, l'occupation en mémoire. `residents.json` est écrit par chacun, lu pour les autres. `ecurie unload` refuse un job en cours, `health()` ne fait plus la queue derrière le sien, et l'attente se dit à qui la subit |
 | 4.7 | Bandeau de ressources **calculé sur l'entrée en cours de saisie** : un profil paramétré (§3 conception) change le pic attendu quand l'utilisateur bouge un curseur de durée ou de résolution | « lancer coûtera 17,2 Gio, déchargera X » se met à jour en direct |
@@ -203,14 +203,14 @@ v0.1 ── v0.2 ── v0.3 ── v0.4 ── v0.5 ── v0.6 ── v0.7
                          │                       └ 7.0 (éprouver Hunyuan3D)
                          │                          peut démarrer n'importe quand
                          ├ 4.1 serveur ✓    4.3 socle UI ✓
-                         │  (lectures,      4.4 Atelier ✓ (sauf Lancer)
+                         │  (lectures,      4.4 Atelier ✓ (lancement compris)
                          │   puis jobs)     4.6 superviseur dans l'API ✓
                          │
-                         └ le serveur lance, suit et sert ; il ne reste
-                            qu'à le brancher — fin du 4.4 (Lancer,
-                            progression, sortie réelle), puis 4.2
-                            (Bibliothèque et rejeu), qui s'appuie sur
-                            le manifeste déjà écrit par chaque job
+                         └ restent 4.5 (écran Parc, sans dépendance),
+                            4.2 (Bibliothèque et rejeu, qui s'appuie sur
+                            le manifeste déjà écrit par chaque job) et
+                            4.7 (le bandeau chiffre l'entrée en cours
+                            de saisie)
 ```
 
 Seule parallélisation utile : les contrats de capacité (3.1) et la constitution des
@@ -329,15 +329,16 @@ choses valent d'être retenues, et trois n'ont été vues qu'en exécutant.
    par l'écran et passé au bandeau : deux fois moins de requêtes, et le défaut
    disparaît avec le doublon.
 
-Un écart au plan, assumé : **le résolveur de fichiers de sortie n'a pas été
-écrit.** Le point d'injection reste `NO_FILE`. Ce n'est pas l'effort — c'est une
-ligne — mais qu'on ne peut pas l'écrire juste : la forme de
-`GET /jobs/{id}/files/{name}` se décide avec la route des jobs, qui a un vrai
-choix à faire entre un nom de fichier et un chemin à plusieurs segments,
-`audio-separation` produisant des sorties imbriquées. Écrite avant, elle serait
-réécrite après, et aucun test n'aurait pu dire laquelle des deux formes est la
-bonne. À la place, l'écran annonce ce que le contrat promet de produire, sans
-prétendre l'avoir produit.
+Un écart au plan, assumé sur le moment et **réglé depuis** : le résolveur de
+fichiers de sortie n'avait pas été écrit, le point d'injection restait `NO_FILE`.
+Ce n'était pas l'effort — c'est une ligne — mais qu'on ne pouvait pas l'écrire
+juste : la forme de `GET /jobs/{id}/files/…` se décidait avec la route des jobs,
+qui avait un vrai choix à faire entre un nom de fichier et un chemin à plusieurs
+segments, `audio-separation` produisant des sorties imbriquées. L'attente était
+le bon calcul : la route a choisi le chemin **et** de composer l'URL elle-même,
+si bien que le résolveur écrit après n'est plus une construction mais une lecture
+dans `files` — moins de code qu'aucune des deux versions qu'on aurait écrites
+avant.
 
 ### Ce que le déménagement du superviseur a appris
 
@@ -427,23 +428,95 @@ fichiers de sortie. Quatre points, dont trois étaient des questions ouvertes.
 demande de trente secondes de musique refusée par « demande 24,21 Gio, le budget
 entier est de 17,76 Gio » — sans que le TTS résident soit touché.
 
+### Ce que brancher le bouton *Lancer* a appris
+
+La fin du 4.4 a donné à l'Atelier `useJob`, un analyseur de flux, un panneau de
+job et le résolveur de fichiers que le 4.3 avait laissé en `NO_FILE`. Sept
+choses valent d'être retenues, et deux touchent le serveur plutôt que le front —
+c'est le propre d'un client : il découvre ce que l'API ne dit pas.
+
+1. **La conception nommait `EventSource`, et il ne pouvait pas servir.** Pas
+   pour ses défauts propres, mais pour deux raisons de banc d'essai. Il n'existe
+   pas en jsdom : la suite entière aurait tourné sur un double écrit pour
+   l'occasion, c'est-à-dire qu'elle aurait éprouvé le double. Et il n'est pas
+   `fetch` : le double de `vitest.setup.ts` refuse toute route non déclarée pour
+   qu'un test ne parte pas frapper le `ecurie serve` qui tourne sur cette
+   machine, et un `EventSource` serait passé à côté de ce filet. Le `end` que le
+   serveur émet pour lui garde tout son sens ; l'analyseur SSE tient en trente
+   lignes et se teste, lui, morceau par morceau.
+2. **Le flux ne portait pas ce qu'il fallait afficher.** `JobOut` avait `outputs`
+   — les sorties du contrat qui sont des fichiers — et pas `output`, la réponse
+   du worker. Or on aplatit la réponse et non le contrat, et tout ce qui n'est
+   pas un fichier n'existe que là : `page_count`, `language`, `call_names`. Un
+   client qui n'écoute que le flux ne les aurait jamais vus. Le défaut était
+   invisible côté serveur, où les tests lisent le manifeste.
+3. **Une commande de réparation voyage désormais dans une erreur**, ce que le
+   front affirmait impossible. Tant qu'on ne faisait que lire, un variant non
+   exécutable était un état et ses blockers arrivaient dans une réponse 200 ; le
+   demander à `POST /jobs` en fait un refus, et le 409 porte un `detail`
+   **objet** que `JSON.stringify` rendait illisible au moment précis où il dit
+   quoi taper.
+4. **Un test écrit pour la forme a trouvé un vrai défaut.** L'analyseur cherchait
+   `\n\n` ; un serveur en CRLF émet `\r\n\r\n`, où cette recherche ne trouve
+   rien. Il n'aurait rendu aucun événement, sans une erreur pour le dire :
+   l'écran serait resté figé sur « en file » pendant que le job finissait.
+5. **Un essai réel change la machine qu'il éprouve.** Le job réel charge le
+   modèle et le laisse résident ; le test d'admission du même fichier, écrit au
+   4.4, attendait « lancer chargera 7,65 Gio » et lit maintenant « déjà
+   résident ». Il passait au premier lancement et échouait au second, sans
+   qu'une ligne ait bougé. C'est la même leçon que les cinq essais `real` de
+   pytest : **l'état du parc fait partie des entrées d'un essai réel.**
+6. **Le flux pouvait sauter son dernier événement**, et c'est le second défaut
+   serveur que seul un client a pu révéler. `_flux` lisait le journal puis
+   demandait si le job était terminé ; entre les deux, le fil du job avait le
+   temps d'exécuter `finish()` en entier. La lecture rendait alors « rien de
+   neuf », le test de terminaison concluait « plus rien à venir », et le `end`
+   partait sans que l'état final soit passé. Les tests serveur ne pouvaient pas
+   le voir — ils lisent le flux jusqu'au bout, hors concurrence. L'écran, lui,
+   restait figé à 40 % avec un bouton grisé et une sortie jamais montrée. Lire
+   l'état terminal **avant** le journal suffit, et le test qui garde la course la
+   provoque à l'endroit exact où elle se produit.
+7. **Une requête en vol n'a pas de bouton d'annulation, elle a une génération.**
+   `AbortController` coupe le flux, mais pas le `POST` de la soumission ni le
+   `GET` de la reprise. Les laisser poser leur résultat au retour ouvrait deux
+   impasses trouvées en revue : un job soumis puis oublié — on change de
+   capacité pendant que le `POST` vole — revenait bloquer *Lancer* **sans** son
+   panneau, donc sans le bouton qui l'aurait retiré ; et un job retiré pendant
+   une reprise réapparaissait tout seul. Le chiffrage avait la même faille là où
+   le bandeau avait déjà sa garde. La règle vaut pour tout l'écran : **une
+   réponse qui revient doit prouver qu'on lui a posé la question la plus
+   récente.**
+
+Éprouvé contre un vrai `ecurie serve`, depuis l'écran : un job TTS du clic au wav
+— 2,48 s d'audio, `rtf` 0,45, fichier servi en `audio/wav` depuis le port de
+l'API et chargé par la page servie par Vite —, et un refus d'admission arrivé
+**par le flux** en `failed`, « admission refusée : minimax-music3@4bit demande
+24.21 Gio, le budget entier est de 17.76 Gio : décharger ne changerait rien ».
+
 ## Prochain pas
 
-La fin de la tâche **4.4** : le bouton *Lancer* de l'Atelier, la progression, la
-sortie réelle. Tout ce qui lui manquait existe désormais côté serveur, y compris
-l'URL des fichiers, qu'il n'a plus qu'à suivre.
+L'écran **Parc** (4.5), qui n'attend rien : la route `/store/summary` répond
+déjà, et le bandeau de ressources lui est réutilisable tel quel. C'est aussi le
+moment où la coquille gagnera sa navigation — au 4.4 un onglet unique aurait été
+un décor, à deux écrans il en faut une.
 
-L'écran **Parc** (4.5) est faisable en parallèle sans rien attendre : la route
-`/store/summary` répond déjà, et le bandeau de ressources lui est réutilisable
-tel quel. C'est aussi le moment où la coquille gagnera sa navigation — au 4.4 un
-onglet unique aurait été un décor.
+Puis la **Bibliothèque** (4.2), qui s'appuie sur le manifeste que chaque job
+écrit déjà, et la tâche **4.7**, que l'Atelier rend maintenant utile : tant que
+le job ne partait pas, un pic qui suit la saisie était un raffinement ; il est
+devenu ce qui dit, avant de cliquer, si le curseur qu'on vient de bouger fera
+échouer le job.
 
-Deux dettes que le socle rend visibles, et qu'aucune tâche ne porte : **aucun des
+Trois dettes que le socle rend visibles, et qu'aucune tâche ne porte : **aucun des
 102 champs du registre n'a de `title`** — l'étiquette affichée est la clé du
 contrat, et la bonne place du français est le JSON, pas une table de traduction
-dans le front —, et **aucune route de téléversement** n'existe pour les dix
+dans le front —, **aucune route de téléversement** n'existe pour les dix
 champs fichier, ce qui est sans conséquence tant que le navigateur et le serveur
-partagent la machine.
+partagent la machine, et le **visualiseur 3D n'est pas installé**. Cette dernière
+a changé de nature sans changer de conclusion : ce n'est plus l'absence d'URL,
+c'est qu'aucun maillage n'existe — `image-to-mesh` attend ses 7,37 Go et la tâche
+**7.0**. Quarante mégaoctets de composant éprouvés sur un fichier fabriqué
+seraient un chemin de code que rien n'exécute ; en attendant, le `.glb` se
+télécharge.
 
 Faisable en parallèle, sans dépendance : la tâche **7.0** (éprouver Hunyuan3D),
 seul risque non levé du projet — `runtimes/hunyuan3d/run.py` est écrit d'après le
