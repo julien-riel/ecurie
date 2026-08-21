@@ -1,0 +1,86 @@
+{
+  "ref": "qwen3-4b-traduction@4bit",
+  "model": "qwen3-4b-traduction",
+  "variant": "4bit",
+  "capability": "translation",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-lm 0.29.1",
+  "measured_at": "2026-08-21",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/translation.json",
+    "version": 1,
+    "cases": [
+      "court",
+      "moyen",
+      "long"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 2278969697,
+    "peak_unified_memory_bytes": 2763997636,
+    "warmup_ms": 746,
+    "latency_ms_p50": 1454,
+    "throughput": "1 sortie / 1.6 s"
+  },
+  "cases": [
+    {
+      "id": "court",
+      "ok": true,
+      "duration_ms": 782,
+      "metrics": {
+        "duration_ms": 782,
+        "source_characters": 72,
+        "target_characters": 66,
+        "expansion_ratio": 0.917,
+        "register": "neutre",
+        "max_tokens": 548,
+        "prompt_tokens": 158,
+        "generation_tokens": 15,
+        "tokens_per_second": 19.33,
+        "truncated": false,
+        "peak_memory_bytes": 2591260512
+      },
+      "error": null
+    },
+    {
+      "id": "moyen",
+      "ok": true,
+      "duration_ms": 1454,
+      "metrics": {
+        "duration_ms": 1454,
+        "source_characters": 318,
+        "target_characters": 303,
+        "expansion_ratio": 0.953,
+        "register": "neutre",
+        "max_tokens": 671,
+        "prompt_tokens": 232,
+        "generation_tokens": 60,
+        "tokens_per_second": 41.28,
+        "truncated": false,
+        "peak_memory_bytes": 2680373372
+      },
+      "error": null
+    },
+    {
+      "id": "long",
+      "ok": true,
+      "duration_ms": 2646,
+      "metrics": {
+        "duration_ms": 2646,
+        "source_characters": 656,
+        "target_characters": 629,
+        "expansion_ratio": 0.959,
+        "register": "neutre",
+        "max_tokens": 840,
+        "prompt_tokens": 315,
+        "generation_tokens": 117,
+        "tokens_per_second": 44.23,
+        "truncated": false,
+        "peak_memory_bytes": 2763997636
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

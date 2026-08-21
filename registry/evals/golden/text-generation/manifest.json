@@ -1,0 +1,87 @@
+{
+  "$schema": "../../../schema/golden.schema.json",
+  "capability": "text-generation",
+  "version": 1,
+  "status": "complet",
+  "description": "Huit demandes orientées programmation. Il n'y a pas de réponse unique — deux implémentations correctes n'ont aucune raison de se ressembler —, donc pas de référence textuelle : ces cas se départagent en Confrontation. Leurs `fields` sont en revanche vérifiables sans juge : ce sont les éléments qu'une réponse correcte ne peut pas omettre, une signature exacte, le nom du coupable, le mot qui prouve qu'on a compris la question.\n\nCe qui manque, et qu'il vaut mieux dire : **la vraie note d'un modèle de code, c'est l'exécution de tests**, et exécuter du code produit par un modèle demande un bac à sable que le §11 de l'architecture met hors périmètre. Le jour où il existera, ces mêmes cas prendront une référence exécutable sans changer d'identifiant — c'est pour cela qu'ils sont écrits avec des signatures imposées.",
+  "cases": [
+    {
+      "id": "fonction-signature",
+      "input": {
+        "prompt": "Écris une fonction Python `fmt_bytes(n: int) -> str` qui rend une taille lisible : « 1.20 Go » au-dessus de 10⁹, « 3.4 Mo » au-dessus de 10⁶, « 12 ko » au-dessus de 10³, et « 42 o » sinon. Une seule fonction, sans dépendance.",
+        "temperature": 0.2,
+        "seed": 701
+      },
+      "reference": { "fields": { "signature": "def fmt_bytes(n: int) -> str" } },
+      "notes": "Signature imposée et quatre seuils explicites. C'est le cas le plus simple du jeu, et le seul dont la note automatique sera immédiate le jour où un bac à sable exécutera les tests."
+    },
+    {
+      "id": "bogue-a-trouver",
+      "input": {
+        "prompt": "Ce code doit rendre la part de l'image occupée par le sujet, entre 0 et 1, à partir de l'histogramme d'un masque 8 bits. Il rend systématiquement une valeur trop grande. Où est l'erreur ?\n\n```python\ndef couverture(alpha):\n    histogramme = alpha.histogram()\n    total = sum(histogramme)\n    somme = sum(valeur * compte for valeur, compte in enumerate(histogramme))\n    return somme / total\n```",
+        "temperature": 0.2,
+        "seed": 702
+      },
+      "reference": { "fields": { "coupable": "255" } },
+      "notes": "Une division oubliée par la profondeur du canal. Le bogue est réel — c'est celui que l'adaptateur de détourage évite dans `_couverture` —, et il ne se voit pas à la lecture rapide : le code tourne et rend un nombre plausible."
+    },
+    {
+      "id": "test-unitaire",
+      "input": {
+        "prompt": "Écris trois tests pytest pour cette fonction, en français, dont un cas limite qui échoue si on oublie la borne :\n\n```python\ndef heavy(peak_bytes: int, threshold: int) -> bool:\n    return peak_bytes > threshold\n```",
+        "temperature": 0.2,
+        "seed": 703
+      },
+      "reference": { "fields": { "cadre": "def test" } },
+      "notes": "Le cas limite est le seuil exact : `peak == threshold` doit rendre faux. C'est le test qui manque le plus souvent, et c'est exactement celui qui a servi au recalibrage du seuil de lourdeur."
+    },
+    {
+      "id": "refactorisation",
+      "input": {
+        "prompt": "Simplifie cette fonction sans changer son comportement, et dis en une phrase ce qui la rendait difficile à lire :\n\n```python\ndef refs(rec):\n    if rec.meta.get('variant_refs') is not None:\n        if isinstance(rec.meta.get('variant_refs'), list):\n            if len(rec.meta.get('variant_refs')) > 0:\n                return [str(r) for r in rec.meta.get('variant_refs')]\n    if rec.variant_ref is not None:\n        return [rec.variant_ref]\n    return []\n```",
+        "temperature": 0.2,
+        "seed": 704
+      },
+      "notes": "Trois `if` imbriqués et quatre lectures du même dictionnaire. On juge autant la simplification que l'explication : un modèle qui refactorise sans savoir dire pourquoi refactorisera un jour ce qu'il ne fallait pas."
+    },
+    {
+      "id": "expression-reguliere",
+      "input": {
+        "prompt": "Écris une expression régulière Python qui reconnaît une référence de variant de la forme « modele@variant », où le modèle commence par une minuscule ou un chiffre et n'accepte ensuite que minuscules, chiffres, points, tirets et soulignés, et où le variant suit les mêmes règles. Donne l'expression, puis deux exemples qu'elle refuse et pourquoi.",
+        "temperature": 0.2,
+        "seed": 705
+      },
+      "reference": { "fields": { "ancre": "^" } },
+      "notes": "Une expression régulière sans ancres reconnaît un fragment au milieu de n'importe quoi. C'est la faute la plus fréquente et la plus discrète : elle ne se voit que sur l'entrée qu'on n'avait pas prévue."
+    },
+    {
+      "id": "explication-en-francais",
+      "input": {
+        "prompt": "Explique en trois phrases, en français et sans jargon inutile, ce que fait ce code et pourquoi le facteur 0,9 est là :\n\n```python\nfor _ in range(160):\n    d = sdf(points)\n    touche = d < 1e-4\n    vivants &= ~touche & (distance < 7.0)\n    distance = where(vivants, distance + maximum(0.9 * d, 1e-4), distance)\n```",
+        "temperature": 0.3,
+        "seed": 706
+      },
+      "reference": { "fields": { "domaine": "distance" } },
+      "notes": "Du lancer de rayons sur une fonction de distance signée, expliqué à quelqu'un qui n'en fait pas. Le facteur de sécurité est le détail qui prouve la compréhension : sans lui le rayon traverse la paroi, et c'est le bogue qui a fallu corriger sur le cône du golden set de maillage."
+    },
+    {
+      "id": "contrainte-de-format",
+      "input": {
+        "prompt": "Rends UNIQUEMENT un bloc de code Python, sans une phrase avant ni après, sans commentaire d'introduction : une fonction `sha256_fichier(chemin)` qui lit par blocs de 4 Mio et rend l'empreinte hexadécimale.",
+        "temperature": 0.2,
+        "seed": 707
+      },
+      "reference": { "fields": { "fonction": "def sha256_fichier" } },
+      "notes": "Le respect d'une contrainte de format qui va contre l'habitude du modèle. C'est ce qui décide s'il est pilotable par un programme : une réponse juste précédée de « Bien sûr ! Voici… » casse tout appelant qui attend du code."
+    },
+    {
+      "id": "demande-sous-specifiee",
+      "input": {
+        "prompt": "Écris-moi la fonction de déduplication.",
+        "temperature": 0.3,
+        "seed": 708
+      },
+      "notes": "Une demande dont on ne peut rien faire : dédupliquer quoi, sur quel critère, avec quel effet de bord ? La bonne réponse pose une question ou énonce ses hypothèses ; la mauvaise produit trente lignes confiantes qu'il faudra jeter. C'est le cas qui sépare un assistant d'un générateur."
+    }
+  ]
+}

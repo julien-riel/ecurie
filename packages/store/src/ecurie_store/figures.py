@@ -166,7 +166,7 @@ class ContentGroup:
         if not inodes_gardes:
             return result
 
-        if gardes and all(r.variant_ref is not None and r.variant_ref in unused for r in gardes):
+        if gardes and all(_jamais_utilise(r, unused) for r in gardes):
             result.unused_paths, écartés = _partage(gardes, self.size)
             result.skipped.extend(écartés)
             result.unused_bytes = sum(octets for _, octets in result.unused_paths)
@@ -201,6 +201,19 @@ class ContentGroup:
                 )
                 result.dup_bytes += libérés
         return result
+
+
+def _jamais_utilise(rec: LocationRecord, unused: set[str]) -> bool:
+    """Ce fichier n'a servi à aucun des variants auxquels il appartient.
+
+    Le pluriel est la seule chose qui compte ici : deux manifestes peuvent
+    pointer les mêmes poids pour deux capacités, et il suffit qu'**un** des deux
+    ait servi pour que ces octets ne soient pas récupérables. Regarder la seule
+    étiquette principale proposerait à la corbeille des poids employés tous les
+    jours par l'autre.
+    """
+    refs = rec.variant_refs
+    return bool(refs) and all(ref in unused for ref in refs)
 
 
 def _by_inode(records: list[LocationRecord]) -> dict[tuple[int, int], list[LocationRecord]]:
@@ -348,7 +361,7 @@ def unused_variants(
     télémétrie existe : sans elle, tout paraîtrait inutilisé."""
     now = now or datetime.now(UTC)
     cutoff = now - timedelta(days=unused_after_days)
-    refs = {r.variant_ref for r in records if r.variant_ref}
+    refs = {ref for r in records for ref in r.variant_refs}
     unused: set[str] = set()
     for ref in sorted(refs):
         last = last_runs.get(ref)

@@ -47,8 +47,17 @@ class Config(BaseModel):
     # --- exécution (v0.3) ----------------------------------------------------
     # La politique du §7 de l'architecture, en réglages : un seul modèle lourd
     # résident à la fois, les légers restent chauds.
+    #
+    # Le seuil est à 8 Gio, et non aux 6 Go que l'architecture avait avancés
+    # avant toute mesure. Les quatre profils relevés sur la machine de référence
+    # tranchent : voix 7,65 Gio, lecture de document 6,25, image 15,95, musique
+    # 13,8 à 23,9 selon la durée demandée. À 6 Go, les quatre sont « lourds »,
+    # donc aucun ne cohabite jamais — la politique ne distingue plus rien. À
+    # 8 Gio, la voix et la lecture de document restent chaudes ensemble (13,9 Gio
+    # sur les 17,76 disponibles) et seules l'image et la musique se disputent la
+    # place, ce qui est exactement ce que la règle veut dire.
     max_heavy_resident: int = Field(default=1, ge=0)
-    heavy_threshold_bytes: int = Field(default=6 * (1 << 30), ge=0)
+    heavy_threshold_bytes: int = Field(default=8 * (1 << 30), ge=0)
     # Un worker résident oublié garderait sa mémoire indéfiniment : il se retire
     # de lui-même après ce délai sans travail. 0 = jamais.
     resident_idle_timeout_s: int = Field(default=1800, ge=0)

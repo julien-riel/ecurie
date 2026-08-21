@@ -1,0 +1,14 @@
+Procédure de récupération d'espace
+
+1. Scanner les gestionnaires connus
+   a. cache Hugging Face
+   b. blobs Ollama
+   c. dossiers déclarés à la main
+2. Vérifier les empreintes des fichiers candidats
+3. Produire un plan chiffré, poste par poste
+   a. duplication entre gestionnaires
+   b. révisions obsolètes
+   c. blobs orphelins
+   d. variants jamais utilisés
+4. Appliquer le plan, en quarantaine et jamais autrement
+5. Relancer un scan pour rafraîchir l'état observé

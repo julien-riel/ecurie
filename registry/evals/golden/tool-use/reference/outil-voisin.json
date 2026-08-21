@@ -1,0 +1,3 @@
+[
+  { "name": "mesurer_profil", "arguments": { "ref": "sdxl-base@fp16" } }
+]

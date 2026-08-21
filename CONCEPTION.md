@@ -88,30 +88,35 @@ concrète du dernier risque du §13 de l'architecture.
 
 ## 2. Arborescence cible et migration du dépôt actuel
 
-État au terme du v0.3 — ce qui existe porte une coche, le reste attend son jalon :
+État au terme du v0.3, plus la tâche 4.1 et les golden sets du 5.1 — ce qui
+existe porte une coche, le reste attend son jalon :
 
 ```
 ecurie/                          # monorepo uv workspace
   ARCHITECTURE.md  CONCEPTION.md  PLAN.md
   registry/
-    schema/{model,capability}.schema.json      ✓
-    capabilities/*.json                        ✓ 12 contrats atomiques
-    models/*.yaml                              ✓ 6 manifestes
-    measurements/<id>@<variant>.json           ✓ 4 profils mesurés
+    schema/{model,capability,golden}.schema.json  ✓
+    capabilities/*.json                        ✓ 17 contrats atomiques
+    models/*.yaml                              ✓ 12 manifestes
+    measurements/<id>@<variant>.json           ✓ 10 profils mesurés
     evals/
       bench/<capability>.json + assets/        ✓ charges type du banc d'essai
-      golden/  results/  preferences.jsonl       v0.5
+      golden/<capability>/manifest.json        ✓ 11 jeux (§9), dont l'ASR sans son
+      results/  preferences.jsonl                v0.5
     veille/                                      v0.6
   packages/
     core/  store/  runtime/                    ✓
-    api/                                         v0.4
+    api/                                       ✓ surface de lecture (4.1)
     veille/                                      v0.6
+  tools/golden_assets.py                       ✓ recette des entrées d'essai
   apps/ui/                                       v0.4
   runtimes/                       # envs isolés — .gitignore sur les .venv
     mlx-audio/       pyproject.toml + uv.lock  ✓ TTS
     mlx-audio-music/ pyproject.toml + uv.lock  ✓ chanson (commit épinglé, voir §5.3)
-    mlx-vlm/         pyproject.toml + uv.lock  ✓ lecture de document
+    mlx-vlm/         pyproject.toml + uv.lock  ✓ document + description d'image
+    mlx-lm/          pyproject.toml + uv.lock  ✓ texte + traduction + appel d'outils
     diffusers-mps/   pyproject.toml + uv.lock  ✓ image
+    torch-vision/    pyproject.toml + uv.lock  ✓ détourage + agrandissement
     hunyuan3d/       pyproject.toml + run.py   ✓ écrit, jamais exécuté (§13.4)
   .claude/skills/veille-modeles/SKILL.md       ✓
   .github/workflows/{registry-ci.yml, veille.yml}  v0.6
@@ -287,13 +292,19 @@ bibliothèque du runtime. Rien n'est installé dans le venv du runtime : seuls
 `protocol`, `channel` et `workers/base` y sont visibles, tous trois en
 bibliothèque standard pure.
 
-Cinq sont livrés :
+Onze sont livrés :
 
 | runtime | capacité | adaptateur |
 |---|---|---|
 | `mlx-audio` | `text-to-speech` | `workers/mlx_audio.py` |
 | `mlx-audio` | `text-to-music` | `workers/mlx_audio_music.py` |
 | `mlx-vlm` | `document-to-text` | `workers/mlx_vlm.py` |
+| `mlx-vlm` | `image-to-text` | `workers/mlx_vlm_describe.py` |
+| `mlx-lm` | `text-generation` | `workers/mlx_lm.py` |
+| `mlx-lm` | `translation` | `workers/mlx_lm_translate.py` |
+| `mlx-lm` | `tool-use` | `workers/mlx_lm_tools.py` |
+| `torch-vision` | `image-matting` | `workers/birefnet.py` |
+| `torch-vision` | `image-upscale` | `workers/swin2sr.py` |
 | `diffusers-mps` | `text-to-image` | `workers/diffusers_mps.py` |
 | `custom` | — | l'`entrypoint` du manifeste (chemin de Hunyuan3D) |
 
@@ -302,6 +313,12 @@ commun.** `mlx_audio.tts` et `mlx_audio.music` ne partagent ni le chargement, ni
 l'appel, ni la sortie ; les fondre dans un adaptateur donnerait un fichier qui
 commence par un aiguillage et ne se relit plus. Le choix se fait donc sur le
 couple (runtime, capacité), avec repli sur le runtime seul.
+
+`torch-vision` va au bout de cette logique : il n'a **aucun** adaptateur par
+défaut. Détourer et agrandir ne partagent que la pile PyTorch/MPS, et un runtime
+est une famille de bibliothèques, pas une promesse d'API commune. `mlx-lm`, à
+l'inverse, partage un vrai socle — chargement, échantillonnage, mesure du pic —
+que ses trois adaptateurs héritent d'une classe de base commune.
 
 Règles qu'un adaptateur ne peut pas enfreindre, apprises à l'usage :
 
@@ -314,7 +331,16 @@ Règles qu'un adaptateur ne peut pas enfreindre, apprises à l'usage :
 - ce qu'un adaptateur ne peut pas honorer, il le **dit** plutôt que de le
   simuler. Qwen3-TTS n'a pas de contrôle de vitesse et MiniMax Music ignore
   `guidance_scale` : ces réglages remontent en avertissement dans les métriques
-  du job, jamais en rééchantillonnage maison ni en kwarg avalé sans effet.
+  du job, jamais en rééchantillonnage maison ni en kwarg avalé sans effet ;
+- **ce qui vient de l'amont se lit, jamais ne se suppose.** Les quatre
+  adaptateurs du v0.4 ont échoué à leur premier lancement, et à chaque fois sur
+  une hypothèse écrite avant mesure : le `requirements.txt` publié avec les poids
+  de BiRefNet omet trois paquets que son code importe ; ces mêmes poids sont en
+  demi-précision alors que le commentaire de l'adaptateur affirmait le contraire ;
+  `apply_chat_template` rend un `BatchEncoding` et non une chaîne depuis
+  `transformers` 5 ; et le jeton de fin de tour se retrouve **dans le texte**
+  rendu, sans que rien n'échoue. Le facteur d'agrandissement, lui, est désormais
+  lu dans la config des poids, et la précision dans le type des paramètres.
 
 `ollama` et `comfy` (proxys HTTP vers leurs serveurs) viennent après, ce sont les
 plus simples.
@@ -369,7 +395,9 @@ worker** : un drapeau resterait posé pour toujours si la commande était
 interrompue, un pid se vérifie.
 
 Politique du §7 de l'architecture encodée en config : `max_heavy_resident = 1`
-(lourd = peak > 6 Go), les légers restent chauds. Un variant **sans profil mesuré**
+(lourd = peak > `heavy_threshold_bytes`, **8 Gio** depuis le recalibrage du
+20 août 2026 — à 6 Go, les quatre profils du parc réel sont lourds et la règle ne
+discrimine plus rien), les légers restent chauds. Un variant **sans profil mesuré**
 n'est exécutable qu'en mode mesure : parc déchargé entièrement, échantillonnage RSS,
 le résultat écrit le premier profil. C'est ce qui rend la règle « jamais de profil
 estimé » vivable au premier lancement.
@@ -381,15 +409,50 @@ estimé » vivable au premier lancement.
 FastAPI, lancée par `ecurie serve`. Surface v0.4 :
 
 ```
-GET  /registry/capabilities              GET /registry/models[?capability=]
+GET  /registry/capabilities              GET /registry/models[?capability=]   ✓
+GET  /store/summary                      trois chiffres + arbre de duplication ✓
+GET  /runtime/residents[?for=<ref>]      mémoire, budget, admission simulée    ✓
+POST /runtime/admission {ref, input}     pic attendu pour cette entrée         ✓
 POST /jobs        {model, variant, input, params, seed?}   → {job_id}
 GET  /jobs/{id}   état + manifeste       GET /jobs/{id}/events   (SSE)
 GET  /jobs/{id}/files/{name}             fichiers de sortie
-GET  /store/summary                      trois chiffres + arbre de duplication
-POST /store/plan                         GET /runtime/residents
+POST /store/plan
 POST /evals/preference  {capability, input_hash, a, b, winner}
 GET  /library[?capability=&model=]       POST /library/{job_id}/replay
 ```
+
+**La tâche 4.1 a livré les lectures**, cochées ci-dessus. Elles n'engagent rien —
+aucun modèle chargé, aucun octet déplacé, aucun manifeste écrit — et elles
+suffisent à faire vivre l'Atelier. Quatre décisions les gouvernent :
+
+- **le registre se recharge à chaud**, dès qu'un fichier de `registry/` a bougé.
+  « Ajouter un modèle = ajouter un YAML, aucune ligne de front à écrire »
+  perdrait beaucoup s'il fallait redémarrer le serveur pour voir le YAML qu'on
+  vient d'écrire. Le budget mémoire, lui, est détecté une fois au démarrage : il
+  se lit en lançant un sous-processus dans le venv d'un runtime ;
+- **le serveur répond malgré un registre en erreur.** La CLI s'arrête, et c'est
+  le bon geste avant d'exécuter ; une UI à qui l'on ne rend rien parce qu'un
+  manifeste sur six a une révision non épinglée n'a aucun moyen d'apprendre
+  lequel. Les modèles valides sont servis, `issues` transporte le reste ;
+- **une lecture ne tue rien.** `ecurie ps` appelle `prune()`, qui arrête les
+  workers devenus injoignables ; un `GET` rafraîchi toutes les deux secondes ne
+  le peut pas. Les entrées périmées sont rapportées dans `stale`, avec
+  `holds_memory` — un processus mort ne laisse qu'une ligne à balayer, un
+  processus vivant sans socket retient toujours ses gigaoctets ;
+- **la boucle locale, et des origines CORS énumérées.** L'API dit où sont les
+  poids et ce que la machine a en mémoire : `ecurie serve` refuse une adresse
+  non locale sans `--expose`, et n'autorise que les origines de développement
+  connues — la boucle locale ne protège pas d'une page ouverte dans le navigateur.
+
+`/runtime/admission` est un `POST` par la forme et une lecture par l'effet : la
+question porte une entrée complète, qu'on n'écrit pas dans une chaîne de requête.
+C'est lui qui alimentera le bandeau de la tâche 4.7, parce qu'il fait parler
+`peak_scaling` — trente secondes de musique demandent 24,2 Gio là où quinze en
+demandent 13,8, et un bandeau qui l'ignorerait annoncerait le même chiffre pour
+les deux. Il répond aussi sur une saisie incomplète, en rendant le coût **et**
+les reproches du contrat : un champ encore vide n'est pas une erreur du client,
+et refuser de répondre priverait l'utilisateur du chiffre au moment précis où il
+le regarde.
 
 **Bibliothèque / reproductibilité** : chaque job écrit
 `~/.ecurie/outputs/<job_id>/manifest.json` — capability, model, variant, révision
@@ -463,14 +526,43 @@ de l'être, l'un des deux est faux.
 ## 9. Évaluation — golden sets, A/B, Elo
 
 - `registry/evals/golden/<capability>/` : entrées figées + `manifest.json`
-  (id, entrée, référence attendue s'il y en a une). Règle : **append-only**, jamais
-  de modification d'une entrée existante.
+  (id, entrée, référence attendue s'il y en a une), validé contre
+  `registry/schema/golden.schema.json`. Règle : **append-only**, jamais de
+  modification d'une entrée existante. **Livré au 5.1** : cinq jeux — 16 pages de
+  lecture de document, 10 phrases de synthèse, 10 descriptions d'image, 8 solides
+  à reconstruire, 12 extraits de transcription.
 
   À ne pas confondre avec `registry/evals/bench/`, qui existe depuis le v0.3 :
   la charge type mesure un **coût** (mémoire, warmup, débit), le golden set mesure
   une **qualité**. Les deux sont figés pour la même raison, mais on ne juge pas un
   modèle sur la charge du banc — ses trois entrées sont choisies pour être
   représentatives d'un coût, pas d'un usage.
+
+  Une conséquence de cette différence, qu'il faut avoir en tête avant d'ajouter un
+  cas : **le banc fige tous les réglages, le golden set n'en fige aucun.** Le banc
+  doit comparer deux mesures prises à six mois d'écart, donc il impose les pas de
+  débruitage et la résolution d'octree. Le golden set doit comparer deux modèles
+  au mieux de leur forme : imposer trente pas à un modèle distillé conçu pour en
+  faire quatre le jugerait sur un réglage fait pour un autre. Chaque cas ne fixe
+  donc que ce qui **définit la question**, et laisse le reste aux `defaults:` du
+  variant.
+
+  Trois choix de forme, chacun réglant un piège précis. La vérité terrain longue
+  vit dans un fichier à part (`reference/<id>.txt`) et non dans le JSON : une page
+  entière échappée en une seule ligne ne se relit pas, et une vérité qu'on ne
+  relit pas ne se vérifie plus. `notes` est obligatoire — un cas dont personne ne
+  sait plus ce qu'il testait ne s'interprète pas davantage qu'il ne se remplace.
+  `source` dit comment le fichier d'entrée a été fabriqué, et `tools/golden_assets.py`
+  le refabrique : les images du banc d'essai n'ont pas cette recette, et ce sont
+  aujourd'hui des données orphelines qu'on ne sait plus refaire.
+
+  Le jeu de transcription est livré **incomplet**, et c'est assumé : ses douze
+  textes sont figés, ses enregistrements restent à produire. Les synthétiser avec
+  la voix du parc mesurerait la transcription de parole synthétique, sans accent
+  québécois — c'est-à-dire sans ce qu'on veut précisément éprouver. Chaque cas
+  nomme déjà son fichier et porte une clé `pending` ; le jour où l'enregistrement
+  arrive, rien du cas ne change. C'est ce qui rend l'append-only tenable pour un
+  jeu dont les entrées se produisent à la main.
 - Métriques automatiques (WER via `jiwer`, exactitude OCR par champs) : exécutées par
   `ecurie eval <model>@<variant>`, résultats dans `registry/evals/results/`.
 - Préférences humaines : l'écran Confrontation soumet
@@ -555,9 +647,15 @@ Au terme du v0.3 : 556 tests, dont 3 marqués `real`.
 
 1. ~~`ollama`/`comfy` en proxy HTTP~~ — **repoussés**, comme prévu : le parc tourne
    sans eux. Trois runtimes de plus sont venus à la place, tous MLX ou PyTorch.
-2. Format du golden set OCR (vérité terrain par champs) : à définir au v0.5 avec les
-   15 pages réelles. La charge type du banc en donne déjà la forme la plus simple —
-   trois pages rendues depuis des textes du dépôt, donc à vérité terrain exacte.
+2. ~~Format du golden set OCR (vérité terrain par champs)~~ — **tranché au 5.1**.
+   Toutes les pages demandent `format: "text"` : la mise en Markdown d'un tableau
+   a plusieurs formes également défendables, et la noter reviendrait à mesurer la
+   conformité à une préférence plutôt que l'exactitude de la lecture. La
+   comparaison du texte se fait à blancs normalisés — toute suite d'espaces, de
+   tabulations et de retours à la ligne vaut une espace —, et la structure se
+   juge par `reference.fields`, qui n'a qu'une seule bonne réponse : une date, un
+   montant, un code de dossier. Une page lue à 98 % dont le montant est faux est
+   une page inutilisable, et le taux d'erreur global ne le dit pas.
 3. `iogpu.wired_limit_mb` : simple page de doc + réglage affiché dans Parc, pas de
    `sudo` lancé par l'outil.
 4. **Hunyuan3D n'a jamais été exécuté.** `runtimes/hunyuan3d/run.py` est écrit
@@ -565,11 +663,14 @@ Au terme du v0.3 : 556 tests, dont 3 marqués `real`.
    n'est pas vendoré et les 7,37 Go de poids ne sont pas téléchargés. Rien ne
    prouve que le chemin 2.1 sur MPS fonctionne, et aucune trace publique ne
    l'établit. C'est le risque principal du v0.7, qui en dépend.
-5. **Le seuil « lourd » de 6 Go est à recalibrer.** Il vient du §7 de
-   l'architecture, écrit avant toute mesure. Les quatre modèles mesurés sont
-   au-dessus (6,25 à 15,95 Gio), donc aucun ne peut cohabiter avec un autre —
-   alors que la voix et la lecture de document tiendraient ensemble dans les
-   17,76 Gio. Un seuil à 8 Go rendrait la politique de nouveau discriminante.
+5. ~~**Le seuil « lourd » de 6 Go est à recalibrer.**~~ — **fait le 20 août 2026**,
+   avant le v0.4. Il venait du §7 de l'architecture, écrit avant toute mesure, et
+   les quatre modèles mesurés étaient tous au-dessus (6,25 à 15,95 Gio) : aucun ne
+   pouvait cohabiter avec un autre, alors que la voix et la lecture de document
+   tiennent ensemble dans les 17,76 Gio. Seuil porté à **8 Gio**, dans
+   `Config.heavy_threshold_bytes` comme dans `admission.DEFAULT_HEAVY_THRESHOLD`,
+   avec un test qui vérifie que les deux ne divergent pas — `core` ne pouvant pas
+   dépendre de `runtime`, la constante est nécessairement écrite deux fois.
 6. **Aucune capacité ajoutée après le v0.1 n'a de titulaire.** Les trois modèles
    du parc réel sont en `status: candidate` : ils fonctionnent et sont mesurés,
    mais rien ne dit encore qu'ils sont les bons. La promotion en `incumbent`

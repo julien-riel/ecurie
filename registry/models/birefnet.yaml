@@ -1,0 +1,54 @@
+# Détourage — le chaînon qui manque entre une photo et une reconstruction 3D.
+#
+# Retenu contre RMBG-2.0, meilleur sur plusieurs classements mais publié sous une
+# licence « other » à conditions d'usage : le registre doit pouvoir dire ce qu'on
+# a le droit de faire d'une sortie, et « other » ne le dit pas. BiRefNet est en
+# MIT, ce qui tranche la question sans avoir à la poser.
+id: birefnet
+name: BiRefNet (détourage haute résolution)
+capability: image-matting
+family: birefnet
+vendor: Peng Zheng et al.
+license: mit
+license_class: permissive
+status: candidate
+
+notes: >
+  Ce modèle exécute le code livré avec ses poids : son config.json déclare un
+  auto_map, et le chargement passe par trust_remote_code. C'est un choix
+  explicite de l'adaptateur, pas un défaut subi — les poids arrivent par
+  `ecurie pull` à la révision épinglée ci-dessous, dans un environnement isolé
+  où rien d'Écurie n'est installé. Réviser cette révision revient donc à relire
+  du code, et c'est une raison de plus de l'épingler.
+
+links:
+  homepage: https://huggingface.co/ZhengPeng7/BiRefNet
+  code: https://github.com/ZhengPeng7/BiRefNet
+  paper: https://arxiv.org/abs/2401.03407
+
+variants:
+  - id: fp16
+    quantization: fp16
+    tier: hot
+    runtime: torch-vision
+    source:
+      kind: huggingface
+      repo: ZhengPeng7/BiRefNet
+      revision: "e2bf8e4460fc8fa32bba5ea4d94b3233d367b0e4"   # 2026-02-04
+      allow_patterns: ["*.json", "*.py", "*.safetensors", "*.txt"]
+    defaults:
+      max_side: 1024
+      edge_refine: true
+    caveats:
+      - "Poids publiés en demi-précision : l'entrée doit être convertie au type du modèle, l'adaptateur le lit plutôt que de le supposer."
+      - "Charge du code depuis le dépôt de poids (trust_remote_code)."
+      - "Entraîné sur des entrées carrées de 1024 : une image très allongée est déformée avant passage, puis le masque est remis à ses proportions."
+    profile:
+      disk_bytes: 444571106
+      peak_unified_memory_bytes: 8300331008
+      warmup_ms: 2192
+      latency_ms_p50: 909
+      throughput: "1 sortie / 1.5 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0 / transformers 5.15.1"
+      measured_at: "2026-08-21"
+      harness_version: "0.3.0"

@@ -1,0 +1,59 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "image-upscale",
+  "title": "Agrandissement d'image",
+  "description": "Augmente la définition d'une image sans en changer le contenu. C'est ce qui rend utilisable la sortie d'un générateur qui travaille en 1024 : la contrainte est de restituer du détail plausible sans inventer d'objet.",
+  "input": {
+    "type": "object",
+    "required": ["image"],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image à agrandir."
+      },
+      "scale": {
+        "type": "integer",
+        "enum": [2, 3, 4],
+        "default": 2,
+        "description": "Facteur d'agrandissement. Le coût suit le carré : passer de 2 à 4 quadruple les pixels à produire."
+      },
+      "denoise": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "description": "Force du débruitage appliqué avant l'agrandissement. Vide = celui du modèle. Monter trop lisse les textures fines en même temps que le grain."
+      },
+      "max_side": {
+        "type": "integer",
+        "minimum": 256,
+        "maximum": 8192,
+        "default": 4096,
+        "description": "Plus grand côté toléré en sortie. Un refus explicite vaut mieux qu'un agrandissement qui emporte la mémoire de la machine."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["image"],
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de l'image agrandie, relatif au dossier du job."
+      },
+      "width": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Largeur obtenue. Elle peut différer de largeur × facteur si `max_side` a plafonné."
+      },
+      "height": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Hauteur obtenue."
+      }
+    }
+  }
+}

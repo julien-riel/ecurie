@@ -71,6 +71,25 @@ class LocationRecord:
     variant_ref: str | None = None
     meta: dict[str, Any] = field(default_factory=dict)
 
+    @property
+    def variant_refs(self) -> list[str]:
+        """Tous les variants auxquels ce fichier appartient, pas seulement le premier.
+
+        Un même dépôt Hugging Face peut servir deux capacités — les mêmes poids
+        vision-langage transcrivent un document et décrivent une image — et le
+        registre le déclare alors par deux manifestes. Les octets, eux, n'existent
+        qu'une fois. `variant_ref` en nomme un pour que tout le code qui n'a
+        besoin que d'une étiquette continue de marcher ; la liste complète vit
+        dans `meta`, et c'est elle qui compte dès qu'on décide d'effacer :
+        proposer à la corbeille des poids « jamais utilisés » par le premier
+        variant alors que le second s'en sert tous les jours serait une perte de
+        données, pas une récupération d'espace.
+        """
+        multiples = self.meta.get("variant_refs")
+        if isinstance(multiples, list) and multiples:
+            return [str(r) for r in multiples]
+        return [self.variant_ref] if self.variant_ref else []
+
 
 class StateDB:
     def __init__(self, path: Path) -> None:

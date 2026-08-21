@@ -1,0 +1,3 @@
+Une mesure prise sur une machine chargée ne mesure pas le modèle : elle mesure la machine. C'est la raison pour laquelle le banc d'essai décharge tout avant de commencer, y compris ce que l'on avait pris soin d'épingler. Le chiffre obtenu vaut alors comme référence, et deux mesures prises à six mois d'intervalle se comparent.
+
+Reste une prudence. Le maximum d'une allocation redescend aussi vite qu'il est monté : il faut le relever à chaque pas, et jamais une seule fois à la fin.

@@ -1,0 +1,76 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "image-to-text",
+  "title": "Description d'image",
+  "description": "Décrit une image, ou répond à une question sur elle. À ne pas confondre avec la lecture de document, qui transcrit ce qui est écrit : ici on demande au modèle ce qu'il voit, pas ce qui est imprimé.",
+  "input": {
+    "type": "object",
+    "required": ["image"],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image à décrire."
+      },
+      "question": {
+        "type": "string",
+        "x-ui": "textarea",
+        "description": "Question posée sur l'image. Vide = description libre."
+      },
+      "detail": {
+        "type": "string",
+        "enum": ["bref", "normal", "détaillé"],
+        "default": "normal",
+        "description": "Longueur visée de la réponse. « bref » tient en une phrase, « détaillé » énumère les plans et les objets."
+      },
+      "language": {
+        "type": "string",
+        "x-ui": "select",
+        "x-options-from": "runtime.languages",
+        "description": "Langue de la réponse. Vide = celle de la question, ou le français à défaut."
+      },
+      "max_tokens": {
+        "type": "integer",
+        "minimum": 16,
+        "maximum": 4096,
+        "default": 512,
+        "description": "Plafond de jetons produits. C'est lui, et non l'image, qui fait la durée d'un job."
+      },
+      "temperature": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 2.0,
+        "default": 0.2,
+        "description": "Bas par défaut : décrire une image n'appelle pas d'invention, et une température haute en fabrique."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Graine aléatoire. Sans elle, deux descriptions de la même image diffèrent dès que la température n'est pas nulle."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["text"],
+    "properties": {
+      "text": {
+        "type": "string",
+        "contentMediaType": "text/plain",
+        "description": "Chemin de la réponse en texte brut, relatif au dossier du job."
+      },
+      "tokens_generated": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de jetons effectivement produits."
+      },
+      "finish_reason": {
+        "type": "string",
+        "enum": ["stop", "length"],
+        "description": "Fin naturelle, ou plafond de jetons atteint — auquel cas la description est tronquée et ne doit pas être notée comme telle."
+      }
+    }
+  }
+}

@@ -1,0 +1,277 @@
+{
+  "$schema": "../../../schema/golden.schema.json",
+  "capability": "tool-use",
+  "version": 1,
+  "status": "complet",
+  "description": "Huit situations à référence exacte : pour chacune, l'appel que le modèle aurait dû émettre, écrit en JSON dans reference/. C'est une capacité générative dont la bonne réponse est pourtant unique, ce qui la rend notable sans juge — le nom de l'outil se compare littéralement, les arguments se comparent clé par clé.\n\nDeux cas attendent une liste **vide**, et ce ne sont pas des remplissages : savoir s'abstenir quand aucun outil ne convient, et savoir obéir quand on lui interdit d'appeler, font partie de ce qui rend un modèle utilisable dans un harnais. Un modèle qui appelle toujours quelque chose est un modèle qu'il faut surveiller.\n\nRappel : Écurie n'exécute aucun de ces outils. Ils n'existent que comme déclarations.",
+  "cases": [
+    {
+      "id": "choix-evident",
+      "input": {
+        "task": "Quels modèles de synthèse vocale y a-t-il au parc ?",
+        "seed": 601,
+        "tools": [
+          {
+            "name": "lister_modeles",
+            "description": "Liste les modèles du registre, éventuellement filtrés par capacité.",
+            "parameters": {
+              "type": "object",
+              "properties": { "capability": { "type": "string" } }
+            }
+          },
+          {
+            "name": "occupation_disque",
+            "description": "Les trois chiffres d'occupation du parc sur le disque.",
+            "parameters": { "type": "object", "properties": {} }
+          }
+        ]
+      },
+      "reference": { "json_file": "reference/choix-evident.json" },
+      "notes": "Le cas de référence : deux outils sans rapport, un seul convient, et son argument découle directement de la question. Un modèle qui le rate ne mérite aucun des sept autres."
+    },
+    {
+      "id": "outil-voisin",
+      "input": {
+        "task": "Mesure le profil mémoire de sdxl-base@fp16.",
+        "seed": 602,
+        "tools": [
+          {
+            "name": "mesurer_profil",
+            "description": "Mesure le pic mémoire et la latence d'un variant, parc déchargé.",
+            "parameters": {
+              "type": "object",
+              "required": ["ref"],
+              "properties": { "ref": { "type": "string" } }
+            }
+          },
+          {
+            "name": "lister_residents",
+            "description": "Modèles actuellement chargés en mémoire, et budget restant.",
+            "parameters": { "type": "object", "properties": {} }
+          },
+          {
+            "name": "occupation_disque",
+            "description": "Les trois chiffres d'occupation du parc sur le disque.",
+            "parameters": { "type": "object", "properties": {} }
+          }
+        ]
+      },
+      "reference": { "json_file": "reference/outil-voisin.json" },
+      "notes": "Trois outils parlent de mémoire. Seul le premier mesure ; les deux autres rapportent. C'est la description, et non le champ lexical, qui doit trancher."
+    },
+    {
+      "id": "arguments-obligatoires",
+      "input": {
+        "task": "Déporte les poids de minimax-music3@4bit sur le volume /Volumes/Parc.",
+        "seed": 603,
+        "tools": [
+          {
+            "name": "deporter_variant",
+            "description": "Déplace les poids d'un variant sur un volume externe et laisse un lien.",
+            "parameters": {
+              "type": "object",
+              "required": ["ref", "volume"],
+              "properties": { "ref": { "type": "string" }, "volume": { "type": "string" } }
+            }
+          },
+          {
+            "name": "vider_corbeille",
+            "description": "Efface définitivement la quarantaine.",
+            "parameters": {
+              "type": "object",
+              "properties": { "older_than_days": { "type": "integer" } }
+            }
+          }
+        ]
+      },
+      "reference": { "json_file": "reference/arguments-obligatoires.json" },
+      "notes": "Deux arguments obligatoires, tous deux présents dans la demande. Un appel bien nommé dont il manque un argument ne s'exécute pas : c'est un échec complet, pas un demi-succès."
+    },
+    {
+      "id": "argument-type",
+      "input": {
+        "task": "Génère un plan de récupération en considérant comme inutilisé tout ce qui n'a pas servi depuis 30 jours.",
+        "seed": 604,
+        "tools": [
+          {
+            "name": "plan_recuperation",
+            "description": "Génère un plan de récupération d'espace, poste par poste.",
+            "parameters": {
+              "type": "object",
+              "properties": { "unused_after_days": { "type": "integer" } }
+            }
+          },
+          {
+            "name": "occupation_disque",
+            "description": "Les trois chiffres d'occupation du parc sur le disque.",
+            "parameters": { "type": "object", "properties": {} }
+          }
+        ]
+      },
+      "reference": { "json_file": "reference/argument-type.json" },
+      "notes": "L'argument est déclaré entier et la demande dit « 30 jours ». Rendre la chaîne \"30\" est une faute silencieuse : le harnais la passe telle quelle, et l'outil échoue plus loin, pour une raison qui ne parlera plus du modèle."
+    },
+    {
+      "id": "catalogue-large",
+      "input": {
+        "task": "Combien d'octets font 5 776 625 617, en gigaoctets ?",
+        "seed": 605,
+        "tools": [
+          {
+            "name": "lister_modeles",
+            "description": "Liste les modèles du registre.",
+            "parameters": {
+              "type": "object",
+              "properties": { "capability": { "type": "string" } }
+            }
+          },
+          {
+            "name": "lancer_job",
+            "description": "Exécute un modèle sur une entrée.",
+            "parameters": {
+              "type": "object",
+              "required": ["ref"],
+              "properties": { "ref": { "type": "string" } }
+            }
+          },
+          {
+            "name": "lister_residents",
+            "description": "Modèles chargés en mémoire.",
+            "parameters": { "type": "object", "properties": {} }
+          },
+          {
+            "name": "mesurer_profil",
+            "description": "Mesure le profil d'un variant.",
+            "parameters": {
+              "type": "object",
+              "required": ["ref"],
+              "properties": { "ref": { "type": "string" } }
+            }
+          },
+          {
+            "name": "telecharger_poids",
+            "description": "Télécharge les poids d'un variant.",
+            "parameters": {
+              "type": "object",
+              "required": ["ref"],
+              "properties": { "ref": { "type": "string" } }
+            }
+          },
+          {
+            "name": "occupation_disque",
+            "description": "Les trois chiffres d'occupation du parc.",
+            "parameters": { "type": "object", "properties": {} }
+          },
+          {
+            "name": "valider_registre",
+            "description": "Valide les manifestes contre le schéma.",
+            "parameters": { "type": "object", "properties": {} }
+          },
+          {
+            "name": "historique_jobs",
+            "description": "Liste les jobs déjà exécutés.",
+            "parameters": {
+              "type": "object",
+              "properties": { "limit": { "type": "integer" } }
+            }
+          },
+          {
+            "name": "convertir_unites",
+            "description": "Convertit une quantité d'octets vers une unité lisible.",
+            "parameters": {
+              "type": "object",
+              "required": ["bytes"],
+              "properties": { "bytes": { "type": "integer" }, "unit": { "type": "string" } }
+            }
+          },
+          {
+            "name": "chercher_texte",
+            "description": "Cherche une chaîne dans les fichiers du dépôt.",
+            "parameters": {
+              "type": "object",
+              "required": ["pattern"],
+              "properties": { "pattern": { "type": "string" } }
+            }
+          }
+        ]
+      },
+      "reference": { "json_file": "reference/catalogue-large.json" },
+      "notes": "Le bon outil est le neuvième sur dix. Un modèle qui choisit juste parmi trois peut se perdre parmi dix : c'est la position dans le catalogue, autant que la difficulté, qui fait échouer."
+    },
+    {
+      "id": "deux-appels",
+      "input": {
+        "task": "Valide le registre, puis dis-moi ce qui est chargé en mémoire.",
+        "parallel_calls": true,
+        "seed": 606,
+        "tools": [
+          {
+            "name": "valider_registre",
+            "description": "Valide les manifestes contre le schéma et les invariants.",
+            "parameters": { "type": "object", "properties": {} }
+          },
+          {
+            "name": "lister_residents",
+            "description": "Modèles actuellement chargés en mémoire.",
+            "parameters": { "type": "object", "properties": {} }
+          },
+          {
+            "name": "occupation_disque",
+            "description": "Les trois chiffres d'occupation du parc sur le disque.",
+            "parameters": { "type": "object", "properties": {} }
+          }
+        ]
+      },
+      "reference": { "json_file": "reference/deux-appels.json" },
+      "notes": "Deux demandes dans une phrase, et l'autorisation d'y répondre en deux appels. Beaucoup de modèles annoncent l'appel parallèle et n'en émettent jamais qu'un : c'est le cas qui le vérifie."
+    },
+    {
+      "id": "abstention",
+      "input": {
+        "task": "Explique-moi en deux phrases pourquoi un profil mémoire se mesure au lieu de s'estimer.",
+        "seed": 607,
+        "tools": [
+          {
+            "name": "lister_modeles",
+            "description": "Liste les modèles du registre.",
+            "parameters": {
+              "type": "object",
+              "properties": { "capability": { "type": "string" } }
+            }
+          },
+          {
+            "name": "mesurer_profil",
+            "description": "Mesure le profil mémoire d'un variant.",
+            "parameters": {
+              "type": "object",
+              "required": ["ref"],
+              "properties": { "ref": { "type": "string" } }
+            }
+          }
+        ]
+      },
+      "reference": { "json_file": "reference/abstention.json" },
+      "notes": "Aucun outil ne répond à la question, et l'un d'eux en porte pourtant tous les mots. La bonne réponse est une liste d'appels vide et une explication en clair. Un modèle qui appelle `mesurer_profil` ici appellera n'importe quoi ailleurs."
+    },
+    {
+      "id": "interdiction",
+      "input": {
+        "task": "Quels modèles de synthèse vocale y a-t-il au parc ?",
+        "tool_choice": "none",
+        "seed": 608,
+        "tools": [
+          {
+            "name": "lister_modeles",
+            "description": "Liste les modèles du registre, éventuellement filtrés par capacité.",
+            "parameters": {
+              "type": "object",
+              "properties": { "capability": { "type": "string" } }
+            }
+          }
+        ]
+      },
+      "reference": { "json_file": "reference/interdiction.json" },
+      "notes": "La même demande que le premier cas, avec interdiction d'appeler. L'outil convient parfaitement, et il ne faut pas s'en servir : obéir à une contrainte qui va contre l'évidence est ce qui rend un modèle sûr dans une boucle."
+    }
+  ]
+}

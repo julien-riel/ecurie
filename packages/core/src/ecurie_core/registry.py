@@ -130,6 +130,7 @@ def load_registry(root: Path) -> Registry:
         _check_model(reg, model, rel)
 
     _check_incumbents(reg)
+    _check_shared_repos(reg)
     return reg
 
 
@@ -259,6 +260,44 @@ def _check_profile(reg: Registry, model: Model, variant, ref: str, rel: str) -> 
                 )
             )
     return issues
+
+
+def _check_shared_repos(reg: Registry) -> None:
+    """Deux manifestes sur un même dépôt : légitime, sauf à deux révisions.
+
+    Les mêmes poids peuvent remplir deux capacités — un modèle vision-langage
+    transcrit un document et décrit une image —, et c'est le §4 de l'architecture
+    qui y invite : le contrat change, pas les octets. Le résolveur du store
+    rattache alors le fichier aux deux variants à la fois.
+
+    Deux **révisions** distinctes du même dépôt sont un autre cas : ce sont deux
+    instantanés dans le cache, le rattachement se fait par dépôt et ne sait donc
+    plus dire lequel appartient à qui. La comptabilité disque reste juste — les
+    octets sont bien là — mais l'attribution par variant devient une supposition,
+    et le poste « jamais utilisé » du plan de récupération s'appuie dessus.
+    """
+    par_repo: dict[str, set[tuple[str, str]]] = {}
+    for model in reg.models.values():
+        for variant in model.variants:
+            source = variant.source
+            if source.kind == "huggingface" and source.repo:
+                par_repo.setdefault(source.repo, set()).add(
+                    (f"{model.id}@{variant.id}", source.revision or "")
+                )
+
+    for repo, entrées in sorted(par_repo.items()):
+        révisions = {révision for _, révision in entrées}
+        if len(entrées) > 1 and len(révisions) > 1:
+            refs = ", ".join(sorted(ref for ref, _ in entrées))
+            reg.issues.append(
+                Issue(
+                    "warning",
+                    "registry/models/",
+                    f"{repo} est déclaré par {refs} à {len(révisions)} révisions "
+                    "différentes : le parc rattache les fichiers par dépôt, il ne "
+                    "saura pas dire quel instantané appartient à quel variant",
+                )
+            )
 
 
 def _check_incumbents(reg: Registry) -> None:

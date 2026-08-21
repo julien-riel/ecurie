@@ -1,0 +1,54 @@
+# Génération de texte, orientée programmation — le contrat `text-generation`
+# existait depuis le v0.3 sans qu'aucun modèle ne le remplisse.
+#
+# Pourquoi pas une capacité `code-generation` distincte : elle échouerait au
+# premier critère qu'on s'est donné pour en créer une. Le contrat serait le même
+# — une requête, une réponse en texte —, les modèles seraient les mêmes, et la
+# séparer diviserait le vivier de la confrontation en deux moitiés qui ne se
+# compareraient plus. Ce qui mérite un contrat à part, c'est l'appel d'outils :
+# là, l'entrée porte des schémas et la sortie est structurée.
+id: qwen25-coder-7b
+name: Qwen2.5-Coder 7B Instruct
+capability: text-generation
+family: qwen2.5-coder
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  7 milliards de paramètres en 4 bits : 4,3 Go sur le disque, donc un modèle
+  léger au sens de la politique de résidence — il cohabitera avec la lecture de
+  document ou la voix. C'est ce qui en fait le bon premier titulaire possible
+  pour cette capacité : un modèle de code qu'il faut décharger pour lire un
+  fichier n'est pas utilisable au quotidien.
+
+links:
+  homepage: https://huggingface.co/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-lm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen2.5-Coder-7B-Instruct-4bit
+      revision: "019cc73c45c770444708a6dd8690c66243cc5c80"   # 2024-09-18
+      allow_patterns: ["*.json", "*.safetensors", "*.txt"]
+    defaults:
+      temperature: 0.2
+      top_p: 0.95
+      max_tokens: 2048
+    caveats:
+      - "Température abaissée à 0,2 par défaut : du code échantillonné à 0,7 compile moins souvent, et la valeur par défaut du contrat vise la prose."
+      - "Ne déclare pas d'outils dans son gabarit de conversation : pour l'appel d'outils, c'est qwen3-4b-outils qu'il faut."
+    profile:
+      disk_bytes: 4295887638
+      peak_unified_memory_bytes: 4449316356
+      warmup_ms: 916
+      latency_ms_p50: 17277
+      throughput: "1 sortie / 12.8 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-lm 0.29.1"
+      measured_at: "2026-08-21"
+      harness_version: "0.3.0"

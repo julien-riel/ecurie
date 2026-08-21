@@ -1,0 +1,59 @@
+{
+  "$schema": "../../../schema/golden.schema.json",
+  "capability": "text-to-speech",
+  "version": 1,
+  "status": "complet",
+  "description": "Dix phrases figées pour juger la QUALITÉ d'une voix, là où registry/evals/bench/text-to-speech.json mesure un coût. Aucune référence : il n'existe pas de wav « correct », et une distance acoustique à un enregistrement humain ne mesurerait qu'une ressemblance à ce locuteur-là. Ces phrases alimentent l'écran Confrontation, qui départage deux variants sur la même entrée. Seuls le texte et la graine sont fixés — la vitesse, la voix et les réglages propres au moteur restent ceux du variant, faute de quoi on jugerait un modèle sur des réglages faits pour un autre.",
+  "cases": [
+    {
+      "id": "liaison",
+      "input": { "text": "Les anciens élèves ont attendu deux heures ; les héros, eux, n'ont rien dit.", "seed": 101 },
+      "notes": "Liaisons obligatoires, et une liaison interdite devant le h aspiré de « héros ». C'est le premier endroit où une voix française apprise sur du texte se trahit."
+    },
+    {
+      "id": "nombres",
+      "input": { "text": "Le 3 septembre 2026, la facture s'élevait à 2 667,42 $, soit 12,5 % de plus qu'au 1er trimestre.", "seed": 102 },
+      "notes": "Date, montant à décimale, pourcentage, ordinal abrégé. Chacun a une lecture attendue en français, et une lecture chiffre par chiffre qui trahit un moteur qui n'a pas de normalisation."
+    },
+    {
+      "id": "sigles",
+      "input": { "text": "L'IRSST et la CNESST ont transmis le dossier à l'OTAN, qui l'a renvoyé au CIUSSS.", "seed": 103 },
+      "notes": "Trois sigles qui s'épellent et un acronyme qui se prononce comme un mot. Choisir la bonne lecture demande de savoir lequel est lequel ; les traiter tous pareil s'entend immédiatement."
+    },
+    {
+      "id": "homographes",
+      "input": { "text": "Les poules du couvent couvent, et nous portions nos portions vers l'est, où il est.", "seed": 104 },
+      "notes": "Trois paires d'homographes non homophones. C'est la syntaxe, et elle seule, qui donne la prononciation : aucun modèle ne peut s'en tirer par la fréquence."
+    },
+    {
+      "id": "question-exclamation",
+      "input": { "text": "Tu as vraiment fait ça ? Sans rien dire à personne ? Bon. Eh bien, on recommence !", "seed": 105 },
+      "notes": "Montée interrogative, reprise, chute, puis exclamation. C'est la prosodie qu'on juge, pas les phonèmes — et c'est ce qui sépare une voix agréable d'une voix seulement correcte."
+    },
+    {
+      "id": "phrase-longue",
+      "input": { "text": "Ce que le v0.3 a coûté de plus que prévu, et qu'il faut savoir avant de lire la suite, c'est deux environnements d'exécution non planifiés et un ajout au modèle de données, sans lequel un modèle dont le coût dépend de l'entrée est soit toujours refusé, soit dangereux.", "seed": 106 },
+      "notes": "Une seule phrase, quatre subordonnées, deux incises. Le souffle et le placement des pauses se dégradent avant l'articulation : c'est la longueur qui les révèle."
+    },
+    {
+      "id": "noms-propres-qc",
+      "input": { "text": "De Kamouraska à Chicoutimi en passant par Sainte-Anne-de-Beaupré, la route longe le fleuve jusqu'à Rimouski.", "seed": 107 },
+      "notes": "Toponymes québécois, dont deux d'origine autochtone. Une voix entraînée sur du français hexagonal les déforme d'une façon très reconnaissable."
+    },
+    {
+      "id": "anglicismes",
+      "input": { "text": "Le fichier point wav sort du workflow, puis le job repart vers le cache Hugging Face.", "seed": 108 },
+      "notes": "Alternance codique en pleine phrase. Prononcer l'anglais à la française ou le français à l'anglaise sont deux fautes distinctes, et la seconde est la plus courante."
+    },
+    {
+      "id": "ponctuation-serree",
+      "input": { "text": "Il hésita — longtemps — puis dit : « Non, pas comme ça… » ; personne (surtout pas elle) ne répondit.", "seed": 109 },
+      "notes": "Tirets d'incise, deux-points, guillemets, points de suspension, point-virgule, parenthèses. Chaque signe appelle une durée de pause différente, et beaucoup de moteurs n'en connaissent qu'une."
+    },
+    {
+      "id": "abreviations",
+      "input": { "text": "Mme Beauchêne, du 1290 rue Ste-Catherine E., app. 2e étage, cf. le dossier n° R-1428, etc.", "seed": 110 },
+      "notes": "Abréviations qui se développent à l'oral, une adresse et un numéro de dossier. Lire « c f » ou « etc » comme des lettres est la panne classique, et elle rend la phrase incompréhensible."
+    }
+  ]
+}

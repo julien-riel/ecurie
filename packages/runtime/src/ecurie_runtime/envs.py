@@ -27,6 +27,10 @@ WORKER_MODULES = {
     "mlx-audio": "ecurie_runtime.workers.mlx_audio",
     "diffusers-mps": "ecurie_runtime.workers.diffusers_mps",
     "mlx-vlm": "ecurie_runtime.workers.mlx_vlm",
+    "mlx-lm": "ecurie_runtime.workers.mlx_lm",
+    # `torch-vision` n'a délibérément pas d'adaptateur par défaut : détourer et
+    # agrandir ne partagent ni le modèle, ni l'appel, ni la sortie. Un runtime
+    # est une famille de bibliothèques, pas une promesse d'API commune.
 }
 
 # Une même bibliothèque peut servir deux capacités par deux API distinctes :
@@ -37,6 +41,16 @@ WORKER_MODULES = {
 # tranche, et le runtime reste le même.
 WORKER_MODULES_BY_CAPABILITY = {
     ("mlx-audio", "text-to-music"): "ecurie_runtime.workers.mlx_audio_music",
+    # Mêmes poids que la lecture de document, autre question posée : décrire une
+    # image et transcrire une page ne partagent ni l'appel ni la sortie.
+    ("mlx-vlm", "image-to-text"): "ecurie_runtime.workers.mlx_vlm_describe",
+    # Un modèle de langue sert trois capacités, et chacune a sa façon de
+    # composer l'invite et de lire la réponse : traduire attend du texte,
+    # appeler un outil attend du JSON validable.
+    ("mlx-lm", "translation"): "ecurie_runtime.workers.mlx_lm_translate",
+    ("mlx-lm", "tool-use"): "ecurie_runtime.workers.mlx_lm_tools",
+    ("torch-vision", "image-matting"): "ecurie_runtime.workers.birefnet",
+    ("torch-vision", "image-upscale"): "ecurie_runtime.workers.swin2sr",
 }
 
 
@@ -52,8 +66,12 @@ def worker_module(runtime: str, capability: str | None) -> str | None:
 NOT_YET = {
     "ollama": "proxy HTTP vers le serveur Ollama — repoussé, le parc initial n'en dépend pas",
     "comfy": "proxy HTTP vers ComfyUI — repoussé, le parc initial n'en dépend pas",
-    "mlx-lm": "génération de texte — aucun modèle du parc ne l'utilise encore",
     "llama-cpp": "GGUF — passerait par Ollama ou LM Studio, hors périmètre v0.3",
+    "torch-vision": (
+        "sert image-matting et image-upscale, et rien d'autre : ces deux capacités "
+        "ont chacune leur adaptateur, il n'y a pas d'appel commun à une famille "
+        "de modèles de vision"
+    ),
 }
 
 

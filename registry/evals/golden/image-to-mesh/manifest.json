@@ -1,0 +1,65 @@
+{
+  "$schema": "../../../schema/golden.schema.json",
+  "capability": "image-to-mesh",
+  "version": 1,
+  "status": "complet",
+  "description": "Huit solides à géométrie connue d'avance, rendus par tools/golden_assets.py en RGBA à fond réellement transparent — le pipeline de reconstruction recadre sur le canal alpha, et un fond gris uniforme n'est pas un détourage. Ils jugent la QUALITÉ de la reconstruction, là où registry/evals/bench/image-to-mesh.json mesure un coût en faisant varier la résolution d'octree. Ici l'octree n'est pas fixé : chaque variant garde le sien, sans quoi on jugerait un modèle sur un réglage fait pour un autre. La plupart se départagent à l'œil ; le genre topologique, lui, se vérifie sans juge.",
+  "cases": [
+    {
+      "id": "cube",
+      "input": { "image": "assets/cube.png", "seed": 301 },
+      "reference": { "genus": 0 },
+      "notes": "Six faces planes, douze arêtes vives, trois visibles à la fois. L'arrondi des arêtes est le défaut le plus courant des reconstructions par champ de distance.",
+      "source": { "recipe": "solide", "forme": "cube" }
+    },
+    {
+      "id": "sphere",
+      "input": { "image": "assets/sphere.png", "seed": 302 },
+      "reference": { "genus": 0 },
+      "notes": "Courbure constante, aucune arête. Le cas inverse du cube : ici c'est le facettage qui trahit, et la silhouette suffit à le voir.",
+      "source": { "recipe": "solide", "forme": "sphere" }
+    },
+    {
+      "id": "cone",
+      "input": { "image": "assets/cone.png", "seed": 303 },
+      "reference": { "genus": 0 },
+      "notes": "Une pointe, une arête circulaire vive à la base. Une singularité ponctuelle et une singularité linéaire dans le même objet.",
+      "source": { "recipe": "solide", "forme": "cone" }
+    },
+    {
+      "id": "cylindre",
+      "input": { "image": "assets/cylindre.png", "seed": 304 },
+      "reference": { "genus": 0 },
+      "notes": "Deux disques plans raccordés par une surface réglée. La face supérieure vue en raccourci est ce qui se creuse ou se bombe quand la profondeur est mal estimée.",
+      "source": { "recipe": "solide", "forme": "cylindre" }
+    },
+    {
+      "id": "tore",
+      "input": { "image": "assets/tore.png", "seed": 305 },
+      "reference": { "genus": 1 },
+      "notes": "Le seul cas de la liste dont l'échec se vérifie mécaniquement : un tore reconstruit sans son trou n'est pas un tore, et le genre le dit sans qu'aucun humain ait à regarder.",
+      "source": { "recipe": "solide", "forme": "tore" }
+    },
+    {
+      "id": "escalier",
+      "input": { "image": "assets/escalier.png", "seed": 306 },
+      "reference": { "genus": 0 },
+      "notes": "Quatre marches, donc des arêtes vives répétées à petite échelle. C'est la résolution effective de la reconstruction qui décide si les marches survivent ou fondent en rampe.",
+      "source": { "recipe": "solide", "forme": "escalier" }
+    },
+    {
+      "id": "equerre",
+      "input": { "image": "assets/equerre.png", "seed": 307 },
+      "reference": { "genus": 0 },
+      "notes": "Une pièce en L : un angle rentrant, que la silhouette seule ne suffit pas à décrire. Il faut avoir compris la forme, pas seulement l'avoir découpée.",
+      "source": { "recipe": "solide", "forme": "equerre" }
+    },
+    {
+      "id": "etoile",
+      "input": { "image": "assets/etoile.png", "seed": 308 },
+      "reference": { "genus": 0 },
+      "notes": "Prisme à cinq branches : dix arêtes verticales, dont cinq en angle rentrant. Le cas le plus dur de la série, et celui qui départage le mieux deux reconstructions honnêtes.",
+      "source": { "recipe": "solide", "forme": "etoile" }
+    }
+  ]
+}

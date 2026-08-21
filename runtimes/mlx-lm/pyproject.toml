@@ -1,0 +1,45 @@
+# Environnement isolé du runtime `mlx-lm` (CONCEPTION.md §5.3).
+#
+# Cinquième famille de runtime du parc, et la première à servir **trois**
+# capacités depuis un seul modèle chargé : génération de texte, traduction et
+# appel d'outils. Le §4 de l'architecture le rendait possible dès le début ; il
+# aura fallu attendre qu'un modèle de langue entre au parc pour l'éprouver.
+#
+# Trois adaptateurs distincts, un par capacité (`workers/mlx_lm.py`,
+# `mlx_lm_translate.py`, `mlx_lm_tools.py`) : le chargement est le même, mais
+# composer une invite de traduction, lire une réponse libre et extraire un appel
+# d'outil validable sont trois métiers. Les fondre donnerait un fichier qui
+# commence par un aiguillage et ne se relit plus — c'est la raison qui avait déjà
+# séparé la voix de la chanson dans `mlx-audio`.
+#
+# Écurie n'est PAS installé ici et ne doit pas l'être : le superviseur rend
+# visibles par PYTHONPATH les trois modules du protocole, en bibliothèque
+# standard pure (voir `envs.py`).
+#
+# Le `.venv` n'est pas versionné, ce fichier l'est. Pour le reconstruire :
+#
+#     ecurie env sync mlx-lm
+
+[project]
+name = "ecurie-runtime-mlx-lm"
+version = "0.4.0"
+description = "Écurie — env isolé : mlx-lm (texte, traduction, appel d'outils) sur Apple Silicon"
+requires-python = ">=3.12"
+dependencies = [
+    # Plancher relevé sur le paquet publié : `mlx_lm.generate.stream_generate` et
+    # `make_sampler` ont pris leur forme actuelle en 0.21, et c'est contre elle que
+    # les trois adaptateurs sont écrits. Cap volontaire sur la branche 0.2x : une
+    # majeure changerait la signature de `load()`, dont tout le reste dépend.
+    "mlx-lm>=0.21,<0.30",
+    # mlx-lm tire mlx, mais le déclarer rend la borne visible ici plutôt que dans
+    # un lock : c'est ce chiffre que `ecurie ps` affiche comme source du budget.
+    "mlx>=0.26",
+    # Gabarits de conversation : `apply_chat_template` vient de transformers, pas
+    # de mlx-lm. Sans lui, l'invite part sans balises de rôle et un modèle instruit
+    # répond n'importe quoi — sans jamais échouer, ce qui est pire.
+    "transformers>=4.41.2",
+]
+
+# Rien à construire : cet env n'est qu'une liste de dépendances, pas un paquet.
+[tool.uv]
+package = false

@@ -1,0 +1,83 @@
+{
+  "ref": "qwen3-4b-outils@4bit",
+  "model": "qwen3-4b-outils",
+  "variant": "4bit",
+  "capability": "tool-use",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-lm 0.29.1",
+  "measured_at": "2026-08-21",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/tool-use.json",
+    "version": 1,
+    "cases": [
+      "outils-3",
+      "outils-8",
+      "outils-16"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 2278969697,
+    "peak_unified_memory_bytes": 2932723800,
+    "warmup_ms": 742,
+    "latency_ms_p50": 958,
+    "throughput": "1 sortie / 1.0 s"
+  },
+  "cases": [
+    {
+      "id": "outils-3",
+      "ok": true,
+      "duration_ms": 763,
+      "metrics": {
+        "duration_ms": 763,
+        "tools_declared": 3,
+        "calls": 1,
+        "parse_strategy": "tool_call",
+        "template_tools": true,
+        "complaints": [],
+        "prompt_tokens": 266,
+        "generation_tokens": 23,
+        "tokens_per_second": 30.4,
+        "peak_memory_bytes": 2741780740
+      },
+      "error": null
+    },
+    {
+      "id": "outils-8",
+      "ok": true,
+      "duration_ms": 958,
+      "metrics": {
+        "duration_ms": 958,
+        "tools_declared": 8,
+        "calls": 1,
+        "parse_strategy": "tool_call",
+        "template_tools": true,
+        "complaints": [],
+        "prompt_tokens": 518,
+        "generation_tokens": 25,
+        "tokens_per_second": 26.1,
+        "peak_memory_bytes": 2892858540
+      },
+      "error": null
+    },
+    {
+      "id": "outils-16",
+      "ok": true,
+      "duration_ms": 1314,
+      "metrics": {
+        "duration_ms": 1314,
+        "tools_declared": 16,
+        "calls": 1,
+        "parse_strategy": "tool_call",
+        "template_tools": true,
+        "complaints": [],
+        "prompt_tokens": 988,
+        "generation_tokens": 25,
+        "tokens_per_second": 19.03,
+        "peak_memory_bytes": 2932723800
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

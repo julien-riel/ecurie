@@ -110,7 +110,7 @@ def variant_disk_bytes(records: list[LocationRecord], ref: str) -> int:
     vus: set[tuple] = set()
     total = 0
     for rec in records:
-        if rec.variant_ref != ref or rec.link_kind == "symlink":
+        if ref not in rec.variant_refs or rec.link_kind == "symlink":
             continue
         clé = (rec.sha256,) if rec.sha256 else (rec.device, rec.inode)
         if clé in vus:

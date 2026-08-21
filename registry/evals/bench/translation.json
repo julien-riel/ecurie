@@ -1,0 +1,34 @@
+{
+  "capability": "translation",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Trois textes français de longueur croissante, tous vers l'anglais : c'est le nombre de jetons à produire qui fait la durée, et la langue d'arrivée est fixée pour que la comparaison porte sur le coût et non sur la difficulté d'une paire de langues. Ils ne changent jamais.",
+  "cases": [
+    {
+      "id": "court",
+      "input": {
+        "text": "Le parc est prêt. Le budget mémoire est vérifié avant chaque chargement.",
+        "source_language": "fr",
+        "target_language": "en",
+        "seed": 1
+      }
+    },
+    {
+      "id": "moyen",
+      "input": {
+        "text": "L'isolement des environnements n'est pas une élégance d'architecte. Deux bibliothèques de calcul qui exigent des versions incompatibles du même moteur cohabitent très bien dans deux dossiers séparés, et pas du tout dans un seul. Le prix se paie au démarrage, deux cents millisecondes par tâche, et il se paie une fois.",
+        "source_language": "fr",
+        "target_language": "en",
+        "seed": 2
+      }
+    },
+    {
+      "id": "long",
+      "input": {
+        "text": "Une capacité déclare un schéma d'entrée et un schéma de sortie typés, et tous les modèles d'une même capacité sont interchangeables derrière ce contrat. Trois conséquences en découlent. L'interface n'est pas générique : elle est engendrée, le formulaire venant du schéma d'entrée et le visualiseur du type de la sortie. La confrontation devient native, puisque deux variants reçoivent la même entrée et rendent deux sorties comparables côte à côte. Enfin le chaînage devient vérifiable avant d'être exécuté : une étape qui produit une image peut alimenter une étape qui en consomme une, et le registre sait le dire au chargement plutôt qu'au premier échec.",
+        "source_language": "fr",
+        "target_language": "en",
+        "seed": 3
+      }
+    }
+  ]
+}

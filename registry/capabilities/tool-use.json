@@ -1,0 +1,106 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "tool-use",
+  "title": "Appel d'outils",
+  "description": "Choisir le bon outil parmi ceux qu'on lui déclare, et en remplir les arguments. C'est ce qui décide si un modèle est utilisable dans un harnais : une réponse juste mais mal formée ne s'exécute pas, et une réponse bien formée qui appelle le mauvais outil s'exécute — ce qui est pire. Écurie n'exécute AUCUN outil déclaré ici, et ne le fera pas : elle juge le choix et le remplissage, pas leur effet. La boucle d'agent est hors périmètre (ARCHITECTURE.md §11).",
+  "input": {
+    "type": "object",
+    "required": ["task", "tools"],
+    "additionalProperties": false,
+    "properties": {
+      "task": {
+        "type": "string",
+        "minLength": 1,
+        "x-ui": "textarea",
+        "description": "Ce qu'on demande, en langue naturelle."
+      },
+      "tools": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 32,
+        "description": "Outils mis à disposition. Le nombre compte autant que la difficulté de la tâche : un modèle qui choisit juste parmi trois outils peut se perdre parmi vingt, et c'est ce que la charge type fait varier.",
+        "items": {
+          "type": "object",
+          "required": ["name", "parameters"],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[a-zA-Z_][a-zA-Z0-9_-]*$",
+              "description": "Nom de l'outil, tel qu'il devra être rappelé dans l'appel."
+            },
+            "description": {
+              "type": "string",
+              "description": "À quoi sert l'outil, en une phrase. C'est sur elle que le modèle choisit."
+            },
+            "parameters": {
+              "type": "object",
+              "description": "JSON Schema des arguments attendus. Transmis tel quel au modèle, et c'est contre lui que l'appel émis sera validé."
+            }
+          }
+        }
+      },
+      "system": {
+        "type": "string",
+        "x-ui": "textarea",
+        "description": "Consigne système. Vide = celle du gabarit de conversation du modèle."
+      },
+      "tool_choice": {
+        "type": "string",
+        "enum": ["auto", "required", "none"],
+        "default": "auto",
+        "description": "« auto » laisse le modèle répondre en clair s'il juge qu'aucun outil ne convient — savoir s'abstenir fait partie de la compétence. « required » force un appel, « none » l'interdit."
+      },
+      "parallel_calls": {
+        "type": "boolean",
+        "default": false,
+        "description": "Autoriser plusieurs appels dans une même réponse. Discriminant : beaucoup de modèles annoncent la capacité et n'émettent jamais qu'un appel."
+      },
+      "temperature": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 2.0,
+        "default": 0.0,
+        "description": "Nulle par défaut. Un appel d'outil est une sortie structurée : l'échantillonnage n'y ajoute que des occasions de la casser."
+      },
+      "max_tokens": {
+        "type": "integer",
+        "minimum": 16,
+        "maximum": 8192,
+        "default": 1024,
+        "description": "Plafond de jetons produits. Trop bas, un appel long est tronqué et devient du JSON invalide."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Graine aléatoire. À conserver pour rejouer la même réponse."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["calls"],
+    "properties": {
+      "calls": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin du fichier des appels émis, relatif au dossier du job : une liste d'objets {name, arguments}, vide si le modèle a répondu en clair. Toujours écrit, même vide — un fichier absent et une liste vide ne disent pas la même chose."
+      },
+      "text": {
+        "type": "string",
+        "contentMediaType": "text/plain",
+        "description": "Chemin de la réponse en clair, quand le modèle en donne une, relatif au dossier du job."
+      },
+      "call_names": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Noms des outils appelés, dans l'ordre. C'est ce qui se compare à la référence du golden set sans avoir à lire le JSON."
+      },
+      "finish_reason": {
+        "type": "string",
+        "enum": ["stop", "length"],
+        "description": "Plafond atteint veut dire appel tronqué : la sortie est invalide par construction, et il ne faut pas la noter comme un mauvais choix d'outil."
+      }
+    }
+  }
+}

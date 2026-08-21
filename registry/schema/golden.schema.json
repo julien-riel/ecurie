@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ecurie.local/schema/golden.schema.json",
+  "title": "Golden set d'une capacité Écurie",
+  "description": "Entrées figées servant à juger la QUALITÉ d'un variant, et leur vérité terrain quand il y en a une. À ne pas confondre avec registry/evals/bench/, qui mesure un COÛT. Règle commune aux deux : append-only. On ajoute un cas, on ne corrige jamais un cas existant — une entrée modifiée détruit la comparabilité de tous les résultats antérieurs, et le pire est qu'elle le fait en silence.",
+  "type": "object",
+  "required": ["capability", "version", "status", "description", "cases"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "capability": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "description": "Capacité jugée. Identique au nom du dossier, et déclarée dans registry/capabilities/."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Incrémentée quand des cas sont AJOUTÉS. Jamais quand un cas change : cela n'arrive pas."
+    },
+    "status": {
+      "enum": ["complet", "incomplet"],
+      "description": "« incomplet » signale un jeu dont des cas attendent encore leur fichier d'entrée. `ecurie eval` le dit dans ses résultats plutôt que de laisser croire à une couverture qu'il n'a pas."
+    },
+    "description": { "type": "string" },
+    "normalization": {
+      "enum": ["whitespace", "strict"],
+      "description": "Comparaison des références textuelles. « whitespace » réduit toute suite de blancs — espaces, tabulations et retours à la ligne compris — à une seule espace, puis élague les bords : c'est le défaut, parce que la mise en ligne d'un modèle de lecture dépend de la largeur de la page et non de ce qu'il a lu, et parce qu'un tableau se rend en autant de façons qu'il y a de lecteurs. « strict » compare caractère pour caractère, pour les cas où la mise en ligne fait partie du contenu — un extrait de code, notamment."
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/cas" },
+      "description": "Ordre libre, identifiants uniques."
+    }
+  },
+  "$defs": {
+    "cas": {
+      "type": "object",
+      "required": ["id", "input", "notes"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$",
+          "description": "Stable et définitif : c'est la clé sous laquelle les résultats s'accumulent d'un variant à l'autre et d'un mois à l'autre."
+        },
+        "input": {
+          "type": "object",
+          "minProperties": 1,
+          "description": "Entrée conforme au schéma d'entrée du contrat de la capacité. Les chemins de fichiers sont relatifs au dossier du golden set."
+        },
+        "reference": {
+          "type": "object",
+          "minProperties": 1,
+          "description": "Vérité terrain, quand elle existe. Une capacité générative — image, voix, maillage — n'en a pas : elle se juge par confrontation, et un cas sans référence est normal.",
+          "additionalProperties": false,
+          "not": {
+            "required": ["text", "text_file"],
+            "description": "Deux vérités terrain pour un même cas, c'est une de trop."
+          },
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "Texte exact attendu. Comparé selon `normalization` ; alimente WER et CER."
+            },
+            "text_file": {
+              "type": "string",
+              "description": "Fichier portant le texte exact attendu, relatif au dossier du golden set. Préféré dès que la référence dépasse quelques lignes : une page entière échappée dans du JSON ne se relit pas, et une vérité terrain qu'on ne relit pas ne se vérifie plus. Ses espaces et ses tabulations font foi pour la mise en page du rendu ; la comparaison, elle, suit `normalization`."
+            },
+            "fields": {
+              "type": "object",
+              "description": "Valeurs qui doivent apparaître exactement dans la sortie — une date, un montant, un code de dossier. C'est l'« exactitude par champs » du §9 de la conception : une page lue à 98 % dont le montant est faux est une page inutilisable, et le taux d'erreur global ne le dit pas. Quand le cas porte aussi une référence textuelle, chaque champ doit en être un extrait littéral — deux vérités sur la même entrée finiraient par diverger. Sans référence textuelle, comme pour la description d'image, les champs valent pour eux-mêmes : ce sont les mentions qu'une réponse correcte ne peut pas omettre.",
+              "additionalProperties": { "type": "string" }
+            },
+            "genus": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Genre topologique attendu d'un maillage. Un tore reconstruit sans son trou est faux, et c'est vérifiable sans juge humain."
+            },
+            "mask_file": {
+              "type": "string",
+              "description": "Masque alpha attendu, relatif au dossier du golden set. Une vérité terrain de détourage n'est crédible que calculée en même temps que l'image : c'est l'alpha qui a servi à composer la scène, pas une annotation faite après coup."
+            },
+            "image_file": {
+              "type": "string",
+              "description": "Image attendue, relative au dossier du golden set. Sert à l'agrandissement, où la référence est l'originale dont l'entrée est une réduction — le seul cas où une capacité générative a une vérité terrain exacte."
+            },
+            "json_file": {
+              "type": "string",
+              "description": "Réponse structurée attendue, relative au dossier du golden set. Sert à l'appel d'outils : le nom de l'outil et ses arguments se comparent sans juge humain."
+            }
+          }
+        },
+        "normalization": {
+          "enum": ["whitespace", "strict"],
+          "description": "Surcharge la règle du jeu pour ce cas."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Ce que ce cas éprouve, en une phrase. Obligatoire : un cas dont personne ne sait plus ce qu'il testait ne se remplace pas, et il ne s'interprète plus non plus."
+        },
+        "source": {
+          "type": "object",
+          "description": "Provenance du fichier d'entrée, quand il a été fabriqué. Sans elle, une image de jeu d'essai devient une donnée orpheline dont plus personne ne sait la refaire.",
+          "additionalProperties": true,
+          "properties": {
+            "recipe": {
+              "type": "string",
+              "description": "Recette qui produit le fichier, par exemple « page » ou « solide » de tools/golden_assets.py."
+            }
+          }
+        },
+        "pending": {
+          "type": "object",
+          "required": ["reason"],
+          "additionalProperties": false,
+          "description": "Le cas est écrit et figé, mais le fichier que son `input` désigne n'existe pas encore. Le déclarer ici est ce qui permet à `ecurie eval` de compter ce qui manque au lieu d'échouer sur un chemin mort — et le jour où le fichier arrive, rien du cas ne change : seule cette clé disparaît. C'est ce qui rend la règle append-only tenable pour un jeu dont les entrées se produisent à la main.",
+          "properties": {
+            "reason": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

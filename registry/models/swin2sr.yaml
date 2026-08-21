@@ -1,0 +1,79 @@
+# Agrandissement d'image — natif dans transformers, donc aucun code amont chargé.
+#
+# Deux variants, et la distinction n'est pas un détail de réglage : le facteur
+# d'agrandissement est celui des poids, pas un paramètre. Un jeu entraîné en ×4
+# ne sait pas faire ×2, et l'adaptateur refuse explicitement un facteur qui n'est
+# pas le sien plutôt que de rendre une image d'une taille que personne n'a
+# demandée. Le contrat expose quand même `scale`, parce qu'un agrandisseur par
+# diffusion, lui, l'honore — c'est au variant de dire ce qu'il sait faire.
+id: swin2sr
+name: Swin2SR
+capability: image-upscale
+family: swin2sr
+vendor: Marcos V. Conde et al.
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Deux jeux de poids aux caractères opposés : le variant classique ×2 est
+  entraîné sur des réductions bicubiques propres, donc excellent sur une image
+  synthétique et décevant sur une photo ; le variant ×4 « monde réel » est
+  entraîné sur des dégradations composées, donc l'inverse. Le golden set
+  d'agrandissement les départage sur des réductions bicubiques, ce qui avantage
+  structurellement le premier : c'est à savoir avant de lire son classement.
+
+links:
+  homepage: https://huggingface.co/caidas/swin2SR-classical-sr-x2-64
+  code: https://github.com/mv-lab/swin2sr
+  paper: https://arxiv.org/abs/2209.11345
+
+variants:
+  - id: classique-x2
+    quantization: fp32
+    tier: hot
+    runtime: torch-vision
+    source:
+      kind: huggingface
+      repo: caidas/swin2SR-classical-sr-x2-64
+      revision: "cee1c923c6a37361c6e5650b65dcf4be821e5d52"   # 2024-03-27
+      allow_patterns: ["*.json", "*.safetensors"]
+    defaults:
+      scale: 2
+    caveats:
+      - "Facteur ×2 uniquement : toute autre valeur de `scale` est refusée avant calcul."
+      - "Entraîné sur des réductions bicubiques : sur une photo réelle, le variant monde réel fait mieux."
+    profile:
+      disk_bytes: 48461584
+      peak_unified_memory_bytes: 4593483776
+      warmup_ms: 1739
+      latency_ms_p50: 2799
+      throughput: "1 sortie / 5.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0 / transformers 5.15.1"
+      measured_at: "2026-08-21"
+      harness_version: "0.3.0"
+
+  - id: reel-x4
+    quantization: fp32
+    tier: hot
+    runtime: torch-vision
+    source:
+      kind: huggingface
+      repo: caidas/swin2SR-realworld-sr-x4-64-bsrgan-psnr
+      revision: "bb13f02e45e88d00b6c202b3fbe6a181af144606"   # 2023-01-21
+      allow_patterns: ["*.json", "*.bin"]
+    defaults:
+      scale: 4
+    caveats:
+      - "Facteur ×4 uniquement."
+      - "Publié en .bin et non en safetensors : `use_safetensors` ne s'applique pas à ce variant."
+      - "Pic de 6,28 Gio contre 4,28 pour le ×2 sur la même charge : c'est le nombre de pixels produits qui commande, et il quadruple."
+    profile:
+      disk_bytes: 48461065
+      peak_unified_memory_bytes: 6741032960
+      warmup_ms: 1549
+      latency_ms_p50: 2873
+      throughput: "1 sortie / 5.2 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0 / transformers 5.15.1"
+      measured_at: "2026-08-21"
+      harness_version: "0.3.0"

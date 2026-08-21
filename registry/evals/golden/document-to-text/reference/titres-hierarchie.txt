@@ -1,0 +1,11 @@
+Le contrat de capacité
+Une capacité déclare un schéma d'entrée et un schéma de sortie typés. Tous les modèles d'une même capacité sont interchangeables derrière ce contrat, et c'est de là que tout le reste découle.
+
+Trois conséquences
+L'interface n'est pas générique : elle est engendrée. Le formulaire vient du schéma d'entrée, le visualiseur vient du type de la sortie.
+
+La confrontation
+Deux variants, la même entrée, deux sorties côte à côte, une préférence enregistrée. C'est le carburant de la veille.
+
+Le chaînage
+Une sortie image alimente une étape qui consomme une image. La composition devient vérifiable avant d'être exécutée.

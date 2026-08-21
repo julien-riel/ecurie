@@ -1,0 +1,142 @@
+{
+  "$schema": "../../../schema/golden.schema.json",
+  "capability": "translation",
+  "version": 1,
+  "status": "complet",
+  "normalization": "whitespace",
+  "description": "Dix traductions à référence exacte, dans les deux sens entre le français et l'anglais. C'est la capacité générative la mieux notée automatiquement du dossier : BLEU, chrF ou COMET donnent un chiffre sans juge humain. La référence est **une** traduction juste, pas la seule — un score de traduction se lit comme une distance, jamais comme une note sur vingt, et deux traductions également bonnes s'écartent naturellement de quelques points.\n\nLes cas sont choisis pour ce qu'ils cassent, pas pour leur difficulté générale : ce qui se perd en traduction automatique, ce sont les nombres, les noms propres, les registres et les tournures qui n'existent pas dans la langue d'arrivée.",
+  "cases": [
+    {
+      "id": "technique-fr-en",
+      "input": {
+        "text": "Le contrôle d'admission compare le pic mémoire du variant au budget résiduel avant de charger quoi que ce soit.",
+        "source_language": "fr",
+        "target_language": "en",
+        "seed": 501
+      },
+      "reference": {
+        "text": "Admission control compares the variant's memory peak with the remaining budget before loading anything."
+      },
+      "notes": "Vocabulaire technique du domaine. Le piège est « variant », qui se traduit mal en « variation » et perd alors son sens précis."
+    },
+    {
+      "id": "nombres-fr-en",
+      "input": {
+        "text": "La facture du 3 septembre 2026 s'élève à 2 667,42 $, dont 231,42 $ de TVQ, payable dans les 30 jours.",
+        "source_language": "fr",
+        "target_language": "en",
+        "seed": 502
+      },
+      "reference": {
+        "text": "The invoice dated 3 September 2026 amounts to $2,667.42, including $231.42 in QST, payable within 30 days."
+      },
+      "notes": "Séparateur décimal, séparateur de milliers, position du symbole monétaire et sigle de taxe. Quatre conventions qui changent toutes entre les deux langues, et dont aucune ne se devine par le contexte."
+    },
+    {
+      "id": "noms-propres-fr-en",
+      "input": {
+        "text": "Marie-Josée Beauchêne, du CIUSSS de l'Est-de-l'Île-de-Montréal, a déposé le rapport R-1428.",
+        "source_language": "fr",
+        "target_language": "en",
+        "seed": 503
+      },
+      "reference": {
+        "text": "Marie-Josée Beauchêne, from the CIUSSS de l'Est-de-l'Île-de-Montréal, filed report R-1428."
+      },
+      "notes": "Un nom d'organisme québécois qui ne se traduit pas, et un code de dossier qui se reporte tel quel. Traduire ce qui doit rester intact est une faute plus grave que maladresse de style."
+    },
+    {
+      "id": "registre-soutenu-fr-en",
+      "input": {
+        "text": "Nous vous saurions gré de bien vouloir nous faire parvenir les pièces manquantes avant l'échéance.",
+        "source_language": "fr",
+        "target_language": "en",
+        "register": "soutenu",
+        "seed": 504
+      },
+      "reference": {
+        "text": "We would be grateful if you would send us the missing documents before the deadline."
+      },
+      "notes": "Registre soutenu demandé explicitement. Un moteur de traduction dédié ignore le champ ; un modèle de langue le suit. C'est exactement l'écart que la confrontation doit rendre visible."
+    },
+    {
+      "id": "quebecisme-fr-en",
+      "input": {
+        "text": "Il fait pas chaud à matin ; on va quand même aller magasiner avant que ça ferme.",
+        "source_language": "fr",
+        "target_language": "en",
+        "register": "familier",
+        "seed": 505
+      },
+      "reference": {
+        "text": "It's not warm this morning, but we're still going shopping before it closes."
+      },
+      "notes": "Français québécois familier : négation sans « ne », « à matin », « magasiner ». Un modèle entraîné sur du français hexagonal traduit « magasiner » par « to store » et perd la phrase entière."
+    },
+    {
+      "id": "mise-en-forme-fr-en",
+      "input": {
+        "text": "Procédure :\n1. Scanner les gestionnaires connus\n2. Vérifier les empreintes\n3. Appliquer le plan en quarantaine",
+        "source_language": "fr",
+        "target_language": "en",
+        "preserve_formatting": true,
+        "seed": 506
+      },
+      "reference": {
+        "text": "Procedure:\n1. Scan the known managers\n2. Verify the checksums\n3. Apply the plan to quarantine"
+      },
+      "notes": "Une liste numérotée à conserver. Un modèle qui recolle tout en un paragraphe a bien traduit et rendu un document inutilisable — c'est ce que `preserve_formatting` existe pour attraper."
+    },
+    {
+      "id": "technique-en-fr",
+      "input": {
+        "text": "The peak is instantaneous and drops as fast as it rises: hold the maximum at every reading, not once at the end.",
+        "source_language": "en",
+        "target_language": "fr",
+        "seed": 507
+      },
+      "reference": {
+        "text": "Le pic est instantané et redescend aussi vite qu'il monte : il faut tenir le maximum à chaque relevé, et non une seule fois à la fin."
+      },
+      "notes": "Le sens inverse, sur une phrase à deux propositions et un deux-points. La ponctuation française exige une espace avant le deux-points, et c'est le genre de détail qu'un modèle anglophone omet."
+    },
+    {
+      "id": "idiome-en-fr",
+      "input": {
+        "text": "Let's not paint ourselves into a corner: once the schema is committed, we're stuck with it.",
+        "source_language": "en",
+        "target_language": "fr",
+        "seed": 508
+      },
+      "reference": {
+        "text": "Ne nous mettons pas dans une impasse : une fois le schéma committé, nous devrons faire avec."
+      },
+      "notes": "Un idiome sans équivalent littéral. La traduction mot à mot donne une phrase grammaticale et incompréhensible, ce qu'aucune métrique de surface ne pénalise assez — d'où l'intérêt de le voir aussi en Confrontation."
+    },
+    {
+      "id": "ambiguite-en-fr",
+      "input": {
+        "text": "The model loads the weights, then the runtime loads the model.",
+        "source_language": "en",
+        "target_language": "fr",
+        "seed": 509
+      },
+      "reference": {
+        "text": "Le modèle charge les poids, puis l'environnement d'exécution charge le modèle."
+      },
+      "notes": "« load » deux fois, avec deux sujets différents, et « runtime » qui n'a pas d'équivalent court en français. La phrase est courte et pourtant chacun de ses trois termes appelle une décision."
+    },
+    {
+      "id": "detection-fr-en",
+      "input": {
+        "text": "Un dossier de vingt gigaoctets dont on ignore la provenance n'est pas un actif : c'est une dette de disque.",
+        "target_language": "en",
+        "seed": 510
+      },
+      "notes": "Sans `source_language` : le modèle doit reconnaître le français seul. Le cas est ici pour vérifier que `detected_source_language` dit la vérité — un moteur qui ne détecte rien doit rendre un champ vide plutôt qu'une certitude inventée.",
+      "reference": {
+        "text": "A twenty-gigabyte folder whose origin nobody knows is not an asset: it is disk debt."
+      }
+    }
+  ]
+}

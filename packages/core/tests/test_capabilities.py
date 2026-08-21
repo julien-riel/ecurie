@@ -24,15 +24,20 @@ CAPACITÉS_DU_DÉPÔT = [
     "audio-denoise",
     "audio-separation",
     "document-to-text",
+    "image-matting",
     "image-to-image",
     "image-to-mesh",
+    "image-to-text",
     "image-to-video",
+    "image-upscale",
     "speech-to-text",
     "text-generation",
     "text-to-image",
     "text-to-music",
     "text-to-speech",
     "text-to-video",
+    "tool-use",
+    "translation",
 ]
 
 # La composite du §11 de la conception : deux étapes, un point d'arrêt après la première.
@@ -135,7 +140,7 @@ def test_chaque_sortie_typee_annonce_un_chemin_de_fichier(repo_root):
         for nom, champ in _sorties_typées(contract.output_schema).items()
     }
 
-    assert len(typées) == 18
+    assert len(typées) == 25
     mal_décrites = {
         ref
         for ref, champ in typées.items()

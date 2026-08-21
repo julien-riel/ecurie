@@ -3,12 +3,14 @@ name = "ecurie-workspace"
 version = "0.1.0"
 description = "Racine du workspace Écurie — voir ARCHITECTURE.md"
 requires-python = ">=3.12"
-dependencies = ["ecurie-core", "ecurie-store", "ecurie-runtime"]
+dependencies = ["ecurie-core", "ecurie-store", "ecurie-runtime", "ecurie-api"]
 
 [dependency-groups]
 dev = [
     "pytest>=8",
     "ruff>=0.8",
+    # `fastapi.testclient` passe par httpx : sans lui, aucun test d'API ne se lance.
+    "httpx>=0.27",
 ]
 
 [tool.uv]
@@ -21,6 +23,7 @@ members = ["packages/*"]
 ecurie-core = { workspace = true }
 ecurie-store = { workspace = true }
 ecurie-runtime = { workspace = true }
+ecurie-api = { workspace = true }
 
 [tool.ruff]
 line-length = 100
@@ -30,6 +33,11 @@ target-version = "py312"
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
-testpaths = ["packages/core/tests", "packages/store/tests", "packages/runtime/tests"]
+testpaths = [
+    "packages/core/tests",
+    "packages/store/tests",
+    "packages/runtime/tests",
+    "packages/api/tests",
+]
 markers = ["real: tests d'intégration sur le vrai parc, hors CI"]
 addopts = "-m 'not real'"

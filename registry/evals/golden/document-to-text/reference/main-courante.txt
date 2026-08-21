@@ -1,0 +1,11 @@
+Main courante du poste de mesure
+
+08 h 12 — Parc déchargé, budget rendu à 17,76 Gio.
+08 h 14 — Chargement de qwen3-tts-1.7b@8bit-mlx. Warmup 2 412 ms.
+08 h 15 — Trois cas de la charge type. Débit stable, rien à signaler.
+09 h 03 — Demande de sdxl-base@fp16. La voix est déchargée, comme prévu.
+09 h 07 — Pic relevé à 15,95 Gio, soit 90 % du budget. Aucun échange de pages.
+11 h 40 — minimax-music3@4bit, morceau de 30 s : refusé, 24,2 Gio demandés.
+11 h 41 — Reprise à 15 s : accepté, 13,8 Gio, marge de 3,99 Gio.
+16 h 47 — Worker musique devenu injoignable. Socket disparu, processus vivant.
+16 h 48 — Déchargement forcé. Budget rendu.

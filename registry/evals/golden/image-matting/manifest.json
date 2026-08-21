@@ -1,0 +1,85 @@
+{
+  "$schema": "../../../schema/golden.schema.json",
+  "capability": "image-matting",
+  "version": 1,
+  "status": "complet",
+  "description": "Six scènes dont le masque alpha exact est connu — non pas annoté après coup, mais calculé en même temps que l'image par tools/golden_assets.py. C'est ce qui rend ce jeu inhabituel pour une capacité d'image : il se note sans juge humain, par comparaison au masque qui a servi à composer la scène. Les fonds vont du dégradé lisse aux rayures obliques, et les sujets d'un cube plein à un tore percé — la difficulté d'un détourage tient au fond et aux trous, pas au nombre d'objets. Aucun réglage de modèle n'est fixé : seul `max_side` l'est, parce qu'il définit la question posée.",
+  "cases": [
+    {
+      "id": "sujet-plein-degrade",
+      "input": { "image": "assets/sujet-plein-degrade.png", "max_side": 1024 },
+      "reference": { "mask_file": "reference/sujet-plein-degrade.png" },
+      "notes": "Le cas de référence : un solide opaque sur un dégradé lisse. Un modèle qui le rate ne mérite aucun des cinq autres.",
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "fond": "atelier",
+        "objets": [{ "forme": "cube", "x": 0.5, "y": 0.55, "echelle": 0.42 }]
+      }
+    },
+    {
+      "id": "bords-courbes",
+      "input": { "image": "assets/bords-courbes.png", "max_side": 1024 },
+      "reference": { "mask_file": "reference/bords-courbes.png" },
+      "notes": "Une sphère : aucune arête, donc une couverture partielle sur tout le pourtour. C'est là qu'un masque binarisé se distingue d'un vrai alpha continu, et la note le dit.",
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "fond": "atelier",
+        "objets": [{ "forme": "sphere", "x": 0.5, "y": 0.55, "echelle": 0.44 }]
+      }
+    },
+    {
+      "id": "trou-traversant",
+      "input": { "image": "assets/trou-traversant.png", "max_side": 1024 },
+      "reference": { "mask_file": "reference/trou-traversant.png" },
+      "notes": "Un tore : le fond se voit à travers le sujet. C'est le cas le plus discriminant du jeu — beaucoup de modèles rendent la silhouette extérieure et bouchent le trou, ce qui donne un masque de belle apparence et faux au milieu.",
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "fond": "atelier",
+        "objets": [{ "forme": "tore", "x": 0.5, "y": 0.55, "echelle": 0.5 }]
+      }
+    },
+    {
+      "id": "pointes-fines",
+      "input": { "image": "assets/pointes-fines.png", "max_side": 1024 },
+      "reference": { "mask_file": "reference/pointes-fines.png" },
+      "notes": "Une étoile à cinq branches : dix arêtes vives dont cinq rentrantes. Les pointes sont ce qui s'arrondit en premier quand la résolution effective du masque est plus basse que celle de l'image.",
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "fond": "atelier",
+        "objets": [{ "forme": "etoile", "x": 0.5, "y": 0.52, "echelle": 0.52 }]
+      }
+    },
+    {
+      "id": "fond-raye",
+      "input": { "image": "assets/fond-raye.png", "max_side": 1024 },
+      "reference": { "mask_file": "reference/fond-raye.png" },
+      "notes": "Rayures obliques dont le contraste approche celui du sujet. Le modèle doit décider à la frontière plutôt que se laisser guider par un fond uniforme : c'est la seule chose qu'on lui demande vraiment.",
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "fond": "raye",
+        "objets": [{ "forme": "cylindre", "x": 0.5, "y": 0.55, "echelle": 0.4 }]
+      }
+    },
+    {
+      "id": "sujets-multiples",
+      "input": { "image": "assets/sujets-multiples.png", "max_side": 1024 },
+      "reference": { "mask_file": "reference/sujets-multiples.png" },
+      "notes": "Trois objets séparés. Beaucoup de détoureurs sont entraînés à isoler LE sujet saillant : ils en gardent un et effacent les deux autres. La référence les veut tous les trois, et l'écart se mesure sans discussion.",
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "fond": "atelier",
+        "objets": [
+          { "forme": "escalier", "x": 0.24, "y": 0.6, "echelle": 0.3 },
+          { "forme": "sphere", "x": 0.52, "y": 0.63, "echelle": 0.24 },
+          { "forme": "equerre", "x": 0.78, "y": 0.6, "echelle": 0.28 }
+        ]
+      }
+    }
+  ]
+}

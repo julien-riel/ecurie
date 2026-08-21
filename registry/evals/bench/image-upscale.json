@@ -1,0 +1,49 @@
+{
+  "capability": "image-upscale",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Trois définitions d'entrée croissantes, au facteur du variant : le coût suit le nombre de pixels à produire, donc le carré du côté d'entrée multiplié par le carré du facteur. Le facteur, lui, n'est PAS fixé ici — il appartient aux poids et non au job, et un jeu entraîné en ×4 ne sait pas faire ×2. Fixer `scale` dans une charge type refuserait la moitié des variants avant même de les mesurer. Les entrées ne changent jamais.",
+  "cases": [
+    {
+      "id": "cote-128",
+      "input": { "image": "assets/upscale-128.png" },
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "reduire": 8,
+        "fond": "atelier",
+        "objets": [
+          { "forme": "escalier", "x": 0.35, "y": 0.58, "echelle": 0.4 },
+          { "forme": "tore", "x": 0.7, "y": 0.66, "echelle": 0.34 }
+        ]
+      }
+    },
+    {
+      "id": "cote-256",
+      "input": { "image": "assets/upscale-256.png" },
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "reduire": 4,
+        "fond": "atelier",
+        "objets": [
+          { "forme": "escalier", "x": 0.35, "y": 0.58, "echelle": 0.4 },
+          { "forme": "tore", "x": 0.7, "y": 0.66, "echelle": 0.34 }
+        ]
+      }
+    },
+    {
+      "id": "cote-512",
+      "input": { "image": "assets/upscale-512.png" },
+      "source": {
+        "recipe": "scene",
+        "taille": 1024,
+        "reduire": 2,
+        "fond": "atelier",
+        "objets": [
+          { "forme": "escalier", "x": 0.35, "y": 0.58, "echelle": 0.4 },
+          { "forme": "tore", "x": 0.7, "y": 0.66, "echelle": 0.34 }
+        ]
+      }
+    }
+  ]
+}

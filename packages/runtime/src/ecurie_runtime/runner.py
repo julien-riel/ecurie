@@ -48,6 +48,9 @@ class ResolvedInput:
     params: dict[str, Any]  # réglages propres au runtime (variant.options)
     files: dict[str, str] = field(default_factory=dict)  # champ → sha256 du contenu
     provided: tuple[str, ...] = ()  # ce que l'utilisateur a réellement fourni
+    # Reproches du contrat, quand la résolution a été demandée non stricte. Vide
+    # après une résolution stricte : celle-ci lève au lieu de rendre un objet.
+    errors: list[str] = field(default_factory=list)
 
     def hash(self) -> str:
         """Empreinte stable de l'entrée, fichiers remplacés par leur contenu.
@@ -143,6 +146,22 @@ def coerce(value: str, schema: dict[str, Any], champ: str) -> Any:
     return value
 
 
+def merge_defaults(contract: CapabilityContract, variant: Variant) -> dict[str, Any]:
+    """Défauts du contrat corrigés par ceux du variant, avant toute saisie.
+
+    Extrait de `resolve_input` parce que l'API en a besoin seule : le bandeau de
+    ressources chiffre le pic attendu d'une entrée que l'utilisateur est encore
+    en train de remplir, donc avant qu'il y ait un job. Deux façons de composer
+    ces deux niveaux donneraient deux pics pour la même saisie.
+    """
+    propriétés = contract.input_properties
+    valeurs: dict[str, Any] = dict(contract.defaults())
+    for nom, valeur in (variant.defaults or {}).items():
+        if nom in propriétés:
+            valeurs[nom] = valeur
+    return valeurs
+
+
 def resolve_input(
     contract: CapabilityContract,
     variant: Variant,
@@ -157,23 +176,62 @@ def resolve_input(
     niveaux sont écrits au manifeste du job, si bien qu'un rejeu ne dépend
     d'aucun défaut qui aurait changé entre-temps.
     """
+    return _resolve(contract, variant, assignments, convert=coerce, seed=seed)
+
+
+def resolve_typed_input(
+    contract: CapabilityContract,
+    variant: Variant,
+    provided: dict[str, Any] | None,
+    *,
+    seed: int | None = None,
+    strict: bool = True,
+) -> ResolvedInput:
+    """Même résolution, pour une entrée déjà typée — celle qui arrive en JSON.
+
+    Le terminal ne connaît que des chaînes, et `coerce` les convertit d'après le
+    contrat ; un client HTTP, lui, envoie déjà un nombre pour un nombre. Faire
+    passer sa valeur par la conversion du terminal marcherait par accident sur
+    `1.0`, et se tromperait sur `false` — qui deviendrait la chaîne `"False"`,
+    puis le booléen vrai.
+
+    `strict=False` rend les reproches du contrat dans `errors` au lieu de lever.
+    C'est ce qu'il faut au bandeau de ressources, qui chiffre le coût d'une
+    entrée **en cours de saisie** : un texte encore vide n'est pas une erreur du
+    client, et refuser de répondre priverait l'utilisateur du chiffre au moment
+    précis où il en a besoin. Un paramètre que le contrat ne déclare pas, lui,
+    lève dans les deux cas — ce n'est pas une saisie incomplète, c'est un client
+    qui parle d'autre chose que la capacité qu'il a nommée.
+    """
+    return _resolve(contract, variant, provided or {}, convert=_as_is, seed=seed, strict=strict)
+
+
+def _as_is(value: Any, schema: dict[str, Any], champ: str) -> Any:
+    return value
+
+
+def _resolve(
+    contract: CapabilityContract,
+    variant: Variant,
+    assignments: dict[str, Any],
+    *,
+    convert: Any,
+    seed: int | None = None,
+    strict: bool = True,
+) -> ResolvedInput:
     propriétés = contract.input_properties
     options = dict(variant.options or {})
-
-    valeurs: dict[str, Any] = dict(contract.defaults())
-    for nom, valeur in (variant.defaults or {}).items():
-        if nom in propriétés:
-            valeurs[nom] = valeur
+    valeurs = merge_defaults(contract, variant)
 
     fournis: list[str] = []
     for clé, brut in assignments.items():
         if clé in propriétés:
-            valeurs[clé] = coerce(brut, propriétés[clé], clé)
+            valeurs[clé] = convert(brut, propriétés[clé], clé)
             fournis.append(clé)
         elif clé in options:
             # Réglage propre au runtime, déjà déclaré par le manifeste : on
             # autorise à le surcharger, jamais à en inventer un.
-            options[clé] = coerce(brut, {"type": _type_of(options[clé])}, clé)
+            options[clé] = convert(brut, {"type": _type_of(options[clé])}, clé)
             fournis.append(clé)
         else:
             connus = ", ".join(sorted(propriétés)) or "aucun"
@@ -186,13 +244,14 @@ def resolve_input(
     if seed is not None and "seed" in propriétés:
         valeurs["seed"] = seed
 
-    résolu = ResolvedInput(values=valeurs, params=options, provided=tuple(fournis))
     erreurs = validate_input(contract, valeurs)
-    if erreurs:
+    if erreurs and strict:
         raise InputError(
             f"entrée refusée par le contrat {contract.id} :\n  " + "\n  ".join(erreurs)
         )
-    return résolu
+    return ResolvedInput(
+        values=valeurs, params=options, provided=tuple(fournis), errors=erreurs
+    )
 
 
 def _type_of(valeur: Any) -> str:

@@ -148,6 +148,10 @@ def _trash_action(
     }
     if rec.variant_ref:
         action["variant_ref"] = rec.variant_ref
+    if len(rec.variant_refs) > 1:
+        # Le plan est relu par un humain avant d'être appliqué : taire qu'un
+        # fichier sert à deux modèles priverait cette relecture de ce qui compte.
+        action["variant_refs"] = rec.variant_refs
     return action
 
 

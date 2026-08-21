@@ -176,6 +176,27 @@ Capacités du parc initial : `text-to-speech`, `speech-to-text`, `text-to-music`
 `text-to-image`, `image-to-video`, `text-to-video`, `document-to-text` (OCR),
 `image-to-mesh`, `audio-separation`, `audio-denoise`, `text-to-mesh` (composite).
 
+> **Cinq de plus au v0.4**, et c'est la promesse ci-dessus mise à l'épreuve :
+> `image-matting` (détourage — le chaînon entre une photo et une reconstruction
+> 3D, qui recadre sur l'alpha), `image-upscale`, `image-to-text` (décrire une
+> image, à distinguer de transcrire un document), `translation` et `tool-use`.
+>
+> Deux enseignements en sont sortis. Le premier : **`image-to-text` n'a rien
+> coûté** — mêmes poids que la lecture de document, même environnement, un
+> contrat et un manifeste. C'est exactement ce que le contrat de capacité
+> promettait, et la première fois que le parc le vérifie. Le second : le partage
+> de poids entre deux manifestes a révélé que le résolveur du store les indexait
+> par dépôt dans un simple dictionnaire, si bien que le second manifeste écrasait
+> le premier — plusieurs gigaoctets attribués au mauvais modèle, et le poste
+> « jamais utilisé » du plan de récupération qui proposait à la corbeille des
+> poids servis tous les jours.
+>
+> Ce qui **n'a pas** mérité de contrat : `code-generation`. Le contrat aurait été
+> celui de `text-generation`, les modèles les mêmes, et la séparation aurait
+> divisé le vivier de la confrontation en deux moitiés qui ne se compareraient
+> plus. `tool-use`, à l'inverse, porte des schémas en entrée et une sortie
+> structurée : c'est un autre contrat, donc une autre capacité.
+
 ---
 
 ## 5. Couches et arborescence
@@ -280,10 +301,19 @@ macOS réserve environ 75 % de la mémoire unifiée au GPU. Deux leviers :
   passe pas, il **décharge** le résident le moins récemment utilisé au lieu de laisser
   macOS partir en swap.
 
-Politique par défaut : **un seul modèle lourd (> 6 Go) résident à la fois**, plus N
-modèles légers (ASR, débruitage, séparation) qui restent chauds. Les petits modèles
-gagnent énormément à ne pas être rechargés — un `warmup_ms` de 2,4 s payé à chaque
-phrase de TTS rend l'outil désagréable.
+Politique par défaut : **un seul modèle lourd résident à la fois**, plus N modèles
+légers (ASR, débruitage, séparation) qui restent chauds. Les petits modèles gagnent
+énormément à ne pas être rechargés — un `warmup_ms` de 2,4 s payé à chaque phrase de
+TTS rend l'outil désagréable.
+
+> **Seuil de lourdeur : 8 Gio, et non les 6 Go écrits ici avant toute mesure.** Les
+> quatre profils relevés au v0.3 le tranchent — voix 7,65 Gio, lecture de document
+> 6,25, image 15,95, musique 13,8 à 23,9 selon la durée. À 6 Go les quatre sont
+> lourds, donc aucun ne cohabite jamais et la politique ne distingue plus rien ; à
+> 8 Gio la voix et la lecture de document restent chaudes ensemble (13,9 Gio sur les
+> 17,76 disponibles) et seules l'image et la musique se disputent la place. Recalibré
+> le 20 août 2026, dans `Config.heavy_threshold_bytes` et
+> `admission.DEFAULT_HEAVY_THRESHOLD`.
 
 Mesure du profil, par le banc d'essai :
 - MLX : `mx.get_peak_memory()` après reset, valeur exacte.

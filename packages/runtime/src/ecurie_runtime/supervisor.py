@@ -196,6 +196,7 @@ class Supervisor:
         home: Path | None = None,
         timeouts: Timeouts | None = None,
         spec_factory: SpecFactory | None = None,
+        budget: Budget | None = None,
     ) -> None:
         self.repo_root = repo_root
         self.registry = registry
@@ -208,7 +209,11 @@ class Supervisor:
                 root, variant, ref=ref, capability=capability
             )
         )
-        self._budget: Budget | None = None
+        # Le budget se détecte en lançant un sous-processus dans le venv d'un
+        # runtime pour y interroger MLX : c'est bon marché une fois par commande,
+        # ruineux à chaque requête HTTP. Un serveur qui reconstruit un superviseur
+        # par requête le mesure donc une fois et le passe ici.
+        self._budget: Budget | None = budget
 
     # --- lecture -------------------------------------------------------------
 

@@ -1,0 +1,59 @@
+# Description d'image — les MÊMES poids que qwen3-vl-8b-ocr, autre capacité.
+#
+# Deux manifestes pour un seul dépôt, à la même révision : c'est ce que le §4 de
+# l'architecture rend possible et que rien n'avait encore éprouvé. Le contrat
+# change, les octets non — 5,38 Go déjà sur le disque, déjà mesurés, déjà
+# vérifiés. Le coût d'ajout de cette capacité au parc est nul.
+#
+# Ce partage a demandé un correctif au résolveur du store, qui indexait les
+# dépôts dans un simple dictionnaire : le second manifeste chargé écrasait le
+# premier, et les poids se retrouvaient attribués à un seul des deux modèles.
+# Conséquence la plus grave, désormais couverte par un test : le poste « jamais
+# utilisé » du plan de récupération proposait à la corbeille des poids servis
+# tous les jours par l'autre manifeste.
+id: qwen3-vl-8b-describe
+name: Qwen3-VL 8B Instruct (description d'image)
+capability: image-to-text
+family: qwen3-vl
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Aucun téléchargement : ce manifeste désigne le dépôt et la révision déjà
+  employés par qwen3-vl-8b-ocr. Le profil doit néanmoins être mesuré pour
+  lui-même — décrire une image et transcrire une page ne produisent pas le même
+  nombre de jetons, donc pas le même pic ni la même durée, et un profil recopié
+  d'un manifeste à l'autre serait exactement l'estimation à la main que le
+  projet s'interdit.
+
+links:
+  homepage: https://huggingface.co/mlx-community/Qwen3-VL-8B-Instruct-4bit
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3-VL-8B-Instruct-4bit
+      revision: "defcdea7cc7a4b0858fea563cbbce171d328e457"   # 2025-10-14
+      allow_patterns: ["*.json", "*.safetensors", "*.txt"]
+    defaults:
+      detail: normal
+      max_tokens: 512
+      temperature: 0.2
+    caveats:
+      - "Quantification 4 bits : les petits détails et le texte incrusté dans une image sont les premiers à se perdre."
+      - "Poids partagés avec qwen3-vl-8b-ocr — les déporter avec `ecurie store tier` déplace les deux."
+    profile:
+      disk_bytes: 5776625617
+      peak_unified_memory_bytes: 6598652074
+      warmup_ms: 1767
+      latency_ms_p50: 4961
+      throughput: "1 sortie / 6.6 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-21"
+      harness_version: "0.3.0"
