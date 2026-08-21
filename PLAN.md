@@ -7,19 +7,19 @@
 > Rappel du test d'existence du projet : **si le v0.1 ne sert pas dans la semaine qui
 > suit sa livraison, on arrête et on réévalue.**
 
-## État au 20 août 2026
+## État au 21 août 2026
 
 | Jalon | État | Critère de sortie |
 |---|---|---|
 | v0.1 — Voir le parc | **livré** | atteint |
 | v0.2 — Récupérer des gigaoctets | **livré** | atteint |
 | v0.3 — Exécuter sans OOM | **livré** | atteint : `run` TTS produit un wav, un job image décharge le TTS proprement, sans swap |
-| v0.4 — Utilisable au quotidien | **en cours** | 4.1 : la surface de lecture d'`ecurie serve` répond sur le vrai parc |
+| v0.4 — Utilisable au quotidien | **en cours** | 4.1 : la surface de lecture d'`ecurie serve` répond sur le vrai parc. 4.3 : les 17 contrats engendrent leur formulaire, sans un formulaire écrit à la main |
 | v0.5 → v0.7 | à faire | — |
 
-Le parc réel compte quatre capacités mesurées sur la machine : voix
-(qwen3-tts-1.7b), image (sdxl-base), lecture de document (qwen3-vl-8b-ocr),
-musique (minimax-music3). Cinq environnements de runtime, six paquets, 638 tests.
+Le parc réel compte **dix capacités exécutables** sur dix-sept déclarées, douze
+manifestes et treize variants, dont onze prêts. Sept environnements de runtime,
+quatre paquets Python et un front, **726 tests Python et 145 tests de front**.
 
 Deux choses ont été faites en marge du jalon, et elles n'attendaient personne :
 le **recalibrage du seuil de lourdeur** (voir les points de contrôle), et la
@@ -130,7 +130,7 @@ vendoré, 7,37 Go de poids non téléchargés (conception §13.4).
 |---|---|---|
 | 4.1 | ◑ FastAPI : registre, jobs + SSE, `store/summary`, résidents | `ecurie serve` sert les **lectures** : `/registry/capabilities`, `/registry/models`, `/store/summary`, `/runtime/residents`, plus `/runtime/admission` que le §4 réclamait. Les jobs et le SSE attendent le 4.6 |
 | 4.2 | Bibliothèque côté serveur : manifeste de job complet, rejeu | reproductibilité effective |
-| 4.3 | UI : socle React+Vite+RJSF, mapping `x-ui`, visualiseurs par media type | formulaire généré depuis un contrat, zéro formulaire manuel |
+| 4.3 | ✓ UI : socle React+Vite+RJSF, mapping `x-ui`, visualiseurs par media type | `apps/ui` : deux tables d'aiguillage totales, les **17 contrats** rendus par une suite qui les lit sur le disque, 145 tests. Le typage vient du serveur — schéma OpenAPI figé et fixtures du vrai registre, gardés par deux tests pytest |
 | 4.4 | Écran **Atelier** (capacité → variant → formulaire → progression SSE → sortie) + bandeau de ressources | flux complet dans le navigateur |
 | 4.5 | Écran **Parc** (trois chiffres, arbre de duplication, plan de GC dry-run, tiering) | parité avec la CLI |
 | 4.6 | Le superviseur passe dans le processus de l'API : l'occupation des résidents cesse d'être un pid dans un fichier verrouillé et redevient un état en mémoire, et deux jobs sur un même worker se sérialisent au lieu d'attendre dans le backlog du socket | `residents.json` n'est plus qu'un miroir de lecture pour la CLI |
@@ -200,6 +200,10 @@ v0.1 ── v0.2 ── v0.3 ── v0.4 ── v0.5 ── v0.6 ── v0.7
                          │                       │
                          │                       └ 7.0 (éprouver Hunyuan3D)
                          │                          peut démarrer n'importe quand
+                         ├ 4.1 lectures ✓   4.3 socle UI ✓
+                         │                       │
+                         │                       └ 4.4 (Atelier) : tout sauf
+                         │                          le bouton Lancer
                          └ 4.6 (superviseur dans l'API) rend caduc
                             le verrou de fichier du v0.3, et conditionne
                             le reste du 4.1 (POST /jobs, SSE)
@@ -249,19 +253,56 @@ suivants :
    question à se poser au v0.5 et au v0.7 : quelle autre grandeur dépend de
    l'entrée sans que le registre puisse l'exprimer ?
 
+### Ce que le socle de l'UI a appris
+
+Le 4.3 a livré `apps/ui` : deux tables d'aiguillage — `x-ui` vers un widget,
+`contentMediaType` vers un visualiseur —, la plomberie qui les relie aux sept
+routes de lecture, et 145 tests. Quatre choses valent d'être retenues, aucune ne
+se lisait dans le plan :
+
+1. **Un front non exécuté est un front faux**, exactement comme un adaptateur.
+   Les 117 tests en jsdom passaient au vert quand le premier essai contre un
+   vrai `ecurie serve` a figé le navigateur : les avis de compilation étaient
+   remontés *pendant* le rendu, ce qu'aucun test ne faisait faute de passer le
+   rappel. Le correctif durable est le test qui garde ce cas ; c'est l'essai réel
+   qui l'a révélé, et il reste dans le dépôt, exclu par défaut comme le marqueur
+   `real` de pytest.
+2. **Le méta-schéma en savait plus que la conception.** Le §7 nommait trois
+   valeurs de `x-ui`, il y en a cinq ; il énumérait cinq types de média, il en
+   manquait un — `application/json`, que produit `tool-use.calls`, une sortie
+   **requise**. Écrire les tables d'après la prose plutôt que d'après
+   `capability.schema.json` aurait cassé la capacité la plus riche du parc.
+3. **Ce que RJSF fait vraiment ne se devine pas.** Quatre comportements ont été
+   mesurés avant d'écrire : les enums encodés par index (`44100` reste un
+   entier), le `<select>` réduit à une option vide sans `enum`, le fichier encodé
+   en data-URL, et le `type: object` sans `properties` rendu comme un fieldset
+   **vide** — sur un champ requis. Chacun aurait donné un formulaire qui paraît
+   complet et ne l'est pas.
+4. **Un instantané committé se périme en une demi-heure.** Les fixtures capturées
+   du vrai registre avaient déjà divergé quand la garde a été écrite. Elle vit
+   dans la suite pytest, comme celle du schéma OpenAPI : c'est celui qui édite
+   `registry/` qu'il faut avertir, et il ne lance pas `npm test`.
+
 ## Prochain pas
 
-Tâche **4.3** : le socle de l'UI — React + Vite + RJSF —, puis **4.4**, l'écran
-Atelier. Tout ce qu'ils demandent au serveur existe : le contrat de capacité rend
-le formulaire, `output_media_types` choisit le visualiseur, `/runtime/residents`
-alimente le bandeau de ressources, et `/runtime/admission` chiffre le coût d'une
-saisie en cours. Rien de tout cela ne demande un modèle de plus ni un
-téléchargement.
+Tâche **4.4** : l'écran Atelier. Le socle lui laisse peu à faire — la capacité,
+le variant, le formulaire et le chiffre d'admission fonctionnent déjà sur le vrai
+parc ; il reste à en faire un écran, à poser le bandeau de ressources et à
+brancher le résolveur de fichiers, dont le point d'injection est en place et les
+huit visualiseurs déjà éprouvés sans URL.
 
 Ce qui reste du 4.1 — `POST /jobs` et le flux SSE — attend délibérément le
 **4.6**, le déménagement du superviseur dans le processus de l'API. L'écrire
 avant reviendrait à faire vivre l'occupation des résidents dans un fichier
-verrouillé pendant toute la durée d'un job, puis à le défaire.
+verrouillé pendant toute la durée d'un job, puis à le défaire. L'Atelier peut
+donc être complet sauf son bouton *Lancer*, et c'est l'ordre qu'il faut tenir.
+
+Deux dettes que le socle rend visibles, et qu'aucune tâche ne porte : **aucun des
+102 champs du registre n'a de `title`** — l'étiquette affichée est la clé du
+contrat, et la bonne place du français est le JSON, pas une table de traduction
+dans le front —, et **aucune route de téléversement** n'existe pour les dix
+champs fichier, ce qui est sans conséquence tant que le navigateur et le serveur
+partagent la machine.
 
 Faisable en parallèle, sans dépendance : la tâche **7.0** (éprouver Hunyuan3D),
 seul risque non levé du projet — `runtimes/hunyuan3d/run.py` est écrit d'après le

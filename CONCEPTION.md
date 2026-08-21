@@ -109,7 +109,8 @@ ecurie/                          # monorepo uv workspace
     api/                                       ✓ surface de lecture (4.1)
     veille/                                      v0.6
   tools/golden_assets.py                       ✓ recette des entrées d'essai
-  apps/ui/                                       v0.4
+  tools/{openapi_dump,ui_fixtures}.py          ✓ ce que le front fige du serveur
+  apps/ui/                                     ✓ socle piloté par schéma (4.3)
   runtimes/                       # envs isolés — .gitignore sur les .venv
     mlx-audio/       pyproject.toml + uv.lock  ✓ TTS
     mlx-audio-music/ pyproject.toml + uv.lock  ✓ chanson (commit épinglé, voir §5.3)
@@ -470,17 +471,66 @@ Un job = une ligne dans `runs` (télémétrie du poste « jamais utilisé » du 
 
 React + Vite + TypeScript + `react-jsonschema-form`. Aucun formulaire écrit à la main.
 
-- **Extensions `x-ui`** du contrat de capacité mappées sur des widgets RJSF :
-  `textarea`, `select`, `file` (upload → l'API stocke et renvoie une référence),
-  `x-options-from: runtime.voices` → options chargées depuis la réponse `loaded` du
-  worker (endpoint `/runtime/residents/{ref}/options`).
+**Le socle est livré** (tâche 4.3) : `capability.input` part chez RJSF tel quel,
+et tout ce que le front décide vit dans deux tables d'aiguillage, l'une pour les
+widgets, l'autre pour les visualiseurs. Les deux sont **totales** — un `x-ui` ou
+un type de média inconnu dégrade avec un avis, sans jamais lever ni se taire.
+C'est ce qui rend « ajouter un modèle = ajouter un YAML » vérifiable : les 17
+contrats du registre sont rendus par une suite qui les lit sur le disque, si bien
+qu'un dix-huitième y entre sans qu'une ligne de front bouge.
+
+- **Extensions `x-ui`** mappées sur des widgets RJSF. Le méta-schéma en énumère
+  **cinq**, pas trois — `textarea`, `select`, `file`, `slider`, `hidden` — et la
+  table les couvre toutes. Deux ne sont pas celles qu'on croyait :
+  - `select` est un **combobox**, jamais une liste fermée. Ses valeurs viennent
+    du champ `options` d'un résident, c'est-à-dire de ce que le worker a annoncé
+    au chargement : tant qu'un modèle n'a pas tourné une fois, on ne connaît pas
+    ses voix, et `translation.target_language` — qui est requis — serait
+    insaisissable. Il n'existe **pas** d'endpoint `/runtime/residents/{ref}/options` :
+    la source est `GET /runtime/residents` ;
+  - `file` rend un **chemin local**, pas un téléversement. Le `FileWidget` de
+    RJSF encode le fichier en data-URL base64 alors que le contrat déclare un
+    chemin que le worker ouvre sur le disque ; et l'API n'a aucune route de
+    téléversement — ce qui est sans conséquence, le navigateur et le serveur
+    étant sur la même machine. *Aucune tâche du plan ne porte cette route : à
+    ouvrir si un usage la réclame.*
+  - un **`type: object` sans `properties`** n'est rendu par aucun widget — RJSF
+    produit un fieldset vide. `tool-use.tools[].parameters`, requis, est dans ce
+    cas : il reçoit un éditeur JSON, déclenché par la forme du champ et non par
+    l'identifiant du contrat.
 - **Visualiseurs de sortie** par `contentMediaType` : `audio/*` → lecteur,
   `image/*` → image + zoom, `video/*` → vidéo, `model/gltf-binary` →
   `<model-viewer>` (Google, autonome, pas de scène three.js à écrire), `text/*` →
-  texte + diff pour l'OCR. Table d'aiguillage unique, un composant par type.
+  texte, **`application/json` → arbre**. Cette sixième ligne manquait : trois
+  contrats en produisent, dont `tool-use.calls`, qui est une sortie **requise**.
+  Table d'aiguillage unique, un composant par type, plus un repli qui montre
+  toujours le chemin et le type — une zone blanche est le seul échec que
+  l'utilisateur ne peut pas diagnostiquer. Le diff de l'OCR n'est pas ici : un
+  diff suppose deux sorties, il appartient à la Confrontation (5.4).
+  L'aplatissement parcourt la **réponse** et non les `properties` du contrat,
+  parce qu'`audio-separation` déclare cinq pistes et n'en produit que deux ou
+  quatre selon `stems`.
 - **Quatre écrans**, plafond ferme (§9 de l'architecture) : Atelier, Confrontation,
   Parc, Bibliothèque. Le bandeau de ressources (mémoire résidente, budget restant,
   « lancer déchargera X ») est un composant global alimenté par `/runtime/residents`.
+  Le socle n'en livre **aucun** : `App.tsx` est un banc de rendu, remplacé par
+  l'Atelier au 4.4.
+
+**Le typage vient du serveur.** `tools/openapi_dump.py` fige le schéma OpenAPI
+dans `apps/ui/src/api/openapi.json`, dont `openapi-typescript` engendre les
+types ; `tools/ui_fixtures.py` capture trois réponses du vrai registre pour la
+suite de tests. Les cinq fichiers sont committés, et **deux tests pytest** les
+gardent — dans la suite que lance celui qui édite `packages/api` ou `registry/`,
+pas dans une suite front qu'il n'ouvrirait pas. Ce n'est pas une précaution
+théorique : les fixtures ont divergé du registre en une demi-heure, la première
+fois, sans que rien ne le dise.
+
+Ce que le socle a coûté en surprises, toutes découvertes en exécutant plutôt
+qu'en relisant : les avis de compilation remontés pendant le rendu figeaient le
+navigateur dans une boucle infinie ; l'éditeur JSON renvoyait le curseur en fin
+de texte dès que la saisie devenait analysable, rendant impossible toute frappe à
+l'intérieur d'un objet ; et une entrée de la table qui aurait nommé un widget
+inexistant serait passée à travers le typage sans qu'aucun test ne bronche.
 
 ---
 
