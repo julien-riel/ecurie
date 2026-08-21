@@ -1,4 +1,4 @@
-"""CLI Écurie. v0.1 : `ecurie registry validate`, `ecurie store scan|status`."""
+"""CLI Écurie — `registry`, `store`, `env`, `pull`, `run`, `ps`, `bench`, `serve`."""
 
 from pathlib import Path
 from typing import Annotated
@@ -57,8 +57,8 @@ def registry_validate(
         raise typer.Exit(code=1)
 
 
-# Les paquets store et runtime sont optionnels pour ecurie-core ; leurs commandes
-# se greffent quand ils sont installés (toujours le cas dans le workspace).
+# Les paquets store, runtime et api sont optionnels pour ecurie-core ; leurs
+# commandes se greffent quand ils sont installés (toujours le cas dans le workspace).
 try:
     from ecurie_store.cli import store_app
 except ImportError:
@@ -72,6 +72,13 @@ except ImportError:
     pass
 else:
     register_runtime(app)
+
+try:
+    from ecurie_api.cli import register as register_api
+except ImportError:
+    pass
+else:
+    register_api(app)
 
 
 if __name__ == "__main__":

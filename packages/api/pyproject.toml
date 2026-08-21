@@ -1,0 +1,26 @@
+[project]
+name = "ecurie-api"
+version = "0.4.0"
+description = "Écurie — API HTTP : registre, parc, résidents, jobs"
+requires-python = ">=3.12"
+dependencies = [
+    "ecurie-core",
+    "ecurie-store",
+    "ecurie-runtime",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "typer>=0.12",
+    "rich>=13",
+]
+
+[tool.uv.sources]
+ecurie-core = { workspace = true }
+ecurie-store = { workspace = true }
+ecurie-runtime = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ecurie_api"]
