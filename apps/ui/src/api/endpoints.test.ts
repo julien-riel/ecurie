@@ -147,3 +147,43 @@ describe("les routes des jobs", () => {
     expect(requetes()[0]!.headers.get("accept")).toBe("text/event-stream");
   });
 });
+
+describe("le dépôt de fichier", () => {
+  const RÉPONSE = {
+    status: 201,
+    body: { path: "/tmp/u/a.wav", name: "a.wav", media_type: "audio/wav", size_bytes: 44 },
+  };
+
+  test("part en multipart, avec la frontiere que seul le navigateur sait ecrire", async () => {
+    // Poser un `content-type` à la main donnerait un en-tête sans `boundary`,
+    // que Starlette refuse d'analyser — un 400 dont le message ne dit pas ce qui
+    // manque.
+    repond("/uploads", RÉPONSE);
+    await api.deposerFichier(new Blob(["RIFF"], { type: "audio/wav" }), "micro.wav");
+
+    const requête = requetes()[0]!;
+    expect(requête.method).toBe("POST");
+    expect(new URL(requête.url).pathname).toBe("/uploads");
+    expect(requête.headers.get("content-type")).toMatch(/^multipart\/form-data; boundary=/);
+  });
+
+  test("le champ s_appelle file, et le type de media voyage avec les octets", async () => {
+    // Le nom, lui, n'est pas vérifiable ici : l'implémentation de `fetch` de
+    // Node sérialise un `Blob` en `filename="blob"` quel que soit le nom passé à
+    // `append`. C'est pourquoi le serveur redéduit l'extension du type de média
+    // plutôt que de compter sur le nom reçu — et c'est ce type-là qu'il faut
+    // donc voir partir.
+    repond("/uploads", RÉPONSE);
+    await api.deposerFichier(new Blob(["RIFF"], { type: "audio/wav" }), "micro-20260822.wav");
+
+    const corps = await requetes()[0]!.text();
+    expect(corps).toContain('name="file"');
+    expect(corps).toContain("Content-Type: audio/wav");
+  });
+
+  test("le chemin rendu est celui du serveur, tel quel", async () => {
+    repond("/uploads", RÉPONSE);
+    const écrit = await api.deposerFichier(new Blob(["x"]), "a.wav");
+    expect(écrit.path).toBe("/tmp/u/a.wav");
+  });
+});

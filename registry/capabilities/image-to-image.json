@@ -44,6 +44,13 @@
         "default": 3.5,
         "description": "Fidélité à la consigne de transformation."
       },
+      "max_side": {
+        "type": "integer",
+        "minimum": 256,
+        "maximum": 2048,
+        "default": 1024,
+        "description": "Plus grand côté toléré en entrée. Ce n'est pas un réglage de confort : le pic mémoire d'un modèle de diffusion suit la surface traitée, et une photo de téléphone donnée telle quelle emporterait le budget de la machine."
+      },
       "seed": {
         "type": "integer",
         "minimum": 0,

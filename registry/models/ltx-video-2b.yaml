@@ -1,0 +1,64 @@
+# Première capacité vidéo du parc, et la première dont on annonce d'avance
+# qu'elle ne tiendra pas confortablement sur la machine de référence.
+#
+# Le calcul est fait avant le téléchargement, et il vaut mieux qu'il soit écrit
+# ici que découvert au premier job : 15,2 Go de poids en bf16, dont 9,5 pour le
+# seul encodeur de texte T5-XXL, contre 17,76 Gio de budget mesuré. Tout tenir
+# résident en même temps ne laisse rien. Le pipeline `diffusers` sait décharger
+# ses composants entre les étapes — mais en mémoire unifiée, décharger vers « le
+# CPU » ne rend rien à personne. C'est la limite structurelle de cette capacité
+# sur 24 Go, pas un réglage à trouver.
+#
+# Le manifeste existe quand même, et c'est délibéré : le registre sert autant à
+# dire ce que le parc fait qu'à dire ce qu'il ne fait pas encore. Une capacité
+# sans modèle n'apprend rien ; un modèle candidat avec son pic annoncé et son
+# refus d'admission prévisible apprend exactement où est le mur.
+id: ltx-video-2b
+name: LTX-Video 0.9.1 2B (bf16)
+capability: text-to-video
+family: ltx-video
+vendor: Lightricks
+license: ltxv-open-weights-license
+license_class: restricted     # dérivée d'OpenRAIL — restrictions d'usage, seuil de chiffre d'affaires
+status: candidate
+
+notes: >
+  Le 2B et non le 13B : ce dernier pèse 28,6 Go pour le seul transformeur, et la
+  question de la mémoire ne se poserait même pas. La conversion bf16 employée ici
+  divise par deux les 28,4 Go du dépôt amont, dont 19 pour un encodeur de texte
+  publié en fp32 — c'est là que se trouve l'essentiel de l'économie, pas dans le
+  transformeur.
+
+  LTX-Video travaille en 8n+1 images et par multiples de 32 pixels ; le contrat,
+  lui, borne à des multiples de 16 parce qu'il sert aussi les modèles Wan. Les
+  défauts de ce variant sont posés dans la grille du modèle, et l'adaptateur
+  refusera une taille qui n'y est pas plutôt que de la recadrer en silence.
+
+links:
+  homepage: https://huggingface.co/Lightricks/LTX-Video
+  code: https://github.com/Lightricks/LTX-Video
+  paper: https://arxiv.org/abs/2501.00103
+
+variants:
+  - id: bf16
+    quantization: bf16
+    tier: hot
+    runtime: diffusers-mps
+    source:
+      kind: huggingface
+      repo: PJMixers-Dev/a-r-r-o-w_LTX-Video-0.9.1-diffusers-bf16
+      revision: "b5d63cf68243593f64d8d5c10da1e2b9e1abe7d6"   # 2025-01-04
+      allow_patterns: ["*.json", "*.model", "*.safetensors"]
+    defaults:
+      width: 768
+      height: 512
+      num_frames: 97
+      fps: 24
+      steps: 30
+      guidance_scale: 3.0
+    caveats:
+      - "15,2 Go de poids pour 17,76 Gio de budget : le contrôle d'admission refusera ce variant tant qu'un autre modèle sera résident, et probablement même seul. À mesurer avec `ecurie bench` avant tout usage."
+      - "Grille du modèle : largeur et hauteur multiples de 32, nombre d'images de la forme 8n+1. Le contrat est plus permissif parce qu'il sert aussi les modèles Wan ; l'adaptateur refuse ce que le modèle ne sait pas faire."
+      - "Licence LTXV Open Weights : dérivée d'OpenRAIL, avec restrictions d'usage et un seuil de chiffre d'affaires. À lire avant tout emploi professionnel."
+      - "Poids partagés avec ltx-video-2b-i2v — les déporter avec `ecurie store tier` déplace les deux."
+      - "0.9.1 et non 0.9.8 : les versions récentes ne sont publiées qu'en checkpoint monolithique ou en 13B, et aucune conversion bf16 au format diffusers n'en existe. C'est la version la plus récente qui tienne dans le budget."

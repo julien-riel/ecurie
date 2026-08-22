@@ -75,6 +75,20 @@ class Config(BaseModel):
         return ecurie_home() / "outputs"
 
     @property
+    def uploads_dir(self) -> Path:
+        """Fichiers déposés par l'UI — image choisie, capture de la caméra ou du micro.
+
+        Ils ne sont pas des sorties et n'ont rien à faire dans `outputs/` : ce
+        sont des **entrées** dont le navigateur ne peut pas donner le chemin
+        réel, et que le serveur écrit donc lui-même pour en fabriquer un. Une
+        fois le job lancé, `runner.stage_inputs` en copie une deuxième fois le
+        contenu dans le dossier du job, qui est ce qui fait foi : ce dossier-ci
+        est un sas, pas une bibliothèque, et il se purge (voir
+        `ecurie_api.uploads`).
+        """
+        return ecurie_home() / "uploads"
+
+    @property
     def trash_dir(self) -> Path:
         return ecurie_home() / "trash"
 

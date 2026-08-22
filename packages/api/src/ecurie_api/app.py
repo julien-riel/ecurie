@@ -29,6 +29,7 @@ from ecurie_api.routers import jobs as jobs_router
 from ecurie_api.routers import registry as registry_router
 from ecurie_api.routers import runtime as runtime_router
 from ecurie_api.routers import store as store_router
+from ecurie_api.routers import uploads as uploads_router
 from ecurie_api.state import AppState
 
 # Vite en développement, et le même port en 127.0.0.1 — les deux graphies sont
@@ -48,11 +49,17 @@ Le parc Écurie : ce qu'il contient, ce qu'il a en mémoire, ce qu'il exécute
 * `/runtime/residents` — mémoire occupée, budget, et ce que coûterait un job
 * `/runtime/admission` — le même calcul pour une entrée précise
 * `/jobs` — lancer, suivre en direct (SSE), récupérer les fichiers produits
+* `/uploads` — déposer un fichier et recevoir le chemin local qu'un champ attend
 
 Les cinq premières ne chargent rien, n'écrivent rien, ne déplacent aucun octet.
-`/jobs` est la seule surface d'écriture, et elle a attendu que le superviseur
+`/jobs` est la première surface d'écriture, et elle a attendu que le superviseur
 vive dans ce processus (tâche 4.6) : un serveur qui lance des jobs doit savoir
 lequel tourne, sur quel worker, et faire attendre le suivant.
+
+`/uploads` est la seconde, et la dernière prévue. Elle n'existe pas pour rendre
+l'API utilisable depuis une autre machine — elle ne l'est toujours pas, le
+chemin rendu est local — mais parce qu'une image choisie dans une page, une
+photo de la caméra et un son du micro n'ont **jamais** eu de chemin à saisir.
 """
 
 
@@ -86,6 +93,7 @@ def create_app(state: AppState, *, cors_origins: Sequence[str] | None = None) ->
     app.include_router(store_router.router)
     app.include_router(runtime_router.router)
     app.include_router(jobs_router.router)
+    app.include_router(uploads_router.router)
 
     @app.get("/", tags=["service"], summary="Où l'on est, et sur quel dépôt")
     def index() -> dict:

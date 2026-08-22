@@ -3,8 +3,9 @@
  *
  * Les capacités et les modèles viennent des fixtures capturées par
  * `tools/ui_fixtures.py` : ce sont les octets que le serveur envoie, avec ses
- * dix-sept contrats dont sept sans modèle, son titulaire de `text-to-speech` et
- * son `image-to-mesh` qui affiche un titulaire sans rien d'exécutable.
+ * vingt-cinq contrats désormais tous pourvus d'au moins un modèle, son titulaire
+ * de `text-to-speech` et son `image-to-mesh` qui affiche un titulaire sans rien
+ * d'exécutable.
  */
 
 import { describe, expect, test } from "vitest";
@@ -34,13 +35,19 @@ describe("les capacités groupées par état", () => {
   });
 
   test("aucune capacite n_est perdue en chemin", () => {
-    // Une capacité sans modèle reste dans la liste : elle dit ce que le parc
-    // pourrait faire et ne fait pas encore, ce qui est la moitié de ce qu'un
-    // registre sert à savoir.
+    // Une capacité qui ne peut pas tourner reste dans la liste : elle dit ce que
+    // le parc pourrait faire et ne fait pas encore, ce qui est la moitié de ce
+    // qu'un registre sert à savoir.
     const groupes = groupesDeCapacites(CAPACITES);
     const total = groupes.reduce((n, g) => n + g.capacites.length, 0);
     expect(total).toBe(CAPACITES.length);
-    expect(groupes.map((g) => g.etat)).toContain("sans-modèle");
+  });
+
+  test("le groupe des capacites sans modele a disparu du parc", () => {
+    // Il n'est pas retiré du code — un contrat s'ajoute avant son modèle — mais
+    // il n'a plus rien à contenir, et un groupe vide ne s'affiche pas.
+    const groupes = groupesDeCapacites(CAPACITES);
+    expect(groupes.map((g) => g.etat)).not.toContain("sans-modèle");
   });
 
   test("image-to-mesh a ses propres mots", () => {
@@ -49,7 +56,7 @@ describe("les capacités groupées par état", () => {
     // phrase pour deux situations dont l'une est à un `ecurie pull` de marcher.
     const groupes = groupesDeCapacites(CAPACITES);
     const sansVariant = groupes.find((g) => g.etat === "sans-variant-prêt")!;
-    expect(sansVariant.capacites.map((c) => c.id)).toEqual(["image-to-mesh"]);
+    expect(sansVariant.capacites.map((c) => c.id)).toContain("image-to-mesh");
   });
 
   test("un groupe vide ne s_affiche pas", () => {
@@ -103,7 +110,12 @@ describe("le variant préselectionné", () => {
     ).toBe("autre@v1");
   });
 
-  test("aucun modele, aucun choix", () => {
-    expect(variantParDefaut(capacité("audio-denoise"))).toBeNull();
+  test("un modele declare mais rien de telecharge, aucun choix", () => {
+    // `audio-denoise` a désormais son manifeste ; ce que la préselection lit est
+    // `ready_variants`, et lui seul. Un modèle au registre n'est pas un variant
+    // exécutable.
+    const denoise = capacité("audio-denoise");
+    expect(denoise.models.length).toBeGreaterThan(0);
+    expect(variantParDefaut(denoise)).toBeNull();
   });
 });

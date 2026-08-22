@@ -1,0 +1,63 @@
+# Ce qui est dit — MOSS-Transcribe-Diarize, sur les octets déjà téléchargés.
+#
+# Le manifeste de la diarisation le disait déjà : « Le modèle transcrit aussi ;
+# ce texte n'est pas remonté, il appartient à speech-to-text. » Le voici. Même
+# dépôt, même révision, même cache, même env — un second manifeste plutôt qu'une
+# sortie de plus, parce qu'un contrat qui rendrait à la fois le texte et les
+# tours de parole ne pourrait être rempli par aucun modèle de transcription
+# ordinaire.
+id: moss-transcribe
+name: MOSS-Transcribe-Diarize 0.9B (transcription)
+capability: speech-to-text
+family: moss
+vendor: OpenMOSS
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Ce n'est pas un modèle de la famille Whisper, et le contrat de la capacité est
+  dessiné sur celle-ci : `task: translate`, `beam_size` et `temperature`
+  supposent un décodeur à faisceau que ce réseau n'expose pas. Ils restent au
+  contrat — il sert plusieurs modèles — et ce variant déclare lesquels il honore
+  plutôt que de faire croire qu'il les honore tous. Un Whisper MLX reste la
+  porte de sortie le jour où la traduction vers l'anglais sera demandée.
+
+links:
+  homepage: https://huggingface.co/OpenMOSS-Team/MOSS-Transcribe-Diarize
+
+variants:
+  - id: bf16
+    quantization: bf16
+    tier: hot
+    runtime: mlx-audio
+    source:
+      kind: huggingface
+      repo: OpenMOSS-Team/MOSS-Transcribe-Diarize
+      revision: "e8681d68e7042738ffca8ac8212bc8fcb1131ab8"   # 2026-07-31
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja", "*.py"]
+    defaults:
+      task: transcribe
+      word_timestamps: false
+    options:
+      # Hors contrat, et c'est voulu : `speech-to-text` ne borne pas la durée —
+      # transcrire une conférence d'une heure est un usage légitime — mais
+      # l'adaptateur a besoin d'un garde-fou mémoire. Une demi-heure de parole
+      # est ce que ce réseau traite sans que le pic s'écarte de son profil.
+      max_seconds: 1800
+    caveats:
+      - "`task: translate` est REFUSÉ : ce modèle transcrit dans la langue entendue, il ne traduit pas. Le contrat garde l'option pour les modèles de la famille Whisper."
+      - "`beam_size` et `temperature` sont INOPÉRANTS : le décodage ne passe pas par un faisceau réglable."
+      - "`word_timestamps` est INOPÉRANT : le modèle horodate le segment, pas le mot."
+      - "Poids partagés avec moss-transcribe-diarize — les déporter avec `ecurie store tier` déplace les deux, et un job de chaque capacité charge deux fois le même réseau si les deux tournent."
+      - "Facteur temps réel de 0,046 sur la charge type : vingt secondes de parole se transcrivent en une. La borne de trente minutes du variant n'est donc pas une borne de patience, mais de mémoire."
+    profile:
+      disk_bytes: 1833089226
+      peak_unified_memory_bytes: 2375948178
+      warmup_ms: 1084
+      latency_ms_p50: 1014
+      rtf: 0.0456
+      throughput: "1 sortie / 1.2 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1"
+      measured_at: "2026-08-22"
+      harness_version: "0.3.0"

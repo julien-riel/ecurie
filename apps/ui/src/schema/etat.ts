@@ -1,13 +1,19 @@
 /**
  * L'état d'une capacité, en trois cas et non deux.
  *
- * Le parc réel impose la nuance : sur dix-sept contrats, six n'ont aucun modèle
- * et un en a sans qu'aucun variant soit exécutable. `image-to-mesh` est le cas exemplaire —
- * il affiche un **titulaire** et n'a rien de lançable, parce que ses 7,37 Go de
- * poids ne sont pas téléchargés. Réduire cela à « prête / pas prête » afficherait
- * la même phrase pour une capacité qu'on n'a jamais pourvue et pour une capacité
- * dont il ne manque qu'un `ecurie pull`, alors que la seconde est à une commande
- * de marcher.
+ * La nuance vient de ce qu'il ne suffit pas d'avoir un modèle pour pouvoir
+ * lancer : `image-to-mesh` est le cas exemplaire — elle affiche un **titulaire**
+ * et n'a rien de lançable, parce que ses 7,37 Go de poids ne sont pas
+ * téléchargés. Réduire cela à « prête / pas prête » afficherait la même phrase
+ * pour une capacité qu'on n'a jamais pourvue et pour une capacité dont il ne
+ * manque qu'un `ecurie pull`, alors que la seconde est à une commande de marcher.
+ *
+ * `sans-modèle` ne décrit plus aucune capacité du parc : les vingt-cinq contrats
+ * ont au moins un manifeste, et un test l'exige désormais. Le cas reste ici, et
+ * ce n'est pas du code mort — un contrat s'ajoute avant son modèle, et c'est
+ * même l'ordre normal du travail. Ce qui aurait été mort, c'est un état qu'on
+ * aurait retiré au premier jour où le parc est complet, pour le réécrire au
+ * premier contrat suivant.
  */
 
 import type { Capability } from "../api/types";

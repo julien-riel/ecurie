@@ -151,6 +151,20 @@
         "title": "AdmissionResponse",
         "type": "object"
       },
+      "Body_deposer_fichier_uploads_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_deposer_fichier_uploads_post",
+        "type": "object"
+      },
       "CapabilitiesResponse": {
         "properties": {
           "capabilities": {
@@ -1355,6 +1369,37 @@
         "title": "TelemetryOut",
         "type": "object"
       },
+      "UploadOut": {
+        "description": "Ce qu'un dépôt devient : un chemin, que le champ fichier du formulaire porte.\n\n`path` est absolu et local à la machine du serveur. C'est délibérément la\nmême valeur qu'on saisirait à la main dans le champ, et la même que la CLI\nattend (`ecurie run -p image=…`) : le dépôt fabrique un chemin, il n'invente\npas une seconde façon de désigner une entrée.",
+        "properties": {
+          "media_type": {
+            "title": "Media Type",
+            "type": "string"
+          },
+          "name": {
+            "description": "Nom sur le disque : jeton horodaté et nom d'origine assaini.",
+            "title": "Name",
+            "type": "string"
+          },
+          "path": {
+            "description": "Chemin absolu du fichier écrit, à poser dans le champ.",
+            "title": "Path",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "name",
+          "media_type",
+          "size_bytes"
+        ],
+        "title": "UploadOut",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -1546,7 +1591,7 @@
     }
   },
   "info": {
-    "description": "\nLe parc Écurie : ce qu'il contient, ce qu'il a en mémoire, ce qu'il exécute\n(v0.4, tâche 4.1).\n\n* `/registry/capabilities` — les contrats qui engendrent les formulaires\n* `/registry/models` — les manifestes, avec ce que le disque en dit\n* `/store/summary` — les trois chiffres d'occupation\n* `/runtime/residents` — mémoire occupée, budget, et ce que coûterait un job\n* `/runtime/admission` — le même calcul pour une entrée précise\n* `/jobs` — lancer, suivre en direct (SSE), récupérer les fichiers produits\n\nLes cinq premières ne chargent rien, n'écrivent rien, ne déplacent aucun octet.\n`/jobs` est la seule surface d'écriture, et elle a attendu que le superviseur\nvive dans ce processus (tâche 4.6) : un serveur qui lance des jobs doit savoir\nlequel tourne, sur quel worker, et faire attendre le suivant.\n",
+    "description": "\nLe parc Écurie : ce qu'il contient, ce qu'il a en mémoire, ce qu'il exécute\n(v0.4, tâche 4.1).\n\n* `/registry/capabilities` — les contrats qui engendrent les formulaires\n* `/registry/models` — les manifestes, avec ce que le disque en dit\n* `/store/summary` — les trois chiffres d'occupation\n* `/runtime/residents` — mémoire occupée, budget, et ce que coûterait un job\n* `/runtime/admission` — le même calcul pour une entrée précise\n* `/jobs` — lancer, suivre en direct (SSE), récupérer les fichiers produits\n* `/uploads` — déposer un fichier et recevoir le chemin local qu'un champ attend\n\nLes cinq premières ne chargent rien, n'écrivent rien, ne déplacent aucun octet.\n`/jobs` est la première surface d'écriture, et elle a attendu que le superviseur\nvive dans ce processus (tâche 4.6) : un serveur qui lance des jobs doit savoir\nlequel tourne, sur quel worker, et faire attendre le suivant.\n\n`/uploads` est la seconde, et la dernière prévue. Elle n'existe pas pour rendre\nl'API utilisable depuis une autre machine — elle ne l'est toujours pas, le\nchemin rendu est local — mais parce qu'une image choisie dans une page, une\nphoto de la caméra et un son du micro n'ont **jamais** eu de chemin à saisir.\n",
     "summary": "Parc de modèles locaux — registre, disque, mémoire.",
     "title": "Écurie",
     "version": "0.4.0"
@@ -1984,6 +2029,48 @@
         "summary": "Occupation du parc",
         "tags": [
           "parc"
+        ]
+      }
+    },
+    "/uploads": {
+      "post": {
+        "description": "Écrit le fichier dans le sas et rend le chemin à poser dans le champ.\n\nLe type de média vient du client quand il l'annonce, sinon de l'extension du\nnom : `MediaRecorder` déclare toujours le sien, un glisser-déposer depuis le\nFinder pas toujours. Il est ensuite confronté à ce que les contrats du\nregistre acceptent — c'est le registre qui décide, pas une liste écrite dans\nce fichier.",
+        "operationId": "deposer_fichier_uploads_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_deposer_fichier_uploads_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Déposer un fichier et obtenir son chemin local",
+        "tags": [
+          "uploads"
         ]
       }
     }

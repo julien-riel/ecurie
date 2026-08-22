@@ -80,6 +80,126 @@
       "vendor": "Peng Zheng et al."
     },
     {
+      "capability": "audio-denoise",
+      "family": "deepfilternet",
+      "id": "deepfilternet3-mlx",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/Rikorose/DeepFilterNet",
+        "homepage": "https://huggingface.co/aufklarer/DeepFilterNet3-MLX",
+        "paper": "https://arxiv.org/abs/2305.08227"
+      },
+      "name": "DeepFilterNet3 (MLX)",
+      "notes": "Poids convertis depuis le checkpoint officiel `Rikorose/DeepFilterNet3`, avec la BatchNorm fusionnée dans les convolutions. Le dépôt n'exporte que le réseau : la STFT, le banc de filtres ERB et l'application du filtre profond vivent dans le code appelant, et `auxiliary.npz` porte les constantes DSP exactes qu'ils attendent. C'est ce qui rend l'adaptateur plus long que le modèle n'est gros — et ce qui garantit qu'il reproduit la référence PyTorch à 9e-7 près.\n48 kHz natif, trames de 10 ms, anticipation de 2 trames. Le contrat expose `sample_rate` pour le fichier produit, pas pour le traitement : tout entre et ressort du réseau à 48 kHz, quel que soit ce qu'on demande en sortie.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "deepfilternet3-mlx@fp32-mlx : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench deepfilternet3-mlx@fp32-mlx"
+          ],
+          "caveats": [
+            "Entraîné pour la PAROLE : sur de la musique ou un son ambiant, il retire ce qu'il ne reconnaît pas comme voix. Ce n'est pas un débruiteur universel.",
+            "`sample_rate` ne change pas le traitement — le réseau travaille à 48 kHz —, seulement le fichier écrit. Demander 16 kHz rééchantillonne après coup.",
+            "`strength` en dessous de 1 remélange l'original au résultat : c'est un fondu de l'adaptateur, pas un réglage du réseau."
+          ],
+          "defaults": {
+            "sample_rate": 48000,
+            "segment_seconds": 15,
+            "strength": 1.0
+          },
+          "entrypoint": null,
+          "env": "mlx-audio",
+          "heavy": null,
+          "id": "fp32-mlx",
+          "options": null,
+          "profile": null,
+          "quantization": "fp32",
+          "ready": false,
+          "ref": "deepfilternet3-mlx@fp32-mlx",
+          "runtime": "mlx-audio",
+          "source": {
+            "allow_patterns": [
+              "config.json",
+              "model.safetensors",
+              "auxiliary.npz",
+              "dfn3_mlx.py"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "aufklarer/DeepFilterNet3-MLX",
+            "revision": "8f9ba6a8c25f1890674e8da319cbdf32759a5a19",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Hendrik Schröter et al. — conversion MLX par aufklarer"
+    },
+    {
+      "capability": "audio-separation",
+      "family": "demucs",
+      "id": "htdemucs-mlx",
+      "incumbent": false,
+      "license": "mit",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/facebookresearch/demucs",
+        "homepage": "https://huggingface.co/jasonvassallo/demucs-htdemucs-mlx",
+        "paper": "https://arxiv.org/abs/2211.08553"
+      },
+      "name": "HTDemucs v4 (MLX)",
+      "notes": "Le checkpoint amont est distribué par Meta en `.th` picklé ; ce dépôt en publie la conversion safetensors, avec la LICENSE et le NOTICE que MIT exige. L'inférence passe par `mlx-audiogen`, qui n'est pas dans l'env `mlx-audio` du parc — d'où un environnement dédié, comme la musique en a un : même runtime, même famille d'adaptateurs, dépendances disjointes.\nHTDemucs sépare en QUATRE pistes, toujours. La séparation en deux du contrat est obtenue en resommant batterie, basse et le reste ; elle ne coûte rien de moins en calcul, et le manifeste le dit plutôt que de laisser croire à une économie.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "htdemucs-mlx@fp32-mlx : venv de runtimes/mlx-audiogen/ absent — ecurie env sync mlx-audiogen",
+            "htdemucs-mlx@fp32-mlx : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench htdemucs-mlx@fp32-mlx"
+          ],
+          "caveats": [
+            "`stems: 2` ne fait pas moins de calcul que 4 : le réseau produit toujours quatre pistes, et l'accompagnement est leur somme moins la voix.",
+            "`shifts` multiplie le temps d'autant : à 5, un morceau de trois minutes prend cinq fois plus longtemps pour un gain de l'ordre du dixième de dB.",
+            "Entraîné sur MUSDB18-HQ, donc sur de la musique produite en studio. Sur un enregistrement de terrain ou une réunion, la piste « voix » ne veut plus dire grand-chose.",
+            "44,1 kHz natif : un fichier à une autre fréquence est rééchantillonné avant traitement et restitué à 44,1 kHz."
+          ],
+          "defaults": {
+            "segment_seconds": 10,
+            "shifts": 1,
+            "stems": 2
+          },
+          "entrypoint": null,
+          "env": "mlx-audiogen",
+          "heavy": null,
+          "id": "fp32-mlx",
+          "options": null,
+          "profile": null,
+          "quantization": "fp32",
+          "ready": false,
+          "ref": "htdemucs-mlx@fp32-mlx",
+          "runtime": "mlx-audio",
+          "source": {
+            "allow_patterns": [
+              "config.json",
+              "model.safetensors",
+              "LICENSE",
+              "NOTICE"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "jasonvassallo/demucs-htdemucs-mlx",
+            "revision": "9a32d8a73da0d6182a8a33bda927b7ea46930e44",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Meta AI (Rouard, Massa, Défossez) — conversion MLX par jasonvassallo"
+    },
+    {
       "capability": "image-to-mesh",
       "family": "hunyuan3d",
       "id": "hunyuan3d-2.1-shape-mlx",
@@ -133,6 +253,129 @@
         }
       ],
       "vendor": "Tencent"
+    },
+    {
+      "capability": "text-to-video",
+      "family": "ltx-video",
+      "id": "ltx-video-2b",
+      "incumbent": false,
+      "license": "ltxv-open-weights-license",
+      "license_class": "restricted",
+      "links": {
+        "code": "https://github.com/Lightricks/LTX-Video",
+        "homepage": "https://huggingface.co/Lightricks/LTX-Video",
+        "paper": "https://arxiv.org/abs/2501.00103"
+      },
+      "name": "LTX-Video 0.9.1 2B (bf16)",
+      "notes": "Le 2B et non le 13B : ce dernier pèse 28,6 Go pour le seul transformeur, et la question de la mémoire ne se poserait même pas. La conversion bf16 employée ici divise par deux les 28,4 Go du dépôt amont, dont 19 pour un encodeur de texte publié en fp32 — c'est là que se trouve l'essentiel de l'économie, pas dans le transformeur.\nLTX-Video travaille en 8n+1 images et par multiples de 32 pixels ; le contrat, lui, borne à des multiples de 16 parce qu'il sert aussi les modèles Wan. Les défauts de ce variant sont posés dans la grille du modèle, et l'adaptateur refusera une taille qui n'y est pas plutôt que de la recadrer en silence.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "ltx-video-2b@bf16 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench ltx-video-2b@bf16"
+          ],
+          "caveats": [
+            "15,2 Go de poids pour 17,76 Gio de budget : le contrôle d'admission refusera ce variant tant qu'un autre modèle sera résident, et probablement même seul. À mesurer avec `ecurie bench` avant tout usage.",
+            "Grille du modèle : largeur et hauteur multiples de 32, nombre d'images de la forme 8n+1. Le contrat est plus permissif parce qu'il sert aussi les modèles Wan ; l'adaptateur refuse ce que le modèle ne sait pas faire.",
+            "Licence LTXV Open Weights : dérivée d'OpenRAIL, avec restrictions d'usage et un seuil de chiffre d'affaires. À lire avant tout emploi professionnel.",
+            "Poids partagés avec ltx-video-2b-i2v — les déporter avec `ecurie store tier` déplace les deux.",
+            "0.9.1 et non 0.9.8 : les versions récentes ne sont publiées qu'en checkpoint monolithique ou en 13B, et aucune conversion bf16 au format diffusers n'en existe. C'est la version la plus récente qui tienne dans le budget."
+          ],
+          "defaults": {
+            "fps": 24,
+            "guidance_scale": 3.0,
+            "height": 512,
+            "num_frames": 97,
+            "steps": 30,
+            "width": 768
+          },
+          "entrypoint": null,
+          "env": "diffusers-mps",
+          "heavy": null,
+          "id": "bf16",
+          "options": null,
+          "profile": null,
+          "quantization": "bf16",
+          "ready": false,
+          "ref": "ltx-video-2b@bf16",
+          "runtime": "diffusers-mps",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.model",
+              "*.safetensors"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "PJMixers-Dev/a-r-r-o-w_LTX-Video-0.9.1-diffusers-bf16",
+            "revision": "b5d63cf68243593f64d8d5c10da1e2b9e1abe7d6",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Lightricks"
+    },
+    {
+      "capability": "image-to-video",
+      "family": "ltx-video",
+      "id": "ltx-video-2b-i2v",
+      "incumbent": false,
+      "license": "ltxv-open-weights-license",
+      "license_class": "restricted",
+      "links": {
+        "code": "https://github.com/Lightricks/LTX-Video",
+        "homepage": "https://huggingface.co/Lightricks/LTX-Video",
+        "paper": "https://arxiv.org/abs/2501.00103"
+      },
+      "name": "LTX-Video 0.9.1 2B (image vers vidéo, bf16)",
+      "notes": "L'image de départ fixe le cadrage, mais pas la grille : elle est redimensionnée sur les multiples de 32 que le modèle attend, et le rapport de forme est conservé. Une photo de téléphone en 4032×3024 donnée telle quelle ne serait pas seulement lente — elle sortirait du budget avant la première image.\nLe contrat rend `prompt` facultatif pour cette capacité, parce que certains modèles animent sans consigne. Celui-ci n'en fait pas partie : sans texte, il produit un plan quasi fixe. Le manifeste le dit dans ses caveats plutôt que de laisser conclure à une panne.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "ltx-video-2b-i2v@bf16 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench ltx-video-2b-i2v@bf16"
+          ],
+          "caveats": [
+            "15,2 Go de poids pour 17,76 Gio de budget : le contrôle d'admission refusera ce variant tant qu'un autre modèle sera résident, et probablement même seul. À mesurer avec `ecurie bench` avant tout usage.",
+            "Sans `prompt`, la séquence produite est quasi fixe : ce modèle a besoin d'une consigne de mouvement, contrairement à ceux pour qui le contrat rend le champ facultatif.",
+            "L'image de départ est redimensionnée sur la grille du modèle — multiples de 32 —, rapport de forme conservé. Le cadrage exact d'origine n'est donc pas garanti au pixel près.",
+            "Poids partagés avec ltx-video-2b — les déporter avec `ecurie store tier` déplace les deux."
+          ],
+          "defaults": {
+            "fps": 24,
+            "guidance_scale": 3.0,
+            "num_frames": 97,
+            "steps": 30
+          },
+          "entrypoint": null,
+          "env": "diffusers-mps",
+          "heavy": null,
+          "id": "bf16",
+          "options": null,
+          "profile": null,
+          "quantization": "bf16",
+          "ready": false,
+          "ref": "ltx-video-2b-i2v@bf16",
+          "runtime": "diffusers-mps",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.model",
+              "*.safetensors"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "PJMixers-Dev/a-r-r-o-w_LTX-Video-0.9.1-diffusers-bf16",
+            "revision": "b5d63cf68243593f64d8d5c10da1e2b9e1abe7d6",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Lightricks"
     },
     {
       "capability": "text-to-music",
@@ -212,6 +455,78 @@
         }
       ],
       "vendor": "MiniMax"
+    },
+    {
+      "capability": "speech-to-text",
+      "family": "moss",
+      "id": "moss-transcribe",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/OpenMOSS-Team/MOSS-Transcribe-Diarize",
+        "paper": null
+      },
+      "name": "MOSS-Transcribe-Diarize 0.9B (transcription)",
+      "notes": "Ce n'est pas un modèle de la famille Whisper, et le contrat de la capacité est dessiné sur celle-ci : `task: translate`, `beam_size` et `temperature` supposent un décodeur à faisceau que ce réseau n'expose pas. Ils restent au contrat — il sert plusieurs modèles — et ce variant déclare lesquels il honore plutôt que de faire croire qu'il les honore tous. Un Whisper MLX reste la porte de sortie le jour où la traduction vers l'anglais sera demandée.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "`task: translate` est REFUSÉ : ce modèle transcrit dans la langue entendue, il ne traduit pas. Le contrat garde l'option pour les modèles de la famille Whisper.",
+            "`beam_size` et `temperature` sont INOPÉRANTS : le décodage ne passe pas par un faisceau réglable.",
+            "`word_timestamps` est INOPÉRANT : le modèle horodate le segment, pas le mot.",
+            "Poids partagés avec moss-transcribe-diarize — les déporter avec `ecurie store tier` déplace les deux, et un job de chaque capacité charge deux fois le même réseau si les deux tournent.",
+            "Facteur temps réel de 0,046 sur la charge type : vingt secondes de parole se transcrivent en une. La borne de trente minutes du variant n'est donc pas une borne de patience, mais de mémoire."
+          ],
+          "defaults": {
+            "task": "transcribe",
+            "word_timestamps": false
+          },
+          "entrypoint": null,
+          "env": "mlx-audio",
+          "heavy": false,
+          "id": "bf16",
+          "options": {
+            "max_seconds": 1800
+          },
+          "profile": {
+            "disk_bytes": 1833089226,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 1014,
+            "measured_at": "2026-08-22",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 2375948178,
+            "rtf": 0.0456,
+            "throughput": "1 sortie / 1.2 s",
+            "warmup_ms": 1084
+          },
+          "quantization": "bf16",
+          "ready": true,
+          "ref": "moss-transcribe@bf16",
+          "runtime": "mlx-audio",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja",
+              "*.py"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "OpenMOSS-Team/MOSS-Transcribe-Diarize",
+            "revision": "e8681d68e7042738ffca8ac8212bc8fcb1131ab8",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "OpenMOSS"
     },
     {
       "capability": "speaker-diarization",
@@ -1148,6 +1463,78 @@
               "*.json",
               "*.txt",
               "*fp16.safetensors"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "stabilityai/stable-diffusion-xl-base-1.0",
+            "revision": "462165984030d82259a11f4367a4eed129e94a7b",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Stability AI"
+    },
+    {
+      "capability": "image-to-image",
+      "family": "sdxl",
+      "id": "sdxl-base-img2img",
+      "incumbent": false,
+      "license": "openrail++",
+      "license_class": "restricted",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0",
+        "paper": null
+      },
+      "name": "Stable Diffusion XL 1.0 base (transformation)",
+      "notes": "Aucun octet de plus que sdxl-base : même dépôt, même révision, même cache. La différence tient au pipeline et à un seul paramètre — `strength`, qui décide du nombre de pas réellement exécutés. À 0,6 (le défaut du contrat), un job de 25 pas n'en calcule que 15 : la transformation est plus rapide qu'une génération à réglages égaux, et c'est la seule des trois capacités SDXL du parc dont le temps dépend d'un paramètre autre que `steps`.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "`max_side` est une borne mémoire : le pic suit la surface traitée, et sdxl-base a trois pics mesurés selon la résolution — 10,07 Gio au plus petit format, près de 16 au plus grand.",
+            "`strength` multiplie les pas : à 0,3, un job de 30 pas n'en exécute que 9 et l'image de départ reste largement lisible sous le résultat.",
+            "Poids partagés avec sdxl-base et sdxl-base-inpaint — les déporter avec `ecurie store tier` déplace les trois.",
+            "Licence openrail++ : restrictions d'usage, à lire avant tout emploi professionnel.",
+            "Pic de 7,9 Gio à `max_side: 1024`, sous le seuil de 8 Gio : c'est le SEUL des trois chemins SDXL du parc que la politique mémoire ne compte pas comme lourd, et donc le seul qui puisse rester résident à côté d'un autre modèle. La différence avec les 15,95 Gio de la génération ne tient pas au pipeline mais à `strength` — moins de pas, moins de latents vivants à la fois.",
+            "La pente du pic sur `max_side` est mal ajustée (R² = 0,75) : le profil retient le pire cas mesuré plutôt qu'une extrapolation, et l'admission sera donc conservatrice sur les petits formats."
+          ],
+          "defaults": {
+            "guidance_scale": 7.0,
+            "max_side": 1024,
+            "steps": 30,
+            "strength": 0.6
+          },
+          "entrypoint": null,
+          "env": "diffusers-mps",
+          "heavy": false,
+          "id": "fp16",
+          "options": null,
+          "profile": {
+            "disk_bytes": 7106938904,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 13391,
+            "measured_at": "2026-08-22",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / diffusers 0.39.0 / torch 2.13.0",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 8478457856,
+            "rtf": null,
+            "throughput": "1 sortie / 11.0 s",
+            "warmup_ms": 5639
+          },
+          "quantization": "fp16",
+          "ready": true,
+          "ref": "sdxl-base-img2img@fp16",
+          "runtime": "diffusers-mps",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.txt",
+              "*fp16.safetensors",
+              "*/*fp16.safetensors"
             ],
             "kind": "huggingface",
             "path": null,

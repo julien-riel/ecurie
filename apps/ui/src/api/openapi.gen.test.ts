@@ -29,10 +29,16 @@ describe("les types engendrés depuis l'OpenAPI", () => {
     );
   }, 30_000);
 
-  test("le schema fige annonce les routes de job", () => {
-    // Elles sont arrivées avec le reste de la tâche 4.1 : le superviseur vit
-    // dans le processus de l'API depuis la 4.6, donc le serveur sait quel job
-    // tourne. C'est ce qui donnera son bouton *Lancer* à l'Atelier.
+  test("le schema fige annonce les routes que le front appelle", () => {
+    // Les routes de job sont arrivées avec le reste de la tâche 4.1 : le
+    // superviseur vit dans le processus de l'API depuis la 4.6, donc le serveur
+    // sait quel job tourne. C'est ce qui a donné son bouton *Lancer* à
+    // l'Atelier.
+    //
+    // `/uploads` est venue après, et pour une autre raison : un champ fichier
+    // se remplissait à la main faute de route, alors qu'une image choisie dans
+    // une page, une photo de la caméra et un son du micro n'ont jamais eu de
+    // chemin à saisir.
     const schéma = JSON.parse(readFileSync(resolve(DOSSIER, "openapi.json"), "utf8"));
     expect(Object.keys(schéma.paths).sort()).toEqual([
       "/",
@@ -46,6 +52,19 @@ describe("les types engendrés depuis l'OpenAPI", () => {
       "/runtime/admission",
       "/runtime/residents",
       "/store/summary",
+      "/uploads",
     ]);
+  });
+
+  test("le depot annonce du multipart et rend un chemin", () => {
+    // C'est ce que le front programme contre : un `FormData` à l'aller, une
+    // chaîne `path` au retour. Un jour où le serveur rendrait un identifiant
+    // opaque à la place, le champ du formulaire ne porterait plus un chemin et
+    // le worker ne saurait plus l'ouvrir.
+    const schéma = JSON.parse(readFileSync(resolve(DOSSIER, "openapi.json"), "utf8"));
+    const dépôt = schéma.paths["/uploads"].post;
+
+    expect(Object.keys(dépôt.requestBody.content)).toEqual(["multipart/form-data"]);
+    expect(schéma.components.schemas.UploadOut.properties.path.type).toBe("string");
   });
 });

@@ -62,10 +62,12 @@ def test_les_routes_figees_sont_celles_que_le_front_appelle():
     relire, télécharger. Ce qui les retenait, le superviseur reconstruit à chaque
     requête et incapable de savoir qu'un job tourne, a été levé par la 4.6.
 
-    Elle dit aussi ce qui n'existe pas : aucune route de téléversement, alors que
-    dix champs du registre attendent un fichier. Sans conséquence tant que le
-    navigateur et le serveur partagent la machine — le champ porte un chemin
-    local — et à reprendre le jour où ce ne sera plus vrai.
+    La douzième est `POST /uploads`, et elle referme la note que cette liste
+    portait : « aucune route de téléversement, alors que dix champs du registre
+    attendent un fichier ». Ce n'est pas le partage de machine qui a cessé
+    d'être vrai — le chemin rendu est toujours local — mais le raisonnement qui
+    en découlait : une image choisie dans une page, une photo de la caméra et un
+    son du micro n'ont jamais eu de chemin à saisir, quelle que soit la machine.
     """
     if not FIGE.exists():
         pytest.skip("apps/ui absent : le front n'est pas installé dans cette copie")
@@ -83,4 +85,5 @@ def test_les_routes_figees_sont_celles_que_le_front_appelle():
         "/jobs/{job_id}",
         "/jobs/{job_id}/events",
         "/jobs/{job_id}/files/{chemin}",
+        "/uploads",
     }

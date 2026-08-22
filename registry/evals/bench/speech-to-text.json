@@ -1,0 +1,35 @@
+{
+  "capability": "speech-to-text",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Le même enregistrement que la diarisation et la description de son, à dessein : trois capacités mesurées sur les mêmes vingt secondes se comparent. Ce qui varie est `beam_size`, seul paramètre du contrat qui pilote le coût d'un décodeur — un faisceau de huit explore huit hypothèses de front, et la mémoire suit. Il n'est PAS déclaré paramètre d'échelle : la relation n'est linéaire que sur les modèles qui l'honorent, et l'admission tirerait une pente d'un paramètre qu'un variant sur deux ignore. Ces mêmes variants mesureront donc trois fois la même chose, ce qui reste utile — c'est la dispersion de leur latence. Elles ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "cases": [
+    {
+      "id": "faisceau-1",
+      "input": {
+        "audio": "assets/parole-tts.wav",
+        "task": "transcribe",
+        "beam_size": 1,
+        "temperature": 0.0
+      }
+    },
+    {
+      "id": "faisceau-5",
+      "input": {
+        "audio": "assets/parole-tts.wav",
+        "task": "transcribe",
+        "beam_size": 5,
+        "temperature": 0.0
+      }
+    },
+    {
+      "id": "faisceau-8-mots",
+      "input": {
+        "audio": "assets/parole-tts.wav",
+        "task": "transcribe",
+        "beam_size": 8,
+        "word_timestamps": true,
+        "temperature": 0.0
+      }
+    }
+  ]
+}

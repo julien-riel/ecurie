@@ -43,7 +43,7 @@ def test_l_absence_du_runtime_nomme_la_reparation(monkeypatch):
 
 
 def test_la_capacite_choisit_l_adaptateur_au_sein_d_un_meme_runtime():
-    """`mlx-audio` sert deux capacités par deux API qui n'ont rien en commun."""
+    """`mlx-audio` sert six capacités par des API qui n'ont rien en commun."""
     assert worker_module("mlx-audio", "text-to-speech") == WORKER_MODULES["mlx-audio"]
     assert (
         worker_module("mlx-audio", "text-to-music")
@@ -51,7 +51,14 @@ def test_la_capacite_choisit_l_adaptateur_au_sein_d_un_meme_runtime():
     )
     # Sans capacité connue, on retombe sur l'adaptateur du runtime.
     assert worker_module("mlx-audio", None) == WORKER_MODULES["mlx-audio"]
-    assert worker_module("mlx-audio", "speech-to-text") == WORKER_MODULES["mlx-audio"]
+    # `speech-to-text` a eu son adaptateur en même temps que son modèle : le
+    # même MOSS que la diarisation, sur les mêmes octets, par une autre lecture
+    # du même résultat. Jusque-là, elle retombait sur le TTS — un adaptateur qui
+    # n'aurait jamais su quoi faire d'un fichier audio en entrée.
+    assert (
+        worker_module("mlx-audio", "speech-to-text")
+        == WORKER_MODULES_BY_CAPABILITY[("mlx-audio", "speech-to-text")]
+    )
     assert worker_module("inconnu", "text-to-music") is None
 
 

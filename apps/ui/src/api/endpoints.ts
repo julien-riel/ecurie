@@ -1,5 +1,5 @@
 /**
- * Les dix routes de l'API, une fonction chacune.
+ * Les onze routes de l'API, une fonction chacune.
  *
  * C'est le seul fichier du front où une chaîne d'URL apparaît, et le seul où
  * apparaît le nom du paramètre `for`. Ce dernier point n'est pas cosmétique :
@@ -7,17 +7,24 @@
  * et le nom Python derrière l'alias est `for_ref` — deux occasions de se
  * tromper, réduites à un endroit qu'un test surveille.
  *
- * Les trois dernières sont celles des jobs, et elles ont attendu que le serveur
+ * Trois d'entre elles sont celles des jobs, et elles ont attendu que le serveur
  * les serve : le déménagement du superviseur dans le processus de l'API (tâche
  * 4.6) était le préalable, écrire ici un client qui aurait frappé des 404
- * revenait à le défaire ensuite. **Il n'y en a pas de onzième** : l'URL d'un
- * fichier de sortie n'est pas composée ici, elle est *lue* dans la réponse du
- * job. Le serveur la donne déjà faite, parce qu'une sortie imbriquée —
- * `tracks/vocals.wav` sous la clé `tracks.vocals` — est un chemin à plusieurs
- * segments que le client n'a pas à savoir recomposer.
+ * revenait à le défaire ensuite.
+ *
+ * La onzième est `deposerFichier`, et elle a attendu plus longtemps encore : le
+ * front savait depuis le 4.3 qu'un champ fichier ne peut pas être rempli par un
+ * sélecteur de fichier, et s'en tenait à l'annoncer. Ce qui manquait n'était pas
+ * une idée mais une route ; elle existe.
+ *
+ * **Il n'y en a pas de douzième** : l'URL d'un fichier de sortie n'est pas
+ * composée ici, elle est *lue* dans la réponse du job. Le serveur la donne déjà
+ * faite, parce qu'une sortie imbriquée — `tracks/vocals.wav` sous la clé
+ * `tracks.vocals` — est un chemin à plusieurs segments que le client n'a pas à
+ * savoir recomposer.
  */
 
-import { get, post, urlAbsolue } from "./http";
+import { get, post, postFichier, urlAbsolue } from "./http";
 import { suivreFlux, type EvenementSSE } from "./sse";
 import type {
   AdmissionResponse,
@@ -28,6 +35,7 @@ import type {
   ModelsResponse,
   ResidentsResponse,
   StoreSummaryResponse,
+  Upload,
 } from "./types";
 
 export function index(signal?: AbortSignal): Promise<IndexResponse> {
@@ -147,6 +155,27 @@ export function evenementsDuJob(
   signal?: AbortSignal,
 ): Promise<void> {
   return suivreFlux(`/jobs/${encodeURIComponent(id)}/events`, surEvenement, signal);
+}
+
+/**
+ * Dépose un fichier sur la machine du serveur et rend le chemin qu'il a écrit.
+ *
+ * C'est la contrepartie exacte de ce que `FilePathWidget` disait depuis le
+ * 4.3 : *« le navigateur ne donne pas le chemin réel d'un fichier choisi —
+ * seulement son nom et son contenu »*. Il a le contenu ; il suffit de l'envoyer
+ * pour qu'un chemin existe. Ce que la fonction rend va **dans le champ**, tel
+ * quel : c'est la même chaîne qu'on aurait tapée.
+ *
+ * Elle sert les trois sources d'un même besoin — un fichier choisi sur le
+ * disque, une image déposée depuis une page web, une capture de la caméra ou du
+ * micro — parce que les trois arrivent au même endroit : un `Blob` sans chemin.
+ */
+export function deposerFichier(
+  fichier: Blob,
+  nom: string,
+  signal?: AbortSignal,
+): Promise<Upload> {
+  return postFichier<Upload>("/uploads", fichier, nom, signal);
 }
 
 /**

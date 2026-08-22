@@ -88,6 +88,43 @@ export function post<T>(chemin: string, corps: unknown, signal?: AbortSignal): P
 }
 
 /**
+ * Envoie un fichier en `multipart/form-data`.
+ *
+ * Aucun `content-type` n'est posé, et c'est **obligatoire** : ce format exige une
+ * frontière (`boundary`) que seul le navigateur peut engendrer, et qu'il écrit
+ * lui-même dans l'en-tête à partir du `FormData`. En poser un à la main donne un
+ * en-tête sans frontière, que Starlette refuse d'analyser — un 400 dont le
+ * message ne dit pas ce qui manque.
+ *
+ * Le nom est passé au troisième argument d'`append` plutôt que laissé au `Blob` :
+ * une capture n'a pas de nom propre, et sans lui le navigateur envoie « blob » —
+ * ce qui prive le serveur de l'extension. Le serveur sait la redéduire du type
+ * de média (`ecurie_api.uploads`), et c'est heureux : l'implémentation de
+ * `fetch` de Node sérialise un `Blob` en `filename="blob"` quoi qu'on lui passe,
+ * si bien que le nom ne peut pas être éprouvé hors d'un vrai navigateur. Il est
+ * envoyé parce que c'est ce que la spécification prévoit, et rien du chemin ne
+ * dépend de son arrivée.
+ */
+export function postFichier<T>(
+  chemin: string,
+  fichier: Blob,
+  nom: string,
+  signal?: AbortSignal,
+): Promise<T> {
+  const corps = new FormData();
+  corps.append("file", fichier, nom);
+  return lire<T>(
+    new Request(`${BASE_URL}${chemin}`, {
+      method: "POST",
+      credentials: "omit",
+      headers: { accept: "application/json" },
+      body: corps,
+      signal: signal ?? null,
+    }),
+  );
+}
+
+/**
  * Ouvre un flux d'événements et rend la réponse, corps non lu.
  *
  * C'est un `GET` comme les autres jusqu'à l'en-tête ; ce qui change est qu'on ne

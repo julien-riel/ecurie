@@ -216,6 +216,75 @@ legend { font-weight: 600; padding: 0 0.35rem; }
   font-size: inherit;
 }
 
+/* --- le champ fichier et sa capture -------------------------------------------
+ *
+ * Trois sources pour un même chemin : la saisie, le disque, le matériel. Elles
+ * sont posées en ligne sous le champ plutôt qu'en onglets — un formulaire qui
+ * demanderait de choisir sa source avant de voir ce qu'elle offre ajouterait un
+ * clic à chacune des trois.
+ */
+/* Le survol d'un glisser-déposer se voit, sinon rien ne dit que la zone
+   accepte : un fichier lâché au mauvais endroit ouvre un onglet et fait
+   disparaître le formulaire. */
+.ecurie-fichier[data-survol="oui"] {
+  outline: 2px dashed var(--encre);
+  outline-offset: 3px;
+  border-radius: 5px;
+}
+
+.ecurie-fichier-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+/* Le sélecteur natif est illisible et impossible à styler ; le libellé fait le
+   bouton, et l'input reste dans le flux pour que le clavier l'atteigne. */
+.ecurie-fichier-parcourir {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.ecurie-fichier-parcourir input[type="file"] { max-width: 14rem; font-size: 0.85rem; }
+
+.ecurie-capture { display: contents; }
+
+.ecurie-capture-modes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.ecurie-capture-modes button[aria-pressed="true"] {
+  border-color: var(--encre);
+  font-weight: 600;
+}
+
+.ecurie-capture-scene {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* Le viseur est borné : un flux de webcam en 1280 pixels pousserait la mise en
+   page hors de l'écran, alors que la photo prise reste, elle, à la définition
+   du flux (voir `trameEnPng`). */
+.ecurie-capture-scene video {
+  max-width: min(100%, 28rem);
+  border: 1px solid var(--trait);
+  border-radius: 5px;
+  background: var(--encre);
+}
+
+.ecurie-capture-actions { display: flex; gap: 0.6rem; }
+
 /* --- le job en cours ---------------------------------------------------------
  *
  * Encadré et non fondu dans la page : il est le seul bloc dont le contenu bouge

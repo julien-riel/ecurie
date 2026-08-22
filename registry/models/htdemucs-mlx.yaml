@@ -1,0 +1,56 @@
+# Séparation de pistes — HTDemucs v4, converti pour MLX.
+#
+# La référence du domaine depuis 2022, et le seul modèle de séparation dont les
+# quatre pistes correspondent exactement à ce que le contrat déclare : voix,
+# batterie, basse, le reste. Les 168 Mo de poids sont ceux du checkpoint Meta,
+# relus pour leur seul state dict et resérialisés en safetensors — aucune
+# valeur n'est modifiée, la précision reste fp32.
+id: htdemucs-mlx
+name: HTDemucs v4 (MLX)
+capability: audio-separation
+family: demucs
+vendor: Meta AI (Rouard, Massa, Défossez) — conversion MLX par jasonvassallo
+license: mit
+license_class: permissive
+status: candidate
+
+notes: >
+  Le checkpoint amont est distribué par Meta en `.th` picklé ; ce dépôt en
+  publie la conversion safetensors, avec la LICENSE et le NOTICE que MIT exige.
+  L'inférence passe par `mlx-audiogen`, qui n'est pas dans l'env `mlx-audio` du
+  parc — d'où un environnement dédié, comme la musique en a un : même runtime,
+  même famille d'adaptateurs, dépendances disjointes.
+
+  HTDemucs sépare en QUATRE pistes, toujours. La séparation en deux du contrat
+  est obtenue en resommant batterie, basse et le reste ; elle ne coûte rien de
+  moins en calcul, et le manifeste le dit plutôt que de laisser croire à une
+  économie.
+
+links:
+  homepage: https://huggingface.co/jasonvassallo/demucs-htdemucs-mlx
+  code: https://github.com/facebookresearch/demucs
+  paper: https://arxiv.org/abs/2211.08553
+
+variants:
+  - id: fp32-mlx
+    quantization: fp32
+    tier: hot
+    runtime: mlx-audio
+    # `mlx-audiogen` n'est ni dans l'env du TTS ni dans celui de la musique.
+    # C'est le troisième env de ce runtime, et la raison est la même que pour le
+    # second : des bornes de version qui n'ont aucune raison de se rencontrer.
+    runtime_env: mlx-audiogen
+    source:
+      kind: huggingface
+      repo: jasonvassallo/demucs-htdemucs-mlx
+      revision: "9a32d8a73da0d6182a8a33bda927b7ea46930e44"   # 2026-07-30
+      allow_patterns: ["config.json", "model.safetensors", "LICENSE", "NOTICE"]
+    defaults:
+      stems: 2
+      shifts: 1
+      segment_seconds: 10
+    caveats:
+      - "`stems: 2` ne fait pas moins de calcul que 4 : le réseau produit toujours quatre pistes, et l'accompagnement est leur somme moins la voix."
+      - "`shifts` multiplie le temps d'autant : à 5, un morceau de trois minutes prend cinq fois plus longtemps pour un gain de l'ordre du dixième de dB."
+      - "Entraîné sur MUSDB18-HQ, donc sur de la musique produite en studio. Sur un enregistrement de terrain ou une réunion, la piste « voix » ne veut plus dire grand-chose."
+      - "44,1 kHz natif : un fichier à une autre fréquence est rééchantillonné avant traitement et restitué à 44,1 kHz."
