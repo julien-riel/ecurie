@@ -110,9 +110,9 @@ ecurie/                          # monorepo uv workspace
   ARCHITECTURE.md  CONCEPTION.md  PLAN.md
   registry/
     schema/{model,capability,golden}.schema.json  ✓
-    capabilities/*.json                        ✓ 17 contrats atomiques
-    models/*.yaml                              ✓ 12 manifestes
-    measurements/<id>@<variant>.json           ✓ 10 profils mesurés
+    capabilities/*.json                        ✓ 25 contrats atomiques
+    models/*.yaml                              ✓ 26 manifestes, un par capacité au moins
+    measurements/<id>@<variant>.json           ✓ 21 profils mesurés
     evals/
       bench/<capability>.json + assets/        ✓ charges type du banc d'essai
       golden/<capability>/manifest.json        ✓ 11 jeux (§9), dont l'ASR sans son
@@ -314,21 +314,37 @@ bibliothèque du runtime. Rien n'est installé dans le venv du runtime : seuls
 `protocol`, `channel` et `workers/base` y sont visibles, tous trois en
 bibliothèque standard pure.
 
-Onze sont livrés :
+Vingt sont livrés, plus le chemin `custom` :
 
-| runtime | capacité | adaptateur |
-|---|---|---|
-| `mlx-audio` | `text-to-speech` | `workers/mlx_audio.py` |
-| `mlx-audio` | `text-to-music` | `workers/mlx_audio_music.py` |
-| `mlx-vlm` | `document-to-text` | `workers/mlx_vlm.py` |
-| `mlx-vlm` | `image-to-text` | `workers/mlx_vlm_describe.py` |
-| `mlx-lm` | `text-generation` | `workers/mlx_lm.py` |
-| `mlx-lm` | `translation` | `workers/mlx_lm_translate.py` |
-| `mlx-lm` | `tool-use` | `workers/mlx_lm_tools.py` |
-| `torch-vision` | `image-matting` | `workers/birefnet.py` |
-| `torch-vision` | `image-upscale` | `workers/swin2sr.py` |
-| `diffusers-mps` | `text-to-image` | `workers/diffusers_mps.py` |
-| `custom` | — | l'`entrypoint` du manifeste (chemin de Hunyuan3D) |
+| runtime | capacité | adaptateur | poids partagés avec |
+|---|---|---|---|
+| `mlx-audio` | `text-to-speech` | `workers/mlx_audio.py` | |
+| `mlx-audio` | `text-to-music` | `workers/mlx_audio_music.py` | |
+| `mlx-audio` | `speaker-diarization` | `workers/moss_diarize.py` | |
+| `mlx-audio` | `speech-to-text` | `workers/moss_transcribe.py` | `moss-transcribe-diarize` |
+| `mlx-audio` | `audio-to-text` | `workers/qwen2_audio.py` | |
+| `mlx-audio` | `voice-clone` | `workers/omnivoice.py` | |
+| `mlx-vlm` | `document-to-text` | `workers/mlx_vlm.py` | |
+| `mlx-vlm` | `image-to-text` | `workers/mlx_vlm_describe.py` | `qwen3-vl-8b-ocr` |
+| `mlx-vlm` | `video-to-text` | `workers/mlx_vlm_video.py` | `qwen3-vl-8b-ocr` |
+| `mlx-vlm` | `image-detect` | `workers/mlx_vlm_detect.py` | `qwen3-vl-8b-ocr` |
+| `mlx-lm` | `text-generation` | `workers/mlx_lm.py` | |
+| `mlx-lm` | `translation` | `workers/mlx_lm_translate.py` | |
+| `mlx-lm` | `tool-use` | `workers/mlx_lm_tools.py` | |
+| `torch-vision` | `image-matting` | `workers/birefnet.py` | |
+| `torch-vision` | `image-upscale` | `workers/swin2sr.py` | |
+| `torch-vision` | `image-segment` | `workers/sam2.py` | |
+| `diffusers-mps` | `text-to-image` | `workers/diffusers_mps.py` | |
+| `diffusers-mps` | `image-inpaint` | `workers/diffusers_inpaint.py` | `sdxl-base` |
+| `diffusers-mps` | `image-to-image` | `workers/diffusers_img2img.py` | `sdxl-base` |
+| `rtmlib` | `video-to-motion` | `workers/rtmw3d.py` | |
+| `custom` | — | l'`entrypoint` du manifeste (chemin de Hunyuan3D) | |
+
+La quatrième colonne est celle qui décide du coût d'une capacité de plus : cinq
+des vingt adaptateurs tournent sur des octets déjà téléchargés pour un autre
+contrat. `diffusers_img2img` en est le cas le plus net — il ne diffère de son
+voisin `diffusers_inpaint` que par l'absence d'un masque, et il est exécutable le
+jour où son manifeste entre au registre.
 
 **Un runtime peut servir plusieurs capacités par des API qui n'ont rien en
 commun.** `mlx_audio.tts` et `mlx_audio.music` ne partagent ni le chargement, ni
@@ -478,6 +494,7 @@ POST /runtime/admission {ref, input}     pic attendu pour cette entrée         
 POST /jobs        {ref, input, seed?}    → 202 {id, state, …}                  ✓
 GET  /jobs/{id}   état + manifeste       GET /jobs/{id}/events   (SSE)         ✓
 GET  /jobs/{id}/files/{chemin}           fichiers de sortie                    ✓
+POST /uploads     multipart              → 201 {path, name, media_type, size}  ✓
 POST /store/plan
 POST /evals/preference  {capability, input_hash, a, b, winner}
 GET  /library[?capability=&model=]       POST /library/{job_id}/replay
@@ -538,10 +555,56 @@ les reproches du contrat : un champ encore vide n'est pas une erreur du client,
 et refuser de répondre priverait l'utilisateur du chiffre au moment précis où il
 le regarde.
 
+**`/uploads` est la seconde surface d'écriture, et la dernière prévue.** La liste
+des routes figées portait depuis la 4.1 une note qui disait le contraire :
+« aucune route de téléversement, alors que dix champs du registre attendent un
+fichier. Sans conséquence tant que le navigateur et le serveur partagent la
+machine — le champ porte un chemin local — et à reprendre le jour où ce ne sera
+plus vrai. » Ce jour n'est pas venu, et la route existe quand même : **ce n'est
+pas le partage de machine qui a cessé d'être vrai, c'est le raisonnement qui en
+découlait.** Une image choisie dans une page web, une photo prise par la caméra,
+un son capté par le micro n'ont **jamais** eu de chemin à saisir, sur aucune
+machine. Le serveur écrit le contenu et rend le chemin qu'il vient de créer ; le
+champ du formulaire reste ce qu'il était, une chaîne que le worker ouvrira, et la
+CLI continue d'accepter la même valeur (`ecurie run -p image=…`).
+
+Quatre décisions la gouvernent, et elles se paient toutes si on les manque :
+
+- **le sas n'est pas une bibliothèque.** `~/.ecurie/uploads/` reçoit ce qui sert
+  à lancer un job ; `runner.stage_inputs` en recopie aussitôt le contenu dans le
+  dossier du job, avec son sha256, et c'est ce dossier-là qui fait foi pour la
+  reproductibilité (§6.2). Les dépôts de plus de sept jours sont balayés au dépôt
+  suivant — pas par une tâche de fond, qui serait un fil de plus à surveiller
+  pour un `unlink()`. Il n'y a **ni lecture ni liste ni suppression** par HTTP :
+  elles feraient de ce dossier une seconde bibliothèque, avec deux vérités sur ce
+  qui a servi d'entrée ;
+- **le type accepté vient du registre, pas d'une liste écrite dans la route.**
+  Les contrats déclarent ce que leurs champs fichier acceptent — `image/*`,
+  `audio/*`, `video/*`, `application/pdf` —, et c'est exactement la question
+  posée. `CapabilityContract.input_media_types()` est le symétrique
+  d'`output_media_types()` et reconnaît un champ fichier comme le fait déjà
+  `stage_inputs` : un `contentMediaType`, ou un `x-ui: "file"` ;
+- **le nom d'origine ne compose jamais le chemin.** Il est réduit à ce qui tient
+  dans un nom de fichier, précédé d'un jeton horodaté comme celui d'un job, et
+  jamais employé seul : deux captures s'appellent toutes les deux
+  `enregistrement.wav`, et « ../.. » est un nom de fichier acceptable pour qui
+  l'envoie. L'extension manquante est déduite du type de média — `audio/wav` est
+  justement l'un de ceux que `mimetypes` ne sait pas suffixer, le même trou que
+  `model/gltf-binary` côté sorties ;
+- **la taille est comptée pendant l'écriture.** `Content-Length` est déclaratif ;
+  le seul chiffre fiable est celui des octets déjà écrits. Au-delà d'un gigaoctet
+  le fichier partiel est supprimé et la réponse est un 413 — laisser la moitié
+  d'une vidéo dans le sas serait une façon coûteuse de refuser.
+
+`python-multipart` entre dans les dépendances de `ecurie-api` pour cette route :
+Starlette lui délègue l'analyse du format et ne le déclare pas, si bien que son
+absence est une panne **au démarrage**, pas à la requête. C'est la même famille
+de manque que le `jinja2` de l'env `mlx-audio`.
+
 ### 6.1 Les jobs
 
-`/jobs` est la **seule surface d'écriture** de l'API, et la dernière pièce de la
-tâche 4.1. Elle a attendu la 4.6 pour une raison de fond : un serveur qui lance
+`/jobs` est la **première surface d'écriture** de l'API, et la dernière pièce de
+la tâche 4.1. Elle a attendu la 4.6 pour une raison de fond : un serveur qui lance
 des jobs doit savoir lequel tourne, sur quel worker, et faire attendre le suivant
 — ce qu'un superviseur reconstruit à chaque requête ne peut pas.
 
@@ -637,16 +700,57 @@ qu'un dix-huitième y entre sans qu'une ligne de front bouge.
     ses voix, et `translation.target_language` — qui est requis — serait
     insaisissable. Il n'existe **pas** d'endpoint `/runtime/residents/{ref}/options` :
     la source est `GET /runtime/residents` ;
-  - `file` rend un **chemin local**, pas un téléversement. Le `FileWidget` de
-    RJSF encode le fichier en data-URL base64 alors que le contrat déclare un
-    chemin que le worker ouvre sur le disque ; et l'API n'a aucune route de
-    téléversement — ce qui est sans conséquence, le navigateur et le serveur
-    étant sur la même machine. *Aucune tâche du plan ne porte cette route : à
-    ouvrir si un usage la réclame.*
+  - `file` rend un **chemin local**, pas une data-URL — et il l'obtient
+    désormais de trois façons. Le `FileWidget` de RJSF encode le fichier choisi
+    en base64 dans `formData`, alors que le contrat déclare un chemin que le
+    worker ouvre sur le disque : c'est pourquoi le widget est remplacé, et cela
+    ne change pas. Ce qui a changé est la conclusion qu'on en tirait. Le
+    navigateur ne donne pas le chemin réel d'un fichier choisi — c'est vrai — mais
+    **il en a le contenu**, et `POST /uploads` (§6) l'écrit puis rend le chemin
+    créé. Le champ porte alors exactement ce qu'on aurait tapé. Trois sources,
+    aucune de trop : le chemin saisi, qui reste la voie la plus rapide et la
+    seule qui ne copie aucun octet ; un fichier du disque, par le sélecteur natif
+    — qui n'est donc plus inerte ; la caméra ou le micro, pour ce qui n'existe
+    pas encore du tout. Les deux dernières arrivent au même endroit : un `Blob`
+    sans chemin. Le champ accepte aussi le **glisser-déposer** et le **collage**,
+    qui sont le geste le plus direct pour prendre une image dans une page web —
+    le navigateur la télécharge lui-même et la présente comme un fichier. Quand
+    il ne donne qu'une URL, rien ne se passe : la suivre demanderait au serveur
+    de sortir sur le réseau, ce qu'un parc local n'a aucune raison de faire. Un
+    dépôt qui échoue **n'efface pas** le champ : ce qui s'y trouvait y était pour
+    une raison, et une panne de réseau n'en est pas une de la perdre ;
   - un **`type: object` sans `properties`** n'est rendu par aucun widget — RJSF
     produit un fieldset vide. `tool-use.tools[].parameters`, requis, est dans ce
     cas : il reçoit un éditeur JSON, déclenché par la forme du champ et non par
     l'identifiant du contrat.
+- **La caméra et le micro sont des sources d'entrée comme le disque.** Un champ
+  qui accepte `image/*` propose la caméra, `audio/*` le micro, `video/*` les deux
+  ensemble ; un champ qui n'accepte que `application/pdf` ne propose rien —
+  aucun bouton plutôt qu'un bouton qui produirait un fichier refusé. La
+  mécanique (`src/media/capture.ts`) est séparée du composant qui l'emploie,
+  parce que **rien de tout cela n'existe dans jsdom** : `getUserMedia`,
+  `MediaRecorder`, `AudioContext`, `canvas.toBlob` sont des accès au matériel, et
+  les faire passer par un objet `Materiel` explicite est ce qui rend leur usage
+  vérifiable sans caméra. Trois décisions valent d'être écrites :
+  - **le son déposé est du WAV, jamais ce que le navigateur a enregistré.**
+    Aucun navigateur n'écrit de WAV : Chrome rend de l'opus, Safari de l'AAC. Or
+    le `pyproject.toml` de l'env `mlx-audio` le dit noir sur blanc — « ffmpeg…
+    ne redeviendrait nécessaire que pour flac/mp3/ogg/opus ». Un dépôt en opus
+    produirait un job qui échoue au décodage, plusieurs secondes après le clic.
+    Le navigateur sait pourtant relire ce qu'il vient d'encoder — c'est le même
+    moteur —, et de `decodeAudioData` au WAV il n'y a qu'un en-tête de 44 octets
+    et une conversion, mixée en mono parce que tous les modèles audio du parc
+    travaillent sur un canal ;
+  - **rien ne s'allume avant le premier clic, et ce qui s'allume se referme.**
+    `getUserMedia` fait apparaître une autorisation système : la réclamer parce
+    qu'un champ accepte une image serait insupportable. À l'autre bout, une
+    caméra qu'on oublie de fermer est la seule faute d'ici qui survive à
+    l'écran — changer de mode, fermer le panneau, démonter l'écran et échouer à
+    déposer coupent tous les pistes ;
+  - **un refus d'autorisation est une phrase, pas un silence.**
+    `NotAllowedError` et `NotFoundError` appellent deux gestes différents — lever
+    l'interdiction dans le navigateur, ou constater qu'il n'y a pas de
+    périphérique —, et un « échec de la caméra » unique les confondrait.
 - **Visualiseurs de sortie** par `contentMediaType` : `audio/*` → lecteur,
   `image/*` → image + zoom, `video/*` → vidéo, `model/gltf-binary` →
   `<model-viewer>` (Google, autonome, pas de scène three.js à écrire), `text/*` →
@@ -821,6 +925,43 @@ n'honore qu'une partie de ce que d'autres honoreront. La même mécanique sert �
 
 ---
 
+### Ce qu'une couverture complète du registre a appris
+
+Le 22 août 2026, dans la même journée, les six dernières capacités sans modèle en
+reçoivent un — `audio-denoise`, `audio-separation`, `image-to-image`,
+`image-to-video`, `speech-to-text`, `text-to-video`. **Les vingt-cinq contrats
+ont désormais au moins un manifeste**, et un test du registre réel l'exige
+(`test_chaque_capacite_a_au_moins_un_modele`). Trois points touchent la
+conception.
+
+**Un contrat sans modèle coûte plus qu'il n'apporte.** L'argument inverse tenait
+et il est resté écrit ailleurs : une capacité déclarée dit ce que le parc
+*pourrait* faire, et l'Atelier lui réservait un groupe. Ce qu'elle coûte se voit
+à l'usage — un formulaire complet dont aucun bouton *Lancer* ne peut partir, et
+rien à l'écran qui dise quel modèle irait là. Le registre est aussi une liste de
+courses ; une case vide n'en est pas une. L'état `sans-modèle` reste dans le code
+du front, et ce n'est pas du code mort : un contrat s'ajoute avant son modèle, et
+c'est l'ordre normal du travail.
+
+**Le partage de poids a servi une quatrième et une cinquième fois, et c'est
+devenu le patron le plus rentable du parc.** `sdxl-base-img2img` et
+`moss-transcribe` sont exécutables **le jour où ils entrent au registre**, sans
+un octet téléchargé : mêmes dépôts, mêmes révisions, mêmes caches que
+`sdxl-base` et `moss-transcribe-diarize`, un autre pipeline et une autre lecture
+du même résultat. Le §5.2 le disait pour deux capacités ; il vaut pour cinq
+couples. La question à poser devant chaque capacité vide n'est donc pas « quel
+modèle télécharger » mais « lequel des poids déjà là sait le faire ».
+
+**Une capacité peut entrer au registre en sachant qu'elle ne tiendra pas.**
+`ltx-video-2b` pèse 15,2 Go en bf16 pour 17,76 Gio de budget : le calcul est fait
+avant le téléchargement, écrit dans les caveats, et le contrôle d'admission
+refusera. Le manifeste existe quand même, et c'est délibéré — un modèle candidat
+avec son pic annoncé apprend exactement où est le mur, là qu'une capacité vide
+n'apprenait rien. Sur les vingt-cinq capacités, vingt sont exécutables ; les cinq
+autres disent ce qu'il faudrait pour qu'elles le deviennent.
+
+---
+
 ## 8. Banc d'essai
 
 `ecurie bench <model>@<variant>` :
@@ -919,7 +1060,10 @@ de l'être, l'un des deux est faux.
   `veille.yml` (cron hebdomadaire qui ouvre la PR).
 - `registry-ci.yml`, à chaque PR touchant `registry/` :
   1. validation JSON Schema de tous les manifestes ;
-  2. invariants inter-fichiers (un incumbent par capacité, capacités connues) ;
+  2. invariants inter-fichiers : un incumbent par capacité, capacités connues,
+     et **au moins un modèle par capacité déclarée** — un contrat sans manifeste
+     propose un formulaire dont aucun bouton *Lancer* ne peut partir, et rien à
+     l'écran ne dit quel modèle irait là ;
   3. `revision` : refus des placeholders `0000000` et de `main` sur `status: active` ;
   4. existence des révisions épinglées via l'API HF (job hebdomadaire aussi, pour
      détecter les dépôts disparus et les licences changées) ;
@@ -989,10 +1133,21 @@ vérifié au chargement du registre, pas à l'exécution.
   reste contre un vrai serveur, `ECURIE_ESSAI_REEL=1`, et c'est lui qui a trouvé
   la boucle de rendu du 4.3.
 
-Au terme de la tâche 4.4 : 771 tests Python, plus 5 marqués `real` ; 297 tests de
-front, plus 5 contre un vrai serveur. Les 297 comptent les huit contrats ajoutés
-le 22 août : la suite du front engendre ses cas depuis `registry/capabilities/`,
-si bien qu'un contrat de plus s'y rend sans qu'une ligne de test soit écrite.
+- **Le matériel de capture est injecté, jamais simulé par l'environnement.**
+  `getUserMedia`, `MediaRecorder`, `AudioContext` et `canvas.toBlob` n'existent
+  pas en jsdom et ne peuvent pas y exister : ce sont des accès à une caméra et à
+  un micro. `CapturePanel` reçoit donc un objet `Materiel` en propriété, et la
+  suite lui donne des pistes dont elle vérifie qu'elles s'arrêtent. C'est le même
+  patron que le `spec_factory` du superviseur côté serveur : le point d'injection
+  est aussi bas que possible, et tout ce qui est au-dessus est le chemin de
+  production. L'encodage WAV, lui, n'a besoin d'aucun double — c'est du calcul
+  pur, vérifié octet par octet, y compris le petit-boutisme de l'en-tête.
+
+Au terme de la tâche 4.4 : 825 tests Python, plus 5 marqués `real` ; 371 tests de
+front, plus 5 contre un vrai serveur. Ils comptent les huit contrats ajoutés le
+22 août, puis les six derniers manifestes du même jour : la suite du front
+engendre ses cas depuis `registry/capabilities/`, si bien qu'un contrat de plus
+s'y rend sans qu'une ligne de test soit écrite.
 
 ---
 

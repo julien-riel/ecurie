@@ -14,18 +14,119 @@
 | v0.1 — Voir le parc | **livré** | atteint |
 | v0.2 — Récupérer des gigaoctets | **livré** | atteint |
 | v0.3 — Exécuter sans OOM | **livré** | atteint : `run` TTS produit un wav, un job image décharge le TTS proprement, sans swap |
-| v0.4 — Utilisable au quotidien | **en cours** | 4.1 : `ecurie serve` sert le parc **et lance ses jobs** — un POST, un flux SSE, un wav téléchargeable, éprouvés sur le vrai parc. 4.3 : les 17 contrats engendrent leur formulaire, sans un formulaire écrit à la main. 4.4 : l'Atelier lance, suit et montre — du clic au wav qu'on écoute, éprouvé contre un vrai serveur. 4.6 : le superviseur vit dans le processus de l'API, et `residents.json` n'est plus qu'un miroir |
+| v0.4 — Utilisable au quotidien | **en cours** | 4.1 : `ecurie serve` sert le parc **et lance ses jobs** — un POST, un flux SSE, un wav téléchargeable, éprouvés sur le vrai parc. 4.3 : les contrats engendrent leur formulaire — 25 aujourd'hui —, sans un formulaire écrit à la main, et un champ fichier se remplit au chemin, au sélecteur ou à la caméra. 4.4 : l'Atelier lance, suit et montre — du clic au wav qu'on écoute, éprouvé contre un vrai serveur. 4.6 : le superviseur vit dans le processus de l'API, et `residents.json` n'est plus qu'un miroir |
 | v0.5 → v0.7 | à faire | — |
 
-Le parc réel compte **dix-huit capacités exécutables** sur vingt-cinq déclarées,
-vingt manifestes et vingt et un variants. Huit environnements de runtime, quatre
-paquets Python et un front, **771 tests Python et 297 tests de front**, plus cinq
-essais sur le vrai parc et cinq contre un vrai serveur, exclus par défaut.
+Le parc réel compte **vingt capacités exécutables** sur vingt-cinq déclarées, et
+**chacune des vingt-cinq a au moins un modèle** — vingt-six manifestes,
+vingt-sept variants. Huit environnements de runtime, quatre paquets Python et un front,
+**825 tests Python et 371 tests de front**, plus cinq essais sur le vrai parc et
+cinq contre un vrai serveur, exclus par défaut.
 
 Deux choses ont été faites en marge du jalon, et elles n'attendaient personne :
 le **recalibrage du seuil de lourdeur** (voir les points de contrôle), et la
 **rédaction des golden sets** de la tâche 5.1, qui est du travail de fond dont le
 v0.5 dépend entièrement.
+
+### Le registre au complet, et trois façons de remplir un champ fichier — le 22 août 2026
+
+Trois demandes en une, et elles se sont révélées liées par un même bout : *« un
+modèle pour chaque capacité »*, *« utiliser un stream de la caméra ou du micro »*,
+*« choisir une image dans le site web »*.
+
+**Les six dernières capacités sans modèle en ont un.** `audio-denoise`,
+`audio-separation`, `image-to-image`, `image-to-video`, `speech-to-text`,
+`text-to-video` — six manifestes, deux adaptateurs, deux charges type, un test du
+registre réel qui exige l'invariant (`test_chaque_capacite_a_au_moins_un_modele`).
+Le parc passe de dix-huit à **vingt capacités exécutables**, et le dropdown de
+l'Atelier perd son groupe « Aucun modèle au registre » — il ne reste que
+« Exécutables » et « Déclarées, rien d'exécutable en l'état ».
+
+Deux des six sont exécutables **le jour de leur ajout, sans un octet
+téléchargé** : `sdxl-base-img2img` tourne sur les poids de `sdxl-base`,
+`moss-transcribe` sur ceux de `moss-transcribe-diarize`. C'est la cinquième et la
+sixième fois que le partage de poids paie dans ce parc, et la question à poser
+devant une capacité vide est désormais « lequel des poids déjà là sait le
+faire ? » avant « lequel télécharger ? ».
+
+Les quatre autres sont téléchargées mais pas encore servies : DeepFilterNet3-MLX
+(8,7 Mo) et HTDemucs-MLX (168 Mo) attendent leur adaptateur, LTX-Video 2B (15,2 Go
+en bf16) attend surtout une machine — le calcul est fait avant le téléchargement
+et écrit dans ses caveats : 15,2 Go de poids pour 17,76 Gio de budget, le contrôle
+d'admission refusera. **Le manifeste existe quand même**, et c'est le point : une
+capacité vide n'apprend rien, un candidat avec son pic annoncé dit exactement où
+est le mur.
+
+**`POST /uploads` referme une note vieille de trois tâches.** La liste des routes
+figées portait ceci : « aucune route de téléversement, alors que dix champs du
+registre attendent un fichier. Sans conséquence tant que le navigateur et le
+serveur partagent la machine — le champ porte un chemin local — et à reprendre le
+jour où ce ne sera plus vrai. » Ce jour n'est pas venu et la route existe :
+**ce n'est pas le partage de machine qui a cessé d'être vrai, c'est le
+raisonnement.** Une image choisie dans une page, une photo de la caméra, un son
+du micro n'ont jamais eu de chemin à saisir, sur aucune machine. Le champ
+`x-ui: "file"` a maintenant trois sources — le chemin saisi, un fichier du disque
+(le sélecteur natif n'est plus inerte, et le champ accepte le glisser-déposer et
+le collage), la caméra ou le micro — et les trois finissent par poser la même
+chose : un chemin local que le worker ouvrira.
+
+Le glisser-déposer est ce qui répond le plus directement à « choisir une image
+dans le site web » : le navigateur télécharge lui-même l'image lâchée depuis un
+onglet et la présente comme un fichier. Quand il ne le fait pas — certaines
+sources ne donnent qu'une URL —, rien ne se passe, et c'est délibéré : suivre
+l'URL à sa place demanderait au **serveur** de sortir sur le réseau, ce qu'un
+parc local n'a aucune raison de faire.
+
+Ce que l'exercice a appris :
+
+1. **Le navigateur n'écrit pas de WAV, et le parc ne lit rien d'autre.**
+   `MediaRecorder` rend de l'opus sur Chrome, de l'AAC sur Safari ; le
+   `pyproject.toml` de l'env `mlx-audio` dit que ffmpeg « ne redeviendrait
+   nécessaire que pour flac/mp3/ogg/opus ». Un dépôt en opus aurait produit un
+   job qui échoue au décodage, plusieurs secondes après le clic. La conversion
+   passe par `decodeAudioData` — le navigateur relit ce qu'il vient d'encoder,
+   c'est le même moteur — puis par un en-tête de 44 octets écrit à la main. Le
+   piège du format WAV est son petit-boutisme : une fréquence de 48000 écrite à
+   l'envers se lit 130 048 512, et le fichier s'ouvre quand même.
+2. **Le seul défaut qui survit à l'écran est une caméra restée allumée.** React
+   ne coupe rien tout seul. Changer de mode, fermer le panneau, démonter l'écran,
+   échouer à déposer : quatre chemins, un seul `stop()` à ne pas oublier.
+3. **`mimetypes` ne sait pas suffixer `audio/wav`.** Le type canonique de l'IANA
+   est `audio/vnd.wave`, et aucune table de macOS ne fait le lien — or c'est
+   précisément ce que produit la capture du micro. Le même trou que
+   `model/gltf-binary` côté sorties, découvert de la même façon : par un test qui
+   demandait une extension et n'en a pas eu.
+4. **`strength` décide du nombre de pas, et zéro pas est un job réussi qui n'a
+   rien fait.** `diffusers` calcule `int(steps × strength)` : à 0,6, un job de 30
+   pas n'en exécute que 18 — d'où un pic de 7,9 Gio contre 15,95 pour la
+   génération, ce qui fait de `sdxl-base-img2img` le seul des trois chemins SDXL
+   que la politique mémoire ne compte pas comme lourd. Mais le pipeline accepte
+   aussi zéro et rend l'image d'entrée sans lever ni avertir. Un plancher à un
+   pas est posé dans l'adaptateur.
+5. **Un refus coûteux et un refus gratuit ne se traitent pas pareil.**
+   `moss-transcribe` refuse `task: "translate"` — rendre une transcription sous
+   le nom d'une traduction serait une sortie qui n'est pas celle qu'on a demandée
+   — mais se contente d'inscrire au manifeste que `beam_size` et
+   `word_timestamps` n'ont rien changé. Le premier refus part avant même de
+   toucher au disque : l'ordre des vérifications est celui du coût.
+6. **Le banc d'essai vérifie qu'un fichier de sortie existe, pas ce qu'il
+   contient.** `moss-transcribe` a passé ses trois cas au vert en livrant
+   « `[1.28][S01] Je peux faire glisser.[9.21]` » dans un fichier que le contrat
+   annonce en texte brut : le modèle préfixe chaque segment de son identifiant de
+   locuteur et intercale les bornes. C'est exactement la frontière entre les deux
+   capacités que ces poids servent — l'une rend ce qui est dit, l'autre qui l'a
+   dit — et seul un job réel, dont on a **lu la sortie**, l'a montrée. Le §8 dit
+   que le banc mesure un coût et non une qualité ; il faut y ajouter qu'il ne
+   regarde même pas la forme.
+7. **Les deux adaptateurs écrits ce jour-là ont *démarré* du premier coup**, ce
+   qui n'est pas la même chose que d'avoir produit la bonne sortie — le point
+   précédent le montre. C'est tout de même la première fois depuis le v0.3
+   qu'aucun ne meurt au chargement, et l'explication n'est pas l'expérience : ce
+   sont les deux qui réemploient des poids déjà mesurés, par des pipelines dont
+   les voisins avaient déjà payé les surprises — le `variant="fp16"` des
+   `allow_patterns`, le `chat_template.jinja` qui exige jinja2. Le taux d'échec
+   au premier lancement mesure la nouveauté de l'amont, pas la qualité du code
+   qu'on écrit.
 
 ### Huit capacités de plus, hors jalon — le 22 août 2026
 
@@ -177,7 +278,7 @@ vendoré, 7,37 Go de poids non téléchargés (conception §13.4).
 |---|---|---|
 | 4.1 | ✓ FastAPI : registre, jobs + SSE, `store/summary`, résidents | Les **lectures** (`/registry/*`, `/store/summary`, `/runtime/residents`, `/runtime/admission`), puis les **jobs** : `POST /jobs` rend 202 et un identifiant, `GET /jobs/{id}` l'état et son manifeste, `/events` un flux SSE qui rejoue depuis le début et se termine par un `end`, `/files/{chemin}` les fichiers — avec l'URL composée par le serveur et le type de média que le contrat promettait |
 | 4.2 | Bibliothèque côté serveur : manifeste de job complet, rejeu | reproductibilité effective |
-| 4.3 | ✓ UI : socle React+Vite+RJSF, mapping `x-ui`, visualiseurs par media type | `apps/ui` : deux tables d'aiguillage totales, les **17 contrats** rendus par une suite qui les lit sur le disque, 145 tests. Le typage vient du serveur — schéma OpenAPI figé et fixtures du vrai registre, gardés par deux tests pytest |
+| 4.3 | ✓ UI : socle React+Vite+RJSF, mapping `x-ui`, visualiseurs par media type | `apps/ui` : deux tables d'aiguillage totales, les **25 contrats** rendus par une suite qui les lit sur le disque. Le typage vient du serveur — schéma OpenAPI figé et fixtures du vrai registre, gardés par deux tests pytest. Le champ fichier a rattrapé son manque de 2026-08-22 : `POST /uploads` lui donne un chemin réel, et ses trois sources sont le clavier, le disque et le matériel (`src/media/`) |
 | 4.4 | ✓ Écran **Atelier** (capacité → variant → formulaire → progression SSE → sortie) + bandeau de ressources | `src/ecrans/Atelier.tsx` : capacités groupées par ce qui marche, variant préselectionné sur le titulaire **exécutable**, formulaire engendré, chiffrage de l'entrée, bandeau permanent sondé toutes les 2 s. Puis le **lancement** : un bouton qui n'est jamais grisé pour un variant qu'on croit incapable, un flux d'événements lu par `fetch`, une progression, un bilan qui dit ce qui a été déchargé, et la sortie réelle servie par le résolveur de fichiers. Éprouvé contre un vrai `ecurie serve` : un wav de 2,48 s produit, téléchargé et lu dans l'écran qui l'a demandé |
 | 4.5 | Écran **Parc** (trois chiffres, arbre de duplication, plan de GC dry-run, tiering) | parité avec la CLI |
 | 4.6 | ✓ Le superviseur passe dans le processus de l'API : l'occupation des résidents cesse d'être un pid dans un fichier verrouillé et redevient un état en mémoire, et deux jobs sur un même worker se sérialisent au lieu d'attendre dans le backlog du socket | Un superviseur par processus, un verrou par variant tenu de l'admission à la fin du job, l'occupation en mémoire. `residents.json` est écrit par chacun, lu pour les autres. `ecurie unload` refuse un job en cours, `health()` ne fait plus la queue derrière le sien, et l'attente se dit à qui la subit |
@@ -538,37 +639,112 @@ l'API et chargé par la page servie par Vite —, et un refus d'admission arriv�
 **par le flux** en `failed`, « admission refusée : minimax-music3@4bit demande
 24.21 Gio, le budget entier est de 17.76 Gio : décharger ne changerait rien ».
 
-## Prochain pas
+## Ce qui reste à faire
 
-L'écran **Parc** (4.5), qui n'attend rien : la route `/store/summary` répond
-déjà, et le bandeau de ressources lui est réutilisable tel quel. C'est aussi le
-moment où la coquille gagnera sa navigation — au 4.4 un onglet unique aurait été
-un décor, à deux écrans il en faut une.
+*Au 22 août 2026. Dix-neuf tâches ouvertes sur quarante-quatre, plus quatre
+chantiers qu'aucune tâche ne porte. Les tableaux des jalons font foi sur le détail ; cette
+section dit ce qui n'est pas fait, ce qui bloque chacun, et dans quel ordre s'y
+prendre.*
 
-Puis la **Bibliothèque** (4.2), qui s'appuie sur le manifeste que chaque job
-écrit déjà, et la tâche **4.7**, que l'Atelier rend maintenant utile : tant que
-le job ne partait pas, un pic qui suit la saisie était un raffinement ; il est
-devenu ce qui dit, avant de cliquer, si le curseur qu'on vient de bouger fera
-échouer le job.
+### v0.4 — trois tâches, aucune bloquée
 
-Trois dettes que le socle rend visibles, et qu'aucune tâche ne porte : **aucun des
-102 champs du registre n'a de `title`** — l'étiquette affichée est la clé du
-contrat, et la bonne place du français est le JSON, pas une table de traduction
-dans le front —, **aucune route de téléversement** n'existe pour les dix
-champs fichier, ce qui est sans conséquence tant que le navigateur et le serveur
-partagent la machine, et le **visualiseur 3D n'est pas installé**. Cette dernière
-a changé de nature sans changer de conclusion : ce n'est plus l'absence d'URL,
-c'est qu'aucun maillage n'existe — `image-to-mesh` attend ses 7,37 Go et la tâche
-**7.0**. Quarante mégaoctets de composant éprouvés sur un fichier fabriqué
-seraient un chemin de code que rien n'exécute ; en attendant, le `.glb` se
+| # | Tâche | Ce qu'il faut avant | Effort |
+|---|---|---|---|
+| **4.5** | Écran **Parc** : trois chiffres, arbre de duplication, plan de GC en dry-run, tiering | rien — `/store/summary` répond déjà et le bandeau de ressources se réutilise tel quel | 2–3 j |
+| **4.2** | **Bibliothèque côté serveur** : index des jobs, filtre, rejeu à partir du manifeste | rien — chaque job écrit déjà son manifeste complet, c'est la lecture qui manque | 2 j |
+| **4.7** | Bandeau **calculé sur l'entrée en cours de saisie** | rien — `POST /runtime/admission` fait déjà parler `peak_scaling` | 1 j |
+
+**4.5 d'abord**, et pas seulement parce qu'il ne dépend de rien : c'est là que la
+coquille gagne sa navigation. À un écran, un onglet était un décor ; à deux, il en
+faut une, et `App.tsx` a été tenu sans état exprès pour ce moment.
+
+**4.7 est devenue utile en cours de route.** Tant que le job ne partait pas, un
+pic qui suit la saisie était un raffinement. Depuis que le bouton *Lancer*
+fonctionne, c'est ce qui dit **avant de cliquer** si le curseur qu'on vient de
+bouger fera échouer le job — et le parc compte désormais des variants dont le pic
+dépasse le budget à coup sûr.
+
+**Critère de sortie du jalon** : une semaine d'usage réel où l'UI est le chemin
+par défaut, sans retomber sur les scripts d'origine. Il n'est pas atteint tant
+que le Parc n'existe pas — la comptabilité disque reste en ligne de commande.
+
+### v0.5 — six tâches, une commencée
+
+| # | Tâche | Ce qu'il faut avant |
+|---|---|---|
+| **5.1** ◑ | Golden sets — **les douze enregistrements ASR** | une demi-heure de micro, décrite dans `registry/evals/golden/speech-to-text/SOURCING.md`. Les textes sont figés ; il manque le son. Devenu plus facile qu'hier : le champ audio accepte maintenant le micro |
+| **5.2** | `ecurie eval` : WER, exactitude OCR → `evals/results/` | 5.1 complète pour l'ASR ; les autres jeux sont prêts |
+| **5.3** | Exécution A/B — même entrée, deux variants, séquentielle sous admission | 5.2 |
+| **5.4** | Écran **Confrontation** + `preferences.jsonl` + Elo dérivé | 5.3, et la navigation de 4.5 |
+| **5.5** | Écran **Bibliothèque** — le quatrième écran, plafond atteint | 4.2 |
+| **5.6** | Promouvoir en `incumbent` les candidats qui l'ont mérité | 5.2 et 5.4. Vingt-quatre modèles sur vingt-six sont `candidate`, et seules `text-to-speech` et `image-to-mesh` ont un titulaire : **rien n'a jamais été comparé**, et la seconde n'a même pas ses poids |
+
+### v0.6 — cinq tâches, aucune commencée
+
+`registry-ci.yml` (6.1) est celle qui rapporte le plus vite : la validation
+croisée `defaults:` ↔ contrat, la conformité pydantic ⇔ JSON Schema et
+l'invariant « une capacité, un modèle » existent **déjà en tests** — il s'agit de
+les câbler à GitHub Actions, pas de les écrire. Les quatre autres (6.2 à 6.5)
+concernent la veille et la garde des pentes de pic.
+
+### v0.7 — cinq tâches, et un préalable qui peut tout condamner
+
+**7.0 — éprouver Hunyuan3D — est le seul risque non levé du projet, et il ne
+dépend de rien.** `runtimes/hunyuan3d/run.py` est écrit d'après le source amont
+et **n'a jamais tourné** ; les 7,37 Go de poids ne sont pas téléchargés ; le v0.7
+entier repose dessus. Chacun des adaptateurs écrits « proprement » avant mesure a
+eu un défaut sérieux au premier lancement — c'est la constante la mieux établie
+de ce projet. Mieux vaut le savoir avant d'avoir bâti la composition, et 7.1 à
+7.4 (contrat composite, exécuteur, point d'arrêt UI, manifeste composite) n'ont
+pas de sens tant que 7.0 n'a pas rendu un maillage ou tranché pour un autre
+modèle.
+
+### Quatre chantiers qu'aucune tâche ne porte
+
+**Cinq capacités sur vingt-cinq ne sont pas exécutables**, et chacune bute sur
+autre chose :
+
+| Capacité | Ce qui manque | Ce que ça coûte |
+|---|---|---|
+| `audio-denoise` | l'adaptateur. Poids là (8,7 Mo), env `mlx-audio` synchronisé | le DSP hors réseau — STFT, banc ERB, filtre profond — que le dépôt livre en constantes (`auxiliary.npz`) et en implémentation de référence (`dfn3_mlx.py`) |
+| `audio-separation` | l'adaptateur, et `ecurie env sync mlx-audiogen`. Poids là (168 Mo), env déclaré | `DemucsPipeline.separate()` rend quatre pistes ; le contrat en veut deux ou quatre, et la somme des trois non vocales fait l'accompagnement |
+| `text-to-video` | la **mesure** avant tout le reste. Poids là (15,2 Go) | le pic dépassera probablement les 17,76 Gio. `ecurie bench` le dira, et cette réponse-là décide s'il faut écrire un adaptateur ou changer de modèle |
+| `image-to-video` | idem — mêmes octets, autre pipeline | |
+| `image-to-mesh` | la tâche **7.0** | |
+
+**Aucun des 169 champs d'entrée du registre n'a de `title`.** L'étiquette affichée
+dans le formulaire est la clé brute du contrat — `negative_prompt`,
+`guidance_scale`, `octree_resolution`. La bonne place du français est le JSON, pas
+une table de traduction dans le front : c'est de la rédaction, faisable en avance
+comme les golden sets l'ont été.
+
+**Le visualiseur 3D n'est pas installé.** La dette a changé de nature sans changer
+de conclusion : ce n'est plus l'absence d'URL, c'est qu'**aucun maillage
+n'existe**. Quarante mégaoctets de composant éprouvés sur un fichier fabriqué
+seraient un chemin de code que rien n'exécute. En attendant, le `.glb` se
 télécharge.
 
-Faisable en parallèle, sans dépendance : la tâche **7.0** (éprouver Hunyuan3D),
-seul risque non levé du projet — `runtimes/hunyuan3d/run.py` est écrit d'après le
-source amont et n'a jamais tourné, alors que le v0.7 entier repose dessus. Les
-trois adaptateurs écrits « proprement » au v0.3 avaient chacun un défaut sérieux
-au premier lancement ; celui-ci n'a aucune raison de faire exception, et mieux
-vaut le savoir avant d'avoir bâti la composition.
+**Le banc d'essai ne regarde pas la forme de ce qu'il produit.** Découvert le
+22 août : `moss-transcribe` a passé ses trois cas au vert en livrant des
+marqueurs de locuteur dans un fichier annoncé en texte brut. Le §8 de la
+conception dit que le banc mesure un coût et non une qualité ; il faut y ajouter
+qu'il ne vérifie même pas que la sortie ressemble à ce que le contrat décrit. Une
+garde légère — la sortie d'un `text/plain` ne contient pas de balisage, un JSON
+se relit — coûterait peu et aurait trouvé celui-là.
 
-Restent aussi les douze enregistrements du golden set ASR (**5.1**), une
-demi-heure de micro décrite dans `registry/evals/golden/speech-to-text/SOURCING.md`.
+### L'ordre
+
+```
+maintenant, en parallèle et sans dépendance
+  ├─ 4.5 écran Parc  ──→ 4.2 Bibliothèque ──→ 4.7 bandeau vivant   ┐ fin du v0.4
+  ├─ 7.0 éprouver Hunyuan3D   (le risque, à lever tôt)             │
+  ├─ les douze enregistrements ASR (5.1)                           │
+  └─ les `title` des 169 champs   (rédaction)                      ┘
+                                    │
+                        v0.5 ──→ v0.6 ──→ v0.7
+```
+
+Le reste est séquentiel, et c'est voulu : chaque jalon valide les fondations du
+suivant. Les seules choses parallélisables sont celles qui relèvent de la
+rédaction ou de la mesure — elles ne demandent l'accord de personne et lèvent des
+inconnues au lieu d'en ajouter.
