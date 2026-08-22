@@ -53,6 +53,10 @@ WORKER_MODULES_BY_CAPABILITY = {
     # qu'un texte : convertir les millièmes du modèle en pixels et tracer les
     # boîtes est tout le travail, et il n'a rien à faire dans la description.
     ("mlx-vlm", "image-detect"): "ecurie_runtime.workers.mlx_vlm_detect",
+    # Mêmes poids que la génération d'image, autre pipeline : retoucher une zone
+    # masquée n'est pas générer, et `AutoPipelineForInpainting` n'est pas
+    # `AutoPipelineForText2Image`.
+    ("diffusers-mps", "image-inpaint"): "ecurie_runtime.workers.diffusers_inpaint",
     # Un modèle de langue sert trois capacités, et chacune a sa façon de
     # composer l'invite et de lire la réponse : traduire attend du texte,
     # appeler un outil attend du JSON validable.

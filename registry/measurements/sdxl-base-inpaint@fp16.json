@@ -1,0 +1,93 @@
+{
+  "ref": "sdxl-base-inpaint@fp16",
+  "model": "sdxl-base-inpaint",
+  "variant": "fp16",
+  "capability": "image-inpaint",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / diffusers 0.39.0 / torch 2.13.0",
+  "measured_at": "2026-08-22",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/image-inpaint.json",
+    "version": 1,
+    "cases": [
+      "masque-objet",
+      "masque-fond",
+      "extension"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 7106938904,
+    "peak_unified_memory_bytes": 9944367104,
+    "peak_scaling": {
+      "parameter": "max_side",
+      "base_bytes": 9944367104,
+      "bytes_per_unit": 0.0,
+      "measured_range": [
+        768.0,
+        1024.0
+      ],
+      "r_squared": 1.0
+    },
+    "warmup_ms": 6265,
+    "latency_ms_p50": 42524,
+    "throughput": "1 sortie / 43.1 s"
+  },
+  "cases": [
+    {
+      "id": "masque-objet",
+      "ok": true,
+      "duration_ms": 42275,
+      "metrics": {
+        "duration_ms": 42275,
+        "steps": 20,
+        "strength": 0.99,
+        "guidance_scale": 7.5,
+        "seed": 1,
+        "mode": "mask",
+        "generate_ms": 41962,
+        "ms_per_step": 2098.1,
+        "dtype": "float16",
+        "peak_memory_bytes": 9944367104
+      },
+      "error": null
+    },
+    {
+      "id": "masque-fond",
+      "ok": true,
+      "duration_ms": 42524,
+      "metrics": {
+        "duration_ms": 42524,
+        "steps": 20,
+        "strength": 0.99,
+        "guidance_scale": 7.5,
+        "seed": 2,
+        "mode": "mask",
+        "generate_ms": 42261,
+        "ms_per_step": 2113.1,
+        "dtype": "float16",
+        "peak_memory_bytes": 9944367104
+      },
+      "error": null
+    },
+    {
+      "id": "extension",
+      "ok": true,
+      "duration_ms": 44445,
+      "metrics": {
+        "duration_ms": 44445,
+        "steps": 20,
+        "strength": 0.99,
+        "guidance_scale": 7.5,
+        "seed": 3,
+        "mode": "expand",
+        "generate_ms": 44232,
+        "ms_per_step": 2211.6,
+        "dtype": "float16",
+        "peak_memory_bytes": 9944367104
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

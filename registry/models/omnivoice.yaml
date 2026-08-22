@@ -1,0 +1,37 @@
+# Synthèse à voix de référence — OmniVoice, sur le runtime mlx-audio déjà là.
+#
+# `mlx_audio/tts/models/omnivoice/` est présent dans le venv installé : la
+# capacité n'ajoute ni environnement, ni dépendance. Seuls les poids arrivent.
+id: omnivoice
+name: OmniVoice (k2-fsa)
+capability: voice-clone
+family: omnivoice
+vendor: k2-fsa / Next-gen Kaldi
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Capacité distincte de la synthèse vocale, et non un champ de plus sur elle :
+  le titulaire de `text-to-speech` choisit parmi les voix qu'il embarque, et il
+  ne saurait pas quoi faire d'un enregistrement de référence. Deux contrats,
+  deux modèles, aucune interchangeabilité à prétendre.
+
+links:
+  homepage: https://huggingface.co/mlx-community/OmniVoice-bfloat16
+
+variants:
+  - id: bf16
+    quantization: bf16
+    tier: hot
+    runtime: mlx-audio
+    source:
+      kind: huggingface
+      repo: mlx-community/OmniVoice-bfloat16
+      revision: "6119f7072580cc30c3cbdf496269216b03ad9742"   # 2026-05-30
+      allow_patterns: ["*.json", "*.safetensors", "*.jinja", "*.txt", "audio_tokenizer/*"]
+    defaults:
+      speed: 1.0
+    caveats:
+      - "L'échantillon de référence est tronqué au-delà de quelques secondes : la sortie `reference_seconds` dit laquelle a servi."
+      - "Le modèle copie tout ce qu'il entend, bruit de fond compris."

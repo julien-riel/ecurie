@@ -1,0 +1,40 @@
+# Compréhension audio — Qwen2-Audio, sur le runtime mlx-audio déjà là.
+#
+# `mlx_audio/stt/models/qwen2_audio/` est présent dans le venv installé, et sa
+# fonction `generate` accepte une consigne libre : c'est ce qui sépare cette
+# capacité de la transcription, dont le défaut d'usine du même modèle est
+# « Please transcribe the speech ».
+id: qwen2-audio-7b
+name: Qwen2-Audio 7B Instruct
+capability: audio-to-text
+family: qwen2-audio
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Attention à la politique des lourds : le pic attendu approche les huit
+  gigaoctets, au-dessus du seuil de lourdeur de huit Gio une fois mesuré. Ce
+  variant occupera donc la place unique du parc, comme la synthèse vocale — deux
+  modèles lourds ne cohabitent pas.
+
+links:
+  homepage: https://huggingface.co/mlx-community/Qwen2-Audio-7B-Instruct-4bit
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-audio
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen2-Audio-7B-Instruct-4bit
+      revision: "c65570002626f41b4dc08b7b54f42f99f3e82e7f"   # 2026-03-29
+      allow_patterns: ["*.json", "*.safetensors", "*.txt"]
+    defaults:
+      max_seconds: 120
+      max_tokens: 512
+      temperature: 0.2
+    caveats:
+      - "La mémoire suit la durée écoutée : `max_seconds` est une borne mémoire, pas un confort."

@@ -1,0 +1,44 @@
+{
+  "capability": "image-inpaint",
+  "version": 1,
+  "description": "Charge type du banc d'essai. La scène de la description d'image, et trois façons de désigner la zone : un masque serré sur un objet, un masque large sur le fond, et une extension de toile qui fabrique son masque. Ce qui fait le coût ici est la surface traitée — c'est elle, et non la taille du masque, qui décide du pic mémoire d'un modèle de diffusion. Les deux premiers cas la fixent, le troisième l'augmente : la comparaison isole donc l'effet de l'extension. Elles ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "scaling_parameter": "max_side",
+  "cases": [
+    {
+      "id": "masque-objet",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "mask": "assets/masque-cone.png",
+        "prompt": "un tabouret de bois clair posé au sol",
+        "max_side": 768,
+        "steps": 20,
+        "guidance_scale": 7.5,
+        "seed": 1
+      }
+    },
+    {
+      "id": "masque-fond",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "mask": "assets/masque-fond.png",
+        "prompt": "une fenêtre d'atelier avec de la lumière du jour",
+        "max_side": 768,
+        "steps": 20,
+        "guidance_scale": 7.5,
+        "seed": 2
+      }
+    },
+    {
+      "id": "extension",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "expand": { "top": 0, "bottom": 0, "left": 192, "right": 0 },
+        "prompt": "la suite de l'établi d'atelier, dans le même éclairage",
+        "max_side": 1024,
+        "steps": 20,
+        "guidance_scale": 7.5,
+        "seed": 3
+      }
+    }
+  ]
+}

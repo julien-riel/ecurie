@@ -214,6 +214,176 @@
       "vendor": "MiniMax"
     },
     {
+      "capability": "speaker-diarization",
+      "family": "moss",
+      "id": "moss-transcribe-diarize",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/OpenMOSS-Team/MOSS-Transcribe-Diarize",
+        "paper": null
+      },
+      "name": "MOSS-Transcribe-Diarize 0.9B",
+      "notes": null,
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "moss-transcribe-diarize@bf16 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench moss-transcribe-diarize@bf16"
+          ],
+          "caveats": [
+            "Ces modèles coupent un locuteur en deux plus volontiers qu'ils n'en fusionnent deux : renseigner `num_speakers` quand on le connaît."
+          ],
+          "defaults": {
+            "min_segment_seconds": 0.5,
+            "threshold": 0.5
+          },
+          "entrypoint": null,
+          "env": "mlx-audio",
+          "heavy": null,
+          "id": "bf16",
+          "options": null,
+          "profile": null,
+          "quantization": "bf16",
+          "ready": false,
+          "ref": "moss-transcribe-diarize@bf16",
+          "runtime": "mlx-audio",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja",
+              "*.py"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "OpenMOSS-Team/MOSS-Transcribe-Diarize",
+            "revision": "e8681d68e7042738ffca8ac8212bc8fcb1131ab8",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "OpenMOSS"
+    },
+    {
+      "capability": "voice-clone",
+      "family": "omnivoice",
+      "id": "omnivoice",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/mlx-community/OmniVoice-bfloat16",
+        "paper": null
+      },
+      "name": "OmniVoice (k2-fsa)",
+      "notes": "Capacité distincte de la synthèse vocale, et non un champ de plus sur elle : le titulaire de `text-to-speech` choisit parmi les voix qu'il embarque, et il ne saurait pas quoi faire d'un enregistrement de référence. Deux contrats, deux modèles, aucune interchangeabilité à prétendre.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "omnivoice@bf16 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench omnivoice@bf16"
+          ],
+          "caveats": [
+            "L'échantillon de référence est tronqué au-delà de quelques secondes : la sortie `reference_seconds` dit laquelle a servi.",
+            "Le modèle copie tout ce qu'il entend, bruit de fond compris."
+          ],
+          "defaults": {
+            "speed": 1.0
+          },
+          "entrypoint": null,
+          "env": "mlx-audio",
+          "heavy": null,
+          "id": "bf16",
+          "options": null,
+          "profile": null,
+          "quantization": "bf16",
+          "ready": false,
+          "ref": "omnivoice@bf16",
+          "runtime": "mlx-audio",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.jinja",
+              "*.txt",
+              "audio_tokenizer/*"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/OmniVoice-bfloat16",
+            "revision": "6119f7072580cc30c3cbdf496269216b03ad9742",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "k2-fsa / Next-gen Kaldi"
+    },
+    {
+      "capability": "audio-to-text",
+      "family": "qwen2-audio",
+      "id": "qwen2-audio-7b",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/mlx-community/Qwen2-Audio-7B-Instruct-4bit",
+        "paper": null
+      },
+      "name": "Qwen2-Audio 7B Instruct",
+      "notes": "Attention à la politique des lourds : le pic attendu approche les huit gigaoctets, au-dessus du seuil de lourdeur de huit Gio une fois mesuré. Ce variant occupera donc la place unique du parc, comme la synthèse vocale — deux modèles lourds ne cohabitent pas.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "qwen2-audio-7b@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen2-audio-7b@4bit"
+          ],
+          "caveats": [
+            "La mémoire suit la durée écoutée : `max_seconds` est une borne mémoire, pas un confort."
+          ],
+          "defaults": {
+            "max_seconds": 120,
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-audio",
+          "heavy": null,
+          "id": "4bit",
+          "options": null,
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "qwen2-audio-7b@4bit",
+          "runtime": "mlx-audio",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen2-Audio-7B-Instruct-4bit",
+            "revision": "c65570002626f41b4dc08b7b54f42f99f3e82e7f",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
       "capability": "text-generation",
       "family": "qwen2.5-coder",
       "id": "qwen25-coder-7b",
@@ -740,6 +910,60 @@
       "vendor": "Alibaba Qwen"
     },
     {
+      "capability": "image-segment",
+      "family": "sam2",
+      "id": "sam2-hiera-small",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/facebook/sam2.1-hiera-small",
+        "paper": null
+      },
+      "name": "SAM 2.1 Hiera Small",
+      "notes": "À ne pas confondre avec BiRefNet, qui sert le détourage : celui-ci décide seul de ce qui est au premier plan, SAM 2.1 suit ce qu'on lui montre. Les deux produisent un masque, et c'est la seule chose qu'ils partagent.\nLe modèle rend trois masques par invite — l'objet, une de ses parties, une sous-partie — avec un score de recouvrement prédit. Ce score est une sortie entraînée du réseau, non une confiance déclarée après coup : c'est lui qui choisit le masque retenu, et les deux autres restent lisibles dans la sortie `candidates`.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "sam2-hiera-small@fp32 : runtime 'torch-vision' — sert image-matting et image-upscale, et rien d'autre : ces deux capacités ont chacune leur adaptateur, il n'y a pas d'appel commun à une famille de modèles de vision",
+            "sam2-hiera-small@fp32 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench sam2-hiera-small@fp32"
+          ],
+          "caveats": [
+            "Sans point ni boîte, le modèle n'a rien à suivre : le contrat les déclare facultatifs parce que l'un ou l'autre suffit, pas parce qu'aucun n'est nécessaire."
+          ],
+          "defaults": {
+            "max_side": 2048
+          },
+          "entrypoint": null,
+          "env": "torch-vision",
+          "heavy": null,
+          "id": "fp32",
+          "options": null,
+          "profile": null,
+          "quantization": null,
+          "ready": false,
+          "ref": "sam2-hiera-small@fp32",
+          "runtime": "torch-vision",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "facebook/sam2.1-hiera-small",
+            "revision": "ee5bba1d82bb8749febdf90f45e84b687142ba03",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Meta"
+    },
+    {
       "capability": "text-to-image",
       "family": "stable-diffusion",
       "id": "sdxl-base",
@@ -795,6 +1019,76 @@
               "*.json",
               "*.txt",
               "*fp16.safetensors"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "stabilityai/stable-diffusion-xl-base-1.0",
+            "revision": "462165984030d82259a11f4367a4eed129e94a7b",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Stability AI"
+    },
+    {
+      "capability": "image-inpaint",
+      "family": "sdxl",
+      "id": "sdxl-base-inpaint",
+      "incumbent": false,
+      "license": "openrail++",
+      "license_class": "restricted",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0",
+        "paper": null
+      },
+      "name": "Stable Diffusion XL 1.0 base (retouche)",
+      "notes": "Le checkpoint de base a un UNet à quatre canaux, non à neuf : il n'est pas entraîné pour la retouche, il est détourné pour elle. `diffusers` bascule alors sur un chemin où le masque s'applique au bruit latent au lieu d'être donné au réseau. La retouche marche ; elle raccorde moins bien sur les grandes zones qu'un checkpoint dédié. C'est le compromis d'une capacité qui ne coûte aucun octet, et la sortie `dedicated_inpaint` du chargement dit lequel des deux chemins a servi — un second variant à télécharger reste la porte de sortie.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "`max_side` est une borne mémoire : le pic suit la surface traitée, et sdxl-base a trois pics mesurés selon la résolution — 10,07 Gio au plus petit format, près de 16 au plus grand.",
+            "UNet à quatre canaux : la retouche raccorde moins bien qu'un checkpoint d'inpainting dédié sur les grandes zones.",
+            "Poids partagés avec sdxl-base — les déporter avec `ecurie store tier` déplace les deux.",
+            "Le raccord au bord de la zone repeinte se voit : mesuré sur la charge type, le tabouret qui remplace le cône a un liseré net. C'est la signature de l'UNet à quatre canaux, pas un réglage à corriger."
+          ],
+          "defaults": {
+            "guidance_scale": 7.5,
+            "max_side": 1024,
+            "steps": 25,
+            "strength": 0.99
+          },
+          "entrypoint": null,
+          "env": "diffusers-mps",
+          "heavy": true,
+          "id": "fp16",
+          "options": null,
+          "profile": {
+            "disk_bytes": 7106938904,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 42524,
+            "measured_at": "2026-08-22",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / diffusers 0.39.0 / torch 2.13.0",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 9944367104,
+            "rtf": null,
+            "throughput": "1 sortie / 43.1 s",
+            "warmup_ms": 6265
+          },
+          "quantization": "fp16",
+          "ready": true,
+          "ref": "sdxl-base-inpaint@fp16",
+          "runtime": "diffusers-mps",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.txt",
+              "*fp16.safetensors",
+              "*/*fp16.safetensors"
             ],
             "kind": "huggingface",
             "path": null,

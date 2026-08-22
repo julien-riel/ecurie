@@ -1,0 +1,33 @@
+# Qui parle quand — MOSS-Transcribe-Diarize, sur le runtime mlx-audio déjà là.
+#
+# `mlx_audio/stt/models/moss_transcribe_diarize/` est présent dans le venv
+# installé. Le modèle sait transcrire ET attribuer ; cette capacité ne retient
+# que l'attribution, parce que la transcription a déjà son contrat et que mêler
+# les deux ferait un contrat qu'aucun autre modèle ne pourrait remplir.
+id: moss-transcribe-diarize
+name: MOSS-Transcribe-Diarize 0.9B
+capability: speaker-diarization
+family: moss
+vendor: OpenMOSS
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+links:
+  homepage: https://huggingface.co/OpenMOSS-Team/MOSS-Transcribe-Diarize
+
+variants:
+  - id: bf16
+    quantization: bf16
+    tier: hot
+    runtime: mlx-audio
+    source:
+      kind: huggingface
+      repo: OpenMOSS-Team/MOSS-Transcribe-Diarize
+      revision: "e8681d68e7042738ffca8ac8212bc8fcb1131ab8"   # 2026-07-31
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja", "*.py"]
+    defaults:
+      threshold: 0.5
+      min_segment_seconds: 0.5
+    caveats:
+      - "Ces modèles coupent un locuteur en deux plus volontiers qu'ils n'en fusionnent deux : renseigner `num_speakers` quand on le connaît."

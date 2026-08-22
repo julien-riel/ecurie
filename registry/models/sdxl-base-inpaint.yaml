@@ -1,0 +1,57 @@
+# Retouche par zone masquée — les MÊMES poids que sdxl-base, autre pipeline.
+#
+# Ce que le partage de poids avait éprouvé côté vision-langage vaut aussi pour la
+# diffusion : un dépôt, deux capacités, zéro octet de plus. La différence tient
+# au pipeline — `AutoPipelineForInpainting` là où la génération emploie
+# `AutoPipelineForText2Image` — et à un masque, que le contrat expose de deux
+# façons : fourni, ou fabriqué depuis une demande d'extension.
+id: sdxl-base-inpaint
+name: Stable Diffusion XL 1.0 base (retouche)
+capability: image-inpaint
+family: sdxl
+vendor: Stability AI
+license: openrail++
+license_class: restricted
+status: candidate
+
+notes: >
+  Le checkpoint de base a un UNet à quatre canaux, non à neuf : il n'est pas
+  entraîné pour la retouche, il est détourné pour elle. `diffusers` bascule alors
+  sur un chemin où le masque s'applique au bruit latent au lieu d'être donné au
+  réseau. La retouche marche ; elle raccorde moins bien sur les grandes zones
+  qu'un checkpoint dédié. C'est le compromis d'une capacité qui ne coûte aucun
+  octet, et la sortie `dedicated_inpaint` du chargement dit lequel des deux
+  chemins a servi — un second variant à télécharger reste la porte de sortie.
+
+links:
+  homepage: https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0
+
+variants:
+  - id: fp16
+    quantization: fp16
+    tier: hot
+    runtime: diffusers-mps
+    source:
+      kind: huggingface
+      repo: stabilityai/stable-diffusion-xl-base-1.0
+      revision: "462165984030d82259a11f4367a4eed129e94a7b"
+      allow_patterns: ["*.json", "*.txt", "*fp16.safetensors", "*/*fp16.safetensors"]
+    defaults:
+      steps: 25
+      guidance_scale: 7.5
+      strength: 0.99
+      max_side: 1024
+    caveats:
+      - "`max_side` est une borne mémoire : le pic suit la surface traitée, et sdxl-base a trois pics mesurés selon la résolution — 10,07 Gio au plus petit format, près de 16 au plus grand."
+      - "UNet à quatre canaux : la retouche raccorde moins bien qu'un checkpoint d'inpainting dédié sur les grandes zones."
+      - "Poids partagés avec sdxl-base — les déporter avec `ecurie store tier` déplace les deux."
+      - "Le raccord au bord de la zone repeinte se voit : mesuré sur la charge type, le tabouret qui remplace le cône a un liseré net. C'est la signature de l'UNet à quatre canaux, pas un réglage à corriger."
+    profile:
+      disk_bytes: 7106938904
+      peak_unified_memory_bytes: 9944367104
+      warmup_ms: 6265
+      latency_ms_p50: 42524
+      throughput: "1 sortie / 43.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / diffusers 0.39.0 / torch 2.13.0"
+      measured_at: "2026-08-22"
+      harness_version: "0.3.0"

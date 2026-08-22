@@ -1,0 +1,42 @@
+# Segmentation guidée — SAM 2.1, sur le runtime torch-vision déjà là.
+#
+# Le meilleur rapport valeur/octets du lot : 185 Mo, aucune dépendance nouvelle.
+# Le module `transformers/models/sam2/` est déjà installé dans le venv de
+# torch-vision, avec ses processeurs — vérifié sur place avant d'écrire ce
+# manifeste, pas d'après une note de version.
+id: sam2-hiera-small
+name: SAM 2.1 Hiera Small
+capability: image-segment
+family: sam2
+vendor: Meta
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  À ne pas confondre avec BiRefNet, qui sert le détourage : celui-ci décide seul
+  de ce qui est au premier plan, SAM 2.1 suit ce qu'on lui montre. Les deux
+  produisent un masque, et c'est la seule chose qu'ils partagent.
+
+  Le modèle rend trois masques par invite — l'objet, une de ses parties, une
+  sous-partie — avec un score de recouvrement prédit. Ce score est une sortie
+  entraînée du réseau, non une confiance déclarée après coup : c'est lui qui
+  choisit le masque retenu, et les deux autres restent lisibles dans la sortie
+  `candidates`.
+
+links:
+  homepage: https://huggingface.co/facebook/sam2.1-hiera-small
+
+variants:
+  - id: fp32
+    tier: hot
+    runtime: torch-vision
+    source:
+      kind: huggingface
+      repo: facebook/sam2.1-hiera-small
+      revision: "ee5bba1d82bb8749febdf90f45e84b687142ba03"   # 2025-08-15
+      allow_patterns: ["*.json", "*.safetensors"]
+    defaults:
+      max_side: 2048
+    caveats:
+      - "Sans point ni boîte, le modèle n'a rien à suivre : le contrat les déclare facultatifs parce que l'un ou l'autre suffit, pas parce qu'aucun n'est nécessaire."

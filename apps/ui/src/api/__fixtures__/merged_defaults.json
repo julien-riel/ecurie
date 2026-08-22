@@ -32,6 +32,41 @@
       "duration_seconds": 30
     }
   },
+  "moss-transcribe-diarize@bf16": {
+    "capability": "speaker-diarization",
+    "merged": {
+      "max_seconds": 1800,
+      "min_segment_seconds": 0.5,
+      "num_speakers": 0,
+      "threshold": 0.5
+    },
+    "variant_defaults": {
+      "min_segment_seconds": 0.5,
+      "threshold": 0.5
+    }
+  },
+  "omnivoice@bf16": {
+    "capability": "voice-clone",
+    "merged": {
+      "speed": 1.0
+    },
+    "variant_defaults": {
+      "speed": 1.0
+    }
+  },
+  "qwen2-audio-7b@4bit": {
+    "capability": "audio-to-text",
+    "merged": {
+      "max_seconds": 120,
+      "max_tokens": 512,
+      "temperature": 0.2
+    },
+    "variant_defaults": {
+      "max_seconds": 120,
+      "max_tokens": 512,
+      "temperature": 0.2
+    }
+  },
   "qwen25-coder-7b@4bit": {
     "capability": "text-generation",
     "merged": {
@@ -135,6 +170,30 @@
       "max_frames": 8,
       "max_tokens": 512,
       "temperature": 0.2
+    }
+  },
+  "sam2-hiera-small@fp32": {
+    "capability": "image-segment",
+    "merged": {
+      "max_side": 2048
+    },
+    "variant_defaults": {
+      "max_side": 2048
+    }
+  },
+  "sdxl-base-inpaint@fp16": {
+    "capability": "image-inpaint",
+    "merged": {
+      "guidance_scale": 7.5,
+      "max_side": 1024,
+      "steps": 25,
+      "strength": 0.99
+    },
+    "variant_defaults": {
+      "guidance_scale": 7.5,
+      "max_side": 1024,
+      "steps": 25,
+      "strength": 0.99
     }
   },
   "sdxl-base@fp16": {

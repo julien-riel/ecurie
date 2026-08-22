@@ -241,7 +241,9 @@
         ],
         "type": "object"
       },
-      "models": [],
+      "models": [
+        "qwen2-audio-7b"
+      ],
       "output": {
         "properties": {
           "finish_reason": {
@@ -582,7 +584,9 @@
         ],
         "type": "object"
       },
-      "models": [],
+      "models": [
+        "sdxl-base-inpaint"
+      ],
       "output": {
         "properties": {
           "height": {
@@ -615,7 +619,9 @@
         "image": "image/png",
         "mask_used": "image/png"
       },
-      "ready_variants": [],
+      "ready_variants": [
+        "sdxl-base-inpaint@fp16"
+      ],
       "required": [
         "image",
         "prompt"
@@ -795,7 +801,9 @@
         ],
         "type": "object"
       },
-      "models": [],
+      "models": [
+        "sam2-hiera-small"
+      ],
       "output": {
         "properties": {
           "candidates": {
@@ -1338,7 +1346,9 @@
         ],
         "type": "object"
       },
-      "models": [],
+      "models": [
+        "moss-transcribe-diarize"
+      ],
       "output": {
         "properties": {
           "duration_seconds": {
@@ -2482,7 +2492,9 @@
         ],
         "type": "object"
       },
-      "models": [],
+      "models": [
+        "omnivoice"
+      ],
       "output": {
         "properties": {
           "audio": {
