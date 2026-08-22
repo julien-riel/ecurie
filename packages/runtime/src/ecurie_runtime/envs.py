@@ -44,6 +44,15 @@ WORKER_MODULES_BY_CAPABILITY = {
     # Mêmes poids que la lecture de document, autre question posée : décrire une
     # image et transcrire une page ne partagent ni l'appel ni la sortie.
     ("mlx-vlm", "image-to-text"): "ecurie_runtime.workers.mlx_vlm_describe",
+    # Troisième emploi des mêmes poids. Décrire une vidéo n'est pas décrire une
+    # suite d'images : le travail de l'adaptateur est de décider ce que le modèle
+    # verra — cadence, budget d'images, chemin vidéo natif ou repli sur des
+    # images fixes —, et cette décision n'a pas d'équivalent côté image.
+    ("mlx-vlm", "video-to-text"): "ecurie_runtime.workers.mlx_vlm_video",
+    # Quatrième emploi, et le seul des quatre à rendre une structure plutôt
+    # qu'un texte : convertir les millièmes du modèle en pixels et tracer les
+    # boîtes est tout le travail, et il n'a rien à faire dans la description.
+    ("mlx-vlm", "image-detect"): "ecurie_runtime.workers.mlx_vlm_detect",
     # Un modèle de langue sert trois capacités, et chacune a sa façon de
     # composer l'invite et de lire la réponse : traduire attend du texte,
     # appeler un outil attend du JSON validable.

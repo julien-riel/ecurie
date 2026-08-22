@@ -1,0 +1,95 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "video-to-motion",
+  "title": "Vidéo vers trajectoires articulaires",
+  "description": "Suit une personne filmée et rend la position de ses articulations, image par image, en trois dimensions. Le titre ne dit pas « capture de mouvement » à dessein : aucun modèle de cette chaîne ne produit de rotations d'os, et un fichier d'animation demande des rotations. Ce qui est mesuré ici, ce sont des points.",
+  "input": {
+    "type": "object",
+    "required": [
+      "video"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "video": {
+        "type": "string",
+        "contentMediaType": "video/*",
+        "x-ui": "file",
+        "description": "Vidéo à analyser. Une personne au premier plan, cadrée en pied : ces modèles suivent un corps, pas une foule."
+      },
+      "fps": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 60,
+        "default": 24,
+        "description": "Cadence d'échantillonnage. C'est elle qui fait la durée du job, avec la longueur analysée : doubler la cadence double le nombre d'images à traiter, et le pic mémoire n'en dépend pas."
+      },
+      "max_seconds": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 120,
+        "default": 20,
+        "description": "Longueur analysée, à partir du début. Une borne, plutôt qu'un job d'une heure lancé par accident sur un film."
+      },
+      "smoothing": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "default": 0.3,
+        "description": "Lissage temporel. À zéro, la trajectoire tremble d'une image à l'autre ; trop haut, un geste rapide s'aplatit."
+      },
+      "preview": {
+        "type": "boolean",
+        "default": true,
+        "description": "Produire la vidéo de contrôle. C'est la seule façon de voir si la capture a suivi la bonne personne, et le parc sait déjà afficher une vidéo."
+      },
+      "bvh": {
+        "type": "boolean",
+        "default": false,
+        "description": "Écrire aussi un fichier d'animation BVH. Faux par défaut, et ce défaut est un avertissement : la hiérarchie d'os et les rotations sont reconstruites par nous à partir des positions, sans qu'aucun modèle les ait observées. La torsion des membres y est nulle par construction."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": [
+      "motion",
+      "frames"
+    ],
+    "properties": {
+      "motion": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin des trajectoires produites, relatif au dossier du job : une liste d'images, chacune portant ses articulations en coordonnées relatives au bassin, avec leur confiance. C'est l'artefact qu'un modèle a réellement produit."
+      },
+      "preview": {
+        "type": "string",
+        "contentMediaType": "video/mp4",
+        "description": "Chemin de la vidéo de contrôle, relatif au dossier du job : le squelette incrusté sur les images d'origine. Le parc a déjà un lecteur vidéo — c'est ce qui rend la capacité vérifiable à l'œil sans écrire un visualiseur."
+      },
+      "animation": {
+        "type": "string",
+        "contentMediaType": "text/plain",
+        "description": "Chemin du fichier BVH, relatif au dossier du job, quand il a été demandé. Le type est `text/plain` parce qu'un BVH en est : sa hiérarchie d'os se lit en clair, et c'est justement ce qu'on veut pouvoir relire d'une sortie reconstruite plutôt que mesurée. Un `application/octet-stream` l'aurait fait tomber sur le visualiseur de repli, que le parc réserve à ce qu'il ne connaît pas."
+      },
+      "frames": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre d'images effectivement analysées."
+      },
+      "detected_frames": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Images où une personne a été trouvée. L'écart avec « frames » dit ce que la capture a manqué, et une trajectoire interpolée sur les trous ne le dirait pas."
+      },
+      "joints": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre d'articulations par image. Il dépend du variant : 17 pour le corps seul, 133 avec les mains et le visage."
+      },
+      "confidence_mean": {
+        "type": "number",
+        "description": "Confiance moyenne du détecteur, entre 0 et 1."
+      }
+    }
+  }
+}

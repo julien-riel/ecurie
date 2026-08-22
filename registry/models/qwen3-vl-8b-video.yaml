@@ -1,0 +1,66 @@
+# Description de vidéo — les MÊMES poids que qwen3-vl-8b-ocr et -describe.
+#
+# Troisième manifeste sur un seul dépôt, à la même révision. Le premier partage
+# avait éprouvé ce que le §4 de l'architecture promettait ; celui-ci éprouve
+# qu'il tient au-delà de deux, et il ne coûte toujours aucun octet — les 5,38 Go
+# sont sur le disque, épinglés, déjà vérifiés.
+#
+# Ce que ce manifeste ajoute vraiment n'est pas un modèle, c'est une **entrée**.
+# Aucune des dix-sept capacités du parc n'acceptait de vidéo : elles en
+# produisaient deux et n'en lisaient aucune. C'est ce trou-là que la capacité
+# referme, avec des poids déjà là.
+id: qwen3-vl-8b-video
+name: Qwen3-VL 8B Instruct (description de vidéo)
+capability: video-to-text
+family: qwen3-vl
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Le chemin vidéo natif de mlx-vlm couvre `qwen3_vl` — vérifié dans le
+  `prompt_utils.py` de la version installée, et non d'après une note de version.
+  Le décodage d'un repli en images fixes passe par OpenCV, déjà présent dans cet
+  environnement : la capacité n'ajoute aucune dépendance.
+
+  Le profil a été mesuré pour lui-même, et il fallait : le pic suit le nombre
+  d'images montrées au modèle, non la durée de la vidéo. Mesuré sur la charge
+  type — 6,34 Gio à 4 images, 6,33 à 8, 6,77 à 16. La pente sur `max_frames`
+  n'est pas assez linéaire pour être committée (R² = 0,87, sous le seuil de 0,9
+  de la tâche 6.5) : le profil garde le pire cas, ce qui est le comportement
+  prudent puisqu'il fait refuser plutôt que gonfler.
+
+links:
+  homepage: https://huggingface.co/mlx-community/Qwen3-VL-8B-Instruct-4bit
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3-VL-8B-Instruct-4bit
+      revision: "defcdea7cc7a4b0858fea563cbbce171d328e457"   # 2025-10-14
+      allow_patterns: ["*.json", "*.safetensors", "*.txt"]
+    defaults:
+      fps: 1.0
+      max_frames: 8
+      max_tokens: 512
+      temperature: 0.2
+    caveats:
+      - "Le pic mémoire suit `max_frames`, pas la durée de la vidéo : seize images d'un plan de dix minutes coûtent autant que seize images de dix secondes."
+      - "Le chemin vidéo natif de mlx-vlm est inutilisable avec ces poids : il transmet un unique jeton de remplissage, et le modèle décrit alors une scène figée en niant tout mouvement. L'adaptateur décode donc lui-même — mesuré, pas supposé."
+      - "Plus d'images ne donne pas une meilleure réponse. Sur la charge type, quatre images décrivent le mouvement juste sur deux objets sur trois ; seize se trompent sur les trois. Le défaut est réglé à 8."
+      - "Quantification 4 bits : le texte incrusté et les gestes fins sont les premiers à se perdre."
+      - "Poids partagés avec qwen3-vl-8b-ocr et qwen3-vl-8b-describe — les déporter avec `ecurie store tier` déplace les trois."
+    profile:
+      disk_bytes: 5776625617
+      peak_unified_memory_bytes: 7263956878
+      warmup_ms: 1544
+      latency_ms_p50: 6302
+      throughput: "1 sortie / 7.4 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-22"
+      harness_version: "0.3.0"

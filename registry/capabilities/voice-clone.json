@@ -1,0 +1,67 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "voice-clone",
+  "title": "Synthèse à voix de référence",
+  "description": "Lit un texte avec la voix d'un échantillon fourni, sans entraînement préalable. C'est une capacité distincte de la synthèse vocale et non un champ de plus : le titulaire de celle-ci choisit parmi les voix qu'il embarque, et il ne saurait pas quoi faire d'un enregistrement de référence.",
+  "input": {
+    "type": "object",
+    "required": ["text", "reference_audio"],
+    "additionalProperties": false,
+    "properties": {
+      "text": {
+        "type": "string",
+        "minLength": 1,
+        "x-ui": "textarea",
+        "description": "Texte à dire."
+      },
+      "reference_audio": {
+        "type": "string",
+        "contentMediaType": "audio/*",
+        "x-ui": "file",
+        "description": "Échantillon de la voix à imiter. Une phrase claire de cinq à dix secondes, sans musique ni seconde voix : ces modèles copient tout ce qu'ils entendent, y compris le bruit de fond."
+      },
+      "reference_text": {
+        "type": "string",
+        "x-ui": "textarea",
+        "description": "Transcription exacte de l'échantillon. Facultative pour les modèles qui transcrivent eux-mêmes, décisive pour les autres — une transcription approximative déforme la prosodie plus sûrement qu'une absence de transcription."
+      },
+      "language": {
+        "type": "string",
+        "x-ui": "select",
+        "x-options-from": "runtime.languages",
+        "description": "Langue du texte à dire, parmi celles annoncées par le worker. Elle n'a pas à être celle de l'échantillon : c'est même l'usage le plus courant."
+      },
+      "speed": {
+        "type": "number",
+        "minimum": 0.5,
+        "maximum": 2.0,
+        "default": 1.0,
+        "description": "Débit, relatif à celui de l'échantillon."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Graine aléatoire. Ces modèles échantillonnent : sans graine, deux lectures du même texte avec le même échantillon diffèrent."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["audio"],
+    "properties": {
+      "audio": {
+        "type": "string",
+        "contentMediaType": "audio/wav",
+        "description": "Chemin du fichier produit, relatif au dossier du job."
+      },
+      "duration_seconds": {
+        "type": "number",
+        "description": "Durée de l'audio produit."
+      },
+      "reference_seconds": {
+        "type": "number",
+        "description": "Durée de l'échantillon effectivement utilisée. Ces modèles tronquent la référence au-delà de quelques secondes, et savoir laquelle a servi explique une imitation qui déçoit."
+      }
+    }
+  }
+}

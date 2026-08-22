@@ -21,7 +21,10 @@
         "image-to-text", "text-to-video", "image-to-video",
         "document-to-text", "image-to-mesh", "text-to-mesh",
         "audio-separation", "audio-denoise", "text-generation",
-        "translation", "tool-use"
+        "translation", "tool-use",
+        "video-to-text", "video-to-motion",
+        "image-inpaint", "image-detect", "image-segment",
+        "audio-to-text", "speaker-diarization", "voice-clone"
       ]
     },
     "family": { "type": "string" },

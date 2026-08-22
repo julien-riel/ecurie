@@ -1,0 +1,98 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "video-to-text",
+  "title": "Description de vidéo",
+  "description": "Décrit ce qui se passe dans une vidéo, la résume, ou répond à une question sur elle. C'est la même distinction qu'entre la description d'image et la lecture de document : ici on demande au modèle ce qu'il voit se dérouler, pas de transcrire ce qui est dit — la parole appartient à la transcription.",
+  "input": {
+    "type": "object",
+    "required": ["video"],
+    "additionalProperties": false,
+    "properties": {
+      "video": {
+        "type": "string",
+        "contentMediaType": "video/*",
+        "x-ui": "file",
+        "description": "Vidéo à décrire."
+      },
+      "question": {
+        "type": "string",
+        "x-ui": "textarea",
+        "description": "Question posée sur la vidéo. Vide = description libre de ce qui s'y passe."
+      },
+      "fps": {
+        "type": "number",
+        "minimum": 0.1,
+        "maximum": 8.0,
+        "default": 1.0,
+        "description": "Images extraites par seconde de vidéo. Un modèle ne regarde pas un film, il regarde les images qu'on lui donne : c'est ce réglage, et non la durée du fichier, qui décide de ce qu'il pourra voir."
+      },
+      "max_frames": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 256,
+        "default": 32,
+        "description": "Plafond d'images retenues, quelle que soit la cadence. C'est la borne mémoire de cette capacité : chaque image occupe des jetons visuels, et une minute à 8 im/s en demanderait plus que le budget entier."
+      },
+      "max_pixels": {
+        "type": "integer",
+        "minimum": 65536,
+        "maximum": 4194304,
+        "default": 451584,
+        "description": "Plafond de pixels par image après redimensionnement. La seconde borne mémoire : une image 4K coûte seize fois une image 1080p, pour une description qui ne s'améliore pas d'autant."
+      },
+      "max_tokens": {
+        "type": "integer",
+        "minimum": 16,
+        "maximum": 4096,
+        "default": 512,
+        "description": "Plafond de jetons produits. C'est lui, et non la vidéo, qui fait la durée de la réponse."
+      },
+      "temperature": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 2.0,
+        "default": 0.2,
+        "description": "Bas par défaut : raconter une vidéo n'appelle pas d'invention, et une température haute en fabrique."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Graine aléatoire. Sans elle, deux descriptions de la même vidéo diffèrent dès que la température n'est pas nulle."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["text", "frames_sampled"],
+    "properties": {
+      "text": {
+        "type": "string",
+        "contentMediaType": "text/plain",
+        "description": "Chemin de la réponse en texte brut, relatif au dossier du job."
+      },
+      "frames_sampled": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Images réellement montrées au modèle. Sortie **requise** : une description faite sur trois images et une autre faite sur trente-deux ne se comparent pas, et rien d'autre dans la réponse ne le dirait."
+      },
+      "sampled_fps": {
+        "type": "number",
+        "description": "Cadence effectivement appliquée, qui n'est pas celle demandée dès que le plafond d'images a mordu."
+      },
+      "native_video": {
+        "type": "boolean",
+        "description": "Vrai quand le modèle a reçu la vidéo par son chemin d'entrée vidéo natif, faux quand l'adaptateur s'est replié sur une suite d'images. Les deux se valent rarement, et savoir lequel a servi vaut mieux que de le deviner à la qualité de la réponse."
+      },
+      "tokens_generated": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de jetons effectivement produits."
+      },
+      "finish_reason": {
+        "type": "string",
+        "enum": ["stop", "length"],
+        "description": "Fin naturelle, ou plafond de jetons atteint."
+      }
+    }
+  }
+}

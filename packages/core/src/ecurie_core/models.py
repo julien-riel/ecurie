@@ -29,6 +29,14 @@ Capability = Literal[
     "text-generation",
     "translation",
     "tool-use",
+    "video-to-text",
+    "video-to-motion",
+    "image-inpaint",
+    "image-detect",
+    "image-segment",
+    "audio-to-text",
+    "speaker-diarization",
+    "voice-clone",
 ]
 
 Status = Literal["active", "candidate", "deprecated", "retired"]

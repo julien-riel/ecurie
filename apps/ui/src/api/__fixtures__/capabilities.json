@@ -182,6 +182,109 @@
     {
       "composite": false,
       "defaults": {
+        "max_seconds": 120,
+        "max_tokens": 512,
+        "temperature": 0.2
+      },
+      "description": "Répond à une question sur un enregistrement : ce qu'on y entend, l'émotion d'une voix, l'instrument qui joue, le résumé d'une réunion. C'est à la transcription ce que la description d'image est à la lecture de document — on demande au modèle ce qu'il entend, pas de recopier ce qui est dit.",
+      "id": "audio-to-text",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "audio": {
+            "contentMediaType": "audio/*",
+            "description": "Enregistrement à écouter.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "language": {
+            "description": "Langue de la réponse, parmi celles annoncées par le worker au chargement. Vide = celle de la question.",
+            "type": "string",
+            "x-options-from": "runtime.languages",
+            "x-ui": "select"
+          },
+          "max_seconds": {
+            "default": 120,
+            "description": "Longueur écoutée, à partir du début. Ces modèles encodent l'audio en jetons : la mémoire suit la durée, et une heure d'enregistrement donnée telle quelle ne tient pas dans le budget.",
+            "maximum": 600,
+            "minimum": 1,
+            "type": "number"
+          },
+          "max_tokens": {
+            "default": 512,
+            "description": "Plafond de jetons produits.",
+            "maximum": 4096,
+            "minimum": 16,
+            "type": "integer"
+          },
+          "question": {
+            "description": "Ce qu'on veut savoir. Vide = description libre de ce qu'on entend. C'est ce champ qui distingue les deux emplois du même modèle : sans lui, la plupart de ces réseaux retombent sur leur consigne d'usine, qui est de transcrire.",
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "seed": {
+            "description": "Graine aléatoire.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "temperature": {
+            "default": 0.2,
+            "description": "Bas par défaut : décrire un son n'appelle pas d'invention.",
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "audio"
+        ],
+        "type": "object"
+      },
+      "models": [],
+      "output": {
+        "properties": {
+          "finish_reason": {
+            "description": "Fin naturelle, ou plafond de jetons atteint.",
+            "enum": [
+              "stop",
+              "length"
+            ],
+            "type": "string"
+          },
+          "listened_seconds": {
+            "description": "Durée réellement écoutée. Elle diffère de celle du fichier dès que le plafond a mordu, et une réponse sur les deux premières minutes d'une réunion d'une heure ne dit pas ce qu'elle a l'air de dire.",
+            "type": "number"
+          },
+          "text": {
+            "contentMediaType": "text/plain",
+            "description": "Chemin de la réponse en texte brut, relatif au dossier du job.",
+            "type": "string"
+          },
+          "tokens_generated": {
+            "description": "Nombre de jetons effectivement produits.",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "text": "text/plain"
+      },
+      "ready_variants": [],
+      "required": [
+        "audio"
+      ],
+      "steps": [],
+      "title": "Compréhension audio"
+    },
+    {
+      "composite": false,
+      "defaults": {
         "detect_layout": true,
         "dpi": 200,
         "format": "markdown"
@@ -278,6 +381,251 @@
     {
       "composite": false,
       "defaults": {
+        "max_objects": 50,
+        "max_tokens": 1024,
+        "temperature": 0.0
+      },
+      "description": "Situe dans une image ce qu'on lui demande de trouver, et rend des boîtes plutôt qu'une phrase. C'est ce qui la sépare de la description d'image : celle-ci dit « une chaise près de la fenêtre », celle-là dit où elle est, en pixels, pour qu'un autre outil puisse s'en servir.",
+      "id": "image-detect",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image à analyser.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "max_objects": {
+            "default": 50,
+            "description": "Plafond de boîtes rendues. Sans lui, une photo de foule remplit la réponse jusqu'au plafond de jetons et la coupe au milieu d'une coordonnée.",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "max_tokens": {
+            "default": 1024,
+            "description": "Plafond de jetons produits. Une boîte coûte une vingtaine de jetons : c'est ce plafond qui décide combien d'objets tiennent dans la réponse.",
+            "maximum": 4096,
+            "minimum": 64,
+            "type": "integer"
+          },
+          "seed": {
+            "description": "Graine aléatoire. Sans effet à température nulle.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "targets": {
+            "description": "Ce qu'il faut localiser : une liste de catégories séparées par des virgules, ou une description en langue naturelle — « la personne qui porte un chapeau ». Vide = ce que le modèle reconnaît de lui-même, ce qui donne des libellés qu'on n'a pas choisis.",
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "temperature": {
+            "default": 0.0,
+            "description": "Nulle par défaut, et ce n'est pas le même choix que pour la description : une coordonnée n'a pas de variante heureuse.",
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "qwen3-vl-8b-detect"
+      ],
+      "output": {
+        "properties": {
+          "count": {
+            "description": "Nombre d'instances trouvées. Zéro est une réponse, pas un échec.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "objects": {
+            "contentMediaType": "application/json",
+            "description": "Chemin de la liste produite, relatif au dossier du job : pour chaque instance, un libellé et une boîte [x1, y1, x2, y2] en **pixels absolus de l'image fournie**. Le modèle, lui, raisonne sur une grille normalisée : la conversion est faite par l'adaptateur, parce qu'un client qui recevrait des millièmes croirait recevoir des pixels.",
+            "type": "string"
+          },
+          "overlay": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de l'image annotée, relatif au dossier du job : les boîtes tracées sur l'image d'origine. Une liste de coordonnées ne se relit pas ; c'est ce qui rend la sortie vérifiable à l'œil.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "objects",
+          "count"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "objects": "application/json",
+        "overlay": "image/png"
+      },
+      "ready_variants": [
+        "qwen3-vl-8b-detect@4bit"
+      ],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Détection et ancrage d'objets"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "guidance_scale": 7.5,
+        "max_side": 1024,
+        "steps": 25,
+        "strength": 0.99
+      },
+      "description": "Repeint une zone d'image désignée par un masque, ou étend la toile au-delà de ses bords. À ne pas confondre avec la transformation d'image, qui reprend toute la surface : ici, ce qui n'est pas masqué doit revenir intact.",
+      "id": "image-inpaint",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "expand": {
+            "additionalProperties": false,
+            "description": "Pixels à ajouter de chaque côté. L'adaptateur agrandit la toile et fabrique le masque de bordure : c'est le même travail que la retouche, avec un masque qu'on n'a pas eu à dessiner.",
+            "properties": {
+              "bottom": {
+                "default": 0,
+                "maximum": 2048,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "left": {
+                "default": 0,
+                "maximum": 2048,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "right": {
+                "default": 0,
+                "maximum": 2048,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "top": {
+                "default": 0,
+                "maximum": 2048,
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "guidance_scale": {
+            "default": 7.5,
+            "description": "Fidélité à la description. Les modèles distillés travaillent autour de 1.",
+            "maximum": 20.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image à retoucher.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "mask": {
+            "contentMediaType": "image/*",
+            "description": "Masque en niveaux de gris, blanc là où il faut repeindre. Exclusif avec « expand » : on retouche un intérieur, ou on étend un bord, jamais les deux dans le même job.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "max_side": {
+            "default": 1024,
+            "description": "Plus grand côté toléré en entrée. Ce n'est pas un réglage de confort : le pic mémoire d'un modèle de diffusion suit la surface traitée, et une photo de téléphone donnée telle quelle emporterait le budget de la machine.",
+            "maximum": 2048,
+            "minimum": 256,
+            "type": "integer"
+          },
+          "negative_prompt": {
+            "description": "Ce qu'il faut éviter dans la zone repeinte.",
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "prompt": {
+            "description": "Ce qui doit apparaître dans la zone repeinte. Pour effacer un objet, décrire ce qu'il y a derrière — « un mur de brique », « du gazon » — plutôt que de demander sa disparition.",
+            "minLength": 1,
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "seed": {
+            "description": "Graine aléatoire. À conserver pour rejouer la même retouche.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "steps": {
+            "default": 25,
+            "description": "Pas de débruitage. Au-delà de 50, le gain est rarement visible.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "strength": {
+            "default": 0.99,
+            "description": "Force du débruitage dans la zone masquée. Près de 1 pour remplacer, plus bas pour retoucher en gardant la structure existante.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "image",
+          "prompt"
+        ],
+        "type": "object"
+      },
+      "models": [],
+      "output": {
+        "properties": {
+          "height": {
+            "description": "Hauteur de l'image produite.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "image": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de l'image produite, relatif au dossier du job. Même taille que l'entrée en mode masque, plus grande en mode extension.",
+            "type": "string"
+          },
+          "mask_used": {
+            "contentMediaType": "image/png",
+            "description": "Chemin du masque réellement appliqué, relatif au dossier du job, après recadrage ou fabrication. En mode extension il n'existe nulle part ailleurs, et sans lui on ne peut pas dire pourquoi une retouche a débordé.",
+            "type": "string"
+          },
+          "width": {
+            "description": "Largeur de l'image produite.",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "image": "image/png",
+        "mask_used": "image/png"
+      },
+      "ready_variants": [],
+      "required": [
+        "image",
+        "prompt"
+      ],
+      "steps": [],
+      "title": "Retouche par zone masquée"
+    },
+    {
+      "composite": false,
+      "defaults": {
         "edge_refine": true,
         "max_side": 1024
       },
@@ -357,6 +705,140 @@
       ],
       "steps": [],
       "title": "Détourage d'image"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "max_side": 2048
+      },
+      "description": "Découpe l'objet qu'on lui désigne d'un point ou d'une boîte. À ne pas confondre avec le détourage, qui décide seul de ce qui est au premier plan : ici c'est l'utilisateur qui montre, et le modèle qui suit le contour.",
+      "id": "image-segment",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "box": {
+            "additionalProperties": false,
+            "description": "Boîte englobante, en pixels. Se cumule avec les points ; l'un des deux suffit, et sans aucun des deux le modèle n'a rien à suivre.",
+            "properties": {
+              "x1": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "x2": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "y1": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "y2": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "x1",
+              "y1",
+              "x2",
+              "y2"
+            ],
+            "type": "object"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image à segmenter.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "max_side": {
+            "default": 2048,
+            "description": "Plus grand côté toléré en entrée. Les coordonnées données restent celles de l'image d'origine : c'est l'adaptateur qui les met à l'échelle, et non l'utilisateur.",
+            "maximum": 4096,
+            "minimum": 256,
+            "type": "integer"
+          },
+          "points": {
+            "description": "Points désignant l'objet, en pixels de l'image fournie.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "include": {
+                  "default": true,
+                  "description": "Vrai pour désigner l'objet, faux pour en exclure une partie. Un point d'exclusion vaut souvent mieux qu'un second point d'inclusion pour détacher un objet de son ombre.",
+                  "type": "boolean"
+                },
+                "x": {
+                  "description": "Abscisse en pixels.",
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "y": {
+                  "description": "Ordonnée en pixels.",
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "x",
+                "y"
+              ],
+              "type": "object"
+            },
+            "maxItems": 32,
+            "type": "array"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [],
+      "output": {
+        "properties": {
+          "candidates": {
+            "contentMediaType": "application/json",
+            "description": "Chemin de la liste des masques écartés, relatif au dossier du job, avec leurs scores. Le modèle en propose plusieurs pour une même invite — l'objet, une de ses parties, une sous-partie — et le second est parfois celui qu'on voulait.",
+            "type": "string"
+          },
+          "coverage": {
+            "description": "Part de l'image couverte par le masque, entre 0 et 1. Une valeur proche de 1 trahit presque toujours une invite mal placée.",
+            "type": "number"
+          },
+          "mask": {
+            "contentMediaType": "image/png",
+            "description": "Chemin du masque retenu, relatif au dossier du job : blanc sur l'objet, noir ailleurs.",
+            "type": "string"
+          },
+          "overlay": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de l'image annotée, relatif au dossier du job : le masque teinté par-dessus l'image d'origine. Un masque seul se lit mal — un contour qui a mordu d'un pixel ne se voit qu'en surimpression.",
+            "type": "string"
+          },
+          "score": {
+            "description": "Recouvrement prédit par le modèle pour le masque retenu, entre 0 et 1. C'est une sortie **entraînée** du réseau, et non une confiance déclarée après coup : elle vaut d'être lue.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "mask",
+          "score"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "candidates": "application/json",
+        "mask": "image/png",
+        "overlay": "image/png"
+      },
+      "ready_variants": [],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Segmentation guidée"
     },
     {
       "composite": false,
@@ -801,6 +1283,104 @@
       ],
       "steps": [],
       "title": "Agrandissement d'image"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "max_seconds": 1800,
+        "min_segment_seconds": 0.5,
+        "num_speakers": 0,
+        "threshold": 0.5
+      },
+      "description": "Découpe un enregistrement en tours de parole et attribue chacun à un locuteur. Elle ne transcrit rien : elle dit qui parle et à quel moment, ce que la transcription seule ne sait pas faire même quand elle rend des horodatages.",
+      "id": "speaker-diarization",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "audio": {
+            "contentMediaType": "audio/*",
+            "description": "Enregistrement à découper.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "max_seconds": {
+            "default": 1800,
+            "description": "Longueur traitée, à partir du début.",
+            "maximum": 7200,
+            "minimum": 1,
+            "type": "number"
+          },
+          "min_segment_seconds": {
+            "default": 0.5,
+            "description": "Durée en deçà de laquelle un tour de parole est absorbé par son voisin. Sans elle, une réunion produit des centaines de segments de deux dixièmes de seconde, qu'aucun usage ne demande.",
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "num_speakers": {
+            "default": 0,
+            "description": "Nombre de locuteurs attendu. Zéro = au modèle de décider. Le renseigner quand on le connaît vaut mieux que de corriger après : la plupart de ces réseaux coupent un locuteur en deux plus volontiers qu'ils n'en fusionnent deux.",
+            "maximum": 16,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "threshold": {
+            "default": 0.5,
+            "description": "Seuil de décision par trame. Plus haut, on ne garde que la parole franche et l'on perd les interruptions ; plus bas, le silence se met à parler.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "audio"
+        ],
+        "type": "object"
+      },
+      "models": [],
+      "output": {
+        "properties": {
+          "duration_seconds": {
+            "description": "Durée traitée.",
+            "type": "number"
+          },
+          "rttm": {
+            "contentMediaType": "text/plain",
+            "description": "Chemin des mêmes segments au format RTTM, relatif au dossier du job. C'est le format que lisent les outils d'évaluation du domaine, et le seul par lequel un score de diarisation se calcule sans réécrire un analyseur.",
+            "type": "string"
+          },
+          "segments": {
+            "contentMediaType": "application/json",
+            "description": "Chemin de la liste produite, relatif au dossier du job : pour chaque tour de parole, son début, sa fin et son locuteur, en secondes depuis le début du fichier.",
+            "type": "string"
+          },
+          "speakers": {
+            "description": "Nombre de locuteurs distincts trouvés. Sortie **requise** : c'est le premier chiffre qu'on regarde, et le premier qui trahit un seuil mal réglé.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "speech_seconds": {
+            "description": "Durée totale de parole détectée. Comparée à la durée du fichier, elle dit ce que le seuil a écarté.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "segments",
+          "speakers"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "rttm": "text/plain",
+        "segments": "application/json"
+      },
+      "ready_variants": [],
+      "required": [
+        "audio"
+      ],
+      "steps": [],
+      "title": "Qui parle quand"
     },
     {
       "composite": false,
@@ -1607,6 +2187,333 @@
       ],
       "steps": [],
       "title": "Traduction"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "bvh": false,
+        "fps": 24,
+        "max_seconds": 20,
+        "preview": true,
+        "smoothing": 0.3
+      },
+      "description": "Suit une personne filmée et rend la position de ses articulations, image par image, en trois dimensions. Le titre ne dit pas « capture de mouvement » à dessein : aucun modèle de cette chaîne ne produit de rotations d'os, et un fichier d'animation demande des rotations. Ce qui est mesuré ici, ce sont des points.",
+      "id": "video-to-motion",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "bvh": {
+            "default": false,
+            "description": "Écrire aussi un fichier d'animation BVH. Faux par défaut, et ce défaut est un avertissement : la hiérarchie d'os et les rotations sont reconstruites par nous à partir des positions, sans qu'aucun modèle les ait observées. La torsion des membres y est nulle par construction.",
+            "type": "boolean"
+          },
+          "fps": {
+            "default": 24,
+            "description": "Cadence d'échantillonnage. C'est elle qui fait la durée du job, avec la longueur analysée : doubler la cadence double le nombre d'images à traiter, et le pic mémoire n'en dépend pas.",
+            "maximum": 60,
+            "minimum": 1,
+            "type": "number"
+          },
+          "max_seconds": {
+            "default": 20,
+            "description": "Longueur analysée, à partir du début. Une borne, plutôt qu'un job d'une heure lancé par accident sur un film.",
+            "maximum": 120,
+            "minimum": 1,
+            "type": "number"
+          },
+          "preview": {
+            "default": true,
+            "description": "Produire la vidéo de contrôle. C'est la seule façon de voir si la capture a suivi la bonne personne, et le parc sait déjà afficher une vidéo.",
+            "type": "boolean"
+          },
+          "smoothing": {
+            "default": 0.3,
+            "description": "Lissage temporel. À zéro, la trajectoire tremble d'une image à l'autre ; trop haut, un geste rapide s'aplatit.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "video": {
+            "contentMediaType": "video/*",
+            "description": "Vidéo à analyser. Une personne au premier plan, cadrée en pied : ces modèles suivent un corps, pas une foule.",
+            "type": "string",
+            "x-ui": "file"
+          }
+        },
+        "required": [
+          "video"
+        ],
+        "type": "object"
+      },
+      "models": [],
+      "output": {
+        "properties": {
+          "animation": {
+            "contentMediaType": "text/plain",
+            "description": "Chemin du fichier BVH, relatif au dossier du job, quand il a été demandé. Le type est `text/plain` parce qu'un BVH en est : sa hiérarchie d'os se lit en clair, et c'est justement ce qu'on veut pouvoir relire d'une sortie reconstruite plutôt que mesurée. Un `application/octet-stream` l'aurait fait tomber sur le visualiseur de repli, que le parc réserve à ce qu'il ne connaît pas.",
+            "type": "string"
+          },
+          "confidence_mean": {
+            "description": "Confiance moyenne du détecteur, entre 0 et 1.",
+            "type": "number"
+          },
+          "detected_frames": {
+            "description": "Images où une personne a été trouvée. L'écart avec « frames » dit ce que la capture a manqué, et une trajectoire interpolée sur les trous ne le dirait pas.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "frames": {
+            "description": "Nombre d'images effectivement analysées.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "joints": {
+            "description": "Nombre d'articulations par image. Il dépend du variant : 17 pour le corps seul, 133 avec les mains et le visage.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "motion": {
+            "contentMediaType": "application/json",
+            "description": "Chemin des trajectoires produites, relatif au dossier du job : une liste d'images, chacune portant ses articulations en coordonnées relatives au bassin, avec leur confiance. C'est l'artefact qu'un modèle a réellement produit.",
+            "type": "string"
+          },
+          "preview": {
+            "contentMediaType": "video/mp4",
+            "description": "Chemin de la vidéo de contrôle, relatif au dossier du job : le squelette incrusté sur les images d'origine. Le parc a déjà un lecteur vidéo — c'est ce qui rend la capacité vérifiable à l'œil sans écrire un visualiseur.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "motion",
+          "frames"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "animation": "text/plain",
+        "motion": "application/json",
+        "preview": "video/mp4"
+      },
+      "ready_variants": [],
+      "required": [
+        "video"
+      ],
+      "steps": [],
+      "title": "Vidéo vers trajectoires articulaires"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "fps": 1.0,
+        "max_frames": 32,
+        "max_pixels": 451584,
+        "max_tokens": 512,
+        "temperature": 0.2
+      },
+      "description": "Décrit ce qui se passe dans une vidéo, la résume, ou répond à une question sur elle. C'est la même distinction qu'entre la description d'image et la lecture de document : ici on demande au modèle ce qu'il voit se dérouler, pas de transcrire ce qui est dit — la parole appartient à la transcription.",
+      "id": "video-to-text",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "fps": {
+            "default": 1.0,
+            "description": "Images extraites par seconde de vidéo. Un modèle ne regarde pas un film, il regarde les images qu'on lui donne : c'est ce réglage, et non la durée du fichier, qui décide de ce qu'il pourra voir.",
+            "maximum": 8.0,
+            "minimum": 0.1,
+            "type": "number"
+          },
+          "max_frames": {
+            "default": 32,
+            "description": "Plafond d'images retenues, quelle que soit la cadence. C'est la borne mémoire de cette capacité : chaque image occupe des jetons visuels, et une minute à 8 im/s en demanderait plus que le budget entier.",
+            "maximum": 256,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "max_pixels": {
+            "default": 451584,
+            "description": "Plafond de pixels par image après redimensionnement. La seconde borne mémoire : une image 4K coûte seize fois une image 1080p, pour une description qui ne s'améliore pas d'autant.",
+            "maximum": 4194304,
+            "minimum": 65536,
+            "type": "integer"
+          },
+          "max_tokens": {
+            "default": 512,
+            "description": "Plafond de jetons produits. C'est lui, et non la vidéo, qui fait la durée de la réponse.",
+            "maximum": 4096,
+            "minimum": 16,
+            "type": "integer"
+          },
+          "question": {
+            "description": "Question posée sur la vidéo. Vide = description libre de ce qui s'y passe.",
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "seed": {
+            "description": "Graine aléatoire. Sans elle, deux descriptions de la même vidéo diffèrent dès que la température n'est pas nulle.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "temperature": {
+            "default": 0.2,
+            "description": "Bas par défaut : raconter une vidéo n'appelle pas d'invention, et une température haute en fabrique.",
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "video": {
+            "contentMediaType": "video/*",
+            "description": "Vidéo à décrire.",
+            "type": "string",
+            "x-ui": "file"
+          }
+        },
+        "required": [
+          "video"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "qwen3-vl-8b-video"
+      ],
+      "output": {
+        "properties": {
+          "finish_reason": {
+            "description": "Fin naturelle, ou plafond de jetons atteint.",
+            "enum": [
+              "stop",
+              "length"
+            ],
+            "type": "string"
+          },
+          "frames_sampled": {
+            "description": "Images réellement montrées au modèle. Sortie **requise** : une description faite sur trois images et une autre faite sur trente-deux ne se comparent pas, et rien d'autre dans la réponse ne le dirait.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "native_video": {
+            "description": "Vrai quand le modèle a reçu la vidéo par son chemin d'entrée vidéo natif, faux quand l'adaptateur s'est replié sur une suite d'images. Les deux se valent rarement, et savoir lequel a servi vaut mieux que de le deviner à la qualité de la réponse.",
+            "type": "boolean"
+          },
+          "sampled_fps": {
+            "description": "Cadence effectivement appliquée, qui n'est pas celle demandée dès que le plafond d'images a mordu.",
+            "type": "number"
+          },
+          "text": {
+            "contentMediaType": "text/plain",
+            "description": "Chemin de la réponse en texte brut, relatif au dossier du job.",
+            "type": "string"
+          },
+          "tokens_generated": {
+            "description": "Nombre de jetons effectivement produits.",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "text",
+          "frames_sampled"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "text": "text/plain"
+      },
+      "ready_variants": [
+        "qwen3-vl-8b-video@4bit"
+      ],
+      "required": [
+        "video"
+      ],
+      "steps": [],
+      "title": "Description de vidéo"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "speed": 1.0
+      },
+      "description": "Lit un texte avec la voix d'un échantillon fourni, sans entraînement préalable. C'est une capacité distincte de la synthèse vocale et non un champ de plus : le titulaire de celle-ci choisit parmi les voix qu'il embarque, et il ne saurait pas quoi faire d'un enregistrement de référence.",
+      "id": "voice-clone",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "description": "Langue du texte à dire, parmi celles annoncées par le worker. Elle n'a pas à être celle de l'échantillon : c'est même l'usage le plus courant.",
+            "type": "string",
+            "x-options-from": "runtime.languages",
+            "x-ui": "select"
+          },
+          "reference_audio": {
+            "contentMediaType": "audio/*",
+            "description": "Échantillon de la voix à imiter. Une phrase claire de cinq à dix secondes, sans musique ni seconde voix : ces modèles copient tout ce qu'ils entendent, y compris le bruit de fond.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "reference_text": {
+            "description": "Transcription exacte de l'échantillon. Facultative pour les modèles qui transcrivent eux-mêmes, décisive pour les autres — une transcription approximative déforme la prosodie plus sûrement qu'une absence de transcription.",
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "seed": {
+            "description": "Graine aléatoire. Ces modèles échantillonnent : sans graine, deux lectures du même texte avec le même échantillon diffèrent.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "speed": {
+            "default": 1.0,
+            "description": "Débit, relatif à celui de l'échantillon.",
+            "maximum": 2.0,
+            "minimum": 0.5,
+            "type": "number"
+          },
+          "text": {
+            "description": "Texte à dire.",
+            "minLength": 1,
+            "type": "string",
+            "x-ui": "textarea"
+          }
+        },
+        "required": [
+          "text",
+          "reference_audio"
+        ],
+        "type": "object"
+      },
+      "models": [],
+      "output": {
+        "properties": {
+          "audio": {
+            "contentMediaType": "audio/wav",
+            "description": "Chemin du fichier produit, relatif au dossier du job.",
+            "type": "string"
+          },
+          "duration_seconds": {
+            "description": "Durée de l'audio produit.",
+            "type": "number"
+          },
+          "reference_seconds": {
+            "description": "Durée de l'échantillon effectivement utilisée. Ces modèles tronquent la référence au-delà de quelques secondes, et savoir laquelle a servi explique une imitation qui déçoit.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "audio"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "audio": "audio/wav"
+      },
+      "ready_variants": [],
+      "required": [
+        "text",
+        "reference_audio"
+      ],
+      "steps": [],
+      "title": "Synthèse à voix de référence"
     }
   ],
   "issues": [

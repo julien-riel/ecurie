@@ -1,0 +1,81 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "audio-to-text",
+  "title": "Compréhension audio",
+  "description": "Répond à une question sur un enregistrement : ce qu'on y entend, l'émotion d'une voix, l'instrument qui joue, le résumé d'une réunion. C'est à la transcription ce que la description d'image est à la lecture de document — on demande au modèle ce qu'il entend, pas de recopier ce qui est dit.",
+  "input": {
+    "type": "object",
+    "required": ["audio"],
+    "additionalProperties": false,
+    "properties": {
+      "audio": {
+        "type": "string",
+        "contentMediaType": "audio/*",
+        "x-ui": "file",
+        "description": "Enregistrement à écouter."
+      },
+      "question": {
+        "type": "string",
+        "x-ui": "textarea",
+        "description": "Ce qu'on veut savoir. Vide = description libre de ce qu'on entend. C'est ce champ qui distingue les deux emplois du même modèle : sans lui, la plupart de ces réseaux retombent sur leur consigne d'usine, qui est de transcrire."
+      },
+      "language": {
+        "type": "string",
+        "x-ui": "select",
+        "x-options-from": "runtime.languages",
+        "description": "Langue de la réponse, parmi celles annoncées par le worker au chargement. Vide = celle de la question."
+      },
+      "max_seconds": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 600,
+        "default": 120,
+        "description": "Longueur écoutée, à partir du début. Ces modèles encodent l'audio en jetons : la mémoire suit la durée, et une heure d'enregistrement donnée telle quelle ne tient pas dans le budget."
+      },
+      "max_tokens": {
+        "type": "integer",
+        "minimum": 16,
+        "maximum": 4096,
+        "default": 512,
+        "description": "Plafond de jetons produits."
+      },
+      "temperature": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 2.0,
+        "default": 0.2,
+        "description": "Bas par défaut : décrire un son n'appelle pas d'invention."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Graine aléatoire."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["text"],
+    "properties": {
+      "text": {
+        "type": "string",
+        "contentMediaType": "text/plain",
+        "description": "Chemin de la réponse en texte brut, relatif au dossier du job."
+      },
+      "listened_seconds": {
+        "type": "number",
+        "description": "Durée réellement écoutée. Elle diffère de celle du fichier dès que le plafond a mordu, et une réponse sur les deux premières minutes d'une réunion d'une heure ne dit pas ce qu'elle a l'air de dire."
+      },
+      "tokens_generated": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de jetons effectivement produits."
+      },
+      "finish_reason": {
+        "type": "string",
+        "enum": ["stop", "length"],
+        "description": "Fin naturelle, ou plafond de jetons atteint."
+      }
+    }
+  }
+}

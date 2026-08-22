@@ -95,6 +95,19 @@
       "temperature": 0.2
     }
   },
+  "qwen3-vl-8b-detect@4bit": {
+    "capability": "image-detect",
+    "merged": {
+      "max_objects": 20,
+      "max_tokens": 1024,
+      "temperature": 0.0
+    },
+    "variant_defaults": {
+      "max_objects": 20,
+      "max_tokens": 1024,
+      "temperature": 0.0
+    }
+  },
   "qwen3-vl-8b-ocr@4bit": {
     "capability": "document-to-text",
     "merged": {
@@ -106,6 +119,22 @@
       "detect_layout": true,
       "dpi": 200,
       "format": "markdown"
+    }
+  },
+  "qwen3-vl-8b-video@4bit": {
+    "capability": "video-to-text",
+    "merged": {
+      "fps": 1.0,
+      "max_frames": 8,
+      "max_pixels": 451584,
+      "max_tokens": 512,
+      "temperature": 0.2
+    },
+    "variant_defaults": {
+      "fps": 1.0,
+      "max_frames": 8,
+      "max_tokens": 512,
+      "temperature": 0.2
     }
   },
   "sdxl-base@fp16": {

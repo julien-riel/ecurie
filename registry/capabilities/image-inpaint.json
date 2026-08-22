@@ -1,0 +1,131 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "image-inpaint",
+  "title": "Retouche par zone masquée",
+  "description": "Repeint une zone d'image désignée par un masque, ou étend la toile au-delà de ses bords. À ne pas confondre avec la transformation d'image, qui reprend toute la surface : ici, ce qui n'est pas masqué doit revenir intact.",
+  "input": {
+    "type": "object",
+    "required": [
+      "image",
+      "prompt"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image à retoucher."
+      },
+      "prompt": {
+        "type": "string",
+        "minLength": 1,
+        "x-ui": "textarea",
+        "description": "Ce qui doit apparaître dans la zone repeinte. Pour effacer un objet, décrire ce qu'il y a derrière — « un mur de brique », « du gazon » — plutôt que de demander sa disparition."
+      },
+      "mask": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Masque en niveaux de gris, blanc là où il faut repeindre. Exclusif avec « expand » : on retouche un intérieur, ou on étend un bord, jamais les deux dans le même job."
+      },
+      "expand": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "top": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2048,
+            "default": 0
+          },
+          "bottom": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2048,
+            "default": 0
+          },
+          "left": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2048,
+            "default": 0
+          },
+          "right": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2048,
+            "default": 0
+          }
+        },
+        "description": "Pixels à ajouter de chaque côté. L'adaptateur agrandit la toile et fabrique le masque de bordure : c'est le même travail que la retouche, avec un masque qu'on n'a pas eu à dessiner."
+      },
+      "negative_prompt": {
+        "type": "string",
+        "x-ui": "textarea",
+        "description": "Ce qu'il faut éviter dans la zone repeinte."
+      },
+      "strength": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "default": 0.99,
+        "description": "Force du débruitage dans la zone masquée. Près de 1 pour remplacer, plus bas pour retoucher en gardant la structure existante."
+      },
+      "steps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 25,
+        "description": "Pas de débruitage. Au-delà de 50, le gain est rarement visible."
+      },
+      "guidance_scale": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 20.0,
+        "default": 7.5,
+        "description": "Fidélité à la description. Les modèles distillés travaillent autour de 1."
+      },
+      "max_side": {
+        "type": "integer",
+        "minimum": 256,
+        "maximum": 2048,
+        "default": 1024,
+        "description": "Plus grand côté toléré en entrée. Ce n'est pas un réglage de confort : le pic mémoire d'un modèle de diffusion suit la surface traitée, et une photo de téléphone donnée telle quelle emporterait le budget de la machine."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Graine aléatoire. À conserver pour rejouer la même retouche."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": [
+      "image"
+    ],
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de l'image produite, relatif au dossier du job. Même taille que l'entrée en mode masque, plus grande en mode extension."
+      },
+      "mask_used": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin du masque réellement appliqué, relatif au dossier du job, après recadrage ou fabrication. En mode extension il n'existe nulle part ailleurs, et sans lui on ne peut pas dire pourquoi une retouche a débordé."
+      },
+      "width": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Largeur de l'image produite."
+      },
+      "height": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Hauteur de l'image produite."
+      }
+    }
+  }
+}

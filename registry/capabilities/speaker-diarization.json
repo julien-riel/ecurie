@@ -1,0 +1,81 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "speaker-diarization",
+  "title": "Qui parle quand",
+  "description": "Découpe un enregistrement en tours de parole et attribue chacun à un locuteur. Elle ne transcrit rien : elle dit qui parle et à quel moment, ce que la transcription seule ne sait pas faire même quand elle rend des horodatages.",
+  "input": {
+    "type": "object",
+    "required": [
+      "audio"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "audio": {
+        "type": "string",
+        "contentMediaType": "audio/*",
+        "x-ui": "file",
+        "description": "Enregistrement à découper."
+      },
+      "num_speakers": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 16,
+        "default": 0,
+        "description": "Nombre de locuteurs attendu. Zéro = au modèle de décider. Le renseigner quand on le connaît vaut mieux que de corriger après : la plupart de ces réseaux coupent un locuteur en deux plus volontiers qu'ils n'en fusionnent deux."
+      },
+      "threshold": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "default": 0.5,
+        "description": "Seuil de décision par trame. Plus haut, on ne garde que la parole franche et l'on perd les interruptions ; plus bas, le silence se met à parler."
+      },
+      "min_segment_seconds": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 10.0,
+        "default": 0.5,
+        "description": "Durée en deçà de laquelle un tour de parole est absorbé par son voisin. Sans elle, une réunion produit des centaines de segments de deux dixièmes de seconde, qu'aucun usage ne demande."
+      },
+      "max_seconds": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 7200,
+        "default": 1800,
+        "description": "Longueur traitée, à partir du début."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": [
+      "segments",
+      "speakers"
+    ],
+    "properties": {
+      "segments": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin de la liste produite, relatif au dossier du job : pour chaque tour de parole, son début, sa fin et son locuteur, en secondes depuis le début du fichier."
+      },
+      "rttm": {
+        "type": "string",
+        "contentMediaType": "text/plain",
+        "description": "Chemin des mêmes segments au format RTTM, relatif au dossier du job. C'est le format que lisent les outils d'évaluation du domaine, et le seul par lequel un score de diarisation se calcule sans réécrire un analyseur."
+      },
+      "speakers": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de locuteurs distincts trouvés. Sortie **requise** : c'est le premier chiffre qu'on regarde, et le premier qui trahit un seuil mal réglé."
+      },
+      "speech_seconds": {
+        "type": "number",
+        "description": "Durée totale de parole détectée. Comparée à la durée du fichier, elle dit ce que le seuil a écarté."
+      },
+      "duration_seconds": {
+        "type": "number",
+        "description": "Durée traitée."
+      }
+    }
+  }
+}

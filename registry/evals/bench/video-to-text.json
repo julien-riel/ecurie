@@ -1,0 +1,57 @@
+{
+  "capability": "video-to-text",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Une seule vidéo, trois budgets d'images : c'est le nombre d'images montrées au modèle, et lui seul, qui fait le coût d'une description de vidéo — la durée du fichier n'y entre pas, et le plafond de jetons produit le même effet que pour la description d'image. Fixer la vidéo et ne faire varier que `max_frames` isole donc le vrai facteur, et permet d'ajuster la pente du pic. Elles ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "scaling_parameter": "max_frames",
+  "cases": [
+    {
+      "id": "images-4",
+      "input": {
+        "video": "assets/atelier-mouvement.mp4",
+        "question": "Que fait chacun des trois objets ?",
+        "fps": 1.0,
+        "max_frames": 4,
+        "max_tokens": 256,
+        "temperature": 0.0,
+        "seed": 1
+      },
+      "source": {
+        "recipe": "scene-animee",
+        "taille": 512,
+        "fps": 12,
+        "images": 48,
+        "fond": "atelier",
+        "outil": "ffmpeg -framerate 12 -i %04d.png -c:v libx264 -pix_fmt yuv420p -crf 18",
+        "objets": [
+          { "forme": "cube", "x": [0.18, 0.78], "y": [0.62, 0.62], "echelle": 0.3 },
+          { "forme": "sphere", "x": [0.55, 0.55], "y": [0.72, 0.44], "echelle": 0.24 },
+          { "forme": "cone", "x": [0.82, 0.82], "y": [0.64, 0.64], "echelle": 0.26 }
+        ]
+      }
+    },
+    {
+      "id": "images-8",
+      "input": {
+        "video": "assets/atelier-mouvement.mp4",
+        "question": "Que fait chacun des trois objets ?",
+        "fps": 2.0,
+        "max_frames": 8,
+        "max_tokens": 256,
+        "temperature": 0.0,
+        "seed": 2
+      }
+    },
+    {
+      "id": "images-16",
+      "input": {
+        "video": "assets/atelier-mouvement.mp4",
+        "question": "Que fait chacun des trois objets ?",
+        "fps": 4.0,
+        "max_frames": 16,
+        "max_tokens": 256,
+        "temperature": 0.0,
+        "seed": 3
+      }
+    }
+  ]
+}

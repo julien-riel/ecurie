@@ -1,0 +1,119 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "image-segment",
+  "title": "Segmentation guidée",
+  "description": "Découpe l'objet qu'on lui désigne d'un point ou d'une boîte. À ne pas confondre avec le détourage, qui décide seul de ce qui est au premier plan : ici c'est l'utilisateur qui montre, et le modèle qui suit le contour.",
+  "input": {
+    "type": "object",
+    "required": [
+      "image"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image à segmenter."
+      },
+      "points": {
+        "type": "array",
+        "maxItems": 32,
+        "items": {
+          "type": "object",
+          "required": [
+            "x",
+            "y"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Abscisse en pixels."
+            },
+            "y": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Ordonnée en pixels."
+            },
+            "include": {
+              "type": "boolean",
+              "default": true,
+              "description": "Vrai pour désigner l'objet, faux pour en exclure une partie. Un point d'exclusion vaut souvent mieux qu'un second point d'inclusion pour détacher un objet de son ombre."
+            }
+          }
+        },
+        "description": "Points désignant l'objet, en pixels de l'image fournie."
+      },
+      "box": {
+        "type": "object",
+        "required": [
+          "x1",
+          "y1",
+          "x2",
+          "y2"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "x1": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "y1": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "x2": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "y2": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "description": "Boîte englobante, en pixels. Se cumule avec les points ; l'un des deux suffit, et sans aucun des deux le modèle n'a rien à suivre."
+      },
+      "max_side": {
+        "type": "integer",
+        "minimum": 256,
+        "maximum": 4096,
+        "default": 2048,
+        "description": "Plus grand côté toléré en entrée. Les coordonnées données restent celles de l'image d'origine : c'est l'adaptateur qui les met à l'échelle, et non l'utilisateur."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": [
+      "mask",
+      "score"
+    ],
+    "properties": {
+      "mask": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin du masque retenu, relatif au dossier du job : blanc sur l'objet, noir ailleurs."
+      },
+      "overlay": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de l'image annotée, relatif au dossier du job : le masque teinté par-dessus l'image d'origine. Un masque seul se lit mal — un contour qui a mordu d'un pixel ne se voit qu'en surimpression."
+      },
+      "candidates": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin de la liste des masques écartés, relatif au dossier du job, avec leurs scores. Le modèle en propose plusieurs pour une même invite — l'objet, une de ses parties, une sous-partie — et le second est parfois celui qu'on voulait."
+      },
+      "score": {
+        "type": "number",
+        "description": "Recouvrement prédit par le modèle pour le masque retenu, entre 0 et 1. C'est une sortie **entraînée** du réseau, et non une confiance déclarée après coup : elle vaut d'être lue."
+      },
+      "coverage": {
+        "type": "number",
+        "description": "Part de l'image couverte par le masque, entre 0 et 1. Une valeur proche de 1 trahit presque toujours une invite mal placée."
+      }
+    }
+  }
+}

@@ -23,13 +23,18 @@ from manifest_helpers import make_manifest, minimal_capability
 CAPACITÉS_DU_DÉPÔT = [
     "audio-denoise",
     "audio-separation",
+    "audio-to-text",
     "document-to-text",
+    "image-detect",
+    "image-inpaint",
     "image-matting",
+    "image-segment",
     "image-to-image",
     "image-to-mesh",
     "image-to-text",
     "image-to-video",
     "image-upscale",
+    "speaker-diarization",
     "speech-to-text",
     "text-generation",
     "text-to-image",
@@ -38,6 +43,9 @@ CAPACITÉS_DU_DÉPÔT = [
     "text-to-video",
     "tool-use",
     "translation",
+    "video-to-motion",
+    "video-to-text",
+    "voice-clone",
 ]
 
 # La composite du §11 de la conception : deux étapes, un point d'arrêt après la première.
@@ -140,7 +148,7 @@ def test_chaque_sortie_typee_annonce_un_chemin_de_fichier(repo_root):
         for nom, champ in _sorties_typées(contract.output_schema).items()
     }
 
-    assert len(typées) == 25
+    assert len(typées) == 40
     mal_décrites = {
         ref
         for ref, champ in typées.items()

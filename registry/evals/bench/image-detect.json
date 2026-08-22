@@ -1,0 +1,39 @@
+{
+  "capability": "image-detect",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Une seule image, trois formulations de la demande : catégories nommées, description en langue naturelle, et rien du tout. C'est la formulation, et non l'image, qui fait varier le nombre de boîtes produites — donc le nombre de jetons, donc la durée. L'image est celle de la description d'image, à dessein : deux capacités mesurées sur la même scène se comparent. Elles ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "cases": [
+    {
+      "id": "categories",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "targets": "cube, sphère, cône",
+        "max_objects": 20,
+        "max_tokens": 512,
+        "temperature": 0.0,
+        "seed": 1
+      }
+    },
+    {
+      "id": "langue-naturelle",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "targets": "l'objet le plus à droite",
+        "max_objects": 20,
+        "max_tokens": 512,
+        "temperature": 0.0,
+        "seed": 2
+      }
+    },
+    {
+      "id": "libre",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "max_objects": 20,
+        "max_tokens": 512,
+        "temperature": 0.0,
+        "seed": 3
+      }
+    }
+  ]
+}

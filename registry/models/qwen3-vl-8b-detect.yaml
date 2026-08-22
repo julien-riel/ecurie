@@ -1,0 +1,59 @@
+# Détection d'objets — les MÊMES poids que qwen3-vl-8b-ocr, -describe et -video.
+#
+# Quatrième manifeste sur un seul dépôt. Les trois premiers rendaient du texte ;
+# celui-ci rend une structure, et c'est ce qui justifie un adaptateur de plus :
+# convertir les coordonnées du modèle en pixels de l'image, écarter les boîtes
+# mal formées sans perdre le job, et tracer de quoi vérifier à l'œil.
+id: qwen3-vl-8b-detect
+name: Qwen3-VL 8B Instruct (détection d'objets)
+capability: image-detect
+family: qwen3-vl
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  La convention de coordonnées a été mesurée avant d'écrire une ligne
+  d'adaptateur, sur une scène dont les positions sont connues par fabrication :
+  le modèle raisonne sur une grille 0–1000, et non en pixels. Une boîte rendue
+  y dépassait 768 sur une image de 768 pixels, ce qui suffit à trancher. Cette
+  convention appartient à la famille de modèles, pas au contrat : c'est
+  l'adaptateur qui convertit, et le contrat promet des pixels.
+
+  La conversion est vérifiée contre une vérité exacte, et c'est rare pour une
+  capacité générative : la scène du banc est composée par une recette, donc on
+  connaît le centre de chaque objet au pixel près. Mesuré — cube (209, 460)
+  contre (215, 461) attendu, sphère (418, 506) contre (422, 507), cône
+  (595, 486) contre (599, 476). Moins de dix pixels d'écart sur 768.
+
+links:
+  homepage: https://huggingface.co/mlx-community/Qwen3-VL-8B-Instruct-4bit
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3-VL-8B-Instruct-4bit
+      revision: "defcdea7cc7a4b0858fea563cbbce171d328e457"   # 2025-10-14
+      allow_patterns: ["*.json", "*.safetensors", "*.txt"]
+    defaults:
+      max_objects: 20
+      max_tokens: 1024
+      temperature: 0.0
+    caveats:
+      - "Aucun score de confiance : un VLM en produit un si on le lui demande, et rien dans son entraînement ne le calibre. Le contrat n'en déclare pas."
+      - "Les boîtes serrent le sujet plus que ses contours réels sur les objets à ombre portée."
+      - "Poids partagés avec qwen3-vl-8b-ocr, -describe et -video — les déporter avec `ecurie store tier` déplace les quatre."
+    profile:
+      disk_bytes: 5776625617
+      peak_unified_memory_bytes: 6598948070
+      warmup_ms: 1780
+      latency_ms_p50: 4841
+      throughput: "1 sortie / 4.2 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-22"
+      harness_version: "0.3.0"

@@ -1,0 +1,76 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "image-detect",
+  "title": "Détection et ancrage d'objets",
+  "description": "Situe dans une image ce qu'on lui demande de trouver, et rend des boîtes plutôt qu'une phrase. C'est ce qui la sépare de la description d'image : celle-ci dit « une chaise près de la fenêtre », celle-là dit où elle est, en pixels, pour qu'un autre outil puisse s'en servir.",
+  "input": {
+    "type": "object",
+    "required": [
+      "image"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image à analyser."
+      },
+      "targets": {
+        "type": "string",
+        "x-ui": "textarea",
+        "description": "Ce qu'il faut localiser : une liste de catégories séparées par des virgules, ou une description en langue naturelle — « la personne qui porte un chapeau ». Vide = ce que le modèle reconnaît de lui-même, ce qui donne des libellés qu'on n'a pas choisis."
+      },
+      "max_objects": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 200,
+        "default": 50,
+        "description": "Plafond de boîtes rendues. Sans lui, une photo de foule remplit la réponse jusqu'au plafond de jetons et la coupe au milieu d'une coordonnée."
+      },
+      "max_tokens": {
+        "type": "integer",
+        "minimum": 64,
+        "maximum": 4096,
+        "default": 1024,
+        "description": "Plafond de jetons produits. Une boîte coûte une vingtaine de jetons : c'est ce plafond qui décide combien d'objets tiennent dans la réponse."
+      },
+      "temperature": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 2.0,
+        "default": 0.0,
+        "description": "Nulle par défaut, et ce n'est pas le même choix que pour la description : une coordonnée n'a pas de variante heureuse."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Graine aléatoire. Sans effet à température nulle."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": [
+      "objects",
+      "count"
+    ],
+    "properties": {
+      "objects": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin de la liste produite, relatif au dossier du job : pour chaque instance, un libellé et une boîte [x1, y1, x2, y2] en **pixels absolus de l'image fournie**. Le modèle, lui, raisonne sur une grille normalisée : la conversion est faite par l'adaptateur, parce qu'un client qui recevrait des millièmes croirait recevoir des pixels."
+      },
+      "overlay": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de l'image annotée, relatif au dossier du job : les boîtes tracées sur l'image d'origine. Une liste de coordonnées ne se relit pas ; c'est ce qui rend la sortie vérifiable à l'œil."
+      },
+      "count": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre d'instances trouvées. Zéro est une réponse, pas un échec."
+      }
+    }
+  }
+}
