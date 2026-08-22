@@ -1,0 +1,73 @@
+# Trajectoires articulaires 3D — RTMW3D-X, servi par rtmlib en ONNX.
+#
+# Première capacité du parc à demander un environnement neuf depuis le v0.3, et
+# le premier qui ne repose ni sur MLX ni sur torch. C'est un coût assumé : il
+# apporte la seule chaîne de pose 3D corps entier — 133 points, mains et visage
+# compris — dont la licence de distribution soit permissive.
+id: rtmw3d-x
+name: RTMW3D-X (RTMPose3D)
+capability: video-to-motion
+family: rtmpose
+vendor: OpenMMLab
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  **Deux dettes, et elles doivent être lues avant d'employer ce variant.**
+
+  La première est la provenance des poids. `ecurie pull` ne les rapatrie pas :
+  le réseau de pose vit sur le miroir Hugging Face d'un particulier
+  (`Soykaf/RTMW3D-x`, inchangé depuis février 2025) et le détecteur de personnes
+  sur le CDN d'OpenMMLab, dont le dépôt n'a pas reçu de commit depuis plus de
+  douze mois — au-delà du seuil du projet. rtmlib les récupère lui-même au
+  premier chargement ; l'adaptateur, lui, refuse de télécharger et exige qu'ils
+  soient déjà dans `~/.cache/rtmlib`. Le geste est explicite, une fois, et le
+  message d'erreur porte la commande.
+
+  La seconde est la licence d'entraînement. Le jeu `cocktail14` agrège quatorze
+  ensembles dont Human3.6M et UBody, tous deux sous conditions académiques non
+  commerciales. MMPose distribue quand même les poids en Apache-2.0, et la
+  question posée en amont n'a jamais reçu de réponse. Ce n'est pas le problème
+  de SMPL — aucun fichier sous licence académique n'est redistribué — mais ce
+  n'est pas propre, et un projet dont le premier critère de rejet est la licence
+  doit le savoir.
+
+links:
+  homepage: https://github.com/Tau-J/rtmlib
+
+variants:
+  - id: onnx
+    tier: hot
+    runtime: rtmlib
+    source:
+      kind: huggingface
+      repo: Soykaf/RTMW3D-x
+      revision: "a4f0d54c52ee44ee4e1dda1936d714490c6234d2"   # 2025-02-28
+      allow_patterns: ["onnx/*.onnx"]
+    defaults:
+      fps: 12
+      max_seconds: 10
+      smoothing: 0.3
+      preview: true
+      bvh: false
+    caveats:
+      - "Le BVH n'est pas produit : aucun modèle de cette chaîne ne rend de rotations, seulement des positions. Le demander fait échouer le job avec un message qui l'explique, plutôt que de livrer une animation dont la torsion serait nulle par construction."
+      - "Deux poids, deux provenances, et aucune servie par `ecurie pull` — voir les notes."
+      - "onnxruntime tourne sur CoreML ou sur le CPU, jamais sur Metal : c'est le seul worker du parc dont le pic se mesure honnêtement au RSS."
+      - "Le détecteur trouve une personne là où il n'y en a pas : sur la charge type, qui ne montre que des solides géométriques, il rend une boîte avec une confiance de 0,05. La charge mesure un coût, pas une qualité — c'est le golden set qui demandera une vraie vidéo de personne."
+    profile:
+      disk_bytes: 369330857
+      peak_unified_memory_bytes: 2001207296
+      peak_scaling:
+        parameter: "fps"
+        base_bytes: 1638596608
+        bytes_per_unit: 30315081.1
+        measured_range: [3.0, 12.0]
+        r_squared: 0.9995
+      warmup_ms: 143
+      latency_ms_p50: 4167
+      throughput: "1 sortie / 5.0 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1"
+      measured_at: "2026-08-22"
+      harness_version: "0.3.0"

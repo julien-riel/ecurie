@@ -48,6 +48,7 @@ Runtime = Literal[
     "mlx-vlm",
     "diffusers-mps",
     "torch-vision",
+    "rtmlib",
     "comfy",
     "ollama",
     "llama-cpp",

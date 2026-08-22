@@ -78,6 +78,10 @@ WORKER_MODULES_BY_CAPABILITY = {
     # Troisième adaptateur du même runtime, et la même leçon : détourer décide
     # seul de ce qui est au premier plan, segmenter suit ce qu'on montre.
     ("torch-vision", "image-segment"): "ecurie_runtime.workers.sam2",
+    # Premier worker du parc qui ne passe ni par MLX ni par torch : onnxruntime
+    # est un troisième moteur d'inférence, et son isolement dans son propre env
+    # est la raison d'être du §5.3.
+    ("rtmlib", "video-to-motion"): "ecurie_runtime.workers.rtmw3d",
 }
 
 

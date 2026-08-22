@@ -17,16 +17,61 @@
 | v0.4 — Utilisable au quotidien | **en cours** | 4.1 : `ecurie serve` sert le parc **et lance ses jobs** — un POST, un flux SSE, un wav téléchargeable, éprouvés sur le vrai parc. 4.3 : les 17 contrats engendrent leur formulaire, sans un formulaire écrit à la main. 4.4 : l'Atelier lance, suit et montre — du clic au wav qu'on écoute, éprouvé contre un vrai serveur. 4.6 : le superviseur vit dans le processus de l'API, et `residents.json` n'est plus qu'un miroir |
 | v0.5 → v0.7 | à faire | — |
 
-Le parc réel compte **dix capacités exécutables** sur dix-sept déclarées, douze
-manifestes et treize variants, dont onze prêts. Sept environnements de runtime,
-quatre paquets Python et un front, **771 tests Python et 281 tests de front**,
-plus cinq essais sur le vrai parc et cinq contre un vrai serveur, exclus par
-défaut.
+Le parc réel compte **dix-huit capacités exécutables** sur vingt-cinq déclarées,
+vingt manifestes et vingt et un variants. Huit environnements de runtime, quatre
+paquets Python et un front, **771 tests Python et 297 tests de front**, plus cinq
+essais sur le vrai parc et cinq contre un vrai serveur, exclus par défaut.
 
 Deux choses ont été faites en marge du jalon, et elles n'attendaient personne :
 le **recalibrage du seuil de lourdeur** (voir les points de contrôle), et la
 **rédaction des golden sets** de la tâche 5.1, qui est du travail de fond dont le
 v0.5 dépend entièrement.
+
+### Huit capacités de plus, hors jalon — le 22 août 2026
+
+Ajoutées d'un coup : `video-to-text`, `video-to-motion`, `image-inpaint`,
+`image-detect`, `image-segment`, `audio-to-text`, `speaker-diarization`,
+`voice-clone`. Le parc passe de dix-sept à **vingt-cinq capacités déclarées** et
+de dix à dix-huit exécutables, avec un runtime de plus (`rtmlib`), huit
+adaptateurs, huit manifestes et huit charges type.
+
+Le point de départ n'était pas un modèle mais un **trou de forme** : aucune des
+dix-sept capacités n'acceptait de vidéo en entrée. Le parc en produisait deux et
+n'en lisait aucune.
+
+Ce que l'exercice a appris, et qui ne se lisait dans aucun plan :
+
+1. **Le parc avait un angle mort : ses propres environnements.** Trois des huit
+   capacités sont servies par des modèles que `runtimes/mlx-audio/.venv`
+   embarquait déjà — `qwen2_audio`, `moss_transcribe_diarize`, `omnivoice` — sans
+   qu'aucun manifeste ne les déclare. Le skill de veille balaye Hugging Face et
+   les dépôts amont ; il ne regarde pas ce que les bibliothèques synchronisées
+   savent faire. Cinq des huit capacités n'ont demandé **aucun octet** de plus ou
+   moins de 400 Mo.
+2. **Un chemin « natif » annoncé peut ne rien transmettre.** `mlx-vlm` déclare
+   Qwen3-VL parmi les modèles à entrée vidéo native, l'invite composée porte bien
+   son jeton de remplissage — et le modèle décrit une scène figée, en niant tout
+   mouvement, sur une vidéo où un cube traverse le cadre. Trois réponses
+   identiques au caractère près pour trois budgets d'images différents : le banc
+   le montrait sans le dire. L'adaptateur décode donc lui-même.
+3. **Plus d'images ne donne pas une meilleure réponse.** Quatre images décrivent
+   juste deux mouvements sur trois ; seize se trompent sur les trois. Le contraire
+   de ce qu'on aurait réglé sans mesurer.
+4. **Le score d'un modèle peut être juste et notre lecture fausse.** SAM 2.1 note
+   la face avant d'un cube (0,879) au-dessus du solide entier : ce score est une
+   sortie entraînée, il n'a pas tort. C'est garder seulement le premier masque qui
+   aurait eu tort — d'où la sortie `candidates`.
+5. **Deux profils paramétrés committables**, les premiers depuis la musique :
+   R² = 0,9982 pour la diarisation sur la durée écoutée, R² = 0,9995 pour la pose
+   3D sur la cadence. Le §3 de la conception avait raison de les prévoir, et la
+   tâche 6.5 aura de quoi mordre.
+6. **Cinq des huit adaptateurs ont échoué à leur premier lancement**, comme les
+   trois du v0.3 et les quatre du lot suivant. Sur des hypothèses écrites avant
+   mesure : un `variant="fp16"` oublié, deux dimensions de tenseur prises l'une
+   pour l'autre, un `audio_duration` qui est un horodatage et non un nombre, une
+   dépendance `jinja2` que personne ne déclare, un chemin vidéo qui ne transmet
+   rien. Le taux ne baisse pas avec l'expérience — c'est le premier lancement qui
+   les trouve, pas la relecture.
 
 ### Cinq capacités de plus, hors jalon
 

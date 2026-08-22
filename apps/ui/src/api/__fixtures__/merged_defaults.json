@@ -172,6 +172,23 @@
       "temperature": 0.2
     }
   },
+  "rtmw3d-x@onnx": {
+    "capability": "video-to-motion",
+    "merged": {
+      "bvh": false,
+      "fps": 12,
+      "max_seconds": 10,
+      "preview": true,
+      "smoothing": 0.3
+    },
+    "variant_defaults": {
+      "bvh": false,
+      "fps": 12,
+      "max_seconds": 10,
+      "preview": true,
+      "smoothing": 0.3
+    }
+  },
   "sam2-hiera-small@fp32": {
     "capability": "image-segment",
     "merged": {

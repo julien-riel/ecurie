@@ -795,6 +795,32 @@ réponse qui revient doit prouver qu'on lui a posé la question la plus récente
 
 ---
 
+### Ce que huit capacités ajoutées d'un coup ont appris
+
+Le 22 août 2026, le parc passe de dix-sept à vingt-cinq capacités déclarées. Le
+détail est au plan ; trois points touchent la conception elle-même.
+
+**Un runtime est aussi un catalogue qu'on n'a pas lu.** Trois des huit capacités
+sont servies par des modèles que le venv de `mlx-audio` embarquait déjà. Le §10
+décrit une veille qui balaye Hugging Face et les dépôts amont ; il lui manque une
+phase : lire ce que les bibliothèques synchronisées savent faire. Cinq capacités
+sur huit n'ont demandé aucun octet de plus ou moins de 400 Mo.
+
+**Le troisième moteur d'inférence est arrivé, et il change une règle.** `rtmlib`
+sert des modèles ONNX sur CoreML ou sur le CPU : c'est le premier worker du parc
+sans mémoire Metal, donc le seul dont le RSS mesure honnêtement le pic. Le §5.2
+disait « le RSS ne compte pas la mémoire Metal » ; il faut lire « sauf quand il
+n'y en a pas ».
+
+**Une capacité peut refuser une de ses propres sorties.** `video-to-motion`
+déclare un BVH facultatif, et son unique variant fait échouer le job quand on le
+demande : aucun modèle de sa chaîne ne rend de rotations. Ce n'est pas un défaut
+du contrat — c'est ce qu'un contrat de capacité doit permettre, un variant qui
+n'honore qu'une partie de ce que d'autres honoreront. La même mécanique sert à
+`speaker-diarization`, dont deux paramètres restent inopérants sur son variant.
+
+---
+
 ## 8. Banc d'essai
 
 `ecurie bench <model>@<variant>` :
@@ -963,8 +989,10 @@ vérifié au chargement du registre, pas à l'exécution.
   reste contre un vrai serveur, `ECURIE_ESSAI_REEL=1`, et c'est lui qui a trouvé
   la boucle de rendu du 4.3.
 
-Au terme de la tâche 4.4 : 771 tests Python, plus 5 marqués `real` ; 281 tests de
-front, plus 5 contre un vrai serveur.
+Au terme de la tâche 4.4 : 771 tests Python, plus 5 marqués `real` ; 297 tests de
+front, plus 5 contre un vrai serveur. Les 297 comptent les huit contrats ajoutés
+le 22 août : la suite du front engendre ses cas depuis `registry/capabilities/`,
+si bien qu'un contrat de plus s'y rend sans qu'une ligne de test soit écrite.
 
 ---
 

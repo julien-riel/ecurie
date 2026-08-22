@@ -1,0 +1,41 @@
+# Environnement isolé du runtime `rtmlib` (CONCEPTION.md §5.3).
+#
+# Le premier environnement du parc qui ne repose ni sur MLX ni sur torch : rtmlib
+# sert des modèles ONNX, et onnxruntime est un second moteur d'inférence à côté
+# des deux autres. C'est un coût assumé — il apporte la seule chaîne de pose 3D
+# corps entier dont la licence soit saine — et il est isolé pour la raison qui a
+# fait exister les six autres : deux moteurs dans un même venv finissent par se
+# disputer une version de numpy.
+#
+#     ecurie env sync rtmlib
+#
+# **Le plancher macOS est épinglé à dessein.** onnxruntime ≥ 1.26 ne publie que
+# des roues macOS 14 ; le dépôt plafonne délibérément torch < 2.14 pour rester en
+# macosx_11. Épingler `<1.26` conserve un plancher macOS 13 et évite d'imposer à
+# tout le parc une contrainte venue d'une seule capacité.
+#
+# **Ce runtime ne touche pas Metal.** onnxruntime tourne ici sur CoreML ou sur le
+# CPU, jamais sur MPS : le pic mémoire de ses workers se mesure donc au RSS, et
+# c'est le seul cas du parc où le RSS dit la vérité — ailleurs il ignore la
+# mémoire Metal, ce que le v0.3 a payé d'un facteur 38.
+
+[project]
+name = "ecurie-runtime-rtmlib"
+version = "0.3.0"
+description = "Écurie — environnement isolé du runtime rtmlib (pose 3D, ONNX)"
+requires-python = ">=3.12"
+
+dependencies = [
+    # rtmlib n'est qu'une couche mince au-dessus d'onnxruntime : pas de mmcv, pas
+    # de mmpose, pas de torch. C'est tout son intérêt — la même chaîne servie par
+    # MMPose demanderait de compiler mmcv, ce qui n'aboutit pas sur Apple Silicon.
+    "rtmlib>=0.0.13",
+    # Voir l'en-tête : la borne haute tient le plancher macOS, elle n'est pas une
+    # prudence de version.
+    "onnxruntime>=1.23,<1.26",
+    "opencv-python>=4.10",
+    "numpy>=1.26",
+]
+
+[tool.uv]
+package = false

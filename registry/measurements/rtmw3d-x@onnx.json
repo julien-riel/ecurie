@@ -1,0 +1,84 @@
+{
+  "ref": "rtmw3d-x@onnx",
+  "model": "rtmw3d-x",
+  "variant": "onnx",
+  "capability": "video-to-motion",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1",
+  "measured_at": "2026-08-22",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/video-to-motion.json",
+    "version": 1,
+    "cases": [
+      "cadence-3",
+      "cadence-6",
+      "cadence-12"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 369330857,
+    "peak_unified_memory_bytes": 2001207296,
+    "peak_scaling": {
+      "parameter": "fps",
+      "base_bytes": 1638596608,
+      "bytes_per_unit": 30315081.1,
+      "measured_range": [
+        3.0,
+        12.0
+      ],
+      "r_squared": 0.9995
+    },
+    "warmup_ms": 143,
+    "latency_ms_p50": 4167,
+    "throughput": "1 sortie / 5.0 s"
+  },
+  "cases": [
+    {
+      "id": "cadence-3",
+      "ok": true,
+      "duration_ms": 2345,
+      "metrics": {
+        "duration_ms": 2345,
+        "frames": 12,
+        "detected_frames": 12,
+        "sampled_fps": 3.0,
+        "ms_per_frame": 194.0,
+        "infer_ms": 2328,
+        "peak_memory_bytes": 1727201280
+      },
+      "error": null
+    },
+    {
+      "id": "cadence-6",
+      "ok": true,
+      "duration_ms": 4167,
+      "metrics": {
+        "duration_ms": 4167,
+        "frames": 24,
+        "detected_frames": 24,
+        "sampled_fps": 6.0,
+        "ms_per_frame": 172.9,
+        "infer_ms": 4148,
+        "peak_memory_bytes": 1823997952
+      },
+      "error": null
+    },
+    {
+      "id": "cadence-12",
+      "ok": true,
+      "duration_ms": 8367,
+      "metrics": {
+        "duration_ms": 8367,
+        "frames": 48,
+        "detected_frames": 48,
+        "sampled_fps": 12.0,
+        "ms_per_frame": 173.3,
+        "infer_ms": 8318,
+        "peak_memory_bytes": 2001207296
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

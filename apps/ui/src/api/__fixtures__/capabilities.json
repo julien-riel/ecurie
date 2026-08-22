@@ -2262,7 +2262,9 @@
         ],
         "type": "object"
       },
-      "models": [],
+      "models": [
+        "rtmw3d-x"
+      ],
       "output": {
         "properties": {
           "animation": {
@@ -2311,7 +2313,9 @@
         "motion": "application/json",
         "preview": "video/mp4"
       },
-      "ready_variants": [],
+      "ready_variants": [
+        "rtmw3d-x@onnx"
+      ],
       "required": [
         "video"
       ],

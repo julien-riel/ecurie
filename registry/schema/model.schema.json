@@ -104,7 +104,7 @@
         "runtime": {
           "type": "string",
           "description": "Adaptateur responsable. Doit exister dans packages/runtime/adapters/.",
-          "enum": ["mlx-lm", "mlx-audio", "mlx-vlm", "diffusers-mps", "torch-vision", "comfy", "ollama", "llama-cpp", "custom"]
+          "enum": ["mlx-lm", "mlx-audio", "mlx-vlm", "diffusers-mps", "torch-vision", "rtmlib", "comfy", "ollama", "llama-cpp", "custom"]
         },
         "runtime_env": {
           "type": "string",

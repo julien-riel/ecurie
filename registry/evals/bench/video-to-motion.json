@@ -1,0 +1,20 @@
+{
+  "capability": "video-to-motion",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Une même vidéo, trois cadences d'échantillonnage : c'est le nombre d'images traitées, et lui seul, qui fait la durée d'un suivi — chaque image passe par un détecteur puis par un réseau de pose, et le coût est linéaire. La vidéo ne montre aucune personne, et ce n'est pas un oubli : le banc mesure un COÛT, et le coût d'une image ne dépend pas de ce qu'elle contient. La qualité du suivi appartient au golden set, qui demandera une vraie vidéo de personne avec sa vérité terrain. Elles ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "scaling_parameter": "fps",
+  "cases": [
+    {
+      "id": "cadence-3",
+      "input": { "video": "assets/atelier-mouvement.mp4", "fps": 3, "max_seconds": 4, "smoothing": 0.3, "preview": false }
+    },
+    {
+      "id": "cadence-6",
+      "input": { "video": "assets/atelier-mouvement.mp4", "fps": 6, "max_seconds": 4, "smoothing": 0.3, "preview": false }
+    },
+    {
+      "id": "cadence-12",
+      "input": { "video": "assets/atelier-mouvement.mp4", "fps": 12, "max_seconds": 4, "smoothing": 0.3, "preview": true }
+    }
+  ]
+}
