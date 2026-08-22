@@ -45,6 +45,10 @@ WORKER_MODULES_BY_CAPABILITY = {
     # découpe. Le modèle sait faire les deux ; le texte appartient à
     # `speech-to-text`, qui a son propre contrat.
     ("mlx-audio", "speaker-diarization"): "ecurie_runtime.workers.moss_diarize",
+    # Sixième emploi, et le second sur les mêmes octets que la diarisation : le
+    # modèle transcrit ET attribue, mais un contrat qui rendrait les deux ne
+    # pourrait être rempli par aucun modèle de transcription ordinaire.
+    ("mlx-audio", "speech-to-text"): "ecurie_runtime.workers.moss_transcribe",
     # Quatrième emploi : décrire un son n'est pas le transcrire, et c'est la
     # consigne qui tranche — sans elle, ces réseaux retombent sur leur défaut
     # d'usine, qui est de transcrire.
@@ -68,6 +72,11 @@ WORKER_MODULES_BY_CAPABILITY = {
     # masquée n'est pas générer, et `AutoPipelineForInpainting` n'est pas
     # `AutoPipelineForText2Image`.
     ("diffusers-mps", "image-inpaint"): "ecurie_runtime.workers.diffusers_inpaint",
+    # Troisième emploi des mêmes octets, et le plus simple : transformer une
+    # image entière n'a ni masque à fabriquer ni raccord de bord à surveiller.
+    # Ce qui le distingue de la retouche tient à `strength`, qui décide ici du
+    # nombre de pas réellement exécutés.
+    ("diffusers-mps", "image-to-image"): "ecurie_runtime.workers.diffusers_img2img",
     # Un modèle de langue sert trois capacités, et chacune a sa façon de
     # composer l'invite et de lire la réponse : traduire attend du texte,
     # appeler un outil attend du JSON validable.
