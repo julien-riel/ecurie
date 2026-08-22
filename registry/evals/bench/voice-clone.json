@@ -1,0 +1,34 @@
+{
+  "capability": "voice-clone",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Un même échantillon de référence, trois longueurs de texte à dire : c'est la longueur produite, et non celle de la référence, qui fait la durée d'un job de synthèse — la référence est encodée une fois. La référence est un wav de la synthèse vocale du parc, ce qui donne un cas dégénéré intéressant : le modèle imite une voix qui a déjà été synthétisée. Elles ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "cases": [
+    {
+      "id": "phrase",
+      "input": {
+        "text": "Le parc tient dans dix-sept gigaoctets.",
+        "reference_audio": "assets/parole-tts.wav",
+        "language": "fr",
+        "seed": 1
+      }
+    },
+    {
+      "id": "paragraphe",
+      "input": {
+        "text": "Le contrôle d'admission décide seul de ce qui tient en mémoire. Il refuse plutôt que de faire nager la machine, et il le dit en gigaoctets.",
+        "reference_audio": "assets/parole-tts.wav",
+        "language": "fr",
+        "seed": 2
+      }
+    },
+    {
+      "id": "long",
+      "input": {
+        "text": "Un adaptateur non exécuté est un adaptateur faux. Les trois premiers avaient chacun un défaut sérieux, invisible aux tests, et découvert au premier lancement. Une mesure vaut mieux qu'une hypothèse d'architecture, et le contrat de capacité est le bon endroit pour absorber la diversité.",
+        "reference_audio": "assets/parole-tts.wav",
+        "language": "fr",
+        "seed": 3
+      }
+    }
+  ]
+}

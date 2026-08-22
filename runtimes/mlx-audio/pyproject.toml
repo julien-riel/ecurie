@@ -36,6 +36,14 @@ dependencies = [
     # `get_peak_memory` / `reset_peak_memory` utilisés par l'adaptateur pour le
     # contrôle d'admission sont documentés tels quels.
     "mlx>=0.32.1",
+    # Découvert au premier chargement de MOSS-Transcribe-Diarize, et pas avant :
+    # les modèles qui portent un `chat_template.jinja` passent par
+    # `transformers.apply_chat_template`, qui exige jinja2 sans le déclarer.
+    # L'ancien parc de cet env — Qwen3-TTS, la musique — n'a pas de gabarit de
+    # conversation, donc le manque ne s'était jamais vu. C'est la même famille de
+    # défaut que le `requirements.txt` amont incomplet du v0.3 : une dépendance
+    # que personne ne déclare parce que personne ne l'a rencontrée.
+    "jinja2>=3.1",
 ]
 
 # Cet env n'est pas une bibliothèque : rien à construire, rien à installer de lui-même.

@@ -1,0 +1,38 @@
+{
+  "capability": "speaker-diarization",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Un même enregistrement, trois durées écoutées : c'est la durée, et elle seule, qui fait le coût d'une diarisation — le modèle encode l'audio en jetons, et la mémoire suit. Le fichier est un wav produit par la synthèse vocale du parc, donc une seule voix : ce n'est pas un défaut de la charge mais son objet, elle mesure un coût et non une qualité. Un enregistrement à plusieurs locuteurs appartient au golden set, où il aura une vérité terrain. Elles ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "scaling_parameter": "max_seconds",
+  "cases": [
+    {
+      "id": "court",
+      "input": {
+        "audio": "assets/parole-tts.wav",
+        "max_seconds": 5,
+        "min_segment_seconds": 0.5
+      },
+      "source": {
+        "recipe": "job",
+        "capability": "text-to-speech",
+        "model": "qwen3-tts-1.7b@8bit-mlx",
+        "note": "sortie d'un job de synthèse du parc, copiée telle quelle — refabricable par ecurie run"
+      }
+    },
+    {
+      "id": "moyen",
+      "input": {
+        "audio": "assets/parole-tts.wav",
+        "max_seconds": 12,
+        "min_segment_seconds": 0.5
+      }
+    },
+    {
+      "id": "long",
+      "input": {
+        "audio": "assets/parole-tts.wav",
+        "max_seconds": 25,
+        "min_segment_seconds": 0.5
+      }
+    }
+  ]
+}

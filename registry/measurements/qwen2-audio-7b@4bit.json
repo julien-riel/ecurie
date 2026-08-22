@@ -1,0 +1,81 @@
+{
+  "ref": "qwen2-audio-7b@4bit",
+  "model": "qwen2-audio-7b",
+  "variant": "4bit",
+  "capability": "audio-to-text",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1",
+  "measured_at": "2026-08-22",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/audio-to-text.json",
+    "version": 1,
+    "cases": [
+      "court",
+      "moyen",
+      "long"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 6574656756,
+    "peak_unified_memory_bytes": 7565610510,
+    "peak_scaling": {
+      "parameter": "max_seconds",
+      "base_bytes": 7565610510,
+      "bytes_per_unit": 0.0,
+      "measured_range": [
+        5.0,
+        20.0
+      ],
+      "r_squared": 1.0
+    },
+    "warmup_ms": 956,
+    "latency_ms_p50": 3375,
+    "throughput": "1 sortie / 3.4 s"
+  },
+  "cases": [
+    {
+      "id": "court",
+      "ok": true,
+      "duration_ms": 3201,
+      "metrics": {
+        "duration_ms": 3201,
+        "characters": 153,
+        "generation_tokens": 42,
+        "tokens_per_second": 15.01,
+        "truncated": true,
+        "peak_memory_bytes": 7565610510
+      },
+      "error": null
+    },
+    {
+      "id": "moyen",
+      "ok": true,
+      "duration_ms": 3375,
+      "metrics": {
+        "duration_ms": 3375,
+        "characters": 188,
+        "generation_tokens": 55,
+        "tokens_per_second": 16.88,
+        "truncated": true,
+        "peak_memory_bytes": 7565610510
+      },
+      "error": null
+    },
+    {
+      "id": "long",
+      "ok": true,
+      "duration_ms": 3568,
+      "metrics": {
+        "duration_ms": 3568,
+        "characters": 201,
+        "generation_tokens": 61,
+        "tokens_per_second": 17.57,
+        "truncated": true,
+        "peak_memory_bytes": 7565610510
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

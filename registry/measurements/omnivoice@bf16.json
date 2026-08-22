@@ -1,0 +1,75 @@
+{
+  "ref": "omnivoice@bf16",
+  "model": "omnivoice",
+  "variant": "bf16",
+  "capability": "voice-clone",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1",
+  "measured_at": "2026-08-22",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/voice-clone.json",
+    "version": 1,
+    "cases": [
+      "phrase",
+      "paragraphe",
+      "long"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 2042325694,
+    "peak_unified_memory_bytes": 4955908735,
+    "warmup_ms": 774,
+    "latency_ms_p50": 3838,
+    "rtf": 0.3817,
+    "throughput": "1 sortie / 4.1 s"
+  },
+  "cases": [
+    {
+      "id": "phrase",
+      "ok": true,
+      "duration_ms": 2650,
+      "metrics": {
+        "duration_ms": 2650,
+        "segments": 1,
+        "sample_rate": 24000,
+        "characters": 39,
+        "rtf": 0.9123,
+        "infer_ms": 2517,
+        "peak_memory_bytes": 3142622490
+      },
+      "error": null
+    },
+    {
+      "id": "paragraphe",
+      "ok": true,
+      "duration_ms": 3838,
+      "metrics": {
+        "duration_ms": 3838,
+        "segments": 1,
+        "sample_rate": 24000,
+        "characters": 139,
+        "rtf": 0.3817,
+        "infer_ms": 3633,
+        "peak_memory_bytes": 3316430011
+      },
+      "error": null
+    },
+    {
+      "id": "long",
+      "ok": true,
+      "duration_ms": 5916,
+      "metrics": {
+        "duration_ms": 5916,
+        "segments": 1,
+        "sample_rate": 24000,
+        "characters": 286,
+        "rtf": 0.2779,
+        "infer_ms": 5601,
+        "peak_memory_bytes": 4955908735
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

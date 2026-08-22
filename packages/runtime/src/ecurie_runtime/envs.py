@@ -41,6 +41,17 @@ WORKER_MODULES = {
 # tranche, et le runtime reste le même.
 WORKER_MODULES_BY_CAPABILITY = {
     ("mlx-audio", "text-to-music"): "ecurie_runtime.workers.mlx_audio_music",
+    # Troisième emploi du même runtime : la diarisation ne transcrit pas, elle
+    # découpe. Le modèle sait faire les deux ; le texte appartient à
+    # `speech-to-text`, qui a son propre contrat.
+    ("mlx-audio", "speaker-diarization"): "ecurie_runtime.workers.moss_diarize",
+    # Quatrième emploi : décrire un son n'est pas le transcrire, et c'est la
+    # consigne qui tranche — sans elle, ces réseaux retombent sur leur défaut
+    # d'usine, qui est de transcrire.
+    ("mlx-audio", "audio-to-text"): "ecurie_runtime.workers.qwen2_audio",
+    # Cinquième emploi, et le second à faire parler : choisir une voix qu'on
+    # embarque et imiter une voix qu'on reçoit ne se remplacent pas l'un l'autre.
+    ("mlx-audio", "voice-clone"): "ecurie_runtime.workers.omnivoice",
     # Mêmes poids que la lecture de document, autre question posée : décrire une
     # image et transcrire une page ne partagent ni l'appel ni la sortie.
     ("mlx-vlm", "image-to-text"): "ecurie_runtime.workers.mlx_vlm_describe",

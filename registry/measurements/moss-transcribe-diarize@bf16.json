@@ -1,0 +1,84 @@
+{
+  "ref": "moss-transcribe-diarize@bf16",
+  "model": "moss-transcribe-diarize",
+  "variant": "bf16",
+  "capability": "speaker-diarization",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1",
+  "measured_at": "2026-08-22",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/speaker-diarization.json",
+    "version": 1,
+    "cases": [
+      "court",
+      "moyen",
+      "long"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 1833089226,
+    "peak_unified_memory_bytes": 2375948894,
+    "peak_scaling": {
+      "parameter": "max_seconds",
+      "base_bytes": 2375946175,
+      "bytes_per_unit": 108.0,
+      "measured_range": [
+        5.0,
+        25.0
+      ],
+      "r_squared": 0.9982
+    },
+    "warmup_ms": 749,
+    "latency_ms_p50": 873,
+    "throughput": "1 sortie / 0.9 s"
+  },
+  "cases": [
+    {
+      "id": "court",
+      "ok": true,
+      "duration_ms": 873,
+      "metrics": {
+        "duration_ms": 873,
+        "segments": 1,
+        "merged_away": 0,
+        "truncated": true,
+        "speech_ratio": 0.736,
+        "infer_ms": 469,
+        "peak_memory_bytes": 2375946750
+      },
+      "error": null
+    },
+    {
+      "id": "moyen",
+      "ok": true,
+      "duration_ms": 731,
+      "metrics": {
+        "duration_ms": 731,
+        "segments": 2,
+        "merged_away": 0,
+        "truncated": true,
+        "speech_ratio": 0.777,
+        "infer_ms": 631,
+        "peak_memory_bytes": 2375947418
+      },
+      "error": null
+    },
+    {
+      "id": "long",
+      "ok": true,
+      "duration_ms": 1015,
+      "metrics": {
+        "duration_ms": 1015,
+        "segments": 3,
+        "merged_away": 0,
+        "truncated": false,
+        "speech_ratio": 0.871,
+        "infer_ms": 906,
+        "peak_memory_bytes": 2375948894
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

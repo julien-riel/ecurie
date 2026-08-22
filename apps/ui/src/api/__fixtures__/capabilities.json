@@ -277,7 +277,9 @@
       "output_media_types": {
         "text": "text/plain"
       },
-      "ready_variants": [],
+      "ready_variants": [
+        "qwen2-audio-7b@4bit"
+      ],
       "required": [
         "audio"
       ],
@@ -1387,7 +1389,9 @@
         "rttm": "text/plain",
         "segments": "application/json"
       },
-      "ready_variants": [],
+      "ready_variants": [
+        "moss-transcribe-diarize@bf16"
+      ],
       "required": [
         "audio"
       ],
@@ -2521,7 +2525,9 @@
       "output_media_types": {
         "audio": "audio/wav"
       },
-      "ready_variants": [],
+      "ready_variants": [
+        "omnivoice@bf16"
+      ],
       "required": [
         "text",
         "reference_audio"

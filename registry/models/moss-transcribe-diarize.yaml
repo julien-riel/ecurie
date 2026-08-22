@@ -30,4 +30,21 @@ variants:
       threshold: 0.5
       min_segment_seconds: 0.5
     caveats:
-      - "Ces modèles coupent un locuteur en deux plus volontiers qu'ils n'en fusionnent deux : renseigner `num_speakers` quand on le connaît."
+      - "`num_speakers` et `threshold` du contrat sont INOPÉRANTS sur ce variant : il produit ses tours de parole en même temps que son texte, sans décider trame par trame. Le contrat les garde pour les modèles qui les honorent — Sortformer, notamment ; ce manifeste dit qu'ils ne changent rien ici."
+      - "`min_segment_seconds` et `max_seconds` sont appliqués par l'adaptateur, pas par le réseau : le premier recolle après coup, le second borne ce qu'on donne à entendre."
+      - "Le modèle transcrit aussi ; ce texte n'est pas remonté, il appartient à `speech-to-text`."
+    profile:
+      disk_bytes: 1833089226
+      peak_unified_memory_bytes: 2375948894
+      peak_scaling:
+        parameter: "max_seconds"
+        base_bytes: 2375946175
+        bytes_per_unit: 108.0
+        measured_range: [5.0, 25.0]
+        r_squared: 0.9982
+      warmup_ms: 749
+      latency_ms_p50: 873
+      throughput: "1 sortie / 0.9 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1"
+      measured_at: "2026-08-22"
+      harness_version: "0.3.0"

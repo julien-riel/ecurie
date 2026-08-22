@@ -1,0 +1,20 @@
+{
+  "capability": "audio-to-text",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Un même enregistrement, trois durées écoutées : ces modèles encodent l'audio en jetons, et c'est la durée — non la question posée — qui fait le coût. Le fichier est celui de la diarisation, à dessein : deux capacités mesurées sur le même son se comparent. Elles ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "scaling_parameter": "max_seconds",
+  "cases": [
+    {
+      "id": "court",
+      "input": { "audio": "assets/parole-tts.wav", "max_seconds": 5, "max_tokens": 256, "temperature": 0.0, "seed": 1 }
+    },
+    {
+      "id": "moyen",
+      "input": { "audio": "assets/parole-tts.wav", "max_seconds": 12, "max_tokens": 256, "temperature": 0.0, "seed": 2 }
+    },
+    {
+      "id": "long",
+      "input": { "audio": "assets/parole-tts.wav", "max_seconds": 20, "max_tokens": 256, "temperature": 0.0, "seed": 3 }
+    }
+  ]
+}
