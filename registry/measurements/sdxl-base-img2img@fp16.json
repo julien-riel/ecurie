@@ -1,0 +1,85 @@
+{
+  "ref": "sdxl-base-img2img@fp16",
+  "model": "sdxl-base-img2img",
+  "variant": "fp16",
+  "capability": "image-to-image",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / diffusers 0.39.0 / torch 2.13.0",
+  "measured_at": "2026-08-22",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/image-to-image.json",
+    "version": 1,
+    "cases": [
+      "cote-512",
+      "cote-768",
+      "cote-1024"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 7106938904,
+    "peak_unified_memory_bytes": 8478457856,
+    "warmup_ms": 5639,
+    "latency_ms_p50": 13391,
+    "throughput": "1 sortie / 11.0 s"
+  },
+  "cases": [
+    {
+      "id": "cote-512",
+      "ok": true,
+      "duration_ms": 6092,
+      "metrics": {
+        "duration_ms": 6092,
+        "steps": 20,
+        "steps_effectifs": 12,
+        "strength": 0.6,
+        "guidance_scale": 7.0,
+        "seed": 1,
+        "generate_ms": 6028,
+        "ms_per_step": 502.3,
+        "dtype": "float16",
+        "peak_memory_bytes": 7859798016
+      },
+      "error": null
+    },
+    {
+      "id": "cote-768",
+      "ok": true,
+      "duration_ms": 13451,
+      "metrics": {
+        "duration_ms": 13451,
+        "steps": 20,
+        "steps_effectifs": 12,
+        "strength": 0.6,
+        "guidance_scale": 7.0,
+        "seed": 2,
+        "generate_ms": 13345,
+        "ms_per_step": 1112.1,
+        "dtype": "float16",
+        "peak_memory_bytes": 8478457856
+      },
+      "error": null
+    },
+    {
+      "id": "cote-1024",
+      "ok": true,
+      "duration_ms": 13391,
+      "metrics": {
+        "duration_ms": 13391,
+        "steps": 20,
+        "steps_effectifs": 12,
+        "strength": 0.6,
+        "guidance_scale": 7.0,
+        "seed": 3,
+        "generate_ms": 13290,
+        "ms_per_step": 1107.5,
+        "dtype": "float16",
+        "peak_memory_bytes": 8478457856
+      },
+      "error": null
+    }
+  ],
+  "warnings": [
+    "pente du pic mal ajustée (R² = 0.75) sur max_side : la relation n'a pas l'air linéaire, le profil garde le pire cas mesuré"
+  ]
+}

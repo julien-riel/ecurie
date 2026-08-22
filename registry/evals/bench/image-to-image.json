@@ -1,0 +1,44 @@
+{
+  "capability": "image-to-image",
+  "version": 1,
+  "description": "Charge type du banc d'essai. La scène de l'atelier, transformée à trois définitions. Ce qui fait le coût d'un modèle de diffusion est la surface traitée, et `max_side` est le seul paramètre du contrat qui la borne — d'où le choix comme paramètre d'échelle, identique à celui de la retouche masquée, ce qui rend les deux capacités comparables sur les mêmes octets de poids. `strength` est fixé à 0,6 partout : il multiplie le nombre de pas réellement exécutés, et le laisser varier mêlerait deux effets dans une seule mesure. Elles ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "scaling_parameter": "max_side",
+  "cases": [
+    {
+      "id": "cote-512",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "prompt": "le même atelier, en fin de journée, lumière rasante et ombres longues",
+        "max_side": 512,
+        "strength": 0.6,
+        "steps": 20,
+        "guidance_scale": 7.0,
+        "seed": 1
+      }
+    },
+    {
+      "id": "cote-768",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "prompt": "le même atelier, en fin de journée, lumière rasante et ombres longues",
+        "max_side": 768,
+        "strength": 0.6,
+        "steps": 20,
+        "guidance_scale": 7.0,
+        "seed": 2
+      }
+    },
+    {
+      "id": "cote-1024",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "prompt": "le même atelier, en fin de journée, lumière rasante et ombres longues",
+        "max_side": 1024,
+        "strength": 0.6,
+        "steps": 20,
+        "guidance_scale": 7.0,
+        "seed": 3
+      }
+    }
+  ]
+}

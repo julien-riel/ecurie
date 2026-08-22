@@ -8,17 +8,25 @@ import { etatCapacite, phraseEtat } from "./etat";
 const CAPACITES = (capacités as unknown as { capabilities: Capability[] }).capabilities;
 
 describe("l'état d'une capacité", () => {
-  test("les trois etats sont distingues sur le parc reel", () => {
+  test("aucune capacite du parc n_est sans modele", () => {
+    // L'invariant que le registre tient désormais : les vingt-cinq contrats ont
+    // au moins un manifeste. Il vit aussi côté serveur
+    // (`test_real_registry.py`), qui est l'autorité ; ici, il garde ce que
+    // l'Atelier affiche — un groupe « Aucun modèle au registre » qui n'aurait
+    // plus lieu d'être.
+    const sansModèle = CAPACITES.filter((c) => etatCapacite(c) === "sans-modèle");
+    expect(sansModèle.map((c) => c.id)).toEqual([]);
+  });
+
+  test("les deux etats du parc reel restent distingues", () => {
     const par_état = new Map<string, string[]>();
     for (const c of CAPACITES) {
       const état = etatCapacite(c);
       par_état.set(état, [...(par_état.get(état) ?? []), c.id]);
     }
-    // Les trois cas existent aujourd'hui : réduire à « prête / pas prête »
-    // confondrait une capacité jamais pourvue avec une capacité à un `ecurie
-    // pull` de marcher.
+    // Réduire à « prête / pas prête » confondrait une capacité dont les poids
+    // ne sont pas téléchargés avec une capacité qui tourne.
     expect(par_état.get("prête")?.length).toBeGreaterThan(0);
-    expect(par_état.get("sans-modèle")?.length).toBeGreaterThan(0);
     expect(par_état.get("sans-variant-prêt")?.length).toBeGreaterThan(0);
   });
 

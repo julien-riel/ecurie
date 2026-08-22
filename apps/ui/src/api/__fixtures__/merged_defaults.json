@@ -10,6 +10,32 @@
       "max_side": 1024
     }
   },
+  "deepfilternet3-mlx@fp32-mlx": {
+    "capability": "audio-denoise",
+    "merged": {
+      "sample_rate": 48000,
+      "segment_seconds": 15,
+      "strength": 1.0
+    },
+    "variant_defaults": {
+      "sample_rate": 48000,
+      "segment_seconds": 15,
+      "strength": 1.0
+    }
+  },
+  "htdemucs-mlx@fp32-mlx": {
+    "capability": "audio-separation",
+    "merged": {
+      "segment_seconds": 10,
+      "shifts": 1,
+      "stems": 2
+    },
+    "variant_defaults": {
+      "segment_seconds": 10,
+      "shifts": 1,
+      "stems": 2
+    }
+  },
   "hunyuan3d-2.1-shape-mlx@mlx-bf16": {
     "capability": "image-to-mesh",
     "merged": {
@@ -19,6 +45,40 @@
     "variant_defaults": {
       "num_inference_steps": 30,
       "octree_resolution": 256
+    }
+  },
+  "ltx-video-2b-i2v@bf16": {
+    "capability": "image-to-video",
+    "merged": {
+      "fps": 24,
+      "guidance_scale": 3.0,
+      "num_frames": 97,
+      "steps": 30
+    },
+    "variant_defaults": {
+      "fps": 24,
+      "guidance_scale": 3.0,
+      "num_frames": 97,
+      "steps": 30
+    }
+  },
+  "ltx-video-2b@bf16": {
+    "capability": "text-to-video",
+    "merged": {
+      "fps": 24,
+      "guidance_scale": 3.0,
+      "height": 512,
+      "num_frames": 97,
+      "steps": 30,
+      "width": 768
+    },
+    "variant_defaults": {
+      "fps": 24,
+      "guidance_scale": 3.0,
+      "height": 512,
+      "num_frames": 97,
+      "steps": 30,
+      "width": 768
     }
   },
   "minimax-music3@4bit": {
@@ -43,6 +103,19 @@
     "variant_defaults": {
       "min_segment_seconds": 0.5,
       "threshold": 0.5
+    }
+  },
+  "moss-transcribe@bf16": {
+    "capability": "speech-to-text",
+    "merged": {
+      "beam_size": 5,
+      "task": "transcribe",
+      "temperature": 0.0,
+      "word_timestamps": false
+    },
+    "variant_defaults": {
+      "task": "transcribe",
+      "word_timestamps": false
     }
   },
   "omnivoice@bf16": {
@@ -196,6 +269,21 @@
     },
     "variant_defaults": {
       "max_side": 2048
+    }
+  },
+  "sdxl-base-img2img@fp16": {
+    "capability": "image-to-image",
+    "merged": {
+      "guidance_scale": 7.0,
+      "max_side": 1024,
+      "steps": 30,
+      "strength": 0.6
+    },
+    "variant_defaults": {
+      "guidance_scale": 7.0,
+      "max_side": 1024,
+      "steps": 30,
+      "strength": 0.6
     }
   },
   "sdxl-base-inpaint@fp16": {

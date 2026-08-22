@@ -1,0 +1,43 @@
+# Environnement isolé du runtime `mlx-audio`, chemin **séparation de pistes**.
+#
+# Troisième env de ce runtime, après le TTS et la musique, et la raison est la
+# même que pour le second : une bibliothèque distincte, avec ses propres bornes
+# de version, qui n'a aucune raison d'entrer dans un env dont le parc actuel
+# fonctionne. `mlx-audiogen` réimplémente HTDemucs contre MLX ; il ne partage
+# avec `mlx-audio` que le nom du runtime déclaré au manifeste.
+#
+#     ecurie env sync mlx-audiogen
+#
+# Le `.venv` n'est pas versionné, ce fichier l'est.
+#
+# Ce que cet env ne sert pas encore : l'adaptateur de `audio-separation` n'est
+# pas écrit. Les poids sont téléchargés (168 Mo, `htdemucs-mlx@fp32-mlx`) et le
+# manifeste est au registre ; il manque le module worker. Le déclarer d'avance
+# n'est pas prématuré — c'est ce qui fait dire au contrôle de préparation
+# « environnement non synchronisé » plutôt que « environnement inconnu », et la
+# première des deux phrases porte la commande qui répare.
+
+[project]
+name = "ecurie-runtime-mlx-audiogen"
+version = "0.4.0"
+description = "Écurie — environnement isolé du runtime mlx-audio, séparation de pistes"
+# Comme les deux autres envs de ce runtime : la bibliothèque se contente de 3.10,
+# le worker exécute `ecurie_runtime.workers.base`, écrit pour le socle 3.12.
+requires-python = ">=3.12"
+
+dependencies = [
+    # Version publiée sur PyPI, bornée à la mineure : l'API employée est
+    # `mlx_audiogen.models.demucs.pipeline.DemucsPipeline`, et le paquet est
+    # récent. Monter la borne est un geste délibéré, qui se vérifie par un job
+    # réel — c'est la règle qui vaut déjà pour `mlx-audio`.
+    "mlx-audiogen>=0.2.0,<0.3",
+    "mlx>=0.32.1",
+    # `DemucsPipeline` reçoit et rend des tableaux numpy ; la lecture et
+    # l'écriture des fichiers passent par soundfile, qui n'est pas une
+    # dépendance de base de mlx-audiogen.
+    "soundfile>=0.12",
+]
+
+# Cet env n'est pas une bibliothèque : rien à construire, rien à installer de lui-même.
+[tool.uv]
+package = false

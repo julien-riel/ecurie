@@ -50,7 +50,9 @@
         ],
         "type": "object"
       },
-      "models": [],
+      "models": [
+        "deepfilternet3-mlx"
+      ],
       "output": {
         "properties": {
           "audio": {
@@ -122,7 +124,9 @@
         ],
         "type": "object"
       },
-      "models": [],
+      "models": [
+        "htdemucs-mlx"
+      ],
       "output": {
         "properties": {
           "tracks": {
@@ -856,6 +860,7 @@
       "composite": false,
       "defaults": {
         "guidance_scale": 3.5,
+        "max_side": 1024,
         "steps": 25,
         "strength": 0.6
       },
@@ -877,6 +882,13 @@
             "description": "Image de départ.",
             "type": "string",
             "x-ui": "file"
+          },
+          "max_side": {
+            "default": 1024,
+            "description": "Plus grand côté toléré en entrée. Ce n'est pas un réglage de confort : le pic mémoire d'un modèle de diffusion suit la surface traitée, et une photo de téléphone donnée telle quelle emporterait le budget de la machine.",
+            "maximum": 2048,
+            "minimum": 256,
+            "type": "integer"
           },
           "negative_prompt": {
             "description": "Ce qu'il faut éviter. Sans effet sur les modèles à guidage distillé.",
@@ -915,7 +927,9 @@
         ],
         "type": "object"
       },
-      "models": [],
+      "models": [
+        "sdxl-base-img2img"
+      ],
       "output": {
         "properties": {
           "image": {
@@ -932,7 +946,9 @@
       "output_media_types": {
         "image": "image/png"
       },
-      "ready_variants": [],
+      "ready_variants": [
+        "sdxl-base-img2img@fp16"
+      ],
       "required": [
         "image",
         "prompt"
@@ -1186,7 +1202,9 @@
         ],
         "type": "object"
       },
-      "models": [],
+      "models": [
+        "ltx-video-2b-i2v"
+      ],
       "output": {
         "properties": {
           "video": {
@@ -1458,7 +1476,9 @@
         ],
         "type": "object"
       },
-      "models": [],
+      "models": [
+        "moss-transcribe"
+      ],
       "output": {
         "properties": {
           "duration_seconds": {
@@ -1490,7 +1510,9 @@
         "segments": "application/json",
         "text": "text/plain"
       },
-      "ready_variants": [],
+      "ready_variants": [
+        "moss-transcribe@bf16"
+      ],
       "required": [
         "audio"
       ],
@@ -1939,7 +1961,9 @@
         ],
         "type": "object"
       },
-      "models": [],
+      "models": [
+        "ltx-video-2b"
+      ],
       "output": {
         "properties": {
           "video": {

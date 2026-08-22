@@ -1,0 +1,55 @@
+# Débruitage de la parole — 9 Mo de poids, et le plus petit modèle du parc.
+#
+# DeepFilterNet3 n'est pas un réseau génératif : il estime un gain par bande ERB
+# et un filtre profond d'ordre 5 sur les 96 premiers bins, puis les applique au
+# spectre. C'est pourquoi 2,1 millions de paramètres suffisent là où un modèle de
+# diffusion audio en demanderait mille fois plus — et pourquoi le pic mémoire de
+# cette capacité tiendra dans ce qui reste quand tout le reste du parc est chargé.
+id: deepfilternet3-mlx
+name: DeepFilterNet3 (MLX)
+capability: audio-denoise
+family: deepfilternet
+vendor: Hendrik Schröter et al. — conversion MLX par aufklarer
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Poids convertis depuis le checkpoint officiel `Rikorose/DeepFilterNet3`, avec
+  la BatchNorm fusionnée dans les convolutions. Le dépôt n'exporte que le réseau :
+  la STFT, le banc de filtres ERB et l'application du filtre profond vivent dans
+  le code appelant, et `auxiliary.npz` porte les constantes DSP exactes qu'ils
+  attendent. C'est ce qui rend l'adaptateur plus long que le modèle n'est gros —
+  et ce qui garantit qu'il reproduit la référence PyTorch à 9e-7 près.
+
+  48 kHz natif, trames de 10 ms, anticipation de 2 trames. Le contrat expose
+  `sample_rate` pour le fichier produit, pas pour le traitement : tout entre et
+  ressort du réseau à 48 kHz, quel que soit ce qu'on demande en sortie.
+
+links:
+  homepage: https://huggingface.co/aufklarer/DeepFilterNet3-MLX
+  code: https://github.com/Rikorose/DeepFilterNet
+  paper: https://arxiv.org/abs/2305.08227
+
+variants:
+  - id: fp32-mlx
+    quantization: fp32
+    tier: hot
+    runtime: mlx-audio
+    source:
+      kind: huggingface
+      repo: aufklarer/DeepFilterNet3-MLX
+      revision: "8f9ba6a8c25f1890674e8da319cbdf32759a5a19"   # 2026-07-25
+      # `dfn3_mlx.py` fait partie des poids et non de l'environnement : le dépôt
+      # exporte le réseau ET son implémentation de référence, et c'est celle-là
+      # que l'adaptateur charge. Le `__pycache__/` du dépôt, lui, n'a rien à
+      # faire dans le cache — d'où l'énumération plutôt qu'un `*.py`.
+      allow_patterns: ["config.json", "model.safetensors", "auxiliary.npz", "dfn3_mlx.py"]
+    defaults:
+      strength: 1.0
+      sample_rate: 48000
+      segment_seconds: 15
+    caveats:
+      - "Entraîné pour la PAROLE : sur de la musique ou un son ambiant, il retire ce qu'il ne reconnaît pas comme voix. Ce n'est pas un débruiteur universel."
+      - "`sample_rate` ne change pas le traitement — le réseau travaille à 48 kHz —, seulement le fichier écrit. Demander 16 kHz rééchantillonne après coup."
+      - "`strength` en dessous de 1 remélange l'original au résultat : c'est un fondu de l'adaptateur, pas un réglage du réseau."

@@ -31,7 +31,10 @@ describe("le choix de la capacité et du variant", () => {
     expect(sélecteur.options.length - 1).toBe(CAPACITES.capabilities.length);
     const groupes = [...sélecteur.querySelectorAll("optgroup")].map((g) => g.label);
     expect(groupes[0]).toBe("Exécutables");
-    expect(groupes).toContain("Aucun modèle au registre");
+    // Le parc n'a plus de capacité sans modèle, et un groupe vide ne s'affiche
+    // pas : ce qui reste à part, ce sont celles dont rien n'est téléchargé.
+    expect(groupes).toContain("Déclarées, rien d'exécutable en l'état");
+    expect(groupes).not.toContain("Aucun modèle au registre");
   });
 
   test("le titulaire est preselectionne, et ses defauts avec", async () => {

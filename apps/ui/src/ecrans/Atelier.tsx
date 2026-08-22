@@ -9,8 +9,9 @@
  *    mémoire bouge sans qu'on touche à l'écran — un `ecurie run` dans un
  *    terminal charge un modèle, un worker meurt —, et c'est la seule lecture du
  *    front qui sonde.
- * 2. **Les choix sont ordonnés par ce qui marche.** Sept capacités sur dix-sept
- *    n'ont aucun modèle ; les mêler aux dix exécutables oblige à lire dix-sept
+ * 2. **Les choix sont ordonnés par ce qui marche.** Les vingt-cinq capacités ont
+ *    toutes un modèle depuis le 22 août 2026, mais cinq n'ont rien de
+ *    téléchargé ; les mêler aux vingt exécutables oblige à lire vingt-cinq
  *    lignes pour en trouver une. Le variant est préselectionné sur le titulaire.
  * 3. **Ce qui empêche de lancer est écrit en clair**, sous le sélecteur, avec la
  *    commande qui répare. Un `<option>` qui porterait trois blockers en suffixe

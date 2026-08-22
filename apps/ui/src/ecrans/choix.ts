@@ -1,16 +1,22 @@
 /**
  * Les deux choix de l'Atelier — capacité, puis variant — sans rendre un écran.
  *
- * Le banc du 4.3 posait les dix-sept capacités dans un `<select>` plat et
- * laissait le variant vide : c'était assez pour prouver que le formulaire
- * s'engendre, pas pour travailler. Sur le parc réel, sept capacités sur
- * dix-sept n'ont aucun modèle et une n'a aucun variant exécutable ; les mêler
- * aux dix qui marchent oblige à lire dix-sept lignes pour en trouver une.
+ * Le banc du 4.3 posait les capacités dans un `<select>` plat et laissait le
+ * variant vide : c'était assez pour prouver que le formulaire s'engendre, pas
+ * pour travailler. Sur un parc où toutes les capacités n'ont pas de quoi
+ * tourner, les mêler à celles qui marchent oblige à lire toute la liste pour en
+ * trouver une.
  *
  * D'où deux fonctions, et une règle commune : **on ne cache jamais ce qui ne
- * marche pas.** Une capacité sans modèle reste dans la liste, dans son propre
- * groupe, parce qu'elle dit ce que le parc pourrait faire et ne fait pas
- * encore — c'est la moitié de ce qu'un registre sert à savoir.
+ * marche pas.** Une capacité dont aucun variant n'est exécutable reste dans la
+ * liste, dans son propre groupe, parce qu'elle dit ce que le parc pourrait faire
+ * et ne fait pas encore — c'est la moitié de ce qu'un registre sert à savoir.
+ *
+ * Le groupe « Aucun modèle au registre » ne s'affiche plus : les vingt-cinq
+ * contrats ont chacun au moins un manifeste, et les groupes vides sont omis. Il
+ * reste écrit ici, parce qu'un contrat s'ajoute avant son modèle et que le jour
+ * où cela se reproduira, la capacité doit apparaître quelque part plutôt que de
+ * disparaître de l'écran.
  */
 
 import type { Capability, Model, Variant } from "../api/types";

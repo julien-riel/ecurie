@@ -1,0 +1,83 @@
+{
+  "ref": "moss-transcribe@bf16",
+  "model": "moss-transcribe",
+  "variant": "bf16",
+  "capability": "speech-to-text",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1",
+  "measured_at": "2026-08-22",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/speech-to-text.json",
+    "version": 1,
+    "cases": [
+      "faisceau-1",
+      "faisceau-5",
+      "faisceau-8-mots"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 1833089226,
+    "peak_unified_memory_bytes": 2375948178,
+    "warmup_ms": 1084,
+    "latency_ms_p50": 1014,
+    "rtf": 0.0456,
+    "throughput": "1 sortie / 1.2 s"
+  },
+  "cases": [
+    {
+      "id": "faisceau-1",
+      "ok": true,
+      "duration_ms": 1478,
+      "metrics": {
+        "duration_ms": 1478,
+        "segments": 3,
+        "characters": 162,
+        "truncated": false,
+        "rtf": 0.0466,
+        "infer_ms": 933,
+        "reglages_sans_effet": [
+          "« beam_size » sans effet sur ce variant : le décodage ne passe pas par un faisceau réglable"
+        ],
+        "peak_memory_bytes": 2375948178
+      },
+      "error": null
+    },
+    {
+      "id": "faisceau-5",
+      "ok": true,
+      "duration_ms": 1014,
+      "metrics": {
+        "duration_ms": 1014,
+        "segments": 3,
+        "characters": 162,
+        "truncated": false,
+        "rtf": 0.0455,
+        "infer_ms": 910,
+        "reglages_sans_effet": [],
+        "peak_memory_bytes": 2375948178
+      },
+      "error": null
+    },
+    {
+      "id": "faisceau-8-mots",
+      "ok": true,
+      "duration_ms": 1014,
+      "metrics": {
+        "duration_ms": 1014,
+        "segments": 3,
+        "characters": 162,
+        "truncated": false,
+        "rtf": 0.0456,
+        "infer_ms": 911,
+        "reglages_sans_effet": [
+          "« word_timestamps » sans effet sur ce variant : le modèle horodate le segment, pas le mot",
+          "« beam_size » sans effet sur ce variant : le décodage ne passe pas par un faisceau réglable"
+        ],
+        "peak_memory_bytes": 2375948178
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

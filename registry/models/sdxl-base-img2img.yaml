@@ -1,0 +1,63 @@
+# Transformation d'image — les MÊMES poids que sdxl-base, un troisième pipeline.
+#
+# Le partage de poids a déjà servi deux fois dans ce parc : les quatre emplois de
+# qwen3-vl côté vision-langage, et la retouche masquée sur les octets de SDXL.
+# C'est ici le cas le plus simple des trois : `AutoPipelineForImage2Image` n'a
+# besoin ni d'un masque, ni d'un UNet à neuf canaux, ni d'une extension de toile.
+# Il bruite l'image de départ à hauteur de `strength` et redébruite depuis là.
+#
+# Ce que la capacité ajoute par rapport à `image-inpaint` : la transformation
+# porte sur TOUTE l'image, il n'y a donc pas de raccord au bord d'une zone
+# repeinte — le défaut nommé de l'inpaint sur ce checkpoint disparaît, et avec
+# lui la raison principale d'aller chercher un second jeu de poids.
+id: sdxl-base-img2img
+name: Stable Diffusion XL 1.0 base (transformation)
+capability: image-to-image
+family: sdxl
+vendor: Stability AI
+license: openrail++
+license_class: restricted
+status: candidate
+
+notes: >
+  Aucun octet de plus que sdxl-base : même dépôt, même révision, même cache. La
+  différence tient au pipeline et à un seul paramètre — `strength`, qui décide
+  du nombre de pas réellement exécutés. À 0,6 (le défaut du contrat), un job de
+  25 pas n'en calcule que 15 : la transformation est plus rapide qu'une
+  génération à réglages égaux, et c'est la seule des trois capacités SDXL du
+  parc dont le temps dépend d'un paramètre autre que `steps`.
+
+links:
+  homepage: https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0
+
+variants:
+  - id: fp16
+    quantization: fp16
+    tier: hot
+    runtime: diffusers-mps
+    source:
+      kind: huggingface
+      repo: stabilityai/stable-diffusion-xl-base-1.0
+      revision: "462165984030d82259a11f4367a4eed129e94a7b"
+      allow_patterns: ["*.json", "*.txt", "*fp16.safetensors", "*/*fp16.safetensors"]
+    defaults:
+      steps: 30
+      guidance_scale: 7.0
+      strength: 0.6
+      max_side: 1024
+    caveats:
+      - "`max_side` est une borne mémoire : le pic suit la surface traitée, et sdxl-base a trois pics mesurés selon la résolution — 10,07 Gio au plus petit format, près de 16 au plus grand."
+      - "`strength` multiplie les pas : à 0,3, un job de 30 pas n'en exécute que 9 et l'image de départ reste largement lisible sous le résultat."
+      - "Poids partagés avec sdxl-base et sdxl-base-inpaint — les déporter avec `ecurie store tier` déplace les trois."
+      - "Licence openrail++ : restrictions d'usage, à lire avant tout emploi professionnel."
+      - "Pic de 7,9 Gio à `max_side: 1024`, sous le seuil de 8 Gio : c'est le SEUL des trois chemins SDXL du parc que la politique mémoire ne compte pas comme lourd, et donc le seul qui puisse rester résident à côté d'un autre modèle. La différence avec les 15,95 Gio de la génération ne tient pas au pipeline mais à `strength` — moins de pas, moins de latents vivants à la fois."
+      - "La pente du pic sur `max_side` est mal ajustée (R² = 0,75) : le profil retient le pire cas mesuré plutôt qu'une extrapolation, et l'admission sera donc conservatrice sur les petits formats."
+    profile:
+      disk_bytes: 7106938904
+      peak_unified_memory_bytes: 8478457856
+      warmup_ms: 5639
+      latency_ms_p50: 13391
+      throughput: "1 sortie / 11.0 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / diffusers 0.39.0 / torch 2.13.0"
+      measured_at: "2026-08-22"
+      harness_version: "0.3.0"

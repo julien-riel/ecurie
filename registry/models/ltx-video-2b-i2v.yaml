@@ -1,0 +1,51 @@
+# Animer une image — les MÊMES poids que ltx-video-2b, un autre pipeline.
+#
+# Quatrième emploi du partage de poids dans ce parc, et le même raisonnement
+# qu'entre `sdxl-base` et `sdxl-base-inpaint` : `LTXImageToVideoPipeline` diffère
+# de `LTXPipeline` par le conditionnement de la première latente, pas par le
+# réseau. Un dépôt, deux capacités, zéro octet de plus.
+id: ltx-video-2b-i2v
+name: LTX-Video 0.9.1 2B (image vers vidéo, bf16)
+capability: image-to-video
+family: ltx-video
+vendor: Lightricks
+license: ltxv-open-weights-license
+license_class: restricted
+status: candidate
+
+notes: >
+  L'image de départ fixe le cadrage, mais pas la grille : elle est redimensionnée
+  sur les multiples de 32 que le modèle attend, et le rapport de forme est
+  conservé. Une photo de téléphone en 4032×3024 donnée telle quelle ne serait pas
+  seulement lente — elle sortirait du budget avant la première image.
+
+  Le contrat rend `prompt` facultatif pour cette capacité, parce que certains
+  modèles animent sans consigne. Celui-ci n'en fait pas partie : sans texte, il
+  produit un plan quasi fixe. Le manifeste le dit dans ses caveats plutôt que de
+  laisser conclure à une panne.
+
+links:
+  homepage: https://huggingface.co/Lightricks/LTX-Video
+  code: https://github.com/Lightricks/LTX-Video
+  paper: https://arxiv.org/abs/2501.00103
+
+variants:
+  - id: bf16
+    quantization: bf16
+    tier: hot
+    runtime: diffusers-mps
+    source:
+      kind: huggingface
+      repo: PJMixers-Dev/a-r-r-o-w_LTX-Video-0.9.1-diffusers-bf16
+      revision: "b5d63cf68243593f64d8d5c10da1e2b9e1abe7d6"
+      allow_patterns: ["*.json", "*.model", "*.safetensors"]
+    defaults:
+      num_frames: 97
+      fps: 24
+      steps: 30
+      guidance_scale: 3.0
+    caveats:
+      - "15,2 Go de poids pour 17,76 Gio de budget : le contrôle d'admission refusera ce variant tant qu'un autre modèle sera résident, et probablement même seul. À mesurer avec `ecurie bench` avant tout usage."
+      - "Sans `prompt`, la séquence produite est quasi fixe : ce modèle a besoin d'une consigne de mouvement, contrairement à ceux pour qui le contrat rend le champ facultatif."
+      - "L'image de départ est redimensionnée sur la grille du modèle — multiples de 32 —, rapport de forme conservé. Le cadrage exact d'origine n'est donc pas garanti au pixel près."
+      - "Poids partagés avec ltx-video-2b — les déporter avec `ecurie store tier` déplace les deux."

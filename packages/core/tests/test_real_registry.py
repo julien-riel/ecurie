@@ -45,6 +45,32 @@ def test_tout_ce_qui_est_installe_pointe_une_revision_de_commit(repo_root):
             )
 
 
+def test_chaque_capacite_a_au_moins_un_modele(repo_root):
+    """La réciproque du test suivant, et elle n'allait pas de soi.
+
+    Un contrat sans modèle est parfaitement valide — il dit ce que le parc
+    pourrait faire —, et l'Atelier lui réservait même un groupe. Ce qu'il coûte
+    se voit à l'usage : sur vingt-cinq capacités, six proposaient un formulaire
+    dont aucun bouton *Lancer* ne pouvait partir, et rien à l'écran ne disait
+    quel modèle irait là. Le registre est aussi une liste de courses ; une case
+    vide n'en est pas une.
+
+    Ce test ne demande pas que la capacité soit **exécutable** : télécharger
+    quinze gigaoctets de poids vidéo n'est pas une condition pour décrire le
+    modèle qui les porte. Il demande qu'un manifeste existe, avec sa source
+    épinglée, sa licence et ses caveats — de quoi savoir ce qu'un `ecurie pull`
+    apporterait.
+    """
+    reg = load_registry(repo_root)
+    pourvues = {m.capability for m in reg.models.values()}
+    orphelines = sorted(set(reg.capabilities) - pourvues)
+    assert orphelines == [], (
+        "capacité(s) sans aucun modèle au registre : "
+        + ", ".join(orphelines)
+        + " — ajouter un manifeste dans registry/models/, même en status: candidate"
+    )
+
+
 def test_les_contrats_de_capacite_couvrent_les_modeles(repo_root):
     """Aucun modèle ne peut déclarer une capacité sans contrat : c'est ce contrat
     qui engendre son formulaire, valide son entrée et nomme ses sorties."""
