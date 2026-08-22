@@ -344,6 +344,21 @@ class JobDetail(JobOut):
     )
 
 
+class UploadOut(BaseModel):
+    """Ce qu'un dépôt devient : un chemin, que le champ fichier du formulaire porte.
+
+    `path` est absolu et local à la machine du serveur. C'est délibérément la
+    même valeur qu'on saisirait à la main dans le champ, et la même que la CLI
+    attend (`ecurie run -p image=…`) : le dépôt fabrique un chemin, il n'invente
+    pas une seconde façon de désigner une entrée.
+    """
+
+    path: str = Field(description="Chemin absolu du fichier écrit, à poser dans le champ.")
+    name: str = Field(description="Nom sur le disque : jeton horodaté et nom d'origine assaini.")
+    media_type: str
+    size_bytes: int
+
+
 class AdmissionRequest(BaseModel):
     ref: str = Field(description="« model@variant », ou « model » quand le choix est évident.")
     input: Json = Field(

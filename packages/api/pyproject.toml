@@ -8,6 +8,11 @@ dependencies = [
     "ecurie-store",
     "ecurie-runtime",
     "fastapi>=0.115",
+    # `/uploads` reçoit du multipart/form-data. Starlette délègue son analyse à
+    # ce paquet et ne le déclare pas : sans lui, la route lève à l'import avec
+    # « Form data requires python-multipart » — une panne au démarrage, pas à la
+    # requête. C'est la même famille de manque que le jinja2 de l'env mlx-audio.
+    "python-multipart>=0.0.18",
     "uvicorn>=0.30",
     "typer>=0.12",
     "rich>=13",

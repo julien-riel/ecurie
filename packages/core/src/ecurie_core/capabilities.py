@@ -96,6 +96,38 @@ class CapabilityContract:
         visiter(self.output_schema.get("properties"), "")
         return trouvés
 
+    def input_media_types(self) -> dict[str, str]:
+        """Entrées qui sont des fichiers, et le type de média qu'elles acceptent.
+
+        Le symétrique d'`output_media_types`, et la reconnaissance est celle que
+        `runner.stage_inputs` emploie déjà pour décider quoi copier dans le
+        dossier du job : un `contentMediaType`, ou un `x-ui: "file"`. Les deux,
+        parce qu'un champ peut porter l'un sans l'autre — le premier dit ce que
+        le worker sait ouvrir, le second ce que l'UI doit rendre.
+
+        La valeur peut être une liste séparée par des virgules (`document-to-text`
+        accepte « application/pdf,image/* ») : c'est la graphie de l'attribut
+        `accept` d'un `<input type="file">`, et la garder telle quelle évite de
+        traduire deux fois la même chose.
+        """
+        trouvés: dict[str, str] = {}
+
+        def visiter(propriétés: dict[str, Any] | None, préfixe: str) -> None:
+            for nom, champ in (propriétés or {}).items():
+                chemin = f"{préfixe}{nom}"
+                if "contentMediaType" in champ:
+                    trouvés[chemin] = champ["contentMediaType"]
+                elif champ.get("x-ui") == "file":
+                    # Un champ fichier sans type déclaré n'annonce aucune
+                    # restriction : « */* » est la réponse exacte, pas un défaut
+                    # de repli.
+                    trouvés[chemin] = "*/*"
+                if champ.get("type") == "object":
+                    visiter(champ.get("properties"), f"{chemin}.")
+
+        visiter(self.input_properties, "")
+        return trouvés
+
     def file_outputs(self) -> set[str]:
         return set(self.output_media_types())
 

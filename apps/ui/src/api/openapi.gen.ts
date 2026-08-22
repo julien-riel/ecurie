@@ -230,6 +230,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Déposer un fichier et obtenir son chemin local
+         * @description Écrit le fichier dans le sas et rend le chemin à poser dans le champ.
+         *
+         *     Le type de média vient du client quand il l'annonce, sinon de l'extension du
+         *     nom : `MediaRecorder` déclare toujours le sien, un glisser-déposer depuis le
+         *     Finder pas toujours. Il est ensuite confronté à ce que les contrats du
+         *     registre acceptent — c'est le registre qui décide, pas une liste écrite dans
+         *     ce fichier.
+         */
+        post: operations["deposer_fichier_uploads_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -310,6 +336,11 @@ export interface components {
             ready: boolean;
             /** Ref */
             ref: string;
+        };
+        /** Body_deposer_fichier_uploads_post */
+        Body_deposer_fichier_uploads_post: {
+            /** File */
+            file: string;
         };
         /** CapabilitiesResponse */
         CapabilitiesResponse: {
@@ -822,6 +853,31 @@ export interface components {
             /** Unused After Days */
             unused_after_days: number;
         };
+        /**
+         * UploadOut
+         * @description Ce qu'un dépôt devient : un chemin, que le champ fichier du formulaire porte.
+         *
+         *     `path` est absolu et local à la machine du serveur. C'est délibérément la
+         *     même valeur qu'on saisirait à la main dans le champ, et la même que la CLI
+         *     attend (`ecurie run -p image=…`) : le dépôt fabrique un chemin, il n'invente
+         *     pas une seconde façon de désigner une entrée.
+         */
+        UploadOut: {
+            /** Media Type */
+            media_type: string;
+            /**
+             * Name
+             * @description Nom sur le disque : jeton horodaté et nom d'origine assaini.
+             */
+            name: string;
+            /**
+             * Path
+             * @description Chemin absolu du fichier écrit, à poser dans le champ.
+             */
+            path: string;
+            /** Size Bytes */
+            size_bytes: number;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1209,6 +1265,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StoreSummaryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deposer_fichier_uploads_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_deposer_fichier_uploads_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadOut"];
                 };
             };
             /** @description Validation Error */
