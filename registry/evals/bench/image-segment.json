@@ -1,0 +1,34 @@
+{
+  "capability": "image-segment",
+  "version": 1,
+  "description": "Charge type du banc d'essai. La scène de la description d'image, et trois invites : un point sur un objet, une boîte autour d'un autre, et deux points dont un d'exclusion. Ce qui fait le coût d'une segmentation est l'encodage de l'image, identique dans les trois cas — c'est voulu : la charge mesure le coût du modèle, et la variation d'invite sert à vérifier que les trois chemins d'entrée du processeur fonctionnent, pas à faire varier une durée. Elles ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "cases": [
+    {
+      "id": "point",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "points": [{ "x": 215, "y": 461 }],
+        "max_side": 1024
+      }
+    },
+    {
+      "id": "boite",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "box": { "x1": 528, "y1": 405, "x2": 660, "y2": 565 },
+        "max_side": 1024
+      }
+    },
+    {
+      "id": "points-exclusion",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "points": [
+          { "x": 422, "y": 507 },
+          { "x": 215, "y": 461, "include": false }
+        ],
+        "max_side": 1024
+      }
+    }
+  ]
+}

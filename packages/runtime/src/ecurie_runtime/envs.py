@@ -64,6 +64,9 @@ WORKER_MODULES_BY_CAPABILITY = {
     ("mlx-lm", "tool-use"): "ecurie_runtime.workers.mlx_lm_tools",
     ("torch-vision", "image-matting"): "ecurie_runtime.workers.birefnet",
     ("torch-vision", "image-upscale"): "ecurie_runtime.workers.swin2sr",
+    # Troisième adaptateur du même runtime, et la même leçon : détourer décide
+    # seul de ce qui est au premier plan, segmenter suit ce qu'on montre.
+    ("torch-vision", "image-segment"): "ecurie_runtime.workers.sam2",
 }
 
 

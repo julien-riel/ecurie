@@ -841,7 +841,9 @@
         "mask": "image/png",
         "overlay": "image/png"
       },
-      "ready_variants": [],
+      "ready_variants": [
+        "sam2-hiera-small@fp32"
+      ],
       "required": [
         "image"
       ],

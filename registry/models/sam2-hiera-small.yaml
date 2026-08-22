@@ -39,4 +39,15 @@ variants:
     defaults:
       max_side: 2048
     caveats:
+      - "Le score du modèle préfère souvent la partie à l'objet : mesuré sur un cube, le masque le mieux noté (0,879) est sa face avant, le suivant (0,608) deux faces, et le troisième le solide entier. C'est la raison d'être de la sortie `candidates` — sans elle, on croirait le modèle incapable de voir un cube."
+      - "Le dépôt sert un checkpoint `sam2_video` chargé dans un `Sam2Model` : transformers le signale à chaque chargement. La segmentation d'image fonctionne — mesurée — mais l'avertissement est réel et vaudra vérification le jour où la capacité s'étendra à la vidéo."
       - "Sans point ni boîte, le modèle n'a rien à suivre : le contrat les déclare facultatifs parce que l'un ou l'autre suffit, pas parce qu'aucun n'est nécessaire."
+    profile:
+      disk_bytes: 184312461
+      peak_unified_memory_bytes: 1294008320
+      warmup_ms: 1342
+      latency_ms_p50: 253
+      throughput: "1 sortie / 0.3 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0 / transformers 5.15.1"
+      measured_at: "2026-08-22"
+      harness_version: "0.3.0"

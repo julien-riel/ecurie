@@ -926,11 +926,10 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "sam2-hiera-small@fp32 : runtime 'torch-vision' — sert image-matting et image-upscale, et rien d'autre : ces deux capacités ont chacune leur adaptateur, il n'y a pas d'appel commun à une famille de modèles de vision",
-            "sam2-hiera-small@fp32 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench sam2-hiera-small@fp32"
-          ],
+          "blockers": [],
           "caveats": [
+            "Le score du modèle préfère souvent la partie à l'objet : mesuré sur un cube, le masque le mieux noté (0,879) est sa face avant, le suivant (0,608) deux faces, et le troisième le solide entier. C'est la raison d'être de la sortie `candidates` — sans elle, on croirait le modèle incapable de voir un cube.",
+            "Le dépôt sert un checkpoint `sam2_video` chargé dans un `Sam2Model` : transformers le signale à chaque chargement. La segmentation d'image fonctionne — mesurée — mais l'avertissement est réel et vaudra vérification le jour où la capacité s'étendra à la vidéo.",
             "Sans point ni boîte, le modèle n'a rien à suivre : le contrat les déclare facultatifs parce que l'un ou l'autre suffit, pas parce qu'aucun n'est nécessaire."
           ],
           "defaults": {
@@ -938,12 +937,23 @@
           },
           "entrypoint": null,
           "env": "torch-vision",
-          "heavy": null,
+          "heavy": false,
           "id": "fp32",
           "options": null,
-          "profile": null,
+          "profile": {
+            "disk_bytes": 184312461,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 253,
+            "measured_at": "2026-08-22",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0 / transformers 5.15.1",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 1294008320,
+            "rtf": null,
+            "throughput": "1 sortie / 0.3 s",
+            "warmup_ms": 1342
+          },
           "quantization": null,
-          "ready": false,
+          "ready": true,
           "ref": "sam2-hiera-small@fp32",
           "runtime": "torch-vision",
           "source": {

@@ -1,0 +1,68 @@
+{
+  "ref": "sam2-hiera-small@fp32",
+  "model": "sam2-hiera-small",
+  "variant": "fp32",
+  "capability": "image-segment",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0 / transformers 5.15.1",
+  "measured_at": "2026-08-22",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/image-segment.json",
+    "version": 1,
+    "cases": [
+      "point",
+      "boite",
+      "points-exclusion"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 184312461,
+    "peak_unified_memory_bytes": 1294008320,
+    "warmup_ms": 1342,
+    "latency_ms_p50": 253,
+    "throughput": "1 sortie / 0.3 s"
+  },
+  "cases": [
+    {
+      "id": "point",
+      "ok": true,
+      "duration_ms": 383,
+      "metrics": {
+        "duration_ms": 383,
+        "masks_proposed": 3,
+        "device": "mps",
+        "infer_ms": 340,
+        "peak_memory_bytes": 1293942784
+      },
+      "error": null
+    },
+    {
+      "id": "boite",
+      "ok": true,
+      "duration_ms": 253,
+      "metrics": {
+        "duration_ms": 253,
+        "masks_proposed": 3,
+        "device": "mps",
+        "infer_ms": 212,
+        "peak_memory_bytes": 1293991936
+      },
+      "error": null
+    },
+    {
+      "id": "points-exclusion",
+      "ok": true,
+      "duration_ms": 245,
+      "metrics": {
+        "duration_ms": 245,
+        "masks_proposed": 3,
+        "device": "mps",
+        "infer_ms": 211,
+        "peak_memory_bytes": 1294008320
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}
