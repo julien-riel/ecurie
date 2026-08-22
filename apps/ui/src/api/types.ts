@@ -163,6 +163,17 @@ export type StoreSummaryResponse = Omit<Schemas["StoreSummaryResponse"], "figure
 
 export type Telemetry = Schemas["TelemetryOut"];
 
+// --- dépôt de fichier ---------------------------------------------------------------
+
+/**
+ * Ce qu'un dépôt rend : un chemin local, et de quoi le dire à l'utilisateur.
+ *
+ * `path` est la seule clé qui parte dans le formulaire ; les trois autres
+ * servent à afficher ce qui vient d'être déposé — « photo.png, 1,2 Mo » — sans
+ * relire le disque.
+ */
+export type Upload = Schemas["UploadOut"];
+
 // --- index ------------------------------------------------------------------------
 
 export interface IndexResponse {
@@ -207,6 +218,7 @@ export type RuntimeName =
   | "mlx-vlm"
   | "diffusers-mps"
   | "torch-vision"
+  | "rtmlib"
   | "comfy"
   | "ollama"
   | "llama-cpp"
