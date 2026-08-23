@@ -785,6 +785,17 @@
       "width": 1024
     }
   },
+  "seedvr2-3b@fp16": {
+    "capability": "image-upscale",
+    "merged": {
+      "max_side": 2048,
+      "scale": 2
+    },
+    "variant_defaults": {
+      "max_side": 2048,
+      "scale": 2
+    }
+  },
   "swin2sr@classique-x2": {
     "capability": "image-upscale",
     "merged": {

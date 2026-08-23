@@ -50,6 +50,7 @@ Runtime = Literal[
     "diffusers-mps",
     "torch-vision",
     "depth-anything",
+    "mflux",
     "rtmlib",
     "comfy",
     "ollama",

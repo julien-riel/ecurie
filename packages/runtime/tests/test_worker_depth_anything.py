@@ -109,3 +109,53 @@ def test_les_valeurs_hors_bornes_sont_ecretees(np):
     couleurs = _coloriser(np, np.array([[-0.4, 1.7]], dtype="float32"), "magma")
 
     assert couleurs.shape == (1, 2, 3)
+
+
+# --- SeedVR2 : la traduction des conventions de résolution -------------------------
+
+
+def test_le_facteur_est_applique_au_petit_cote():
+    """Le contrat parle d'un facteur, mflux attend une résolution absolue sur le
+    petit côté. La traduction est tout ce que l'adaptateur ajoute ici."""
+    from ecurie_runtime.workers.seedvr2 import resolution_cible
+
+    assert resolution_cible(512, 512, 2, 4096) == 1024
+    assert resolution_cible(800, 600, 3, 4096) == 1800
+
+
+def test_le_plafond_mord_sur_le_grand_cote():
+    """`max_side` borne le grand côté du résultat. Sur une image 16/9, appliquer
+    le plafond au petit côté donnerait près du double de ce qui est demandé."""
+    from ecurie_runtime.workers.seedvr2 import resolution_cible
+
+    # 1920 × 2 = 3840 > 2048, donc le facteur retombe à 2048/1920.
+    assert resolution_cible(1920, 1080, 2, 2048) == 1152
+
+
+def test_une_image_portrait_prend_bien_sa_largeur_comme_petit_cote():
+    from ecurie_runtime.workers.seedvr2 import resolution_cible
+
+    assert resolution_cible(600, 800, 2, 4096) == 1200
+
+
+def test_un_facteur_invalide_est_refuse():
+    from ecurie_runtime.workers.base import WorkerError
+    from ecurie_runtime.workers.seedvr2 import resolution_cible
+
+    with pytest.raises(WorkerError, match="facteur"):
+        resolution_cible(512, 512, -1, 4096)
+
+
+def test_une_image_de_taille_nulle_est_refusee():
+    from ecurie_runtime.workers.base import WorkerError
+    from ecurie_runtime.workers.seedvr2 import resolution_cible
+
+    with pytest.raises(WorkerError, match="taille nulle"):
+        resolution_cible(0, 100, 2, 4096)
+
+
+def test_la_capacite_upscale_a_deux_adaptateurs():
+    """swin2sr interpole, SeedVR2 régénère : deux façons d'agrandir qui ne se
+    remplacent pas."""
+    assert worker_module("mflux", "image-upscale").endswith("seedvr2")
+    assert worker_module("torch-vision", "image-upscale").endswith("swin2sr")

@@ -1395,6 +1395,7 @@
         "type": "object"
       },
       "models": [
+        "seedvr2-3b",
         "swin2sr"
       ],
       "output": {
@@ -1424,6 +1425,7 @@
         "image": "image/png"
       },
       "ready_variants": [
+        "seedvr2-3b@fp16",
         "swin2sr@classique-x2",
         "swin2sr@reel-x4"
       ],

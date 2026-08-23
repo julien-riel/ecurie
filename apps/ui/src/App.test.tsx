@@ -63,7 +63,7 @@ describe("le choix de la capacité et du variant", () => {
     );
 
     const variants = await choisir("image-upscale");
-    await waitFor(() => expect(variants.value).toBe("swin2sr@classique-x2"));
+    await waitFor(() => expect(variants.value).toBe("seedvr2-3b@fp16"));
     expect([...variants.options].map((o) => o.value)).not.toContain("qwen3-tts-1.7b@8bit-mlx");
     // `scale: 2` vient du manifeste de `classique-x2`, pas du contrat. On le lit
     // dans la projection et non dans le champ : RJSF encode les enums **par
@@ -353,7 +353,7 @@ describe("le chiffrage du job", () => {
     });
     repond("/runtime/admission", async (requête) => {
       const corps = JSON.parse(await requête.clone().text());
-      if (corps.ref === "swin2sr@classique-x2") await attente;
+      if (corps.ref === "seedvr2-3b@fp16") await attente;
       return {
         body: {
           ref: corps.ref,
@@ -375,7 +375,7 @@ describe("le chiffrage du job", () => {
     });
     render(<App />);
     const variants = await choisir("image-upscale");
-    await waitFor(() => expect(variants.value).toBe("swin2sr@classique-x2"));
+    await waitFor(() => expect(variants.value).toBe("seedvr2-3b@fp16"));
 
     await userEvent.click(screen.getByRole("button", { name: /Chiffrer/ }));
     await userEvent.selectOptions(variants, "swin2sr@reel-x4");
@@ -383,7 +383,7 @@ describe("le chiffrage du job", () => {
 
     await waitFor(() => expect(variants.value).toBe("swin2sr@reel-x4"));
     expect(screen.queryByText(/Pour l'entrée saisie/)).toBeNull();
-    expect(screen.queryByText(/chiffre de swin2sr@classique-x2/)).toBeNull();
+    expect(screen.queryByText(/chiffre de seedvr2-3b@fp16/)).toBeNull();
   });
 
   test("le chiffrage ne part que sur demande", async () => {

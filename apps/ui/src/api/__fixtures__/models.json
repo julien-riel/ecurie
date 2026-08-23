@@ -3539,6 +3539,78 @@
     },
     {
       "capability": "image-upscale",
+      "family": "seedvr2",
+      "id": "seedvr2-3b",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler",
+        "homepage": "https://huggingface.co/ByteDance-Seed/SeedVR2-3B",
+        "paper": null
+      },
+      "name": "SeedVR2 3B (agrandissement par diffusion)",
+      "notes": "Le dépôt amont pèse 60 Go parce qu'il porte tous les variants du projet — 3B et 7B, chacun en fp16 et fp8, avec leurs versions « sharp ». `allow_patterns` n'en retient que ce que mflux charge réellement pour le 3B : le modèle, le VAE et les plongements de position, soit environ 7,3 Go.\nSans cette liste, un `ecurie pull` téléchargerait huit fois ce qu'il faut, et la garde de disque n'y verrait rien à redire — 60 Go passent largement sous le seuil des 15 %.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "MESURÉ, ET LE PIC SURPREND : 7,28 Go sur le disque, mais 16,78 Gio de pic — presque tout le budget de la machine pour agrandir une image. Le titulaire swin2sr pique à 6,74 Gio et pèse 50 Mo. C'est le prix de la diffusion : le modèle travaille sur des latents à la résolution de sortie, et la mémoire suit la surface produite, pas la taille des poids.",
+            "9,5 s par sortie sur la charge type, et 20,6 s sur le cas le plus grand. swin2sr agrandit en une passe déterministe ; celui-ci débruite pas à pas.",
+            "OBSERVÉ — LA TRANSPARENCE NE SURVIT PAS. Le modèle ne connaît pas le canal alpha et aplatit une image RGBA sur du **noir**, ce qui transforme un fond détouré en cadre sombre sans que rien ne le signale. L'adaptateur aplatit donc lui-même sur blanc et le dit dans la métrique `alpha_flattened` — mais la transparence est perdue dans tous les cas, et une image détourée devra être redétourée après agrandissement.",
+            "Modèle de diffusion : il régénère les détails au lieu de les interpoler. Sur une photo c'est ce qu'on veut ; sur un document ou une capture d'écran, il peut inventer des caractères qui n'existaient pas. Le titulaire swin2sr, lui, n'invente rien.",
+            "Le contrat expose `denoise`, que ce modèle n'a pas. Le réglage le plus proche est `softness`, qui agit avant l'agrandissement et non après : il est déclaré dans les options du variant plutôt que rattaché à un paramètre qui ne lui correspond pas.",
+            "L'amont prévient que les grandes résolutions demandent beaucoup de mémoire. `max_side` est le garde-fou du contrat ; au-delà, prévoir de le baisser plutôt que d'espérer."
+          ],
+          "defaults": {
+            "max_side": 2048,
+            "scale": 2
+          },
+          "entrypoint": null,
+          "env": "mflux",
+          "heavy": true,
+          "id": "fp16",
+          "options": {
+            "softness": 0.5
+          },
+          "profile": {
+            "disk_bytes": 7284343622,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 4637,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 18021692436,
+            "rtf": null,
+            "throughput": "1 sortie / 9.5 s",
+            "warmup_ms": 996
+          },
+          "quantization": "fp16",
+          "ready": true,
+          "ref": "seedvr2-3b@fp16",
+          "runtime": "mflux",
+          "source": {
+            "allow_patterns": [
+              "seedvr2_ema_3b_fp16.safetensors",
+              "ema_vae_fp16.safetensors",
+              "pos_emb.safetensors",
+              "*.json"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "numz/SeedVR2_comfyUI",
+            "revision": "09ced71023636e9bc8cdf9cdecfb2625d1e691e8",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "ByteDance Seed"
+    },
+    {
+      "capability": "image-upscale",
       "family": "swin2sr",
       "id": "swin2sr",
       "incumbent": false,

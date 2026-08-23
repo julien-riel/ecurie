@@ -120,6 +120,11 @@ WORKER_MODULES_BY_CAPABILITY = {
     # `torch-vision` aurait rétrogradé trois modèles mesurés pour en ajouter un
     # quatrième.
     ("depth-anything", "depth-estimation"): "ecurie_runtime.workers.depth_anything",
+    # Dixième famille, et le second modèle d'`image-upscale` : swin2sr interpole,
+    # SeedVR2 régénère. Deux façons d'agrandir qui ne se remplacent pas — sur une
+    # photo, inventer un grain est ce qu'on veut ; sur une capture d'écran,
+    # inventer un caractère est une faute.
+    ("mflux", "image-upscale"): "ecurie_runtime.workers.seedvr2",
 }
 
 
