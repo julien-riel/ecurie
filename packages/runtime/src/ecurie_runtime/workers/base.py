@@ -17,6 +17,7 @@ panne se présente comme un « worker muet » impossible à relier à sa cause.
 import argparse
 import json
 import os
+import re
 import resource
 import signal
 import socket
@@ -31,6 +32,10 @@ from typing import Any
 
 from ecurie_runtime.channel import Channel, ChannelClosed, ChannelTimeout
 from ecurie_runtime.protocol import (
+    CANAL_RAISONNEMENT,
+    CANAL_REPONSE,
+    CANAUX,
+    EV_DELTA,
     EV_ERROR,
     EV_LOADED,
     EV_PONG,
@@ -83,6 +88,31 @@ class Worker:
 
     name = "worker"
 
+    # Posé par la boucle avant chaque `infer`, remis à None après. Un adaptateur
+    # ne l'appelle jamais directement : il passe par `stream()`, qui ne fait rien
+    # quand personne n'écoute — en test, au banc d'essai, ou dans un worker qui
+    # ne sait pas produire son texte au fur et à mesure.
+    _emettre_delta: Callable[[str, str], None] | None = None
+
+    def stream(self, texte: str, canal: str = CANAL_REPONSE) -> None:
+        """Émet un fragment de texte pendant qu'il se produit. Facultatif.
+
+        Ce qui traverse ce canal n'est **pas** le résultat : le `result` final
+        reste seul à faire foi, et il est écrit en fichiers comme avant. Un
+        fragment perdu ne change donc rien à ce que le job produit — il change ce
+        que l'on voit pendant qu'il travaille, et sur un modèle qui met deux
+        minutes à répondre, c'est toute la différence entre attendre et lire.
+
+        `canal` sépare le brouillon de raisonnement de la réponse. La séparation
+        se fait ici, à la source, parce qu'elle est irréversible ensuite :
+        personne ne peut redécouper après coup un flux de caractères où les deux
+        auraient été mêlés.
+        """
+        émettre = self._emettre_delta
+        if émettre is None or not texte:
+            return
+        émettre(texte, canal if canal in CANAUX else CANAL_REPONSE)
+
     def load(self, variant: dict[str, Any]) -> dict[str, Any]:
         """Charge les poids. Retourne les options dynamiques (ex. `{"voices": [...]}`)."""
         raise NotImplementedError
@@ -113,6 +143,150 @@ class Worker:
 
 
 # --- mesures mémoire ---------------------------------------------------------
+
+
+# Un motif par convention, l'ouverture restant facultative : un gabarit qui
+# l'amorce lui-même ne la fait pas réémettre au modèle.
+RAISONNEMENTS = tuple(
+    (fermeture, re.compile(rf"(?:{re.escape(ouverture)})?(.*?){re.escape(fermeture)}", re.DOTALL))
+    for ouverture, fermeture in (("<think>", "</think>"), ("<|channel>thought", "<channel|>"))
+)
+
+
+def sans_raisonnement(texte: str) -> tuple[str, str]:
+    """Sépare la réponse du raisonnement à voix haute. Rend (réponse, raisonnement).
+
+    Un modèle en mode « thinking » émet son brouillon avant sa réponse. Ce
+    brouillon n'est pas une sortie : il précède le texte demandé, et tout ce qui
+    lit la réponse — la note d'une traduction, l'extracteur d'un appel d'outil,
+    les coordonnées d'une boîte, le fichier déposé dans la Bibliothèque — le
+    prendrait pour elle.
+
+    Ici plutôt que dans un adaptateur : le mode « thinking » n'appartient ni à
+    une famille de modèles ni à un runtime. Il est arrivé par Qwen3.6 sur
+    `mlx-vlm`, il touche déjà sept capacités du parc, et le prochain modèle qui
+    l'apportera ne préviendra pas.
+
+    Un raisonnement laissé ouvert, faute de jetons pour le refermer, est rendu
+    tel quel plutôt que dérobé : la réponse est vide, et c'est exactement ce
+    qu'il faut voir. La masquer donnerait un succès silencieux sur un job qui a
+    manqué de place pour répondre.
+    """
+    for fermeture, motif in RAISONNEMENTS:
+        if fermeture not in texte:
+            continue
+        correspondance = motif.search(texte)
+        if correspondance is None:
+            continue
+        raisonnement = correspondance.group(1).strip()
+        réponse = texte[correspondance.end() :].strip()
+        return réponse, raisonnement
+    return texte, ""
+
+
+# Les façons connues de baliser un raisonnement à voix haute. Il n'y a pas de
+# convention commune, et l'écart n'est pas cosmétique : chercher `<think>` dans
+# une sortie de Gemma 4 ne trouve rien, et tout le brouillon part alors sur le
+# canal de la réponse — exactement ce que ce module existe pour éviter.
+#
+#   Qwen3, Qwen3.6, et la plupart des dérivés   <think> … </think>
+#   Gemma 4                                     <|channel>thought … <channel|>
+#
+# L'ouverture est facultative des deux côtés : un gabarit qui l'amorce lui-même
+# ne la fait pas réémettre au modèle, dont la sortie commence directement par le
+# brouillon. C'est la fermeture qui fait foi.
+BALISES_RAISONNEMENT = (
+    ("<think>", "</think>"),
+    ("<|channel>thought", "<channel|>"),
+)
+
+FERMETURES = tuple(fermeture for _, fermeture in BALISES_RAISONNEMENT)
+
+
+class FluxRaisonnement:
+    """Aiguille un texte qui arrive par fragments vers le bon canal, au fil de l'eau.
+
+    `sans_raisonnement` fait le même partage, mais après coup, sur un texte
+    complet. Ici il faut décider **avant** d'avoir vu la suite, et deux pièges
+    s'ensuivent.
+
+    Le premier : `</think>` peut arriver à cheval sur deux fragments. Un modèle
+    produit `</th` puis `ink>`, et chercher la balise dans chaque fragment pris
+    isolément ne la trouverait jamais — le raisonnement ne se refermerait pas, et
+    la réponse entière partirait sur le canal du brouillon. On garde donc en
+    réserve la fin d'un fragment tant qu'elle peut être le début de la balise.
+
+    Le second : l'ouverture est facultative. Un gabarit qui amorce `<think>`
+    lui-même ne la fait pas réémettre au modèle, dont la sortie commence
+    directement par le brouillon. C'est le premier fragment non vide qui tranche,
+    et il ne se relit pas ensuite.
+    """
+
+    def __init__(self, balises: tuple[tuple[str, str], ...] = BALISES_RAISONNEMENT) -> None:
+        self.balises = balises
+        self.en_raisonnement: bool | None = None
+        self.termine = False
+        self.fermeture = balises[0][1] if balises else "</think>"
+        self._reserve = ""
+
+    def pousser(self, fragment: str) -> list[tuple[str, str]]:
+        """Un fragment brut → les couples (texte, canal) qu'on peut émettre sûrement."""
+        if not fragment:
+            return []
+        texte = self._reserve + fragment
+        self._reserve = ""
+
+        if self.termine:
+            return self._sortir(texte, CANAL_REPONSE)
+
+        if self.en_raisonnement is None:
+            dépouillé = texte.lstrip()
+            if not dépouillé:
+                self._reserve = texte
+                return []
+            for ouverture, fermeture in self.balises:
+                if dépouillé.startswith(ouverture):
+                    self.en_raisonnement = True
+                    self.fermeture = fermeture
+                    texte = dépouillé[len(ouverture) :]
+                    break
+            else:
+                if any(o.startswith(dépouillé) for o, _ in self.balises):
+                    # Peut encore devenir une ouverture : on attend la suite
+                    # plutôt que d'envoyer un début de balise sur le canal de la
+                    # réponse, où il resterait à jamais.
+                    self._reserve = texte
+                    return []
+                self.en_raisonnement = False
+
+        if not self.en_raisonnement:
+            return self._sortir(texte, CANAL_REPONSE)
+
+        avant, séparateur, après = texte.partition(self.fermeture)
+        if not séparateur:
+            return self._sortir(texte, CANAL_RAISONNEMENT)
+        self.en_raisonnement = False
+        self.termine = True
+        sorties = [(avant, CANAL_RAISONNEMENT)] if avant else []
+        return sorties + ([(après.lstrip(), CANAL_REPONSE)] if après.strip() else [])
+
+    def vider(self) -> list[tuple[str, str]]:
+        """Ce qui restait en réserve, à la fin du flux. Rien ne se perd."""
+        reste, self._reserve = self._reserve, ""
+        if not reste:
+            return []
+        canal = CANAL_RAISONNEMENT if self.en_raisonnement else CANAL_REPONSE
+        return [(reste, canal)]
+
+    def _sortir(self, texte: str, canal: str) -> list[tuple[str, str]]:
+        """Émet, en gardant en réserve ce qui pourrait amorcer `</think>`."""
+        if canal == CANAL_RAISONNEMENT:
+            for taille in range(len(self.fermeture) - 1, 0, -1):
+                if texte.endswith(self.fermeture[:taille]):
+                    self._reserve = texte[-taille:]
+                    texte = texte[:-taille]
+                    break
+        return [(texte, canal)] if texte else []
 
 
 def peak_rss_bytes() -> int | None:
@@ -233,8 +407,17 @@ class WorkerLoop:
                 ev(EV_PROGRESS, job_id=job_id, pct=max(0, min(100, int(pct))), note=note)
             )
 
+        def émettre_delta(texte: str, canal: str) -> None:
+            channel.send(ev(EV_DELTA, job_id=job_id, text=texte, channel=canal))
+
         started = time.monotonic()
-        result = self.worker.infer(request, progress)
+        # Le canal n'existe que le temps du job : un adaptateur qui garderait la
+        # référence écrirait sur un socket dont le job d'après ne veut rien savoir.
+        self.worker._emettre_delta = émettre_delta  # noqa: SLF001 — même module, injection prévue
+        try:
+            result = self.worker.infer(request, progress)
+        finally:
+            self.worker._emettre_delta = None  # noqa: SLF001
         duration_ms = int((time.monotonic() - started) * 1000)
         metrics = {"duration_ms": duration_ms, **(result.metrics or {})}
         metrics.setdefault("peak_memory_bytes", self.worker.peak_memory_bytes())

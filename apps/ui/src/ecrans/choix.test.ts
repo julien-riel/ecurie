@@ -81,9 +81,13 @@ describe("les variants groupés par modèle", () => {
   });
 
   test("les deux variants d_un meme modele restent ensemble", () => {
+    // `image-upscale` a deux modèles depuis SeedVR2 : on vise swin2sr, le seul
+    // des deux qui ait plusieurs variants, puisque c'est le groupement qu'on
+    // éprouve ici et non le nombre de modèles de la capacité.
     const groupes = groupesDeVariants(modèlesDe("image-upscale"), null);
-    expect(groupes).toHaveLength(1);
-    expect(groupes[0]!.variants.map((v) => v.id)).toEqual(["classique-x2", "reel-x4"]);
+    const swin = groupes.find((g) => g.modele === "swin2sr");
+    expect(swin).toBeDefined();
+    expect(swin!.variants.map((v) => v.id)).toEqual(["classique-x2", "reel-x4"]);
   });
 });
 
@@ -94,7 +98,8 @@ describe("le variant préselectionné", () => {
 
   test("a defaut, le premier executable", () => {
     // `image-upscale` n'a pas de titulaire et deux variants prêts.
-    expect(variantParDefaut(capacité("image-upscale"))).toBe("swin2sr@classique-x2");
+    // Le premier exécutable de la capacité, dans l'ordre du registre.
+    expect(variantParDefaut(capacité("image-upscale"))).toBe("seedvr2-3b@fp16");
   });
 
   test("jamais un variant qui ne peut pas tourner", () => {

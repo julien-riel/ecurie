@@ -65,9 +65,11 @@ def _admission_out(
     ref: str,
     variant: Variant,
     values: dict | None = None,
+    *,
+    overcommit: bool = False,
 ) -> AdmissionOut:
     pic = supervisor.peak_bytes(variant, values)
-    décision = supervisor.simulate(ref, pic)
+    décision = supervisor.simulate(ref, pic, overcommit=overcommit)
     return AdmissionOut(
         ref=ref,
         peak_bytes=pic,
@@ -160,7 +162,9 @@ def admission(state: StateDep, demande: AdmissionRequest) -> AdmissionResponse:
     état = inspect_variant(state.root, state.config, model, variant, résolu)
     return AdmissionResponse(
         ref=résolu,
-        admission=_admission_out(state.supervisor(), résolu, variant, entrée.values),
+        admission=_admission_out(
+            state.supervisor(), résolu, variant, entrée.values, overcommit=demande.overcommit
+        ),
         input=entrée.values,
         input_errors=entrée.errors,
         ready=état.ready,

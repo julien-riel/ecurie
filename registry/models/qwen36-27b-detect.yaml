@@ -1,0 +1,63 @@
+# Détection — troisième emploi des mêmes poids, et le seul des quatre à rendre
+# une structure plutôt qu'un texte.
+#
+# La fiche amont donne 92,5 à RefCOCO, ce qui atteste d'une capacité de
+# référencement spatial réelle. C'est aussi la capacité où le mode « thinking »
+# fait le plus de dégâts : le worker `mlx_vlm_detect` lit des coordonnées dans
+# la réponse du modèle, et un bloc <think>…</think> placé devant est exactement
+# le genre de préambule qui fait tomber une extraction à zéro objet sur un
+# modèle qui a pourtant vu la bonne chose. Tant que l'adaptateur ne transmet pas
+# `enable_thinking`, la mesure de cette capacité ne dira rien de sa compétence.
+id: qwen36-27b-detect
+name: Qwen3.6 27B (détection)
+capability: image-detect
+family: qwen3.6
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Challenger de qwen3-vl-8b-detect. Comme les trois autres manifestes de la
+  famille, il décrit un modèle dont le pic estimé dépasse le budget de la
+  machine cible : voir l'en-tête de qwen36-27b-describe pour le calcul.
+
+links:
+  homepage: https://huggingface.co/Qwen/Qwen3.6-27B
+
+variants:
+  - id: mxfp4
+    quantization: 4bit
+    tier: absent
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3.6-27B-mxfp4
+      revision: "b4ac73652af626fd653d0e4fe48a4e9c468a82f6"   # 2026-04-22
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      max_objects: 20
+      max_tokens: 1024
+      temperature: 0.0
+    caveats:
+      - "840 Mo de moins que le variant 4bit, pour une quantification équivalente. Non téléchargé : c'est le variant 4bit qui a été mesuré."
+      - "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure. Sur cette capacité, dont la sortie est extraite par motif, un préambule risquait de faire rendre zéro objet — ce qui aurait mesuré l'adaptateur, pas le modèle."
+      - "La grille de coordonnées de cette famille n'a pas été vérifiée : `options.grid` porte le défaut de Qwen3-VL. Une grille fausse trace les boîtes à une fraction de leur place sans que rien n'échoue — regarder `overlay.png` du premier job."
+      - "Aucun score de confiance : un VLM en produit un si on le lui demande, et rien dans son entraînement ne le calibre. Le contrat n'en déclare pas."
+      - "Poids partagés avec qwen36-27b-describe, -ocr et -video — les déporter déplace les quatre."
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3.6-27B-4bit
+      revision: "c000ac2c2057d94be3fa931000c31723aac53282"   # 2026-04-22
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      max_objects: 20
+      max_tokens: 1024
+      temperature: 0.0
+    caveats:
+      - "MESURÉ : cette capacité échoue sur cette machine. Le banc rend « [METAL] Command buffer execution failed: Insufficient Memory » sur les trois cas de la charge type. Les poids chargés occupent déjà 14,95 Gio ; le buffer que réclame l'encodage de l'image ne passe plus. `--hors-budget` n'y change rien — il lève un refus d'admission, pas un refus de Metal, et l'allocation échoue en aval du contrôle."
+      - "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure."

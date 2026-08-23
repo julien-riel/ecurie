@@ -7,6 +7,7 @@ Une ligne JSON par message, dans les deux sens. Le superviseur envoie des
     ← {"ev":"loaded","warmup_ms":2400,"peak_memory_bytes":3100000000,"options":{…}}
     → {"op":"infer","job_id":"j1","input":{…},"params":{…},"output_dir":"…","seed":42}
     ← {"ev":"progress","job_id":"j1","pct":40,"note":"…"}     (0..n)
+    ← {"ev":"delta","job_id":"j1","text":"…","channel":"answer"}   (0..n)
     ← {"ev":"result","job_id":"j1","output":{"audio":"audio.wav"},"metrics":{…}}
     ← {"ev":"error","job_id":"j1","message":"…","trace":"…"}
     → {"op":"unload"}  ← {"ev":"unloaded",…}
@@ -19,6 +20,15 @@ Deux règles portent tout le reste :
 - le canal ne transporte que du protocole. Ce module est en bibliothèque
   standard pure : il est importé des deux côtés, et le côté worker vit dans un
   venv isolé qui ne connaît rien d'Écurie.
+
+`delta` porte le texte au fur et à mesure qu'il se produit. Il est **facultatif
+et sans conséquence** : le `result` reste la seule source de vérité, et un worker
+qui n'en émet aucun se comporte comme avant. Ce que le flux change n'est pas le
+résultat mais l'attente — une réponse de deux minutes qui s'écrit sous les yeux
+n'est pas la même chose qu'un curseur qui tourne pendant deux minutes. Son champ
+`channel` sépare le brouillon de raisonnement de la réponse : les mêler serait
+irréversible, personne ne pouvant les redécouper après coup dans un flux de
+caractères.
 
 `unloaded` n'est pas au tableau de la conception ; il est nécessaire. Sans accusé
 de déchargement, le superviseur ne saurait pas quand la mémoire est rendue, et le
@@ -38,13 +48,23 @@ OP_PING = "ping"
 # Événements (worker → superviseur)
 EV_LOADED = "loaded"
 EV_PROGRESS = "progress"
+EV_DELTA = "delta"
 EV_RESULT = "result"
 EV_ERROR = "error"
 EV_PONG = "pong"
 EV_UNLOADED = "unloaded"
 
+# Les deux canaux d'un `delta`. Un modèle qui raisonne à voix haute produit deux
+# textes et non un seul, et les mêler serait irréversible : personne ne peut
+# séparer après coup un brouillon d'une réponse dans un flux de caractères.
+CANAL_REPONSE = "answer"
+CANAL_RAISONNEMENT = "reasoning"
+CANAUX = frozenset({CANAL_REPONSE, CANAL_RAISONNEMENT})
+
 OPS = frozenset({OP_LOAD, OP_INFER, OP_UNLOAD, OP_PING})
-EVENTS = frozenset({EV_LOADED, EV_PROGRESS, EV_RESULT, EV_ERROR, EV_PONG, EV_UNLOADED})
+EVENTS = frozenset(
+    {EV_LOADED, EV_PROGRESS, EV_DELTA, EV_RESULT, EV_ERROR, EV_PONG, EV_UNLOADED}
+)
 
 # Un message qui dépasse cette taille est le signe d'une sortie binaire passée en
 # ligne : on refuse plutôt que de faire gonfler la mémoire du superviseur.
@@ -142,6 +162,13 @@ def name_of(message: dict[str, Any]) -> str:
     return name
 
 
+# Ce qui n'arrête pas une opération. La liste est écrite en positif, et c'est
+# délibéré : `is_terminal` traitait auparavant « tout sauf progress » comme une
+# fin, si bien que le premier `delta` d'un modèle aurait clos son propre job —
+# un flux qui coupe la génération qu'il rapporte.
+EVENTS_EN_COURS = frozenset({EV_PROGRESS, EV_DELTA})
+
+
 def is_terminal(message: dict[str, Any]) -> bool:
     """Un événement qui clôt une opération — tout le reste est de la progression."""
-    return kind_of(message) == "ev" and name_of(message) != EV_PROGRESS
+    return kind_of(message) == "ev" and name_of(message) not in EVENTS_EN_COURS

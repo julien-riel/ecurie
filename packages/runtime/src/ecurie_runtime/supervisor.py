@@ -69,6 +69,7 @@ from ecurie_runtime.residents import (
     socket_path,
 )
 from ecurie_runtime.worker import (
+    DeltaFn,
     Loaded,
     Timeouts,
     WorkerProcess,
@@ -370,10 +371,19 @@ class Supervisor:
             return None
         return variant.profile.expected_peak(values)[1]
 
-    def simulate(self, ref: str, peak_bytes: int | None, *, measure: bool = False) -> Admission:  # noqa: E501
+    def simulate(
+        self,
+        ref: str,
+        peak_bytes: int | None,
+        *,
+        measure: bool = False,
+        overcommit: bool = False,
+    ) -> Admission:
         """Ce que ferait `acquire`, sans rien charger — c'est ce qu'affiche `ecurie ps`."""
         residents = [e.as_resident() for e in self._entries().values()]
-        return plan_admission(ref, peak_bytes, residents, self.policy, measure=measure)
+        return plan_admission(
+            ref, peak_bytes, residents, self.policy, measure=measure, overcommit=overcommit
+        )
 
     # --- tour de rôle --------------------------------------------------------
 
@@ -474,12 +484,18 @@ class Supervisor:
         *,
         measure: bool = False,
         pin: bool = False,
+        overcommit: bool = False,
         on_progress: ProgressFn | None = None,
+        on_delta: DeltaFn | None = None,
         values: dict[str, Any] | None = None,
         job_id: str | None = None,
         on_wait: WaitFn | None = None,
     ) -> Lease:
         """Rend un worker prêt pour ce variant, en respectant le budget mémoire.
+
+        `overcommit` assume un dépassement du budget plutôt que de le refuser :
+        le parc est alors vidé, et la décision suit le job jusqu'à son manifeste.
+        Voir `admission._hors_budget` pour ce qu'elle coûte.
 
         `values` est l'entrée résolue du job : elle sert au calcul du pic attendu
         quand le profil déclare une pente (`peak_scaling`). `job_id` nomme
@@ -506,14 +522,14 @@ class Supervisor:
                     raise AdmissionRefused(admission)
                 for victime in admission.evict:
                     self._evict(entries, victime)
-                return self._ephemeral(ref, spec, document, admission, on_progress)
+                return self._ephemeral(ref, spec, document, admission, on_progress, on_delta)
 
         poignée = self._handle(ref)
         self._enter(poignée, job_id or SANS_IDENTIFIANT, on_wait)
         try:
             with self.registry_file.locked() as entries:
                 self._sync(entries)
-                admission = self._plan(ref, variant, values, entries)
+                admission = self._plan(ref, variant, values, entries, overcommit=overcommit)
                 if not admission.admitted:
                     raise AdmissionRefused(admission)
 
@@ -528,7 +544,7 @@ class Supervisor:
                     self._evict(entries, ref)
                     entrée = None
                 if entrée is not None:
-                    lease = self._reconnect(ref, entrée, admission, poignée, on_progress)
+                    lease = self._reconnect(ref, entrée, admission, poignée, on_progress, on_delta)
                     if lease is not None:
                         entrée.last_used = time.time()
                         entrée.pinned = entrée.pinned or pin
@@ -541,7 +557,16 @@ class Supervisor:
                     self._evict(entries, ref)
 
                 return self._start_resident(
-                    entries, poignée, ref, variant, spec, document, admission, pin, on_progress
+                    entries,
+                    poignée,
+                    ref,
+                    variant,
+                    spec,
+                    document,
+                    admission,
+                    pin,
+                    on_progress,
+                    on_delta,
                 )
         except BaseException:
             self._leave(poignée)
@@ -555,10 +580,16 @@ class Supervisor:
         entries: dict[str, ResidentEntry],
         *,
         measure: bool = False,
+        overcommit: bool = False,
     ) -> Admission:
         residents = [e.as_resident() for e in entries.values()]
         return plan_admission(
-            ref, self.peak_bytes(variant, values), residents, self.policy, measure=measure
+            ref,
+            self.peak_bytes(variant, values),
+            residents,
+            self.policy,
+            measure=measure,
+            overcommit=overcommit,
         )
 
     def _ephemeral(
@@ -568,12 +599,14 @@ class Supervisor:
         document: dict[str, Any],
         admission: Admission,
         on_progress: ProgressFn | None,
+        on_delta: DeltaFn | None,
     ) -> Lease:
         worker = WorkerProcess.spawn(
             spec,
             log_path=log_path(self.home, ref),
             timeouts=self.timeouts,
             on_progress=on_progress,
+            on_delta=on_delta,
         )
         try:
             loaded = worker.load(document)
@@ -600,6 +633,7 @@ class Supervisor:
         admission: Admission,
         pin: bool,
         on_progress: ProgressFn | None,
+        on_delta: DeltaFn | None,
     ) -> Lease:
         sock_path = socket_path(self.home, ref)
         journal = log_path(self.home, ref)
@@ -609,7 +643,7 @@ class Supervisor:
         )
         try:
             wait_for_socket(sock_path, pid, timeout_s=self.timeouts.load_s, log_path=journal)
-            session = self._connect(sock_path, on_progress)
+            session = self._connect(sock_path, on_progress, on_delta)
             loaded = session.load(document)
         except BaseException:
             # `BaseException` et non `Exception` : un Ctrl-C pendant le
@@ -670,6 +704,7 @@ class Supervisor:
         admission: Admission,
         poignée: WorkerHandle,
         on_progress: ProgressFn | None,
+        on_delta: DeltaFn | None,
     ) -> Lease | None:
         """Se rattache à un worker résident, sans le déranger.
 
@@ -682,7 +717,7 @@ class Supervisor:
         soit le nombre de processus qui le lui demandent.
         """
         try:
-            session = self._connect(Path(entrée.socket), on_progress)
+            session = self._connect(Path(entrée.socket), on_progress, on_delta)
         except OSError:  # socket absent ou refusant la connexion : worker fantôme
             return None
         return Lease(
@@ -696,10 +731,14 @@ class Supervisor:
             on_release=lambda: self._release(poignée),
         )
 
-    def _connect(self, sock_path: Path, on_progress: ProgressFn | None) -> ResidentSession:
+    def _connect(
+        self, sock_path: Path, on_progress: ProgressFn | None, on_delta: DeltaFn | None = None
+    ) -> ResidentSession:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.connect(str(sock_path))
-        return ResidentSession(sock, timeouts=self.timeouts, on_progress=on_progress)
+        return ResidentSession(
+            sock, timeouts=self.timeouts, on_progress=on_progress, on_delta=on_delta
+        )
 
     # --- déchargement --------------------------------------------------------
 

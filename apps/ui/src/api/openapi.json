@@ -36,6 +36,18 @@
             "title": "Measure Mode",
             "type": "boolean"
           },
+          "overcommit": {
+            "default": false,
+            "description": "Le job a été admis au-delà du budget, sur demande explicite. Le parc est vidé et la machine pagine : c'est un arbitrage assumé, pas un calcul qui a débordé.",
+            "title": "Overcommit",
+            "type": "boolean"
+          },
+          "overflow_bytes": {
+            "default": 0,
+            "description": "Ce qui dépasse le budget. Renseigné même quand le dépassement fait refuser.",
+            "title": "Overflow Bytes",
+            "type": "integer"
+          },
           "peak_bytes": {
             "anyOf": [
               {
@@ -84,6 +96,12 @@
             "description": "Entrée envisagée, déjà typée. Elle sert au pic attendu quand le profil déclare une pente : trente secondes de musique coûtent le double de quinze.",
             "title": "Input",
             "type": "object"
+          },
+          "overcommit": {
+            "default": false,
+            "description": "Simuler en assumant le dépassement du budget. Le bandeau s'en sert pour montrer ce que coûterait le mode hors budget avant qu'on l'ait choisi.",
+            "title": "Overcommit",
+            "type": "boolean"
           },
           "ref": {
             "description": "« model@variant », ou « model » quand le choix est évident.",
@@ -370,6 +388,12 @@
       },
       "JobDetail": {
         "properties": {
+          "cancelled": {
+            "default": false,
+            "description": "Le job a été arrêté à la demande. Il rend alors `failed` — l'arrêt passe par la mort du worker —, mais l'échec n'en est pas un, et `stream_text` garde ce qui avait déjà été produit.",
+            "title": "Cancelled",
+            "type": "boolean"
+          },
           "capability": {
             "title": "Capability",
             "type": "string"
@@ -511,6 +535,18 @@
             "title": "State",
             "type": "string"
           },
+          "stream_reasoning": {
+            "default": "",
+            "description": "Le raisonnement à voix haute, séparé de la réponse à la source. Vide pour les modèles qui n'en produisent pas, ou dont le variant l'a coupé.",
+            "title": "Stream Reasoning",
+            "type": "string"
+          },
+          "stream_text": {
+            "default": "",
+            "description": "La réponse telle qu'elle s'est écrite, cumulée depuis les `delta`. Ce n'est pas le résultat — `output` et les fichiers du job restent seuls à faire foi. Elle est ici pour qu'un client arrivé en cours de route n'ait pas manqué le début, et parce qu'un job annulé n'a que cela à montrer.",
+            "title": "Stream Text",
+            "type": "string"
+          },
           "submitted_at": {
             "title": "Submitted At",
             "type": "string"
@@ -542,6 +578,12 @@
       "JobOut": {
         "description": "L'état d'un job, tel que le flux d'événements le répète.\n\nLe même objet sert la lecture et chaque événement : le client remplace son\nétat au lieu de recomposer des fragments, et deux chemins ne peuvent pas\ndiverger.",
         "properties": {
+          "cancelled": {
+            "default": false,
+            "description": "Le job a été arrêté à la demande. Il rend alors `failed` — l'arrêt passe par la mort du worker —, mais l'échec n'en est pas un, et `stream_text` garde ce qui avait déjà été produit.",
+            "title": "Cancelled",
+            "type": "boolean"
+          },
           "capability": {
             "title": "Capability",
             "type": "string"
@@ -670,6 +712,18 @@
             "title": "State",
             "type": "string"
           },
+          "stream_reasoning": {
+            "default": "",
+            "description": "Le raisonnement à voix haute, séparé de la réponse à la source. Vide pour les modèles qui n'en produisent pas, ou dont le variant l'a coupé.",
+            "title": "Stream Reasoning",
+            "type": "string"
+          },
+          "stream_text": {
+            "default": "",
+            "description": "La réponse telle qu'elle s'est écrite, cumulée depuis les `delta`. Ce n'est pas le résultat — `output` et les fichiers du job restent seuls à faire foi. Elle est ici pour qu'un client arrivé en cours de route n'ait pas manqué le début, et parce qu'un job annulé n'a que cela à montrer.",
+            "title": "Stream Text",
+            "type": "string"
+          },
           "submitted_at": {
             "title": "Submitted At",
             "type": "string"
@@ -705,6 +759,12 @@
             "description": "Entrée du job, déjà typée — un nombre pour un nombre. Les défauts du contrat et du variant sont résolus par le serveur, et écrits au manifeste.",
             "title": "Input",
             "type": "object"
+          },
+          "overcommit": {
+            "default": false,
+            "description": "Assumer un dépassement du budget mémoire plutôt que de refuser le job. Vide le parc, laisse macOS paginer, et n'offre aucune garantie que le job aille au bout. Sans effet sur un modèle qui tient dans le budget.",
+            "title": "Overcommit",
+            "type": "boolean"
           },
           "ref": {
             "description": "« model@variant », ou « model » quand le choix est évident.",
@@ -1985,6 +2045,49 @@
           }
         },
         "summary": "État d'un job et son manifeste",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/jobs/{job_id}/cancel": {
+      "post": {
+        "description": "Arrête un job et rend son état. Le même geste que `{\"op\":\"cancel\"}` en duplex.\n\nIl existe en HTTP parce qu'un bouton « stop » n'a pas besoin d'une socket :\nl'écran suit déjà le job par son flux d'événements, et lui demander d'en\nouvrir une seconde pour un seul message coûterait plus que le message.\n\n**L'arrêt tue le worker** — voir `JobRegistry.cancel`. Le job rend donc\n`failed`, avec `cancelled` à vrai et le texte déjà produit dans\n`stream_text` : c'est ce qui distingue un arrêt demandé d'une panne, et\nl'écran doit les présenter différemment.",
+        "operationId": "cancel_jobs__job_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Arrêter un job en cours",
         "tags": [
           "jobs"
         ]

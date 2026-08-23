@@ -568,3 +568,97 @@ def test_resident_heavy_accepte_un_autre_seuil():
     assert résident.heavy() is False
     assert résident.heavy(2 * GIB) is True
     assert résident.heavy(3 * GIB) is False  # strict avec un seuil donné aussi
+
+
+# --- mode hors budget -------------------------------------------------------------
+#
+# Le seul refus qui se force, et les trois garanties qui l'encadrent : le parc
+# part entier, un travail en cours ne se sacrifie pas, et la décision se lit.
+
+
+def test_sans_le_mode_un_candidat_trop_gros_est_refuse_et_le_refus_dit_combien_il_manque():
+    décision = plan_admission("gros@4bit", 20 * GIB, [], BUDGET_16)
+
+    assert not décision.admitted
+    assert not décision.overcommit
+    assert décision.overflow_bytes == 4 * GIB
+    assert "--hors-budget" in décision.reason
+
+
+def test_le_mode_hors_budget_admet_ce_que_le_budget_refusait():
+    décision = plan_admission("gros@4bit", 20 * GIB, [], BUDGET_16, overcommit=True)
+
+    assert décision.admitted
+    assert décision.overcommit
+    assert décision.overflow_bytes == 4 * GIB
+    # Il ne reste rien, et le chiffre le dit plutôt que de s'arrêter à zéro.
+    assert décision.headroom_bytes == -4 * GIB
+
+
+def test_le_mode_hors_budget_vide_le_parc_entier_y_compris_ce_qui_tiendrait():
+    """Un modèle qui déborde seul ne laisse pas de marge à partager.
+
+    Épargner le petit résident économiserait un gigaoctet et le paierait en
+    pages échangées pendant toute la durée du job.
+    """
+    parc = [
+        Resident(ref="petit@4bit", peak_bytes=1 * GIB, last_used=2.0),
+        Resident(ref="moyen@4bit", peak_bytes=5 * GIB, last_used=1.0),
+    ]
+
+    décision = plan_admission("gros@4bit", 20 * GIB, parc, BUDGET_16, overcommit=True)
+
+    assert décision.admitted
+    assert set(décision.evict) == {"petit@4bit", "moyen@4bit"}
+
+
+def test_le_mode_hors_budget_ne_detruit_pas_un_job_en_cours():
+    parc = [Resident(ref="occupé@4bit", peak_bytes=2 * GIB, last_used=1.0, busy=True)]
+
+    décision = plan_admission("gros@4bit", 20 * GIB, parc, BUDGET_16, overcommit=True)
+
+    assert not décision.admitted
+    assert décision.blockers == ("occupé@4bit",)
+    assert "en cours de job" in décision.reason
+
+
+def test_le_mode_hors_budget_ne_passe_pas_outre_un_epingle():
+    parc = [Resident(ref="épinglé@4bit", peak_bytes=2 * GIB, last_used=1.0, pinned=True)]
+
+    décision = plan_admission("gros@4bit", 20 * GIB, parc, BUDGET_16, overcommit=True)
+
+    assert not décision.admitted
+    assert "épinglé" in décision.reason
+
+
+def test_le_mode_hors_budget_ne_force_pas_un_profil_manquant():
+    """On ne peut pas assumer un dépassement dont on ignore la taille."""
+    décision = plan_admission("jamais-mesuré@4bit", None, [], BUDGET_16, overcommit=True)
+
+    assert not décision.admitted
+    assert not décision.overcommit
+    assert "ecurie bench" in décision.reason
+
+
+def test_le_mode_hors_budget_ne_change_rien_a_un_modele_qui_tient():
+    """Le drapeau est sans effet quand il n'y a rien à forcer."""
+    dedans = plan_admission("petit@4bit", 4 * GIB, [], BUDGET_16)
+    forcé = plan_admission("petit@4bit", 4 * GIB, [], BUDGET_16, overcommit=True)
+
+    assert (dedans.admitted, forcé.admitted) == (True, True)
+    assert not forcé.overcommit
+    assert forcé.headroom_bytes == dedans.headroom_bytes == 12 * GIB
+
+
+def test_le_refus_hors_budget_annonce_ce_que_le_mode_coute():
+    """Ces phrases sont rendues telles quelles par `ecurie ps --for` et l'Atelier.
+
+    La dernière n'est pas une précaution de style : le mode a été mesuré, et il
+    n'évite pas tout. Qwen3.6-27B tient en génération de texte et échoue à
+    décrire une image, où Metal refuse d'un coup un buffer trop grand au lieu de
+    le paginer. Promettre « ça marchera, en plus lent » serait faux.
+    """
+    décision = plan_admission("gros@4bit", 20 * GIB, [], BUDGET_16, overcommit=True)
+
+    for attendu in ("pagine", "plus lentement", "Insufficient Memory"):
+        assert attendu in décision.reason

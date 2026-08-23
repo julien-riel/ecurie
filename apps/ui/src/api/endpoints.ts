@@ -167,6 +167,21 @@ export function lancerJob(
 }
 
 /**
+ * Arrête un job en cours, et rend son état après l'arrêt.
+ *
+ * Le job rendu est en `failed` avec `cancelled` à vrai : l'arrêt passe par la
+ * mort du worker, il n'y a pas de sortie partielle à ramasser. Ce qui reste est
+ * `stream_text` — le texte déjà reçu —, et c'est précisément ce qu'un écran doit
+ * garder à l'affichage plutôt que de le remplacer par un message d'échec.
+ *
+ * Appeler sur un job déjà terminé ne lève pas : le bouton cliqué une seconde
+ * trop tard est un geste normal, pas une erreur à signaler.
+ */
+export function arreterJob(id: string, signal?: AbortSignal): Promise<Job> {
+  return post<Job>(`/jobs/${encodeURIComponent(id)}/cancel`, undefined, signal);
+}
+
+/**
  * L'état d'un job et son manifeste.
  *
  * Répond aussi pour un job d'une session précédente : la table du serveur ne

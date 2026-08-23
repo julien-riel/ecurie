@@ -332,6 +332,17 @@ class AdmissionOut(BaseModel):
     already_resident: bool = False
     measure_mode: bool = False
     blockers: list[str] = Field(default_factory=list)
+    overcommit: bool = Field(
+        default=False,
+        description=(
+            "Le job a été admis au-delà du budget, sur demande explicite. Le parc est vidé "
+            "et la machine pagine : c'est un arbitrage assumé, pas un calcul qui a débordé."
+        ),
+    )
+    overflow_bytes: int = Field(
+        default=0,
+        description="Ce qui dépasse le budget. Renseigné même quand le dépassement fait refuser.",
+    )
     peak_bytes: int | None = Field(
         default=None, description="Pic attendu pour cette entrée, pas seulement pour ce variant."
     )
@@ -364,6 +375,14 @@ class JobRequest(BaseModel):
         ),
     )
     seed: int | None = None
+    overcommit: bool = Field(
+        default=False,
+        description=(
+            "Assumer un dépassement du budget mémoire plutôt que de refuser le job. Vide le "
+            "parc, laisse macOS paginer, et n'offre aucune garantie que le job aille au bout. "
+            "Sans effet sur un modèle qui tient dans le budget."
+        ),
+    )
 
 
 class JobOut(BaseModel):
@@ -393,6 +412,30 @@ class JobOut(BaseModel):
         default_factory=list, description="Ce qu'il a fallu décharger pour faire de la place."
     )
     warnings: list[str] = Field(default_factory=list)
+    stream_text: str = Field(
+        default="",
+        description=(
+            "La réponse telle qu'elle s'est écrite, cumulée depuis les `delta`. Ce n'est "
+            "pas le résultat — `output` et les fichiers du job restent seuls à faire foi. "
+            "Elle est ici pour qu'un client arrivé en cours de route n'ait pas manqué le "
+            "début, et parce qu'un job annulé n'a que cela à montrer."
+        ),
+    )
+    stream_reasoning: str = Field(
+        default="",
+        description=(
+            "Le raisonnement à voix haute, séparé de la réponse à la source. Vide pour "
+            "les modèles qui n'en produisent pas, ou dont le variant l'a coupé."
+        ),
+    )
+    cancelled: bool = Field(
+        default=False,
+        description=(
+            "Le job a été arrêté à la demande. Il rend alors `failed` — l'arrêt passe par "
+            "la mort du worker —, mais l'échec n'en est pas un, et `stream_text` garde ce "
+            "qui avait déjà été produit."
+        ),
+    )
     metrics: Json = Field(default_factory=dict)
     output: Json = Field(
         default_factory=dict,
@@ -455,6 +498,13 @@ class AdmissionRequest(BaseModel):
         ),
     )
     seed: int | None = None
+    overcommit: bool = Field(
+        default=False,
+        description=(
+            "Simuler en assumant le dépassement du budget. Le bandeau s'en sert pour "
+            "montrer ce que coûterait le mode hors budget avant qu'on l'ait choisi."
+        ),
+    )
 
 
 class AdmissionResponse(BaseModel):

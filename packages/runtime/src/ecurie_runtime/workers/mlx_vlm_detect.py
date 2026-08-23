@@ -13,7 +13,9 @@ centres tombent juste après multiplication par `côté / 1000`, et une boîte y
 dépassait 768 sur une image de 768 pixels — ce qui suffit à écarter l'hypothèse
 des pixels absolus. Un client qui recevrait ces millièmes croirait recevoir des
 pixels et tracerait ses cadres au tiers de leur place ; la conversion est donc
-faite ici, une fois, et le contrat promet des pixels absolus.
+faite ici, une fois, et le contrat promet des pixels absolus. Cette convention
+appartient à une famille de poids, pas à la capacité : un variant dont la grille
+diffère l'écrit dans ses `options`.
 
 **Un modèle de langue ne rend pas du JSON, il rend du texte qui y ressemble.**
 Blocs ``` autour, virgule finale, clé manquante, boîte à trois nombres : ce sont
@@ -44,16 +46,30 @@ from ecurie_runtime.workers.base import (
     WorkerError,
     main,
     peak_rss_bytes,
+    sans_raisonnement,
 )
-from ecurie_runtime.workers.mlx_vlm import REPAIR, Runtime, import_runtime
+from ecurie_runtime.workers.mlx_vlm import (
+    REPAIR,
+    Runtime,
+    composer_invite,
+    import_runtime,
+    thinking_demande,
+)
 from ecurie_runtime.workers.mlx_vlm_describe import resolve_image
 
 OUTPUT_JSON = "objects.json"
 OUTPUT_OVERLAY = "overlay.png"
 
-# La grille sur laquelle le modèle raisonne. Ce n'est pas un réglage : c'est un
-# fait mesuré sur ces poids, et il change avec la famille de modèles — d'où sa
-# place ici, dans l'adaptateur, et non dans le contrat.
+# La grille sur laquelle le modèle raisonne. Ce n'est pas un réglage d'usage :
+# c'est un fait mesuré, propre à une famille de poids — d'où son absence du
+# contrat, qui promet des pixels absolus quoi qu'il arrive.
+#
+# Elle a longtemps pu rester une constante, parce qu'une seule famille servait
+# cette capacité. Dès la deuxième, la constante devient un piège silencieux : un
+# modèle qui raisonnerait sur une grille 0–100 verrait ses boîtes tracées au
+# dixième de leur place, sans que rien n'échoue ni ne le signale. La valeur reste
+# donc ici par défaut, et un variant qui sait la sienne l'écrit dans ses
+# `options` sous la clé `grid`.
 GRILLE = 1000.0
 
 CONSIGNE = (
@@ -95,7 +111,11 @@ def extraire_json(texte: str) -> list[Any]:
 
 
 def convertir(
-    brut: list[Any], largeur: int, hauteur: int, max_objects: int
+    brut: list[Any],
+    largeur: int,
+    hauteur: int,
+    max_objects: int,
+    grille: float = GRILLE,
 ) -> tuple[list[dict], int]:
     """Millièmes du modèle → pixels de l'image fournie. Rend aussi les écartés.
 
@@ -116,10 +136,10 @@ def convertir(
             écartés += 1
             continue
         px = [
-            max(0, min(largeur, round(x1 * largeur / GRILLE))),
-            max(0, min(hauteur, round(y1 * hauteur / GRILLE))),
-            max(0, min(largeur, round(x2 * largeur / GRILLE))),
-            max(0, min(hauteur, round(y2 * hauteur / GRILLE))),
+            max(0, min(largeur, round(x1 * largeur / grille))),
+            max(0, min(hauteur, round(y1 * hauteur / grille))),
+            max(0, min(largeur, round(x2 * largeur / grille))),
+            max(0, min(hauteur, round(y2 * hauteur / grille))),
         ]
         if px[2] <= px[0] or px[3] <= px[1]:
             écartés += 1  # boîte vide ou inversée : rien à montrer
@@ -158,6 +178,8 @@ class MlxVlmDetectWorker(Worker):
         self._config: Any = None
         self._defaults: dict[str, Any] = {}
         self._options: dict[str, Any] = {}
+        self._thinking = False
+        self._grille = GRILLE
         self._peak_load = 0
 
     def load(self, variant: dict[str, Any]) -> dict[str, Any]:
@@ -171,6 +193,8 @@ class MlxVlmDetectWorker(Worker):
 
         self._defaults = dict(variant.get("defaults") or {})
         self._options = dict(variant.get("options") or {})
+        self._thinking = thinking_demande(self._options, self._defaults)
+        self._grille = float(self._options.get("grid", self._defaults.get("grid", GRILLE)))
 
         model, processor = runtime.load(str(chemin))
         self._runtime = runtime
@@ -179,7 +203,7 @@ class MlxVlmDetectWorker(Worker):
         self._config = runtime.load_config(str(chemin))
         self._peak_load = self._pic_mlx() or 0
 
-        return {"grid": GRILLE, "versions": self._versions()}
+        return {"grid": self._grille, "versions": self._versions()}
 
     def infer(self, request: InferRequest, progress: ProgressFn) -> InferResult:
         if self._runtime is None or self._model is None:
@@ -203,8 +227,13 @@ class MlxVlmDetectWorker(Worker):
 
         progress(10, "détection en cours")
         début = time.monotonic()
-        invite = runtime.apply_chat_template(
-            self._processor, self._config, build_prompt(targets, max_objects), num_images=1
+        invite = composer_invite(
+            runtime,
+            self._processor,
+            self._config,
+            build_prompt(targets, max_objects),
+            num_images=1,
+            thinking=self._thinking,
         )
         try:
             résultat = runtime.generate(
@@ -222,10 +251,15 @@ class MlxVlmDetectWorker(Worker):
 
         texte = getattr(résultat, "text", None)
         texte = (texte if texte is not None else str(résultat)).strip()
+        # Le brouillon de raisonnement n'est pas la réponse : s'il en reste un
+        # malgré `enable_thinking`, il est séparé ici plutôt que livré au client.
+        texte, _raisonnement = sans_raisonnement(texte)
         jetons = int(getattr(résultat, "generation_tokens", 0) or 0)
 
         progress(85, "mise en pixels")
-        objets, écartés = convertir(extraire_json(texte), largeur, hauteur, max_objects)
+        objets, écartés = convertir(
+            extraire_json(texte), largeur, hauteur, max_objects, self._grille
+        )
 
         (request.output_dir / OUTPUT_JSON).write_text(
             json.dumps(objets, ensure_ascii=False, indent=2), encoding="utf-8"

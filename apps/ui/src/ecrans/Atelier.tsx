@@ -383,6 +383,12 @@ export function Atelier({ periodeBandeau }: AtelierProps) {
               erreurDeSuivi={suivi.interrompu ? suivi.erreur : []}
               onReprendre={() => void suivi.reprendre()}
               onOublier={suivi.oublier}
+              onArreter={
+                job.state === "queued" || job.state === "running"
+                  ? () => void suivi.arreter()
+                  : undefined
+              }
+              arretEnCours={suivi.arretEnCours}
             />
           ) : null}
         </aside>

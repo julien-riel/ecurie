@@ -23,6 +23,28 @@ Deux refus explicites valent mieux qu'un swap subi :
   C'est ce qui rend vivable la règle « jamais de profil estimé » ;
 - un variant dont le pic dépasse le budget à lui seul est refusé, jamais tenté.
 
+**Le second refus se force, le premier non.** Un modèle qui dépasse le budget ne
+peut pas être rendu plus petit, mais la machine, elle, ne s'arrête pas au
+`recommendedMaxWorkingSetSize` : au-delà, macOS compresse et pagine au lieu de
+tuer le processus. C'est lent, c'est parfois fatal, et c'est un arbitrage qui
+appartient à qui lance le job — d'où le **mode hors budget** (`overcommit`), qui
+admet le dépassement à trois conditions tenues ici : le parc est entièrement
+vidé, aucun travail en cours n'est détruit pour faire la place, et la décision
+est rapportée en toutes lettres jusqu'au manifeste du job. Ce mode ne relève pas
+le budget : il l'assume dépassé, et le dit. Le refus pour profil manquant, lui,
+reste inforçable — on ne peut pas assumer un dépassement dont on ignore la
+taille.
+
+**Ce que le mode ne peut pas faire, et qui a été mesuré.** La pagination sauve
+une croissance graduelle — un KV cache qui s'étend jeton par jeton. Elle ne sauve
+pas une allocation massive d'un seul tenant : Qwen3.6-27B en 4 bits tient en
+génération de texte (17,45 Gio pour 17,76 de budget) et échoue à décrire une
+image, où l'encodage réclame d'un coup un buffer que Metal refuse — « [METAL]
+Command buffer execution failed: Insufficient Memory », sans ralentissement
+préalable. Le mode lève un refus d'**admission** ; il ne lève pas un refus du
+pilote, qui survient bien en aval et qu'aucun contrôle en amont ne peut prédire à
+partir d'un pic global.
+
 **Un refus se lit.** Les tailles des messages passent par `fmt_memory` : ces
 phrases sont rendues telles quelles par `ecurie ps --for` et par le bandeau de
 l'Atelier, et « demande 25704234348 octets, le budget entier est de 19070000000 »
@@ -74,6 +96,13 @@ class Admission:
     already_resident: bool = False
     measure_mode: bool = False
     blockers: tuple[str, ...] = field(default=())  # résidents épinglés qui bloquent
+    # Le job a été admis au-delà du budget, sur décision explicite de l'appelant.
+    # Distinct d'un `headroom_bytes` négatif, qu'aucune autre branche ne produit :
+    # ce drapeau dit qu'un humain a accepté la pagination, pas qu'un calcul a
+    # débordé. Il voyage jusqu'au manifeste du job, où il explique après coup une
+    # durée trois fois trop longue.
+    overcommit: bool = False
+    overflow_bytes: int = 0  # ce qui dépasse le budget ; 0 quand on tient dedans
 
 
 def plan_admission(
@@ -83,8 +112,15 @@ def plan_admission(
     policy: Policy,
     *,
     measure: bool = False,
+    overcommit: bool = False,
 ) -> Admission:
-    """Que faut-il décharger pour faire tenir ce variant, et est-ce seulement possible ?"""
+    """Que faut-il décharger pour faire tenir ce variant, et est-ce seulement possible ?
+
+    `overcommit` n'élargit pas le budget : il autorise le seul refus qui vienne
+    d'un dépassement du budget par le candidat lui-même, et à cette condition
+    vide le parc entier. Tous les autres refus lui résistent — un profil
+    manquant, un épinglé, un job en cours ne se forcent pas d'un drapeau.
+    """
     parc = sorted(residents, key=lambda r: r.last_used)
 
     if measure:
@@ -135,13 +171,18 @@ def plan_admission(
         )
 
     if peak_bytes > policy.budget_bytes:
-        return Admission(
-            admitted=False,
-            reason=(
-                f"{ref} demande {fmt_memory(peak_bytes)}, le budget entier est de "
-                f"{fmt_memory(policy.budget_bytes)} : décharger ne changerait rien"
-            ),
-        )
+        if not overcommit:
+            return Admission(
+                admitted=False,
+                reason=(
+                    f"{ref} demande {fmt_memory(peak_bytes)}, le budget entier est de "
+                    f"{fmt_memory(policy.budget_bytes)} : décharger ne changerait rien. "
+                    f"Il manque {fmt_memory(peak_bytes - policy.budget_bytes)} — "
+                    "passer outre en connaissance de cause avec --hors-budget"
+                ),
+                overflow_bytes=peak_bytes - policy.budget_bytes,
+            )
+        return _hors_budget(ref, peak_bytes, parc, policy)
 
     candidat_lourd = peak_bytes > policy.heavy_threshold_bytes
     if candidat_lourd and policy.max_heavy_resident < 1:
@@ -223,6 +264,53 @@ def _refus_parc(ref: str, lourds: Sequence[Resident], policy: Policy) -> Admissi
             f"pas partir ({', '.join(bloquants)}) — attendre, ou ecurie unload --force"
         ),
         blockers=tuple(r.ref for r in lourds if r.pinned or r.busy),
+    )
+
+
+def _hors_budget(
+    ref: str, peak_bytes: int, parc: Sequence[Resident], policy: Policy
+) -> Admission:
+    """Admission au-delà du budget — ce qu'elle exige, et ce qu'elle coûte.
+
+    Deux choses ne se forcent pas, et c'est ce qui sépare ce mode d'un budget
+    relevé à la main dans la config. La première : un résident épinglé ou occupé
+    reste intouchable. Le dépassement se paie déjà en pagination ; le payer en
+    plus avec le travail d'autrui serait un troc que personne n'a accepté. La
+    seconde : le parc part **entièrement**, y compris les modèles légers qui
+    tiendraient sur le papier. Un modèle qui déborde déjà seul ne laisse pas de
+    marge à partager, et les quelques centaines de mégaoctets épargnés se
+    paieraient au centuple en pages échangées.
+    """
+    immobiles = _immobiles(parc)
+    dépassement = peak_bytes - policy.budget_bytes
+    if immobiles:
+        return Admission(
+            admitted=False,
+            reason=(
+                f"{ref} demande {fmt_memory(peak_bytes)} et le mode hors budget vide le parc "
+                f"entier pour les lui donner ; {', '.join(immobiles)} ne peut pas partir — "
+                "attendre la fin des jobs, ou ecurie unload --force"
+            ),
+            blockers=tuple(r.ref for r in parc if r.pinned or r.busy),
+            overflow_bytes=dépassement,
+        )
+    return Admission(
+        admitted=True,
+        reason=(
+            f"hors budget, assumé : {ref} demande {fmt_memory(peak_bytes)} pour un budget de "
+            f"{fmt_memory(policy.budget_bytes)}, soit {fmt_memory(dépassement)} de trop. "
+            "Le parc est vidé et macOS paginera la différence — le job peut aboutir, plus "
+            "lentement, et d'autant plus lentement que le dépassement est grand. La machine "
+            "entière ralentit, pas seulement Écurie. Ce mode ne promet donc pas que le job "
+            "réussira : une allocation trop grosse d'un seul tenant — l'encodage d'une image "
+            "sur un modèle déjà au bord — n'est pas paginée mais refusée par Metal, et le "
+            "worker tombe sur « Insufficient Memory » sans que rien ne l'ait ralenti avant."
+        ),
+        evict=tuple(r.ref for r in parc),
+        # Négatif, et c'est voulu : `headroom` dit ce qui reste, et il ne reste rien.
+        headroom_bytes=policy.budget_bytes - peak_bytes,
+        overcommit=True,
+        overflow_bytes=dépassement,
     )
 
 

@@ -1,0 +1,81 @@
+# Description d'image — le premier manifeste d'une famille de quatre qui
+# partagent un seul jeu de poids, sur le modèle déjà éprouvé par qwen3-vl-8b-*.
+#
+# Qwen3.6-27B est un modèle de langue à encodeur visuel : 27 milliards de
+# paramètres, 262 144 jetons de contexte natif, Apache-2.0. Son architecture
+# `qwen3_5` alterne trois couches d'attention linéaire pour une d'attention
+# complète — un hybride récurrent dont l'état ne croît pas avec le contexte, et
+# qui explique qu'un modèle de cette taille reste seulement envisageable ici.
+#
+# ATTENTION — CE MANIFESTE NE TIENT PAS DANS LE BUDGET. Les poids seuls pèsent
+# 15,2 Go en mxfp4 et 16,1 Go en 4 bits affine, pour un budget GPU praticable de
+# 15 à 17 Go. Le facteur pic/disque mesuré sur les quatre Qwen3-VL du parc va de
+# 1,14 à 1,26 ; appliqué ici, il place le pic entre 17,4 et 20,3 Go, donc
+# au-dessus du plafond dans toutes les hypothèses, y compris la plus favorable.
+# Le manifeste est écrit parce que le modèle a été demandé et que son chemin
+# d'exécution est réel — mlx-vlm 0.6.15, déjà installé, porte `qwen3_5` —, pas
+# parce qu'il est utilisable. Le déclencheur est nommé dans les caveats.
+#
+# Aucun profil n'est inscrit : les chiffres ci-dessus sont des estimations de
+# filtrage, et le schéma réserve le bloc `profile` au banc d'essai.
+id: qwen36-27b-describe
+name: Qwen3.6 27B (description d'image)
+capability: image-to-text
+family: qwen3.6
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Challenger de qwen3-vl-8b-describe, à trois fois sa taille. Le gain de qualité
+  est inconnu tant que le golden set n'a pas tourné : la fiche amont ne compare
+  Qwen3.6-27B qu'à Qwen3.5-27B et à des modèles fermés, jamais à Qwen3-VL 8B.
+  Rien ne permet donc d'affirmer aujourd'hui qu'il décrit mieux une image que le
+  titulaire en poste, et la seule chose qui soit certaine est qu'il coûte 2,6
+  fois plus de disque et qu'il ne rentre pas dans le budget mémoire.
+
+links:
+  homepage: https://huggingface.co/Qwen/Qwen3.6-27B
+
+variants:
+  # mxfp4 d'abord : c'est le plus léger des deux, donc le seul dont le pic ait
+  # une chance d'approcher le plafond. mlx 0.32.1 connaît le mode (group_size
+  # 32, 4 bits) — vérifié dans `mlx/nn/layers/quantized.py`, pas supposé.
+  - id: mxfp4
+    quantization: 4bit
+    tier: absent
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3.6-27B-mxfp4
+      revision: "b4ac73652af626fd653d0e4fe48a4e9c468a82f6"   # 2026-04-22
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      detail: normal
+      max_tokens: 512
+      temperature: 0.2
+    caveats:
+      - "840 Mo de moins que le variant 4bit, pour une quantification équivalente. Non téléchargé : c'est le variant 4bit qui a été mesuré."
+      - "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure."
+      - "Quantification 4 bits à virgule flottante microscalaire : moins éprouvée dans le parc que le mode affine, et jamais mesurée ici."
+      - "Poids partagés avec qwen36-27b-ocr, -detect et -video — les déporter avec `ecurie store tier` déplace les quatre."
+  # Le format standard, et de loin le plus téléchargé des deux. Il est inscrit
+  # pour que la comparaison mxfp4 / affine soit possible, pas parce qu'il aurait
+  # une chance de tenir dans le budget : il est plus lourd de 840 Mo.
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3.6-27B-4bit
+      revision: "c000ac2c2057d94be3fa931000c31723aac53282"   # 2026-04-22
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      detail: normal
+      max_tokens: 512
+      temperature: 0.2
+    caveats:
+      - "MESURÉ : cette capacité échoue sur cette machine. Le banc rend « [METAL] Command buffer execution failed: Insufficient Memory » sur les trois cas de la charge type. Les poids chargés occupent déjà 14,95 Gio ; le buffer que réclame l'encodage de l'image ne passe plus. `--hors-budget` n'y change rien — il lève un refus d'admission, pas un refus de Metal, et l'allocation échoue en aval du contrôle."
+      - "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure."

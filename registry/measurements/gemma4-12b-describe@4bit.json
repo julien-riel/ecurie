@@ -1,0 +1,71 @@
+{
+  "ref": "gemma4-12b-describe@4bit",
+  "model": "gemma4-12b-describe",
+  "variant": "4bit",
+  "capability": "image-to-text",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+  "measured_at": "2026-08-23",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/image-to-text.json",
+    "version": 1,
+    "cases": [
+      "bref-128",
+      "normal-512",
+      "detaille-1024"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 6773371194,
+    "peak_unified_memory_bytes": 7312156490,
+    "warmup_ms": 2679,
+    "latency_ms_p50": 4637,
+    "throughput": "1 sortie / 5.3 s"
+  },
+  "cases": [
+    {
+      "id": "bref-128",
+      "ok": true,
+      "duration_ms": 2471,
+      "metrics": {
+        "duration_ms": 2471,
+        "characters": 79,
+        "generation_tokens": 23,
+        "tokens_per_second": 9.31,
+        "detail": "bref",
+        "peak_memory_bytes": 7265260610
+      },
+      "error": null
+    },
+    {
+      "id": "normal-512",
+      "ok": true,
+      "duration_ms": 4637,
+      "metrics": {
+        "duration_ms": 4637,
+        "characters": 272,
+        "generation_tokens": 67,
+        "tokens_per_second": 14.45,
+        "detail": "normal",
+        "peak_memory_bytes": 7266756426
+      },
+      "error": null
+    },
+    {
+      "id": "detaille-1024",
+      "ok": true,
+      "duration_ms": 8668,
+      "metrics": {
+        "duration_ms": 8668,
+        "characters": 501,
+        "generation_tokens": 133,
+        "tokens_per_second": 15.34,
+        "detail": "détaillé",
+        "peak_memory_bytes": 7312156490
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

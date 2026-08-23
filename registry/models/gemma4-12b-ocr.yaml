@@ -1,0 +1,64 @@
+# Gemma 4 12B — lecture de document. Voir gemma4-12b-texte.yaml pour l'en-tête
+# de la famille.
+#
+# C'est la capacité que la fiche amont documente le plus précisément : documents
+# et PDF, interfaces d'écran, graphiques, OCR multilingue et écriture
+# manuscrite. Cette dernière est la seule des quatre à ne pas être couverte par
+# le titulaire — le golden set de la capacité n'a pas de cas manuscrit, et il en
+# faudrait un pour que la comparaison veuille dire quelque chose.
+id: gemma4-12b-ocr
+name: Gemma 4 12B Instruct (lecture de document)
+capability: document-to-text
+family: gemma4
+vendor: Google
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Challenger de qwen3-vl-8b-ocr. Le profil doit être mesuré pour lui-même :
+  transcrire une page et décrire une photo ne produisent pas le même nombre de
+  jetons, donc pas le même pic ni la même durée, et un profil recopié d'un
+  manifeste à l'autre serait exactement l'estimation à la main que le projet
+  s'interdit.
+
+links:
+  homepage: https://huggingface.co/google/gemma-4-12B-it
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/gemma-4-12B-it-4bit
+      revision: "73bcf09092aa277861d5a191b989b666f7f32e8f"   # 2026-06-08
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      format: markdown
+      detect_layout: true
+      dpi: 200
+    options:
+      thinking: false
+    caveats:
+      - "Profil non mesuré pour cette capacité."
+      - "Un VLM transcrit, il ne localise pas : la sortie `layout` décrit les pages, pas des boîtes."
+      - "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+  - id: mxfp4
+    quantization: 4bit
+    tier: absent
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/gemma-4-12B-it-mxfp4
+      revision: "a3c49f92810bb45a75ed39f973d0273fcd97da5f"   # 2026-06-08
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      format: markdown
+      detect_layout: true
+      dpi: 200
+    options:
+      thinking: false
+    caveats:
+      - "Non téléchargé."

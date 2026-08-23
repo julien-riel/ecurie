@@ -1,0 +1,118 @@
+{
+  "date": "2026-08-23",
+  "declencheur": "demande explicite de l'utilisateur — évaluer Qwen 3.6 27B et l'ajouter pour les capacités qu'il supporte",
+  "portee": "cycle ciblé sur un seul modèle nommé ; aucun balayage général des sources n'a été mené",
+  "budget_gpu_praticable_go": [15, 17],
+  "facteur_pic_disque_observe": {
+    "source": "registry/measurements/qwen3-vl-8b-*@4bit.json",
+    "valeurs": [1.142, 1.142, 1.162, 1.257],
+    "usage": "estimation de filtrage uniquement — n'entre dans aucun manifeste"
+  },
+  "candidats": [
+    {
+      "modele": "Qwen/Qwen3.6-27B",
+      "verifie_le": "2026-08-23",
+      "existe": true,
+      "revision_amont": "6a9e13bd6fc8f0983b9b99948120bc37f49c13e9",
+      "publie_le": "2026-04-24",
+      "telechargements_amont": 6348356,
+      "parametres": "27B dense",
+      "architecture": "qwen3_5 — hybride attention linéaire / attention complète, 64 couches, full_attention_interval 4",
+      "contexte": "262144 jetons natifs, extensible à 1010000",
+      "licence": "apache-2.0",
+      "license_class": "permissive",
+      "modalites": ["texte", "image", "video"],
+      "audio": false,
+      "thinking_par_defaut": true,
+
+      "chemin_execution": {
+        "runtime": "mlx-vlm",
+        "version_installee": "0.6.15",
+        "mlx": "0.32.1",
+        "support_qwen3_5": true,
+        "preuve": "runtimes/mlx-vlm/.venv/.../mlx_vlm/models/qwen3_5/ présent (language.py, vision.py, gated_delta.py)",
+        "mlx_lm_support_qwen3_5": false,
+        "consequence": "les capacités texte ne peuvent pas passer par le runtime mlx-lm"
+      },
+
+      "variants_mlx": [
+        {
+          "id": "mxfp4",
+          "repo": "mlx-community/Qwen3.6-27B-mxfp4",
+          "revision": "b4ac73652af626fd653d0e4fe48a4e9c468a82f6",
+          "disque_octets": 15240955454,
+          "disque_go": 15.24,
+          "vision": true,
+          "mode_quantization": "mxfp4 (group_size 32, 4 bits)",
+          "supporte_par_mlx_0_32_1": true,
+          "pic_estime_go": [17.4, 19.2],
+          "tient_dans_le_budget": false
+        },
+        {
+          "id": "4bit",
+          "repo": "mlx-community/Qwen3.6-27B-4bit",
+          "revision": "c000ac2c2057d94be3fa931000c31723aac53282",
+          "disque_octets": 16081490064,
+          "disque_go": 16.08,
+          "vision": true,
+          "mode_quantization": "affine (group_size 64, 4 bits)",
+          "supporte_par_mlx_0_32_1": true,
+          "pic_estime_go": [18.3, 20.3],
+          "tient_dans_le_budget": false
+        }
+      ],
+      "variants_ecartes": [
+        {"repo": "mlx-community/Qwen3.6-27B-6bit", "disque_go": 22.8, "motif": "hors budget"},
+        {"repo": "mlx-community/Qwen3.6-27B-8bit", "disque_go": 29.53, "motif": "hors budget"},
+        {"repo": "mlx-community/Qwen3.6-27B-nvfp4", "disque_go": 16.08, "motif": "aucun gain sur mxfp4"},
+        {"repo": "mlx-community/Qwen3.6-27B-OptiQ-4bit", "disque_go": 20.0, "motif": "hors budget, et sans tour de vision"},
+        {"repo": "mlx-community/Qwen3.6-27B-MTP-4bit", "disque_go": 0.26, "motif": "tête de prédiction multi-jetons seule, pas un modèle complet"},
+        {"repo": "AWQ / GPTQ-Int4 (cyankiwi, QuantTrio, Intel, palmfuture…)", "motif": "formats CUDA/vLLM — aucun chemin Apple Silicon"},
+        {"repo": "variantes abliterated / uncensored / finetunes tiers", "motif": "hors périmètre : ce ne sont pas les poids de référence"}
+      ],
+
+      "capacites": {
+        "supportees_par_le_modele": [
+          {"id": "image-to-text", "preuve": "vision_config, image_token_id", "worker_existant": "mlx_vlm_describe", "manifeste_ecrit": true},
+          {"id": "document-to-text", "preuve": "CC-OCR 81.0, CharXiv RQ 79.5", "worker_existant": "mlx_vlm (défaut)", "manifeste_ecrit": true},
+          {"id": "image-detect", "preuve": "RefCOCO 92.5", "worker_existant": "mlx_vlm_detect", "manifeste_ecrit": true},
+          {"id": "video-to-text", "preuve": "video_token_id, mRoPE à section temporelle, VideoMME/MLVU/MVBench", "worker_existant": "mlx_vlm_video", "manifeste_ecrit": true},
+          {"id": "text-generation", "preuve": "modèle de langue causal", "worker_existant": null, "manifeste_ecrit": false, "blocage": "aucun worker (mlx-vlm, text-generation) ; mlx-lm ne charge pas qwen3_5"},
+          {"id": "tool-use", "preuve": "gabarit de conversation acceptant `tools`", "worker_existant": null, "manifeste_ecrit": false, "blocage": "aucun worker (mlx-vlm, tool-use) ; de plus le format d'appel est du XML imbriqué <tool_call><function=…><parameter=…>, que l'extracteur JSON de mlx_lm_tools ne sait pas lire"},
+          {"id": "translation", "preuve": "modèle multilingue", "worker_existant": null, "manifeste_ecrit": false, "blocage": "aucun worker (mlx-vlm, translation) ; mlx-lm ne charge pas qwen3_5"}
+        ],
+        "non_supportees": [
+          {"id": "audio-to-text", "motif": "aucun encodeur audio dans la configuration"},
+          {"id": "speech-to-text", "motif": "idem"},
+          {"id": "image-segment", "motif": "ne rend pas de masques"},
+          {"id": "text-to-image", "motif": "ne génère pas d'image"}
+        ]
+      },
+
+      "score": {
+        "provisoire": true,
+        "motif": "gain_qualité_relatif inconnu — la fiche amont ne compare le modèle qu'à Qwen3.5-27B et à des modèles fermés, jamais à Qwen3-VL 8B, titulaire de fait des quatre capacités visées",
+        "maturite_runtime": 1.0,
+        "licence": 1.0,
+        "adequation_budget": 0.0,
+        "velocite": 1.0
+      },
+
+      "verdict": "manifestes écrits en status:candidate, tier:absent — bloqué par le budget mémoire, pas par la licence ni par le runtime",
+      "declencheurs": [
+        "une conversion MLX du modèle de référence à 3 bits ou moins, tour de vision comprise, sous ~13 Go de poids",
+        "une machine cible à plus de 24 Go de mémoire unifiée",
+        "un adaptateur mlx-vlm capable de transmettre enable_thinking, préalable à toute mesure honnête des quatre capacités"
+      ]
+    }
+  ],
+
+  "a_surveiller": [
+    {
+      "modele": "Qwen/Qwen3.8-27B",
+      "publie_le": "2026-08-14",
+      "constat": "génération suivante du même gabarit, parue neuf jours avant ce cycle ; mlx-community/Qwen3.8-27B-4bit pèse 16,08 Go, soit le même dépassement de budget. Aucune conversion mxfp4 à ce jour.",
+      "consequence": "changer de génération ne débloque rien — le mur est la taille, pas la version"
+    }
+  ]
+}

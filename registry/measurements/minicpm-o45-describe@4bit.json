@@ -1,0 +1,71 @@
+{
+  "ref": "minicpm-o45-describe@4bit",
+  "model": "minicpm-o45-describe",
+  "variant": "4bit",
+  "capability": "image-to-text",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+  "measured_at": "2026-08-23",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/image-to-text.json",
+    "version": 1,
+    "cases": [
+      "bref-128",
+      "normal-512",
+      "detaille-1024"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 6157966275,
+    "peak_unified_memory_bytes": 6724309086,
+    "warmup_ms": 1735,
+    "latency_ms_p50": 4131,
+    "throughput": "1 sortie / 5.7 s"
+  },
+  "cases": [
+    {
+      "id": "bref-128",
+      "ok": true,
+      "duration_ms": 1889,
+      "metrics": {
+        "duration_ms": 1889,
+        "characters": 112,
+        "generation_tokens": 38,
+        "tokens_per_second": 20.15,
+        "detail": "bref",
+        "peak_memory_bytes": 6713757558
+      },
+      "error": null
+    },
+    {
+      "id": "normal-512",
+      "ok": true,
+      "duration_ms": 4131,
+      "metrics": {
+        "duration_ms": 4131,
+        "characters": 373,
+        "generation_tokens": 107,
+        "tokens_per_second": 25.9,
+        "detail": "normal",
+        "peak_memory_bytes": 6724309086
+      },
+      "error": null
+    },
+    {
+      "id": "detaille-1024",
+      "ok": true,
+      "duration_ms": 11083,
+      "metrics": {
+        "duration_ms": 11083,
+        "characters": 1115,
+        "generation_tokens": 299,
+        "tokens_per_second": 26.98,
+        "detail": "détaillé",
+        "peak_memory_bytes": 6721950014
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

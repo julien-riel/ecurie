@@ -1,0 +1,69 @@
+# Gemma 4 12B — description de vidéo. Voir gemma4-12b-texte.yaml pour l'en-tête
+# de la famille.
+#
+# La fiche amont pose une borne que le contrat ne connaît pas : l'analyse vidéo
+# est donnée pour des séquences d'au plus **60 secondes**. Ce n'est pas une
+# limite que l'adaptateur applique — il échantillonne des images fixes, et une
+# vidéo de dix minutes lui en donne autant qu'une de dix secondes. La borne
+# porte donc sur ce que la réponse vaut, pas sur ce que le job accepte : au-delà,
+# le modèle répondra quand même, et sa réponse n'a pas été garantie par qui l'a
+# entraîné.
+id: gemma4-12b-video
+name: Gemma 4 12B Instruct (description de vidéo)
+capability: video-to-text
+family: gemma4
+vendor: Google
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Challenger de qwen3-vl-8b-video. Sur le titulaire, le chemin vidéo natif de
+  mlx-vlm s'est révélé inutilisable — il transmettait un unique jeton de
+  remplissage, et le modèle décrivait alors une scène figée en niant tout
+  mouvement. L'adaptateur décode donc lui-même. Rien ne dit que cette famille se
+  comporte pareil, et la sortie `native_video` du job dira quel chemin a servi.
+
+links:
+  homepage: https://huggingface.co/google/gemma-4-12B-it
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/gemma-4-12B-it-4bit
+      revision: "73bcf09092aa277861d5a191b989b666f7f32e8f"   # 2026-06-08
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      fps: 1.0
+      max_frames: 8
+      max_tokens: 512
+      temperature: 0.2
+    options:
+      thinking: false
+    caveats:
+      - "L'amont ne garantit l'analyse que jusqu'à 60 secondes de vidéo. Au-delà, le job aboutit mais la réponse sort du domaine annoncé."
+      - "Le pic suit `max_frames`, pas la durée de la vidéo : huit images d'un plan de dix minutes coûtent autant que huit images de dix secondes."
+      - "Profil non mesuré pour cette capacité, et c'est celle dont le pic est le plus élevé sur la famille comparable."
+      - "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+  - id: mxfp4
+    quantization: 4bit
+    tier: absent
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/gemma-4-12B-it-mxfp4
+      revision: "a3c49f92810bb45a75ed39f973d0273fcd97da5f"   # 2026-06-08
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      fps: 1.0
+      max_frames: 8
+      max_tokens: 512
+      temperature: 0.2
+    options:
+      thinking: false
+    caveats:
+      - "Non téléchargé."

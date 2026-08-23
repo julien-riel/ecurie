@@ -1,0 +1,76 @@
+# Gemma 4 12B — détection. Voir gemma4-12b-texte.yaml pour l'en-tête de la
+# famille.
+#
+# **Le manifeste à surveiller des sept.** La fiche amont annonce du « pointing »,
+# ce qui n'est pas la même chose que des boîtes englobantes : un modèle qui
+# pointe rend un centre, un modèle qui détecte rend un rectangle. Le contrat
+# `image-detect` exige le second, et rien dans la fiche ne dit sur quelle grille
+# les coordonnées sont exprimées.
+#
+# L'adaptateur ne suppose plus que cette grille vaut 1000 : elle se déclare
+# désormais par variant, sous `options.grid`. La valeur laissée ici est le
+# défaut, hérité de Qwen3-VL, et **elle n'a pas été vérifiée sur ces poids**. Une
+# grille fausse ne fait rien échouer : elle trace les boîtes à une fraction de
+# leur place, en silence. C'est le premier point à mesurer sur ce manifeste, et
+# il se lit d'un coup d'œil sur `overlay.png`.
+id: gemma4-12b-detect
+name: Gemma 4 12B Instruct (détection)
+capability: image-detect
+family: gemma4
+vendor: Google
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Challenger de qwen3-vl-8b-detect, dont la grille 0–1000 a été établie par la
+  mesure sur une scène aux positions connues par fabrication. La même vérification
+  est due ici avant tout usage, et avant toute comparaison : un score de
+  détection calculé sur des boîtes mal converties ne mesurerait pas le modèle.
+
+links:
+  homepage: https://huggingface.co/google/gemma-4-12B-it
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/gemma-4-12B-it-4bit
+      revision: "73bcf09092aa277861d5a191b989b666f7f32e8f"   # 2026-06-08
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      max_objects: 20
+      max_tokens: 1024
+      temperature: 0.0
+    options:
+      thinking: false
+      # Défaut hérité de Qwen3-VL, non vérifié sur ces poids. À corriger dès que
+      # la mesure aura dit la vraie convention de cette famille.
+      grid: 1000
+    caveats:
+      - "Grille de coordonnées non vérifiée sur ces poids : `options.grid` porte le défaut de Qwen3-VL. Une grille fausse trace les boîtes à une fraction de leur place sans que rien n'échoue — regarder `overlay.png` du premier job."
+      - "La fiche amont annonce du « pointing », qui rend des centres là où le contrat attend des rectangles. Que le modèle sache produire des boîtes reste à établir."
+      - "Profil non mesuré pour cette capacité."
+      - "Aucun score de confiance : un VLM en produit un si on le lui demande, et rien dans son entraînement ne le calibre. Le contrat n'en déclare pas."
+      - "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+  - id: mxfp4
+    quantization: 4bit
+    tier: absent
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/gemma-4-12B-it-mxfp4
+      revision: "a3c49f92810bb45a75ed39f973d0273fcd97da5f"   # 2026-06-08
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      max_objects: 20
+      max_tokens: 1024
+      temperature: 0.0
+    options:
+      thinking: false
+      grid: 1000
+    caveats:
+      - "Non téléchargé."

@@ -86,6 +86,118 @@ def _decoder(fragment: str) -> list[dict[str, Any]]:
     return appels
 
 
+# Le troisième format, et le seul qui ne soit pas du JSON. Qwen3.6 et les
+# gabarits dits « qwen3_coder » rendent leurs appels en XML imbriqué :
+#
+#     <tool_call><function=météo><parameter=ville>Paris</parameter></function></tool_call>
+#
+# L'extracteur JSON capturait bien la balise, tentait un `json.loads` sur son
+# contenu, échouait, et rendait zéro appel — sur un modèle qui avait pourtant
+# choisi le bon outil et rempli le bon argument. C'est très exactement le défaut
+# que l'en-tête de ce module dit vouloir éviter : mesurer la conformité à un
+# format plutôt que la compétence.
+FONCTION_XML = re.compile(r"<function\s*=\s*([^>\s]+)\s*>(.*?)</function>", re.DOTALL)
+PARAMETRE_XML = re.compile(r"<parameter\s*=\s*([^>\s]+)\s*>(.*?)</parameter>", re.DOTALL)
+
+# Ce qui mérite une relecture JSON : un nombre, un booléen, un nul, un objet ou
+# un tableau. Tout le reste est du texte et le reste — sans quoi une ville
+# nommée « NaN » deviendrait un flottant, et une référence « 007 » un entier.
+JSON_PROBABLE = re.compile(
+    r"^(?:-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?|true|false|null|\{.*\}|\[.*\])$", re.DOTALL
+)
+
+
+def _valeur_xml(brut: str) -> Any:
+    """Le contenu d'un `<parameter=…>`, retypé quand il en a manifestement la forme."""
+    dépouillé = brut.strip()
+    if JSON_PROBABLE.match(dépouillé):
+        try:
+            return json.loads(dépouillé)
+        except json.JSONDecodeError:
+            return dépouillé
+    return dépouillé
+
+
+def _appels_xml(texte: str) -> list[dict[str, Any]]:
+    """Les appels rendus en XML imbriqué, s'il y en a."""
+    appels: list[dict[str, Any]] = []
+    for nom, corps in FONCTION_XML.findall(texte):
+        arguments = {clé: _valeur_xml(valeur) for clé, valeur in PARAMETRE_XML.findall(corps)}
+        appels.append({"name": nom.strip(), "arguments": arguments})
+    return appels
+
+
+# Le quatrième format, découvert sur Gemma 4 dès que son gabarit a reçu ses
+# outils au format qu'il attend :
+#
+#     <|tool_call>call:reserver{couverts:4,terrasse:true,ville:<|"|>Lyon<|"|>}<tool_call|>
+#
+# C'est du JSON à deux détails près : les clés sont nues, et les guillemets sont
+# rendus par un jeton spécial. Le modèle choisissait le bon outil et remplissait
+# les bons arguments ; l'extracteur rendait zéro appel.
+GEMMA_BLOC = re.compile(r"<\|tool_call>\s*(.*?)\s*<tool_call\|>", re.DOTALL)
+GEMMA_TETE = re.compile(r"^call:\s*([A-Za-z0-9_.\-]+)\s*\{(.*)\}$", re.DOTALL)
+GEMMA_GUILLEMET = '<|"|>'
+
+
+def _decouper_arguments(corps: str) -> list[str]:
+    """Découpe sur les virgules de premier niveau, en épargnant celles des chaînes.
+
+    Un `split(",")` couperait « Lyon, 3e arrondissement » en deux arguments dont
+    le second n'aurait pas de clé — donc serait perdu en silence.
+    """
+    morceaux: list[str] = []
+    courant: list[str] = []
+    dans_chaine = False
+    échappé = False
+    for caractère in corps:
+        if dans_chaine:
+            if échappé:
+                échappé = False
+            elif caractère == "\\":
+                échappé = True
+            elif caractère == '"':
+                dans_chaine = False
+        elif caractère == '"':
+            dans_chaine = True
+        elif caractère == ",":
+            morceaux.append("".join(courant))
+            courant = []
+            continue
+        courant.append(caractère)
+    if courant:
+        morceaux.append("".join(courant))
+    return [m for m in (morceau.strip() for morceau in morceaux) if m]
+
+
+def _appels_gemma(texte: str) -> list[dict[str, Any]]:
+    """Les appels au format `<|tool_call>call:nom{…}<tool_call|>`, s'il y en a."""
+    appels: list[dict[str, Any]] = []
+    for bloc in GEMMA_BLOC.findall(texte):
+        tête = GEMMA_TETE.match(bloc.strip())
+        if tête is None:
+            continue
+        nom, corps = tête.group(1), tête.group(2).replace(GEMMA_GUILLEMET, '"')
+        arguments: dict[str, Any] = {}
+        for morceau in _decouper_arguments(corps):
+            clé, séparateur, valeur = morceau.partition(":")
+            if not séparateur:
+                continue
+            arguments[clé.strip()] = _valeur_gemma(valeur.strip())
+        appels.append({"name": nom.strip(), "arguments": arguments})
+    return appels
+
+
+def _valeur_gemma(brut: str) -> Any:
+    """Une valeur du format Gemma : chaîne délimitée, ou scalaire nu."""
+    if brut.startswith('"'):
+        try:
+            return json.loads(brut)
+        except json.JSONDecodeError:
+            return brut.strip('"')
+    return _valeur_xml(brut)
+
+
 def _objets_nus(texte: str) -> list[str]:
     """Fragments JSON équilibrés trouvés dans du texte libre.
 
@@ -133,6 +245,19 @@ def extraire_appels(texte: str) -> tuple[list[dict[str, Any]], str, str]:
         if appels:
             reste = motif.sub("", texte).strip()
             return appels, reste, nom
+
+    appels = _appels_gemma(texte)
+    if appels:
+        return appels, GEMMA_BLOC.sub("", texte).strip(), "gemma_tool_call"
+
+    appels = _appels_xml(texte)
+    if appels:
+        # On retire les `<function>` et les `<tool_call>` qui les entouraient :
+        # ce qui reste est le commentaire en clair que le gabarit autorise avant
+        # l'appel, et il a sa place dans `text.txt`.
+        reste = FONCTION_XML.sub("", texte)
+        reste = re.sub(r"</?tool_calls?>", "", reste).strip()
+        return appels, reste, "xml_function"
 
     for fragment in _objets_nus(texte):
         appels = _decoder(fragment)

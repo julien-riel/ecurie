@@ -1,0 +1,71 @@
+# Gemma 4 12B — traduction. Voir gemma4-12b-texte.yaml pour l'en-tête de la
+# famille : mêmes poids, même révision, un contrat de plus.
+#
+# C'est la capacité où ce candidat a le plus de chances de déloger son titulaire.
+# Le parc traduit aujourd'hui avec qwen3-4b-traduction, choisi faute de mieux :
+# NLLB-200 traduit mieux à taille égale mais est publié en CC-BY-NC, Opus-MT est
+# unidirectionnel quand le contrat expose une langue d'arrivée libre. Gemma 4
+# déclare 35 langues et en a vu plus de 140 au pré-entraînement, pour trois fois
+# la taille du titulaire — et il tient toujours dans le budget, ce qui n'était
+# pas le cas de l'autre candidat de ce cycle.
+id: gemma4-12b-traduction
+name: Gemma 4 12B Instruct (traduction)
+capability: translation
+family: gemma4
+vendor: Google
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Le golden set de la capacité tranchera. Ce qui est acquis sans lui : la
+  licence est permissive, les poids sont déjà sur le disque puisqu'ils servent
+  six autres manifestes, et le coût marginal de cette capacité est donc nul.
+
+links:
+  homepage: https://huggingface.co/google/gemma-4-12B-it
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/gemma-4-12B-it-4bit
+      revision: "73bcf09092aa277861d5a191b989b666f7f32e8f"   # 2026-06-08
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      register: neutre
+      preserve_formatting: true
+    options:
+      thinking: false
+    caveats:
+      - "Profil non mesuré pour cette capacité : traduire un paragraphe et écrire une réponse libre ne produisent pas le même nombre de jetons, donc pas le même pic ni la même durée."
+      - "Ne détecte pas la langue de départ : il traduit ce qu'on lui donne. `detected_source_language` rend la langue déclarée, ou rien."
+      - "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+    profile:
+      disk_bytes: 6773371194
+      peak_unified_memory_bytes: 7234268354
+      warmup_ms: 1745
+      latency_ms_p50: 3866
+      throughput: "1 sortie / 4.3 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"
+  - id: mxfp4
+    quantization: 4bit
+    tier: absent
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/gemma-4-12B-it-mxfp4
+      revision: "a3c49f92810bb45a75ed39f973d0273fcd97da5f"   # 2026-06-08
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      register: neutre
+      preserve_formatting: true
+    options:
+      thinking: false
+    caveats:
+      - "Non téléchargé."

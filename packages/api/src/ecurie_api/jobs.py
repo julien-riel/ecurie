@@ -33,13 +33,14 @@ dossier du job, que la Bibliothèque (4.2) indexera et qui survit au redémarrag
 
 import threading
 from collections import OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Literal
 from urllib.parse import quote
 
 from ecurie_core.capabilities import CapabilityContract
 from ecurie_core.models import Model, Variant
+from ecurie_runtime.protocol import CANAL_RAISONNEMENT
 from ecurie_runtime.runner import JobOutcome, new_job_id, run_job
 
 if TYPE_CHECKING:  # pragma: no cover — AppState importe ce module, la flèche ne va que dans un sens
@@ -56,6 +57,14 @@ MAX_JOBS_ACTIFS = 16
 # sur le disque : ce qui est perdu, c'est le suivi en direct d'un job fini depuis
 # longtemps, ce que personne ne regarde.
 MAX_JOBS_RETENUS = 200
+
+
+# Un arrêt demandé n'est pas une panne, même s'il en emprunte le chemin :
+# l'annulation tue le worker, et ce que le runner voit est un canal fermé.
+# Rapporter « le worker a fermé le canal » à qui vient d'appuyer sur « stop »
+# serait exact et inutile — et inquiétant, puisque c'est aussi ce que dit un vrai
+# plantage.
+MOTIF_ANNULATION = "annulé à la demande — le worker a été arrêté en cours de génération"
 
 
 class TooManyJobs(RuntimeError):
@@ -84,7 +93,18 @@ class Job:
     capability: str
     input: dict[str, Any]
     seed: int | None = None
+    # Porté par le job et non par le superviseur : le dépassement est assumé pour
+    # *ce* travail-là, pas installé pour la session. Le job suivant redemandera.
+    overcommit: bool = False
     state: JobState = "queued"
+    # Le texte tel qu'il arrive, canal par canal. Ce n'est pas le résultat — le
+    # manifeste et les fichiers de sortie restent seuls à faire foi —, c'est ce
+    # qu'on a vu pendant que le modèle travaillait. Un client qui se connecte en
+    # retard le retrouve entier dans le snapshot plutôt que d'avoir manqué le
+    # début.
+    stream_text: str = ""
+    stream_reasoning: str = ""
+    cancelled: bool = False
     submitted_at: str = field(default_factory=_maintenant)
     started_at: str | None = None
     finished_at: str | None = None
@@ -149,6 +169,9 @@ class Job:
             "files": {clé: file_url(self.id, chemin) for clé, chemin in self.outputs.items()},
             "input": dict(self.input),
             "seed": self.seed,
+            "stream_text": self.stream_text,
+            "stream_reasoning": self.stream_reasoning,
+            "cancelled": self.cancelled,
         }
 
     def events_since(self, index: int) -> list[dict[str, Any]]:
@@ -184,9 +207,37 @@ class Job:
             self.note = note
             self._emit("progress")
 
+    def receive_delta(self, texte: str, canal: str) -> None:
+        """Un fragment de texte produit par le modèle, rangé dans son canal.
+
+        L'événement émis ne porte que le fragment, là où tous les autres portent
+        l'état complet du job. C'est une exception assumée : un modèle qui rend
+        mille cinq cents jetons émettrait mille cinq cents copies du snapshot, et
+        le flux coûterait plus cher à transporter que la réponse elle-même. Le
+        cumul reste dans le snapshot pour qui arrive en cours de route.
+        """
+        if not texte:
+            return
+        with self._lock:
+            if canal == CANAL_RAISONNEMENT:
+                self.stream_reasoning += texte
+            else:
+                self.stream_text += texte
+            self.events.append({"kind": "delta", "delta": {"text": texte, "channel": canal}})
+
+    def mark_cancelled(self) -> None:
+        with self._lock:
+            self.cancelled = True
+            self.note = "annulation demandée — le worker est en train d'être arrêté"
+            self._emit("state")
+
     def finish(self, outcome: JobOutcome) -> None:
         with self._lock:
             self.state = "done" if outcome.ok else "failed"
+            if self.cancelled and not outcome.ok:
+                # `run_job` a rattrapé l'exception et rendu un résultat en échec :
+                # c'est par ici que passe l'annulation, pas par `fail`.
+                outcome = replace(outcome, error=MOTIF_ANNULATION)
             self.finished_at = _maintenant()
             self.progress = 100 if outcome.ok else self.progress
             self.note = "" if outcome.ok else (outcome.error or "")
@@ -248,6 +299,30 @@ class JobRegistry:
         with self._lock:
             return sum(1 for job in self._jobs.values() if not job.terminal)
 
+    def cancel(self, job_id: str) -> bool:
+        """Arrête un job en cours. Rend faux si le job est inconnu ou déjà terminé.
+
+        **L'arrêt passe par la mort du worker**, et il faut le dire plutôt que de
+        le déguiser. Rien de plus doux n'existe : pendant une génération, le
+        worker est dans la boucle de son moteur, le canal ne porte que ses
+        réponses, et aucun message ne l'atteindrait avant la fin — ce que
+        l'annulation existe précisément pour ne pas attendre.
+
+        Le prix est réel et se paie deux fois : le job meurt sur un canal fermé
+        et rend `failed` plutôt qu'un résultat partiel, et le modèle perd sa
+        résidence, donc le job suivant repaiera son warmup. C'est le prix d'un
+        arrêt immédiat, et l'utilisateur qui appuie sur « stop » l'a demandé.
+        """
+        job = self.get(job_id)
+        if job is None or job.terminal:
+            return False
+        job.mark_cancelled()
+        # `force` parce que ce worker est justement occupé : c'est tout l'objet
+        # de la demande. Sans lui, le superviseur refuserait de détruire un
+        # travail en cours — ce qu'il a raison de faire dans tous les autres cas.
+        self.state.supervisor().unload(job.ref, force=True)
+        return True
+
     def submit(
         self,
         model: Model,
@@ -257,6 +332,7 @@ class JobRegistry:
         entrée: dict[str, Any],
         *,
         seed: int | None = None,
+        overcommit: bool = False,
     ) -> Job:
         job = Job(
             id=new_job_id(),
@@ -266,6 +342,7 @@ class JobRegistry:
             capability=model.capability,
             input=dict(entrée),
             seed=seed,
+            overcommit=overcommit,
         )
         with self._lock:
             actifs = sum(1 for autre in self._jobs.values() if not autre.terminal)
@@ -314,12 +391,22 @@ class JobRegistry:
                 typed=True,
                 seed=job.seed,
                 db=db,
+                overcommit=job.overcommit,
                 job_id=job.id,
                 on_progress=job.advance,
+                on_delta=job.receive_delta,
                 on_wait=job.waiting_for,
             )
         except Exception as exc:  # noqa: BLE001 — entrée refusée, fichier absent : le job le porte
-            job.fail(f"{type(exc).__name__}: {exc}")
+            # Un arrêt demandé n'est pas une panne, même s'il en emprunte le
+            # chemin : l'annulation tue le worker, et ce que le runner voit est
+            # un canal fermé. Rapporter « le worker a fermé le canal » à qui
+            # vient d'appuyer sur « stop » serait exact et inutile — et
+            # inquiétant, puisque c'est aussi ce que dit un vrai plantage.
+            if job.cancelled:
+                job.fail(MOTIF_ANNULATION)
+            else:
+                job.fail(f"{type(exc).__name__}: {exc}")
         else:
             job.finish(outcome)
         finally:

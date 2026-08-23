@@ -246,6 +246,7 @@
         "type": "object"
       },
       "models": [
+        "minicpm-o45-ecoute",
         "qwen2-audio-7b"
       ],
       "output": {
@@ -289,6 +290,107 @@
       ],
       "steps": [],
       "title": "Compréhension audio"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "colormap": "turbo",
+        "process_res": 504
+      },
+      "description": "Estime la distance de chaque pixel à la caméra, depuis une seule image, et rend en même temps les paramètres de la caméra qui l'a prise. À ne pas confondre avec l'image vers maillage, qui reconstruit une surface fermée : ici la sortie reste une image, dont chaque pixel porte une distance plutôt qu'une couleur. C'est ce qui précède un maillage plutôt que ce qui le remplace — et ce qui permet de détourer par la distance, de flouter un arrière-plan, ou de recaler deux prises de vue.",
+      "id": "depth-estimation",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "colormap": {
+            "default": "turbo",
+            "description": "Palette de l'aperçu lisible. Elle ne change rien aux valeurs rendues dans `depth`, qui restent celles du modèle.",
+            "enum": [
+              "turbo",
+              "magma",
+              "gris"
+            ],
+            "type": "string"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image dont il faut estimer la profondeur.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "process_res": {
+            "default": 504,
+            "description": "Côté de la grille sur laquelle le modèle raisonne. Le coût suit la surface : doubler ce nombre quadruple le travail. La sortie est rendue à cette résolution, pas à celle de l'image d'entrée — une carte de profondeur remise à l'échelle par interpolation invente des distances qui n'ont pas été estimées.",
+            "maximum": 2048,
+            "minimum": 256,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "da3-large"
+      ],
+      "output": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de la confiance du modèle pixel par pixel, relatif au dossier du job. Les bords d'objets et les surfaces uniformes y tombent, et c'est là que la profondeur est à prendre avec précaution.",
+            "type": "string"
+          },
+          "depth": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de la carte de profondeur en PNG 16 bits, relatif au dossier du job. Les valeurs sont normalisées entre `near` et `far` : sans ces deux bornes, l'image ne dit qu'un ordre, pas des distances.",
+            "type": "string"
+          },
+          "far": {
+            "description": "Distance du pixel le plus lointain, même unité.",
+            "type": "number"
+          },
+          "focal_length_px": {
+            "description": "Focale estimée, en pixels de la grille de traitement. Le modèle la déduit de l'image : ce n'est pas une donnée EXIF, et elle peut être fausse sur une photo recadrée.",
+            "type": "number"
+          },
+          "intrinsics": {
+            "contentMediaType": "application/json",
+            "description": "Chemin du JSON portant la matrice intrinsèque 3×3 et la pose extrinsèque 3×4, relatif au dossier du job. Ce que le contrat ne promet pas : une échelle métrique. La profondeur monoculaire est relative — deux photos de la même scène ne donnent pas la même unité.",
+            "type": "string"
+          },
+          "near": {
+            "description": "Distance du pixel le plus proche, dans l'unité du modèle. Avec `far`, elle rend les valeurs de `depth` interprétables.",
+            "type": "number"
+          },
+          "preview": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de la même carte colorisée pour être lue, relatif au dossier du job. Un PNG 16 bits s'affiche noir dans la plupart des visionneuses ; l'aperçu existe pour qu'un résultat faux se voie en un coup d'œil.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "depth",
+          "preview",
+          "near",
+          "far"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "confidence": "image/png",
+        "depth": "image/png",
+        "intrinsics": "application/json",
+        "preview": "image/png"
+      },
+      "ready_variants": [],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Profondeur monoculaire"
     },
     {
       "composite": false,
@@ -348,7 +450,9 @@
         "type": "object"
       },
       "models": [
-        "qwen3-vl-8b-ocr"
+        "gemma4-12b-ocr",
+        "qwen3-vl-8b-ocr",
+        "qwen36-27b-ocr"
       ],
       "output": {
         "properties": {
@@ -443,7 +547,9 @@
         "type": "object"
       },
       "models": [
-        "qwen3-vl-8b-detect"
+        "gemma4-12b-detect",
+        "qwen3-vl-8b-detect",
+        "qwen36-27b-detect"
       ],
       "output": {
         "properties": {
@@ -723,7 +829,7 @@
       "defaults": {
         "max_side": 2048
       },
-      "description": "Découpe l'objet qu'on lui désigne d'un point ou d'une boîte. À ne pas confondre avec le détourage, qui décide seul de ce qui est au premier plan : ici c'est l'utilisateur qui montre, et le modèle qui suit le contour.",
+      "description": "Découpe l'objet qu'on lui désigne — d'un point, d'une boîte, ou d'un mot. À ne pas confondre avec le détourage, qui décide seul de ce qui est au premier plan : ici c'est l'utilisateur qui montre, et le modèle qui suit le contour.",
       "id": "image-segment",
       "incumbent": null,
       "input": {
@@ -800,6 +906,11 @@
             },
             "maxItems": 32,
             "type": "array"
+          },
+          "prompt": {
+            "description": "Le concept à découper, en mots — « le chien », « les panneaux ». Troisième façon de désigner, à côté du point et de la boîte : elle ne demande aucun clic, mais ramasse toutes les instances qui ressemblent au mot. Tous les modèles ne la servent pas, et ceux qui l'exigent le disent dans leurs caveats plutôt que de deviner en son absence.",
+            "maxLength": 200,
+            "type": "string"
           }
         },
         "required": [
@@ -808,7 +919,8 @@
         "type": "object"
       },
       "models": [
-        "sam2-hiera-small"
+        "sam2-hiera-small",
+        "sam3"
       ],
       "output": {
         "properties": {
@@ -1093,7 +1205,11 @@
         "type": "object"
       },
       "models": [
-        "qwen3-vl-8b-describe"
+        "gemma4-12b-describe",
+        "minicpm-o45-describe",
+        "minicpm-v46-describe",
+        "qwen3-vl-8b-describe",
+        "qwen36-27b-describe"
       ],
       "output": {
         "properties": {
@@ -1125,6 +1241,9 @@
         "text": "text/plain"
       },
       "ready_variants": [
+        "gemma4-12b-describe@4bit",
+        "minicpm-o45-describe@4bit",
+        "minicpm-v46-describe@4bit",
         "qwen3-vl-8b-describe@4bit"
       ],
       "required": [
@@ -1276,6 +1395,7 @@
         "type": "object"
       },
       "models": [
+        "seedvr2-3b",
         "swin2sr"
       ],
       "output": {
@@ -1305,6 +1425,7 @@
         "image": "image/png"
       },
       "ready_variants": [
+        "seedvr2-3b@fp16",
         "swin2sr@classique-x2",
         "swin2sr@reel-x4"
       ],
@@ -1592,7 +1713,9 @@
         "type": "object"
       },
       "models": [
-        "qwen25-coder-7b"
+        "gemma4-12b-texte",
+        "qwen25-coder-7b",
+        "qwen36-27b-texte"
       ],
       "output": {
         "properties": {
@@ -1625,7 +1748,9 @@
         "text": "text/plain"
       },
       "ready_variants": [
-        "qwen25-coder-7b@4bit"
+        "gemma4-12b-texte@4bit",
+        "qwen25-coder-7b@4bit",
+        "qwen36-27b-texte@4bit"
       ],
       "required": [
         "prompt"
@@ -2083,7 +2208,9 @@
         "type": "object"
       },
       "models": [
-        "qwen3-4b-outils"
+        "gemma4-12b-outils",
+        "qwen3-4b-outils",
+        "qwen36-27b-outils"
       ],
       "output": {
         "properties": {
@@ -2123,6 +2250,7 @@
         "text": "text/plain"
       },
       "ready_variants": [
+        "gemma4-12b-outils@4bit",
         "qwen3-4b-outils@4bit"
       ],
       "required": [
@@ -2191,7 +2319,9 @@
         "type": "object"
       },
       "models": [
-        "qwen3-4b-traduction"
+        "gemma4-12b-traduction",
+        "qwen3-4b-traduction",
+        "qwen36-27b-traduction"
       ],
       "output": {
         "properties": {
@@ -2219,6 +2349,7 @@
         "text": "text/plain"
       },
       "ready_variants": [
+        "gemma4-12b-traduction@4bit",
         "qwen3-4b-traduction@4bit"
       ],
       "required": [
@@ -2419,7 +2550,9 @@
         "type": "object"
       },
       "models": [
-        "qwen3-vl-8b-video"
+        "gemma4-12b-video",
+        "qwen3-vl-8b-video",
+        "qwen36-27b-video"
       ],
       "output": {
         "properties": {

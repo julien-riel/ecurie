@@ -197,6 +197,13 @@ def ps_command(
         bool,
         typer.Option("--ping", help="Interroger chaque résident pour voir s'il répond encore."),
     ] = False,
+    hors_budget: Annotated[
+        bool,
+        typer.Option(
+            "--hors-budget",
+            help="Avec --for : simuler l'admission en assumant le dépassement du budget.",
+        ),
+    ] = False,
 ) -> None:
     """Modèles résidents, budget mémoire, et ce que coûterait le prochain job.
 
@@ -218,7 +225,9 @@ def ps_command(
     simulation: Admission | None = None
     if ref:
         model, variant, résolu, _ = _resolve(registry, ref)
-        simulation = supervisor.simulate(résolu, supervisor.peak_bytes(variant))
+        simulation = supervisor.simulate(
+            résolu, supervisor.peak_bytes(variant), overcommit=hors_budget
+        )
 
     if json_out:
         payload: dict[str, Any] = {
@@ -359,6 +368,13 @@ def run_command(
     pin: Annotated[
         bool, typer.Option("--pin", help="Garder ce modèle résident : il ne sera pas évincé.")
     ] = False,
+    hors_budget: Annotated[
+        bool,
+        typer.Option(
+            "--hors-budget",
+            help="Admettre un modèle qui dépasse le budget mémoire. Vide le parc et pagine.",
+        ),
+    ] = False,
     json_out: Annotated[
         bool, typer.Option("--json", help="Manifeste du job sur la sortie.")
     ] = False,
@@ -366,7 +382,13 @@ def run_command(
         bool, typer.Option("--show/--no-show", help="Ouvrir la sortie à la fin (macOS).")
     ] = False,
 ) -> None:
-    """Exécute un job : admission mémoire, worker, sortie en fichiers, ligne de télémétrie."""
+    """Exécute un job : admission mémoire, worker, sortie en fichiers, ligne de télémétrie.
+
+    `--hors-budget` lève le seul refus qui vienne d'un modèle trop gros pour la
+    machine : le parc est vidé, macOS pagine la différence, et le job tourne —
+    plus lentement, et sans garantie d'aller au bout si la charge dépasse celle
+    du profil. La décision est inscrite dans le manifeste du job.
+    """
     root, registry, config = _context()
     model, variant, résolu, contract = _resolve(registry, ref)
     supervisor = _supervisor(root, registry, config)
@@ -400,6 +422,7 @@ def run_command(
                     seed=seed,
                     db=db,
                     pin=pin,
+                    overcommit=hors_budget,
                     on_progress=progression,
                     on_wait=en_file,
                 )

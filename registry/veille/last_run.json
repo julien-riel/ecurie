@@ -1,0 +1,79 @@
+{
+  "last_run": "2026-08-23",
+  "portee": "deux lots : Qwen3.6-27B et Gemma 4 12B, puis cinq modèles demandés nommément. Mené jusqu'à la phase d'épreuve sur autorisation.",
+  "rapport": "registry/veille/2026-08-23/RAPPORT.md",
+  "sources_balayees": [
+    "huggingface.co/api/models — org Qwen, org mlx-community, recherche Qwen3.6",
+    "fiche amont Qwen/Qwen3.6-27B",
+    "runtimes/mlx-vlm et runtimes/mlx-lm installés localement (support d'architecture)",
+    "packages/runtime/src/ecurie_runtime/envs.py (couples runtime/capacité servis)"
+  ],
+  "sources_non_balayees": [
+    "releases GitHub des runtimes (ml-explore/mlx, Blaizzy/mlx-audio, ComfyUI)",
+    "API HF par tâche, une passe par capacité du registre",
+    "laboratoires suivis hors Qwen",
+    "déclencheurs des candidats déjà au registre (dont trellis2)"
+  ],
+  "manifestes_ajoutes": [
+    "qwen36-27b-texte",
+    "qwen36-27b-traduction",
+    "qwen36-27b-outils",
+    "qwen36-27b-describe",
+    "qwen36-27b-ocr",
+    "qwen36-27b-detect",
+    "qwen36-27b-video",
+    "gemma4-12b-texte",
+    "gemma4-12b-traduction",
+    "gemma4-12b-outils",
+    "gemma4-12b-describe",
+    "gemma4-12b-ocr",
+    "gemma4-12b-detect",
+    "gemma4-12b-video",
+    "sam3",
+    "minicpm-v46-describe",
+    "minicpm-o45-describe",
+    "minicpm-o45-ecoute",
+    "da3-large",
+    "seedvr2-3b"
+  ],
+  "telechargements": {
+    "qwen36-27b@4bit": 16081487798,
+    "gemma4-12b@4bit": 6773371194
+  },
+  "manifestes_actifs_modifies": 0,
+  "profils_mesures": [
+    "qwen36-27b-texte@4bit",
+    "gemma4-12b-texte@4bit",
+    "gemma4-12b-describe@4bit"
+  ],
+  "echecs_mesures": {
+    "qwen36-27b-describe@4bit": "[METAL] Insufficient Memory sur les 3 cas de la charge type"
+  },
+  "code_ajoute": [
+    "mode hors budget (--hors-budget / overcommit) dans le contrôle d'admission, la CLI et l'API",
+    "adaptateurs mlx_vlm_text, mlx_vlm_translate, mlx_vlm_tools (héritent de leurs jumeaux mlx-lm)",
+    "transmission de enable_thinking et séparation du raisonnement (workers/base.py)",
+    "stratégie d'extraction xml_function pour les appels d'outils",
+    "grille de détection déclarable par variant (options.grid)",
+    "adaptateur mlx_vlm_audio — audio-to-text pour les modèles omni",
+    "adaptateur sam3 — segmentation par concept",
+    "adaptateur depth_anything — profondeur monoculaire",
+    "adaptateur seedvr2 — agrandissement par diffusion",
+    "correctif minicpm_compat — noms de poids attendus par le sanitize d'amont",
+    "flux de jetons (ev:delta) et WebSocket /jobs/ws"
+  ],
+  "capacites_creees": [
+    "depth-estimation"
+  ],
+  "capacites_etendues": {
+    "image-segment": "champ `prompt` — désigner par le concept et non par le clic"
+  },
+  "runtimes_ouverts": [
+    "depth-anything",
+    "mflux"
+  ],
+  "erreurs_corrigees": [
+    "SeedVR2 écarté à tort sur sa conversion MLX-Swift : mflux en porte une implémentation Python",
+    "Qwen3.6-27B déclaré hors budget en comparant des Go décimaux à un budget en Gio"
+  ]
+}

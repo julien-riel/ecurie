@@ -1,0 +1,80 @@
+{
+  "ref": "seedvr2-3b@fp16",
+  "model": "seedvr2-3b",
+  "variant": "fp16",
+  "capability": "image-upscale",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1",
+  "measured_at": "2026-08-23",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/image-upscale.json",
+    "version": 1,
+    "cases": [
+      "cote-128",
+      "cote-256",
+      "cote-512"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 7284343622,
+    "peak_unified_memory_bytes": 18021692436,
+    "warmup_ms": 996,
+    "latency_ms_p50": 4637,
+    "throughput": "1 sortie / 9.5 s"
+  },
+  "cases": [
+    {
+      "id": "cote-128",
+      "ok": true,
+      "duration_ms": 3144,
+      "metrics": {
+        "duration_ms": 3144,
+        "input_width": 128,
+        "input_height": 128,
+        "scale": 2,
+        "softness": 0.5,
+        "effective_scale": 2.0,
+        "alpha_flattened": false,
+        "infer_ms": 3131,
+        "peak_memory_bytes": 12398125306
+      },
+      "error": null
+    },
+    {
+      "id": "cote-256",
+      "ok": true,
+      "duration_ms": 4637,
+      "metrics": {
+        "duration_ms": 4637,
+        "input_width": 256,
+        "input_height": 256,
+        "scale": 2,
+        "softness": 0.5,
+        "effective_scale": 2.0,
+        "alpha_flattened": false,
+        "infer_ms": 4565,
+        "peak_memory_bytes": 18007438344
+      },
+      "error": null
+    },
+    {
+      "id": "cote-512",
+      "ok": true,
+      "duration_ms": 20621,
+      "metrics": {
+        "duration_ms": 20621,
+        "input_width": 512,
+        "input_height": 512,
+        "scale": 2,
+        "softness": 0.5,
+        "effective_scale": 2.0,
+        "alpha_flattened": false,
+        "infer_ms": 20498,
+        "peak_memory_bytes": 18021692436
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

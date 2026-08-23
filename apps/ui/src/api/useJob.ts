@@ -69,8 +69,15 @@ export interface SuiviJob {
   lancer: (ref: string, input: Record<string, unknown>) => Promise<void>;
   /** Relit l'état du job et rouvre son flux — après une coupure, ou un serveur redémarré. */
   reprendre: () => Promise<void>;
-  /** Retire le job de l'écran. Ne l'arrête pas : rien ici n'arrête un job. */
+  /** Retire le job de l'écran. Ne l'arrête pas — pour cela, `arreter`. */
   oublier: () => void;
+  /**
+   * Arrête le job en cours. Le serveur tue le worker ; le job rend `failed`
+   * avec `cancelled`, et le texte déjà reçu reste dans l'état.
+   */
+  arreter: () => Promise<void>;
+  /** Un arrêt est parti, sa réponse n'est pas revenue. */
+  arretEnCours: boolean;
 }
 
 export function useJob(): SuiviJob {
@@ -78,6 +85,7 @@ export function useJob(): SuiviJob {
   const [erreur, setErreur] = useState<readonly string[]>([]);
   const [interrompu, setInterrompu] = useState(false);
   const [envoi, setEnvoi] = useState(false);
+  const [arretEnCours, setArret] = useState(false);
 
   const controle = useRef<AbortController | null>(null);
   const monte = useRef(true);
@@ -119,6 +127,14 @@ export function useJob(): SuiviJob {
               return; // `{id, state}` seulement : le poser effacerait le reste
             }
             if (perime(mienne)) return;
+            if (evenement.event === "delta") {
+              // Un `delta` ne porte pas un job mais le seul fragment produit.
+              // Le poser tel quel remplacerait l'état entier par deux clés —
+              // le même piège que `end`, avec cette différence qu'il arrive des
+              // centaines de fois par job au lieu d'une.
+              setJob((precedent) => appliquerDelta(precedent, JSON.parse(evenement.data)));
+              return;
+            }
             setJob(JSON.parse(evenement.data) as Job);
           },
           abandon.signal,
@@ -180,6 +196,26 @@ export function useJob(): SuiviJob {
     }
   }, [job?.id, perime, suivre]);
 
+  const arreter = useCallback(async () => {
+    const id = job?.id;
+    if (!id || !job || job.state === "done" || job.state === "failed") return;
+    setArret(true);
+    try {
+      // La réponse porte l'état d'après l'arrêt, mais on ne la pose pas : le
+      // flux est toujours ouvert et va livrer la suite — dont l'état final, qui
+      // arrivera de toute façon. Poser celui-ci en plus ferait reculer
+      // l'affichage d'un cran si le flux a déjà pris de l'avance.
+      await api.arreterJob(id);
+    } catch (cause) {
+      // L'arrêt a échoué, le job continue : c'est une erreur de commande, pas
+      // de suivi. `interrompu` resterait faux, et c'est voulu — il n'y a rien à
+      // reprendre.
+      setErreur(messagesErreur(cause));
+    } finally {
+      if (monte.current) setArret(false);
+    }
+  }, [job]);
+
   const oublier = useCallback(() => {
     // La génération avance **avant** l'abandon : ce qui vole encore — un `POST`
     // ou un `GET` que rien n'annule — retombera sur une génération périmée et
@@ -190,7 +226,29 @@ export function useJob(): SuiviJob {
     setErreur([]);
     setInterrompu(false);
     setEnvoi(false);
+    setArret(false);
   }, []);
 
-  return { job, erreur, interrompu, envoi, lancer, reprendre, oublier };
+  return { job, erreur, interrompu, envoi, lancer, reprendre, oublier, arreter, arretEnCours };
+}
+
+/**
+ * Un fragment reçu, rangé dans le canal qui lui revient.
+ *
+ * Le serveur tient le même cumul de son côté et le remet dans chaque état
+ * complet : ce n'est donc pas une reconstruction fragile mais une avance, entre
+ * deux états. Le prochain `state` reçu remplacera ce cumul par celui du serveur,
+ * et les deux diront la même chose.
+ */
+export function appliquerDelta(
+  precedent: Job | null,
+  delta: { text?: string; channel?: string },
+): Job | null {
+  if (!precedent) return precedent;
+  const texte = delta.text ?? "";
+  if (!texte) return precedent;
+  if (delta.channel === "reasoning") {
+    return { ...precedent, stream_reasoning: (precedent.stream_reasoning ?? "") + texte };
+  }
+  return { ...precedent, stream_text: (precedent.stream_text ?? "") + texte };
 }

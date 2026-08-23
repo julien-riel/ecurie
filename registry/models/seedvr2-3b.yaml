@@ -1,0 +1,80 @@
+# SeedVR2 3B — agrandir une image par diffusion, en une étape.
+#
+# Second modèle de `image-upscale`, et le premier à ne pas être un réseau
+# convolutif. Le titulaire, swin2sr, apprend un facteur fixe — ×2 ou ×4 — et le
+# rend en une passe déterministe. Celui-ci est un modèle de diffusion : il
+# régénère les détails plutôt que de les interpoler, ce qui donne des textures
+# là où l'autre rend un lissage, et invente parfois ce qui n'était pas là.
+#
+# Les deux ne se remplacent donc pas, et le golden set le dira mieux qu'une
+# annonce : sur un texte à agrandir, inventer est un défaut ; sur une photo, le
+# lissage en est un.
+#
+# **Ce modèle avait été écarté à tort.** La conversion `mlx-community` est en
+# MLX-Swift, hors de portée d'un worker Python, et la conclusion s'est arrêtée
+# là. `mflux` en porte une implémentation Python — c'est ce qui a motivé
+# l'ouverture du runtime, et ce qui le rend livrable.
+id: seedvr2-3b
+name: SeedVR2 3B (agrandissement par diffusion)
+capability: image-upscale
+family: seedvr2
+vendor: ByteDance Seed
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Le dépôt amont pèse 60 Go parce qu'il porte tous les variants du projet — 3B
+  et 7B, chacun en fp16 et fp8, avec leurs versions « sharp ». `allow_patterns`
+  n'en retient que ce que mflux charge réellement pour le 3B : le modèle, le
+  VAE et les plongements de position, soit environ 7,3 Go.
+
+  Sans cette liste, un `ecurie pull` téléchargerait huit fois ce qu'il faut, et
+  la garde de disque n'y verrait rien à redire — 60 Go passent largement sous le
+  seuil des 15 %.
+
+links:
+  homepage: https://huggingface.co/ByteDance-Seed/SeedVR2-3B
+  code: https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler
+
+variants:
+  - id: fp16
+    quantization: fp16
+    tier: hot
+    runtime: mflux
+    source:
+      kind: huggingface
+      repo: numz/SeedVR2_comfyUI
+      revision: "09ced71023636e9bc8cdf9cdecfb2625d1e691e8"   # 2026-08-23
+      # Les trois fichiers que `seedvr2_weight_definition` nomme pour le 3B, et
+      # rien d'autre : le dépôt en contient sept, dont quatre pour le 7B.
+      allow_patterns:
+        - "seedvr2_ema_3b_fp16.safetensors"
+        - "ema_vae_fp16.safetensors"
+        - "pos_emb.safetensors"
+        - "*.json"
+    defaults:
+      scale: 2
+      max_side: 2048
+    options:
+      # Pré-sous-échantillonnage avant l'agrandissement. Le contrat n'a pas de
+      # champ pour cela — `denoise` lui ressemble sans être la même chose — et
+      # c'est un réglage propre à ce modèle, donc sa place est ici. 0,5 est le
+      # point de départ que l'amont recommande.
+      softness: 0.5
+    caveats:
+      - "MESURÉ, ET LE PIC SURPREND : 7,28 Go sur le disque, mais 16,78 Gio de pic — presque tout le budget de la machine pour agrandir une image. Le titulaire swin2sr pique à 6,74 Gio et pèse 50 Mo. C'est le prix de la diffusion : le modèle travaille sur des latents à la résolution de sortie, et la mémoire suit la surface produite, pas la taille des poids."
+      - "9,5 s par sortie sur la charge type, et 20,6 s sur le cas le plus grand. swin2sr agrandit en une passe déterministe ; celui-ci débruite pas à pas."
+      - "OBSERVÉ — LA TRANSPARENCE NE SURVIT PAS. Le modèle ne connaît pas le canal alpha et aplatit une image RGBA sur du **noir**, ce qui transforme un fond détouré en cadre sombre sans que rien ne le signale. L'adaptateur aplatit donc lui-même sur blanc et le dit dans la métrique `alpha_flattened` — mais la transparence est perdue dans tous les cas, et une image détourée devra être redétourée après agrandissement."
+      - "Modèle de diffusion : il régénère les détails au lieu de les interpoler. Sur une photo c'est ce qu'on veut ; sur un document ou une capture d'écran, il peut inventer des caractères qui n'existaient pas. Le titulaire swin2sr, lui, n'invente rien."
+      - "Le contrat expose `denoise`, que ce modèle n'a pas. Le réglage le plus proche est `softness`, qui agit avant l'agrandissement et non après : il est déclaré dans les options du variant plutôt que rattaché à un paramètre qui ne lui correspond pas."
+      - "L'amont prévient que les grandes résolutions demandent beaucoup de mémoire. `max_side` est le garde-fou du contrat ; au-delà, prévoir de le baisser plutôt que d'espérer."
+    profile:
+      disk_bytes: 7284343622
+      peak_unified_memory_bytes: 18021692436
+      warmup_ms: 996
+      latency_ms_p50: 4637
+      throughput: "1 sortie / 9.5 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"

@@ -82,6 +82,30 @@ WORKER_MODULES_BY_CAPABILITY = {
     # appeler un outil attend du JSON validable.
     ("mlx-lm", "translation"): "ecurie_runtime.workers.mlx_lm_translate",
     ("mlx-lm", "tool-use"): "ecurie_runtime.workers.mlx_lm_tools",
+    # Les mêmes trois capacités, servies par le moteur de mlx-vlm. Un modèle
+    # vision-langage est d'abord un modèle de langue, et les familles récentes
+    # n'arrivent plus que sous cette forme : Qwen3.6 écrit, traduit et appelle
+    # des outils, mais son architecture `qwen3_5` n'est pas chargeable par
+    # mlx-lm. Sans ces trois lignes, le parc voyait un modèle capable de trois
+    # contrats de plus et n'avait aucun moyen de les lui demander.
+    #
+    # Les adaptateurs correspondants n'ajoutent presque rien : ils héritent des
+    # trois du dessus et n'en changent que le moteur (voir `mlx_vlm_lm`).
+    ("mlx-vlm", "text-generation"): "ecurie_runtime.workers.mlx_vlm_text",
+    ("mlx-vlm", "translation"): "ecurie_runtime.workers.mlx_vlm_translate",
+    ("mlx-vlm", "tool-use"): "ecurie_runtime.workers.mlx_vlm_tools",
+    # Le seul emploi de mlx-vlm qui ne soit pas un modèle de langue : SAM 3
+    # segmente ce qu'on lui nomme. La capacité est déjà servie par
+    # `torch-vision` avec SAM 2, qui suit un clic — deux façons de désigner,
+    # deux runtimes, un seul contrat.
+    ("mlx-vlm", "image-segment"): "ecurie_runtime.workers.sam3",
+    # La modalité qui manquait à ce runtime : écouter. `audio-to-text` est déjà
+    # servi par `mlx-audio` sur d'autres poids ; cette entrée-ci ouvre la
+    # capacité aux modèles **omni**, dont un seul jeu de poids voit et entend.
+    # Entendre et voir supposaient jusqu'ici deux chargements, donc deux fois le
+    # budget — et sur un parc qui n'admet qu'un lourd à la fois, décharger l'un
+    # pour interroger l'autre.
+    ("mlx-vlm", "audio-to-text"): "ecurie_runtime.workers.mlx_vlm_audio",
     ("torch-vision", "image-matting"): "ecurie_runtime.workers.birefnet",
     ("torch-vision", "image-upscale"): "ecurie_runtime.workers.swin2sr",
     # Troisième adaptateur du même runtime, et la même leçon : détourer décide
@@ -91,6 +115,16 @@ WORKER_MODULES_BY_CAPABILITY = {
     # est un troisième moteur d'inférence, et son isolement dans son propre env
     # est la raison d'être du §5.3.
     ("rtmlib", "video-to-motion"): "ecurie_runtime.workers.rtmw3d",
+    # Neuvième famille, et le second runtime torch du parc. Il en fallait un
+    # second parce que `depth-anything-3` impose `numpy<2` : le faire entrer dans
+    # `torch-vision` aurait rétrogradé trois modèles mesurés pour en ajouter un
+    # quatrième.
+    ("depth-anything", "depth-estimation"): "ecurie_runtime.workers.depth_anything",
+    # Dixième famille, et le second modèle d'`image-upscale` : swin2sr interpole,
+    # SeedVR2 régénère. Deux façons d'agrandir qui ne se remplacent pas — sur une
+    # photo, inventer un grain est ce qu'on veut ; sur une capture d'écran,
+    # inventer un caractère est une faute.
+    ("mflux", "image-upscale"): "ecurie_runtime.workers.seedvr2",
 }
 
 

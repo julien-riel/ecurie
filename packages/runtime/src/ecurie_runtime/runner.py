@@ -33,7 +33,7 @@ from jsonschema import Draft202012Validator
 
 from ecurie_runtime import __version__ as HARNESS_VERSION
 from ecurie_runtime.supervisor import AdmissionRefused, Lease, Supervisor, WaitFn
-from ecurie_runtime.worker import JobResult, ProgressFn
+from ecurie_runtime.worker import DeltaFn, JobResult, ProgressFn
 
 INPUTS_DIR = "inputs"
 
@@ -331,8 +331,10 @@ def run_job(
     db: StateDB | None = None,
     outputs_dir: Path | None = None,
     on_progress: ProgressFn | None = None,
+    on_delta: DeltaFn | None = None,
     on_wait: WaitFn | None = None,
     pin: bool = False,
+    overcommit: bool = False,
     job_id: str | None = None,
 ) -> JobOutcome:
     """Exécute un job complet et rend un résultat déjà écrit sur le disque.
@@ -371,7 +373,9 @@ def run_job(
             model,
             variant,
             pin=pin,
+            overcommit=overcommit,
             on_progress=on_progress,
+            on_delta=on_delta,
             values=résolu.values,
             job_id=job_id,
             on_wait=on_wait,
@@ -397,6 +401,11 @@ def run_job(
 
     durée_ms = int((datetime.now(UTC) - démarré).total_seconds() * 1000)
     avertissements = list(lease.warnings) if lease else []
+    if lease is not None and lease.admission.overcommit:
+        # En tête, et avant même le `peak_note` du profil : quand un job hors
+        # budget met trois fois le temps annoncé, c'est la première chose que son
+        # manifeste doit apprendre à qui le relit six mois plus tard.
+        avertissements.insert(0, lease.admission.reason)
     note = variant.profile.expected_peak(résolu.values)[1] if variant.profile else None
     if note:
         avertissements.append(note)

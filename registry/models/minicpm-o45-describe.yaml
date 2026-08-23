@@ -1,0 +1,83 @@
+# MiniCPM-o 4.5 — le premier modèle du parc qui entend, voit et parle.
+#
+# Sa configuration porte trois sous-modèles : un encodeur visuel `siglip`, un
+# encodeur audio **`whisper`**, et une tête `minicpmtts`. C'est ce qui en fait
+# autre chose qu'un VLM de plus, et ce qui explique qu'il ait été demandé —
+# jusqu'ici, entendre et voir supposaient deux modèles du parc, donc deux
+# chargements, donc deux fois le budget.
+#
+# Ce manifeste-ci ne sert que la vision, comme ses voisins `-ocr` et `-video` :
+# les capacités audio ont leur propre contrat, et c'est
+# `minicpm-o45-transcription` qui les porte.
+#
+# 6,16 Go en 4 bits, Apache-2.0, servi par mlx-vlm qui porte `minicpmo`.
+id: minicpm-o45-describe
+name: MiniCPM-o 4.5 (description d'image)
+capability: image-to-text
+family: minicpm-o
+vendor: OpenBMB
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Demandé nommément en GGUF, et servi ici en MLX pour la raison écrite dans
+  minicpm-v46-describe.yaml : le parc n'a pas de runtime GGUF, et en ajouter un
+  supposerait un serveur tiers que le superviseur ne contrôle pas.
+
+  À 6,16 Go, il coûte à peu près ce que coûte Gemma 4 12B et trois fois ce que
+  coûte MiniCPM-V 4.6. Ce qu'il apporte en échange n'est pas une meilleure
+  description d'image — rien ne le laisse supposer — mais le fait de savoir
+  aussi écouter. C'est sur les capacités audio qu'il doit être jugé.
+
+links:
+  homepage: https://huggingface.co/openbmb/MiniCPM-o-4_5
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/MiniCPM-o-4_5-4bit
+      revision: "592c09d85e7bffbc8f8e45a417aa8e9a96119814"   # 2026-03-05
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      detail: normal
+      max_tokens: 512
+      temperature: 0.2
+    options:
+      thinking: false
+    caveats:
+      - "6,26 Gio de pic, 5,7 s par sortie. Il se charge grâce au correctif `minicpm_compat`, qui rend aux poids les noms que le sanitize de mlx-vlm attend — sans lui, ce variant rendait « Missing 1203 parameters » sur des poids pourtant tous présents."
+      - "Le modèle porte une tête de synthèse vocale (`tts_config: minicpmtts`) qu'aucun manifeste du parc n'emploie : `text-to-speech` est servi par qwen3-tts-1.7b, et faire parler celui-ci demanderait un adaptateur de plus. Ce qui est chargé ici l'est donc en partie pour rien — environ le poids de la tête TTS, à mesurer."
+      - "OBSERVÉ — LE FRANÇAIS EST CORRECT, contrairement à celui de MiniCPM-V 4.6 : « un cube, une sphère et un cône », les genres et les accords tiennent. C'est le principal argument de ce modèle face à son cadet, qui décrit aussi juste mais écrit mal — pour 3,6 Gio de pic en plus et quatre fois le temps de réponse."
+      - "Poids partagés avec les autres manifestes minicpm-o45 — les déporter les déplace tous."
+    profile:
+      disk_bytes: 6157966275
+      peak_unified_memory_bytes: 6724309086
+      warmup_ms: 1735
+      latency_ms_p50: 4131
+      throughput: "1 sortie / 5.7 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"
+  - id: 5bit
+    quantization: mixed
+    tier: absent
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/MiniCPM-o-4_5-5bit
+      revision: "6736754b62ea90fb2d8e5f7b6391d478e9d72cf4"   # 2026-03-06
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      detail: normal
+      max_tokens: 512
+      temperature: 0.2
+    options:
+      thinking: false
+    caveats:
+      - "1 Go de plus que le 4 bits. Le schéma du registre ne connaît pas « 5 bits » : `quantization` est déclaré `mixed`, faute de valeur juste — écrire `6bit` aurait été commode et faux, et c'est le genre de petit mensonge qu'on relit six mois plus tard en le croyant. L'identifiant du variant garde le nom réel du dépôt."
+      - "Non téléchargé."

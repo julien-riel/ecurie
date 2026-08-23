@@ -24,6 +24,8 @@ from typing import Any
 from ecurie_runtime.channel import Channel, ChannelClosed, ChannelTimeout
 from ecurie_runtime.envs import WorkerSpec
 from ecurie_runtime.protocol import (
+    CANAL_REPONSE,
+    EV_DELTA,
     EV_ERROR,
     EV_LOADED,
     EV_PONG,
@@ -38,6 +40,7 @@ from ecurie_runtime.protocol import (
     op,
 )
 
+DeltaFn = Callable[[str, str], None]
 ProgressFn = Callable[[int, str], None]
 
 
@@ -92,11 +95,13 @@ class WorkerSession:
         *,
         timeouts: Timeouts | None = None,
         on_progress: ProgressFn | None = None,
+        on_delta: DeltaFn | None = None,
         on_noise: Callable[[str], None] | None = None,
     ) -> None:
         self.channel = channel
         self.timeouts = timeouts or Timeouts()
         self.on_progress = on_progress
+        self.on_delta = on_delta
         self.noise: list[str] = []
         channel.on_noise = on_noise or self._note_noise
 
@@ -180,6 +185,17 @@ class WorkerSession:
                 # n'est pas un job bloqué, quelle que soit sa durée totale.
                 deadline = time.monotonic() + timeout_s
                 continue
+            if name == EV_DELTA:
+                if self.on_delta is not None:
+                    self.on_delta(
+                        str(message.get("text") or ""),
+                        str(message.get("channel") or CANAL_REPONSE),
+                    )
+                # Un jeton qui sort est la preuve la plus fraîche qu'un modèle
+                # travaille — plus fraîche que la progression, qui n'est émise
+                # que tous les trente-deux jetons.
+                deadline = time.monotonic() + timeout_s
+                continue
             if name == EV_ERROR:
                 raise WorkerFailure(
                     str(message.get("message") or "erreur sans message"),
@@ -218,6 +234,7 @@ class WorkerProcess(WorkerSession):
         log_path: Path | None = None,
         timeouts: Timeouts | None = None,
         on_progress: ProgressFn | None = None,
+        on_delta: DeltaFn | None = None,
     ) -> "WorkerProcess":
         """Lance le worker et branche le canal sur son stdio."""
         env = {**os.environ, **spec.env_vars}
@@ -242,6 +259,7 @@ class WorkerProcess(WorkerSession):
             stderr_file=stderr,
             timeouts=timeouts,
             on_progress=on_progress,
+            on_delta=on_delta,
         )
 
     @property
