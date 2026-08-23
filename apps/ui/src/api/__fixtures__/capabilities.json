@@ -246,6 +246,7 @@
         "type": "object"
       },
       "models": [
+        "minicpm-o45-ecoute",
         "qwen2-audio-7b"
       ],
       "output": {
@@ -1104,6 +1105,8 @@
       },
       "models": [
         "gemma4-12b-describe",
+        "minicpm-o45-describe",
+        "minicpm-v46-describe",
         "qwen3-vl-8b-describe",
         "qwen36-27b-describe"
       ],
@@ -1138,6 +1141,7 @@
       },
       "ready_variants": [
         "gemma4-12b-describe@4bit",
+        "minicpm-v46-describe@4bit",
         "qwen3-vl-8b-describe@4bit"
       ],
       "required": [

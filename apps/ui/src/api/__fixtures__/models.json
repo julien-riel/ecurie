@@ -1134,6 +1134,282 @@
       "vendor": "Lightricks"
     },
     {
+      "capability": "image-to-text",
+      "family": "minicpm-o",
+      "id": "minicpm-o45-describe",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/openbmb/MiniCPM-o-4_5",
+        "paper": null
+      },
+      "name": "MiniCPM-o 4.5 (description d'image)",
+      "notes": "Demandé nommément en GGUF, et servi ici en MLX pour la raison écrite dans minicpm-v46-describe.yaml : le parc n'a pas de runtime GGUF, et en ajouter un supposerait un serveur tiers que le superviseur ne contrôle pas.\nÀ 6,16 Go, il coûte à peu près ce que coûte Gemma 4 12B et trois fois ce que coûte MiniCPM-V 4.6. Ce qu'il apporte en échange n'est pas une meilleure description d'image — rien ne le laisse supposer — mais le fait de savoir aussi écouter. C'est sur les capacités audio qu'il doit être jugé.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "minicpm-o45-describe@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench minicpm-o45-describe@4bit"
+          ],
+          "caveats": [
+            "MESURÉ — CE VARIANT NE SE CHARGE PAS. mlx-vlm 0.6.15 rend « Missing 1203 parameters ». Les poids sont pourtant tous là : les 367 tenseurs `audio_tower` de l'index sont bien dans les fichiers, vérifié tenseur par tenseur. Le défaut est dans le `sanitize` du module `minicpmo`, qui attend les noms d'origine du dépôt OpenBMB (`llm.`, `vpm.`, `apm.`) et jette tout ce qui ne commence pas par eux — or cette conversion porte déjà les noms normalisés (`language_model.`, `vision_tower.`, `audio_tower.`). Le manifeste reste au registre pour porter ce déclencheur : une version de mlx-vlm dont le sanitize accepte les deux formes, ou une conversion aux noms d'origine — `andrevp/MiniCPM-o-4_5-MLX-4bit` (6,99 Go) est à essayer.",
+            "Le modèle porte une tête de synthèse vocale (`tts_config: minicpmtts`) qu'aucun manifeste du parc n'emploie : `text-to-speech` est servi par qwen3-tts-1.7b, et faire parler celui-ci demanderait un adaptateur de plus. Ce qui est chargé ici l'est donc en partie pour rien — environ le poids de la tête TTS, à mesurer.",
+            "Poids partagés avec les autres manifestes minicpm-o45 — les déporter les déplace tous."
+          ],
+          "defaults": {
+            "detail": "normal",
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "4bit",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "minicpm-o45-describe@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/MiniCPM-o-4_5-4bit",
+            "revision": "592c09d85e7bffbc8f8e45a417aa8e9a96119814",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "minicpm-o45-describe@5bit : poids absents du cache — ecurie pull minicpm-o45-describe@5bit",
+            "minicpm-o45-describe@5bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench minicpm-o45-describe@5bit"
+          ],
+          "caveats": [
+            "1 Go de plus que le 4 bits. Le schéma du registre ne connaît pas « 5 bits » : `quantization` est déclaré `mixed`, faute de valeur juste — écrire `6bit` aurait été commode et faux, et c'est le genre de petit mensonge qu'on relit six mois plus tard en le croyant. L'identifiant du variant garde le nom réel du dépôt.",
+            "Non téléchargé."
+          ],
+          "defaults": {
+            "detail": "normal",
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "5bit",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "mixed",
+          "ready": false,
+          "ref": "minicpm-o45-describe@5bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/MiniCPM-o-4_5-5bit",
+            "revision": "6736754b62ea90fb2d8e5f7b6391d478e9d72cf4",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "OpenBMB"
+    },
+    {
+      "capability": "audio-to-text",
+      "family": "minicpm-o",
+      "id": "minicpm-o45-ecoute",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/openbmb/MiniCPM-o-4_5",
+        "paper": null
+      },
+      "name": "MiniCPM-o 4.5 (écoute)",
+      "notes": "Challenger de qwen2-audio-7b, titulaire de fait de cette capacité (6,57 Go sur le disque, 7,57 Gio de pic). À 6,16 Go, ce candidat coûte un peu moins et apporte la vision par-dessus. Ce qu'il vaut à l'écoute reste entier à établir : le golden set de la capacité n'a pas tourné, et décrire un son n'est pas le transcrire — c'est la consigne qui tranche, faute de quoi ces réseaux retombent sur leur défaut d'usine, qui est de transcrire.\nL'encodeur audio est un `whisper`, ce qui situe la famille sans rien promettre sur la qualité après quantification à 4 bits.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "minicpm-o45-ecoute@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench minicpm-o45-ecoute@4bit"
+          ],
+          "caveats": [
+            "MESURÉ — CE VARIANT NE SE CHARGE PAS. mlx-vlm 0.6.15 rend « Missing 1203 parameters ». Les poids sont pourtant tous là : les 367 tenseurs `audio_tower` de l'index sont bien dans les fichiers, vérifié tenseur par tenseur. Le défaut est dans le `sanitize` du module `minicpmo`, qui attend les noms d'origine du dépôt OpenBMB (`llm.`, `vpm.`, `apm.`) et jette tout ce qui ne commence pas par eux — or cette conversion porte déjà les noms normalisés (`language_model.`, `vision_tower.`, `audio_tower.`). Le manifeste reste au registre pour porter ce déclencheur : une version de mlx-vlm dont le sanitize accepte les deux formes, ou une conversion aux noms d'origine — `andrevp/MiniCPM-o-4_5-MLX-4bit` (6,99 Go) est à essayer.",
+            "`listened_seconds` n'est renseigné que pour un WAV, dont l'en-tête donne la durée sans décoder. Pour les autres conteneurs la sortie est absente plutôt qu'inventée : le contrat déclare la durée écoutée, pas la durée devinée.",
+            "Le contrat expose `max_seconds`, que cet adaptateur ne peut pas honorer : le son est décodé par le processeur du runtime, pas par le worker, qui n'a donc pas la main pour tronquer. Un enregistrement plus long que la fenêtre du modèle sera coupé par le modèle, sans que rien ne le dise.",
+            "Poids partagés avec minicpm-o45-describe — les déporter avec `ecurie store tier` déplace les deux."
+          ],
+          "defaults": {
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "4bit",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "minicpm-o45-ecoute@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/MiniCPM-o-4_5-4bit",
+            "revision": "592c09d85e7bffbc8f8e45a417aa8e9a96119814",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "OpenBMB"
+    },
+    {
+      "capability": "image-to-text",
+      "family": "minicpm-v",
+      "id": "minicpm-v46-describe",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/openbmb/MiniCPM-V-4.6",
+        "paper": null
+      },
+      "name": "MiniCPM-V 4.6 (description d'image)",
+      "notes": "Demandé nommément en GGUF. Le parc n'a pas de runtime GGUF — `llama-cpp` est déclaré hors périmètre dans `envs.NOT_YET`, faute de quoi il faudrait passer par Ollama ou LM Studio, donc par un serveur tiers que le superviseur ne contrôle pas. La conversion MLX rend le même service sans cette dépendance : mêmes poids d'origine, quantification équivalente, et un chemin d'exécution que le parc sait déjà emprunter.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "2,65 Gio de pic et 1,3 s par sortie : le VLM le plus léger et le plus rapide du parc. Le titulaire qwen3-vl-8b-describe pique à 6,60 Gio et répond en 6,6 s ; Gemma 4 12B à 6,81 Gio et 5,3 s.",
+            "1,3 milliard de paramètres en 4 bits : c'est le plus petit VLM du parc, et l'écart de taille avec les titulaires est tel qu'il faut s'attendre à le payer quelque part — le texte incrusté, le comptage, les détails fins sont les premiers postes à regarder.",
+            "OBSERVÉ — LE FRANÇAIS EST FAUTIF. Sur la scène du banc, le contenu est juste (les trois formes, leurs positions, la lumière) mais la langue ne l'est pas : « un sphere », « un cone », « sur le gauche ». Le modèle voit bien et écrit mal. Sur une capacité dont la sortie est du texte destiné à être lu, cela compte autant que l'exactitude — et le golden set le notera comme tel.",
+            "Poids partagés avec les autres manifestes minicpm-v46 — les déporter avec `ecurie store tier` les déplace tous."
+          ],
+          "defaults": {
+            "detail": "normal",
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": false,
+          "id": "4bit",
+          "options": {
+            "thinking": false
+          },
+          "profile": {
+            "disk_bytes": 2177910526,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 1222,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 2840772480,
+            "rtf": null,
+            "throughput": "1 sortie / 1.3 s",
+            "warmup_ms": 1472
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "minicpm-v46-describe@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/MiniCPM-V-4.6-4bit",
+            "revision": "86cd463d33a946e4481b77e3c10fc63121b60a19",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "minicpm-v46-describe@bf16 : poids absents du cache — ecurie pull minicpm-v46-describe@bf16",
+            "minicpm-v46-describe@bf16 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench minicpm-v46-describe@bf16"
+          ],
+          "caveats": [
+            "2,62 Go contre 2,18 pour le 4 bits : sur un modèle de cette taille, l'écart est assez faible pour que la question de la quantification se pose autrement qu'ailleurs — 440 Mo de plus pour ne rien perdre du tout."
+          ],
+          "defaults": {
+            "detail": "normal",
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "bf16",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "bf16",
+          "ready": false,
+          "ref": "minicpm-v46-describe@bf16",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/MiniCPM-V-4.6-bf16",
+            "revision": "993c9b1ac21ae5329c1f6549c58effabb11c8279",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "OpenBMB"
+    },
+    {
       "capability": "text-to-music",
       "family": "minimax-music",
       "id": "minimax-music3",

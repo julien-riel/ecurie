@@ -269,6 +269,70 @@
       "width": 768
     }
   },
+  "minicpm-o45-describe@4bit": {
+    "capability": "image-to-text",
+    "merged": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    },
+    "variant_defaults": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    }
+  },
+  "minicpm-o45-describe@5bit": {
+    "capability": "image-to-text",
+    "merged": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    },
+    "variant_defaults": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    }
+  },
+  "minicpm-o45-ecoute@4bit": {
+    "capability": "audio-to-text",
+    "merged": {
+      "max_seconds": 120,
+      "max_tokens": 512,
+      "temperature": 0.2
+    },
+    "variant_defaults": {
+      "max_tokens": 512,
+      "temperature": 0.2
+    }
+  },
+  "minicpm-v46-describe@4bit": {
+    "capability": "image-to-text",
+    "merged": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    },
+    "variant_defaults": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    }
+  },
+  "minicpm-v46-describe@bf16": {
+    "capability": "image-to-text",
+    "merged": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    },
+    "variant_defaults": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    }
+  },
   "minimax-music3@4bit": {
     "capability": "text-to-music",
     "merged": {

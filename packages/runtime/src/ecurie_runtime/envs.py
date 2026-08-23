@@ -91,14 +91,21 @@ WORKER_MODULES_BY_CAPABILITY = {
     #
     # Les adaptateurs correspondants n'ajoutent presque rien : ils héritent des
     # trois du dessus et n'en changent que le moteur (voir `mlx_vlm_lm`).
-    # Cinquième emploi de mlx-vlm, et le seul qui ne soit pas un modèle de
-    # langue : SAM 3 segmente ce qu'on lui nomme. La capacité est déjà servie par
-    # `torch-vision` avec SAM 2, qui suit un clic — deux façons de désigner, deux
-    # runtimes, un seul contrat.
-    ("mlx-vlm", "image-segment"): "ecurie_runtime.workers.sam3",
     ("mlx-vlm", "text-generation"): "ecurie_runtime.workers.mlx_vlm_text",
     ("mlx-vlm", "translation"): "ecurie_runtime.workers.mlx_vlm_translate",
     ("mlx-vlm", "tool-use"): "ecurie_runtime.workers.mlx_vlm_tools",
+    # Le seul emploi de mlx-vlm qui ne soit pas un modèle de langue : SAM 3
+    # segmente ce qu'on lui nomme. La capacité est déjà servie par
+    # `torch-vision` avec SAM 2, qui suit un clic — deux façons de désigner,
+    # deux runtimes, un seul contrat.
+    ("mlx-vlm", "image-segment"): "ecurie_runtime.workers.sam3",
+    # La modalité qui manquait à ce runtime : écouter. `audio-to-text` est déjà
+    # servi par `mlx-audio` sur d'autres poids ; cette entrée-ci ouvre la
+    # capacité aux modèles **omni**, dont un seul jeu de poids voit et entend.
+    # Entendre et voir supposaient jusqu'ici deux chargements, donc deux fois le
+    # budget — et sur un parc qui n'admet qu'un lourd à la fois, décharger l'un
+    # pour interroger l'autre.
+    ("mlx-vlm", "audio-to-text"): "ecurie_runtime.workers.mlx_vlm_audio",
     ("torch-vision", "image-matting"): "ecurie_runtime.workers.birefnet",
     ("torch-vision", "image-upscale"): "ecurie_runtime.workers.swin2sr",
     # Troisième adaptateur du même runtime, et la même leçon : détourer décide
