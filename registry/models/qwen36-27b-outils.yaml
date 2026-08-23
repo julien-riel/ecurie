@@ -49,7 +49,7 @@ variants:
     options:
       thinking: false
     caveats:
-      - "16,1 Go de poids : le pic dépasse le budget de la machine cible. Ne démarre qu'avec --hors-budget, parc vidé."
+      - "MESURÉ, ET INUTILISABLE : les trois cas de la charge type échouent en « Insufficient Memory ». La déclaration des outils allonge l'invite — 177 jetons contre 44 pour une invite nue —, et sur un modèle qui ne dispose que de 316 Mio de marge, cela suffit à faire basculer l'allocation. Aucun profil n'est écrit : l'admission refusera ce variant."
       - "Format d'appel XML et non JSON : la métrique `parse_strategy` doit rendre `xml_function`. Si elle rend `aucun`, c'est l'extracteur qu'il faut regarder avant d'accuser le modèle."
       - "Poids partagés avec les six autres manifestes qwen36-27b — les déporter déplace les sept."
   - id: mxfp4

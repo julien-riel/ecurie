@@ -40,7 +40,7 @@ variants:
     options:
       thinking: false
     caveats:
-      - "16,1 Go de poids : le pic dépasse le budget de la machine cible. Ne démarre qu'avec --hors-budget, parc vidé."
+      - "MESURÉ, ET LE PROFIL EST REFUSÉ : 17,78 Gio de pic, soit au-dessus du budget de 17,76, et le cas long de la charge type échoue en « Insufficient Memory ». Les cas court et moyen passent. Le banc n'écrit pas de profil quand un cas échoue, donc l'admission refusera ce variant — c'est la protection qui joue, pas une omission à corriger."
       - "Ne détecte pas la langue de départ : il traduit ce qu'on lui donne. `detected_source_language` rend la langue déclarée, ou rien."
       - "Poids partagés avec les six autres manifestes qwen36-27b — les déporter déplace les sept."
   - id: mxfp4

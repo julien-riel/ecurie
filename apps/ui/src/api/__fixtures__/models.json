@@ -2344,7 +2344,7 @@
             "qwen36-27b-outils@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-outils@4bit"
           ],
           "caveats": [
-            "16,1 Go de poids : le pic dépasse le budget de la machine cible. Ne démarre qu'avec --hors-budget, parc vidé.",
+            "MESURÉ, ET INUTILISABLE : les trois cas de la charge type échouent en « Insufficient Memory ». La déclaration des outils allonge l'invite — 177 jetons contre 44 pour une invite nue —, et sur un modèle qui ne dispose que de 316 Mio de marge, cela suffit à faire basculer l'allocation. Aucun profil n'est écrit : l'admission refusera ce variant.",
             "Format d'appel XML et non JSON : la métrique `parse_strategy` doit rendre `xml_function`. Si elle rend `aucun`, c'est l'extracteur qu'il faut regarder avant d'accuser le modèle.",
             "Poids partagés avec les six autres manifestes qwen36-27b — les déporter déplace les sept."
           ],
@@ -2444,7 +2444,8 @@
         {
           "blockers": [],
           "caveats": [
-            "17,45 Gio de pic pour un budget de 17,76 : il tient, avec 0,31 Gio de marge — moins de 2 %. Aucun autre modèle ne peut être résident en même temps, et le contrôle d'admission videra le parc à chaque job.",
+            "17,45 Gio de pic pour un budget de 17,76 : il tient, avec 316 Mio de marge — moins de 2 %. Aucun autre modèle ne peut être résident en même temps, et le contrôle d'admission videra le parc à chaque job.",
+            "Cette marge est le vrai plafond du modèle, et elle se mesure en jetons d'invite. Les trois cas de cette capacité passent, mais la traduction d'un long texte et l'appel d'outils — dont l'invite porte les déclarations — échouent en « Insufficient Memory » sur les mêmes poids. Une invite qui s'allonge fait basculer l'allocation, sans avertissement préalable.",
             "1 sortie en 82 s en moyenne, et 197 s sur le cas long de la charge type. C'est le prix d'un 27B sur cette machine : le titulaire qwen25-coder-7b répond en 13 s.",
             "Le raisonnement à voix haute est coupé. Le rallumer avec `thinking: true` change ce que la capacité mesure, et il faut alors relever `max_tokens` en conséquence.",
             "Poids partagés avec les six autres manifestes qwen36-27b — les déporter avec `ecurie store tier` déplace les sept."
@@ -2558,7 +2559,7 @@
             "qwen36-27b-traduction@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-traduction@4bit"
           ],
           "caveats": [
-            "16,1 Go de poids : le pic dépasse le budget de la machine cible. Ne démarre qu'avec --hors-budget, parc vidé.",
+            "MESURÉ, ET LE PROFIL EST REFUSÉ : 17,78 Gio de pic, soit au-dessus du budget de 17,76, et le cas long de la charge type échoue en « Insufficient Memory ». Les cas court et moyen passent. Le banc n'écrit pas de profil quand un cas échoue, donc l'admission refusera ce variant — c'est la protection qui joue, pas une omission à corriger.",
             "Ne détecte pas la langue de départ : il traduit ce qu'on lui donne. `detected_source_language` rend la langue déclarée, ou rien.",
             "Poids partagés avec les six autres manifestes qwen36-27b — les déporter déplace les sept."
           ],

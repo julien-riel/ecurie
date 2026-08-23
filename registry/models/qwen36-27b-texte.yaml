@@ -50,7 +50,8 @@ variants:
       # manifeste porte la décision plutôt que de la subir.
       thinking: false
     caveats:
-      - "17,45 Gio de pic pour un budget de 17,76 : il tient, avec 0,31 Gio de marge — moins de 2 %. Aucun autre modèle ne peut être résident en même temps, et le contrôle d'admission videra le parc à chaque job."
+      - "17,45 Gio de pic pour un budget de 17,76 : il tient, avec 316 Mio de marge — moins de 2 %. Aucun autre modèle ne peut être résident en même temps, et le contrôle d'admission videra le parc à chaque job."
+      - "Cette marge est le vrai plafond du modèle, et elle se mesure en jetons d'invite. Les trois cas de cette capacité passent, mais la traduction d'un long texte et l'appel d'outils — dont l'invite porte les déclarations — échouent en « Insufficient Memory » sur les mêmes poids. Une invite qui s'allonge fait basculer l'allocation, sans avertissement préalable."
       - "1 sortie en 82 s en moyenne, et 197 s sur le cas long de la charge type. C'est le prix d'un 27B sur cette machine : le titulaire qwen25-coder-7b répond en 13 s."
       - "Le raisonnement à voix haute est coupé. Le rallumer avec `thinking: true` change ce que la capacité mesure, et il faut alors relever `max_tokens` en conséquence."
       - "Poids partagés avec les six autres manifestes qwen36-27b — les déporter avec `ecurie store tier` déplace les sept."

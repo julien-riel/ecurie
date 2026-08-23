@@ -11,11 +11,18 @@ et trois adaptateurs écrits. Ce qui suit n'est donc pas une projection.
 
 ## 1. Verdict
 
-**Les deux modèles tournent, et un seul est utilisable partout.** Qwen3.6-27B
-tient en génération de texte — 17,45 Gio de pic pour un budget de 17,76, soit
-316 Mio de marge — et **échoue à décrire une image**, où Metal refuse le buffer
-d'encodage : `Insufficient Memory`, sur les trois cas de la charge type. Gemma 4
-12B fait tout, à 6,81 Gio de pic et quinze fois plus vite sur la vision.
+**Les deux modèles tournent, et un seul est utilisable.** Qwen3.6-27B tient sur
+**une** capacité des sept : la génération de texte, à 17,45 Gio de pic pour un
+budget de 17,76 — 316 Mio de marge. Partout ailleurs il échoue en
+`Insufficient Memory` : les quatre capacités visuelles, l'appel d'outils sur les
+trois cas, et la traduction dès que le texte s'allonge. Gemma 4 12B fait tout, à
+6,7–7,2 Gio selon la capacité.
+
+**Ces 316 Mio sont le vrai plafond, et ils se mesurent en jetons d'invite.**
+C'est le seul enseignement du cycle qu'aucune estimation ne donnait : ce qui
+fait basculer ce modèle n'est pas la taille de sa réponse mais la longueur de ce
+qu'on lui donne à lire. Déclarer trois outils porte l'invite de 44 à 177 jetons,
+et cela suffit.
 
 **Le parc gagne sept capacités servies par un modèle qui tient**, et trois
 adaptateurs qui manquaient : `text-generation`, `translation` et `tool-use` sur
@@ -33,7 +40,9 @@ des coûts.
 | Variant | Capacité | Disque | Pic | Débit | État |
 |---|---|---|---|---|---|
 | `qwen36-27b-texte@4bit` | `text-generation` | 16,08 Go | **17,45 Gio** | 1 / 81,9 s | tient, 316 Mio de marge |
-| `qwen36-27b-describe@4bit` | `image-to-text` | 16,08 Go | — | — | **échec Metal, OOM** |
+| `qwen36-27b-describe@4bit` | `image-to-text` | 16,08 Go | — | — | **échec Metal, 3 cas sur 3** |
+| `qwen36-27b-traduction@4bit` | `translation` | 16,08 Go | 17,78 Gio | — | **échec sur le cas long** |
+| `qwen36-27b-outils@4bit` | `tool-use` | 16,08 Go | — | — | **échec Metal, 3 cas sur 3** |
 | `gemma4-12b-texte@4bit` | `text-generation` | 6,77 Go | **6,69 Gio** | 1 / 38,7 s | tient largement |
 | `gemma4-12b-describe@4bit` | `image-to-text` | 6,77 Go | **6,81 Gio** | 1 / 5,3 s | tient largement |
 | `gemma4-12b-traduction@4bit` | `translation` | 6,77 Go | **6,74 Gio** | 1 / 4,3 s | tient largement |
@@ -78,15 +87,17 @@ coûts, eux, sont chiffrés, et ils vont tous dans le même sens.
 un chiffre mesuré : 5,3 s contre 6,6 s par sortie, pour 210 Mio de pic en plus.
 C'est mince, et cela ne dit rien de la qualité des descriptions.
 
-Qwen3.6-27B n'est recommandé pour aucune capacité. Il reste au registre en
-`candidate` parce qu'il fonctionne en texte et que sa taille peut valoir sur des
-tâches longues que le golden set ne couvre pas encore.
+Qwen3.6-27B n'est recommandé pour aucune capacité, et six de ses sept manifestes
+resteront refusés par l'admission faute de profil — le banc n'en écrit pas quand
+un cas échoue. C'est la protection qui joue, et il faut la laisser jouer : la
+seule façon de les faire démarrer serait d'inscrire un profil à la main, ce que
+le projet s'interdit précisément pour ce genre de raison.
 
 ## 4. Rejets motivés
 
 | Objet | Motif |
 |---|---|
-| Qwen3.6-27B sur les 4 capacités visuelles | Échec Metal mesuré. Ni `--hors-budget` ni le variant `mxfp4` (840 Mo de moins) ne changent la nature du refus. |
+| Qwen3.6-27B sur 6 de ses 7 capacités | Échec Metal mesuré : les 4 visuelles, l'appel d'outils, et la traduction longue. Ni `--hors-budget` ni le variant `mxfp4` (840 Mo de moins) ne changent la nature du refus. |
 | `Qwen3.6-27B-6bit` (22,8 Go), `-8bit` (29,5), `-bf16` | Très au-delà du budget. |
 | `Qwen3.6-27B-OptiQ-4bit` (20,0 Go) | Plus lourd que le 4 bits standard, et **sans tour de vision**. |
 | `Qwen3.6-27B-MTP-4bit` (0,26 Go) | Tête de prédiction multi-jetons seule, pas un modèle. |
