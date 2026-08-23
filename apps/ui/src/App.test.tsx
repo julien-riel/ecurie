@@ -149,6 +149,8 @@ describe("le bandeau de ressources", () => {
                 peak_note: null,
                 already_resident: false,
                 measure_mode: false,
+    overcommit: false,
+    overflow_bytes: 0,
                 headroom_bytes: 0,
               }
             : null,
@@ -180,6 +182,8 @@ describe("le bandeau de ressources", () => {
           peak_note: null,
           already_resident: false,
           measure_mode: false,
+    overcommit: false,
+    overflow_bytes: 0,
           headroom_bytes: 0,
         },
       }),

@@ -78,6 +78,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/jobs/{job_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Arrêter un job en cours
+         * @description Arrête un job et rend son état. Le même geste que `{"op":"cancel"}` en duplex.
+         *
+         *     Il existe en HTTP parce qu'un bouton « stop » n'a pas besoin d'une socket :
+         *     l'écran suit déjà le job par son flux d'événements, et lui demander d'en
+         *     ouvrir une seconde pour un seul message coûterait plus que le message.
+         *
+         *     **L'arrêt tue le worker** — voir `JobRegistry.cancel`. Le job rend donc
+         *     `failed`, avec `cancelled` à vrai et le texte déjà produit dans
+         *     `stream_text` : c'est ce qui distingue un arrêt demandé d'une panne, et
+         *     l'écran doit les présenter différemment.
+         */
+        post: operations["cancel_jobs__job_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/jobs/{job_id}/events": {
         parameters: {
             query?: never;
@@ -1293,6 +1322,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_jobs__job_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"];
                 };
             };
             /** @description Validation Error */

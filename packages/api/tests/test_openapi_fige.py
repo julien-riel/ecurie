@@ -69,6 +69,12 @@ def test_les_routes_figees_sont_celles_que_le_front_appelle():
     en découlait : une image choisie dans une page, une photo de la caméra et un
     son du micro n'ont jamais eu de chemin à saisir, quelle que soit la machine.
 
+    `/jobs/{job_id}/cancel` est la seule route d'écriture qui défait quelque
+    chose. Elle double le `{"op":"cancel"}` du duplex, et c'est voulu : un bouton
+    « stop » n'a pas besoin d'une socket quand l'écran suit déjà le job par son
+    flux d'événements, et lui en faire ouvrir une pour un seul message coûterait
+    plus que le message.
+
     Les deux dernières sont celles de l'écran Parc (tâche 4.5). Elles auraient pu
     manquer : `/store/summary` porte déjà les trois chiffres et l'arbre de
     duplication, et un écran s'en serait contenté. Ce qui aurait manqué avec, ce
@@ -93,6 +99,7 @@ def test_les_routes_figees_sont_celles_que_le_front_appelle():
         "/jobs",
         "/jobs/{job_id}",
         "/jobs/{job_id}/events",
+        "/jobs/{job_id}/cancel",
         "/jobs/{job_id}/files/{chemin}",
         "/uploads",
     }

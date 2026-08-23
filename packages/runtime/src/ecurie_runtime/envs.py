@@ -91,6 +91,11 @@ WORKER_MODULES_BY_CAPABILITY = {
     #
     # Les adaptateurs correspondants n'ajoutent presque rien : ils héritent des
     # trois du dessus et n'en changent que le moteur (voir `mlx_vlm_lm`).
+    # Cinquième emploi de mlx-vlm, et le seul qui ne soit pas un modèle de
+    # langue : SAM 3 segmente ce qu'on lui nomme. La capacité est déjà servie par
+    # `torch-vision` avec SAM 2, qui suit un clic — deux façons de désigner, deux
+    # runtimes, un seul contrat.
+    ("mlx-vlm", "image-segment"): "ecurie_runtime.workers.sam3",
     ("mlx-vlm", "text-generation"): "ecurie_runtime.workers.mlx_vlm_text",
     ("mlx-vlm", "translation"): "ecurie_runtime.workers.mlx_vlm_translate",
     ("mlx-vlm", "tool-use"): "ecurie_runtime.workers.mlx_vlm_tools",

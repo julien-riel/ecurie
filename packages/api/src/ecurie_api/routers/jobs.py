@@ -243,6 +243,35 @@ def detail(state: StateDep, job_id: str) -> JobDetail:
     return depuis_le_disque
 
 
+@router.post(
+    "/{job_id}/cancel",
+    response_model=JobOut,
+    summary="Arrêter un job en cours",
+)
+def cancel(state: StateDep, job_id: str) -> JobOut:
+    """Arrête un job et rend son état. Le même geste que `{"op":"cancel"}` en duplex.
+
+    Il existe en HTTP parce qu'un bouton « stop » n'a pas besoin d'une socket :
+    l'écran suit déjà le job par son flux d'événements, et lui demander d'en
+    ouvrir une seconde pour un seul message coûterait plus que le message.
+
+    **L'arrêt tue le worker** — voir `JobRegistry.cancel`. Le job rend donc
+    `failed`, avec `cancelled` à vrai et le texte déjà produit dans
+    `stream_text` : c'est ce qui distingue un arrêt demandé d'une panne, et
+    l'écran doit les présenter différemment.
+    """
+    job = state.jobs.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"job inconnu : {job_id}")
+    if job.terminal:
+        # Ni une erreur ni un succès : le job est fini, il n'y a rien à arrêter.
+        # Rendre 409 ferait clignoter une alerte pour un bouton cliqué une
+        # seconde trop tard, ce qui arrive à tout le monde.
+        return JobOut(**job.snapshot())
+    state.jobs.cancel(job_id)
+    return JobOut(**job.snapshot())
+
+
 @router.get("/{job_id}/events", summary="Suivre un job en direct (SSE)")
 async def events(state: StateDep, job_id: str, request: Request) -> StreamingResponse:
     """Flux d'événements : un `job` à chaque changement, puis un `end`.

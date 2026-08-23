@@ -49,6 +49,7 @@ describe("les types engendrés depuis l'OpenAPI", () => {
       "/healthz",
       "/jobs",
       "/jobs/{job_id}",
+      "/jobs/{job_id}/cancel",
       "/jobs/{job_id}/events",
       "/jobs/{job_id}/files/{chemin}",
       "/registry/capabilities",

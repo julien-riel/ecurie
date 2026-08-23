@@ -16,6 +16,7 @@
  */
 
 import type { Job } from "../api/types";
+import { FluxTexte } from "./FluxTexte";
 import { LIBELLE_ETAT, enCours, phrasesBilan, phrasesMetriques } from "./job";
 
 export interface PanneauJobProps {
@@ -24,9 +25,20 @@ export interface PanneauJobProps {
   erreurDeSuivi?: readonly string[];
   onReprendre?: () => void;
   onOublier?: () => void;
+  /** Arrête le job. Absent quand rien ne tourne — le bouton ne s'affiche pas. */
+  onArreter?: () => void;
+  /** Un arrêt est parti, sa réponse n'est pas revenue. */
+  arretEnCours?: boolean;
 }
 
-export function PanneauJob({ job, erreurDeSuivi = [], onReprendre, onOublier }: PanneauJobProps) {
+export function PanneauJob({
+  job,
+  erreurDeSuivi = [],
+  onReprendre,
+  onOublier,
+  onArreter,
+  arretEnCours = false,
+}: PanneauJobProps) {
   const bilan = phrasesBilan(job);
   const métriques = phrasesMetriques(job);
 
@@ -54,11 +66,37 @@ export function PanneauJob({ job, erreurDeSuivi = [], onReprendre, onOublier }: 
           <progress className="ecurie-progression" value={job.progress} max={100} aria-label="Progression" />
           <p className="ecurie-etat-champ">
             {job.progress} % — {job.note || "en attente du worker"}
+            {onArreter ? (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  className="ecurie-lien"
+                  onClick={onArreter}
+                  disabled={arretEnCours}
+                >
+                  {arretEnCours ? "arrêt en cours…" : "arrêter"}
+                </button>
+              </>
+            ) : null}
           </p>
         </>
       ) : null}
 
-      {job.error ? <p className="text-danger">{job.error}</p> : null}
+      <FluxTexte job={job} />
+
+      {/*
+        Un arrêt demandé n'est pas une panne, et il ne se présente pas comme
+        telle : le serveur rend `failed` parce que le worker a été tué, mais
+        l'utilisateur sait ce qu'il a fait. Le texte déjà reçu reste affiché
+        au-dessus — c'est tout ce que le job a produit, et le perdre serait le
+        seul vrai dommage de l'annulation.
+      */}
+      {job.cancelled ? (
+        <p className="ecurie-etat-champ">arrêté à votre demande</p>
+      ) : job.error ? (
+        <p className="text-danger">{job.error}</p>
+      ) : null}
 
       {bilan.length ? (
         <ul className="ecurie-bilan">

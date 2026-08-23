@@ -1,0 +1,83 @@
+# SAM 3 — segmentation, et une troisième façon de désigner ce qu'on veut découper.
+#
+# Le titulaire de cette capacité, sam2-hiera-small, suit ce qu'on lui montre : un
+# point, une boîte. SAM 3 suit ce qu'on lui **nomme** — « le chien », « les
+# panneaux » — et rend un masque par instance trouvée. C'est la même capacité au
+# sens du contrat (une image entre, un masque sort, et c'est l'utilisateur qui
+# désigne), mais la désignation change de nature, et le contrat a gagné un champ
+# `prompt` pour l'accueillir.
+#
+# Ce n'est pas un remplaçant : les deux façons de désigner ne se valent pas selon
+# la tâche. Un point est sans ambiguïté sur une image encombrée, là où un mot
+# ramasse tout ce qui lui ressemble ; un mot ne demande aucun clic, là où un point
+# suppose de savoir où cliquer. Le golden set dira sur quelles images chacun gagne.
+#
+# ATTENTION — LA LICENCE N'EST PAS QUALIFIÉE. Hugging Face rend `license: other`
+# pour `facebook/sam3`, sans nom ni lien, et la conversion MLX n'en déclare
+# aucune. `license_class: unknown` est donc la seule valeur honnête, et le score
+# de veille la traite comme telle. À lire chez Meta avant tout usage
+# professionnel : les SAM antérieurs allaient d'Apache-2.0 à une licence maison
+# selon les variantes, et l'écart n'est pas mince.
+id: sam3
+name: SAM 3 (segmentation par concept)
+capability: image-segment
+family: sam3
+vendor: Meta AI
+license: other
+license_class: unknown
+status: candidate
+
+notes: >
+  Servi par mlx-vlm, qui porte l'architecture depuis sa 0.6 — `models/sam3/`
+  contient l'encodeur de texte, le décodeur de masques et un traqueur vidéo. Le
+  parc n'emploie ici que le chemin image ; le traqueur suppose une capacité de
+  suivi que le registre ne déclare pas.
+
+  Léger des deux côtés : 1,72 Go en bf16, 0,63 Go en 4 bits. Aucune tension avec
+  le budget, et il cohabite avec n'importe quel autre résident du parc.
+
+links:
+  homepage: https://huggingface.co/facebook/sam3
+
+variants:
+  # bf16 d'abord : sur un modèle qui rend des contours, la quantification se voit
+  # là où elle compte — le bord du masque. 1,72 Go ne justifie pas de l'éprouver.
+  - id: bf16
+    quantization: bf16
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/sam3-bf16
+      revision: "dfe573c3171dbcfda8399c650d9135afa7e94592"   # 2026-03-28
+      allow_patterns: ["*.json", "*.safetensors", "*.txt"]
+    defaults:
+      max_side: 1024
+    options:
+      # Sous ce score, une instance est écartée. C'est le réglage qui décide du
+      # compromis entre les objets manqués et les faux positifs, et il est propre
+      # au modèle plutôt qu'au contrat : SAM 2 n'a rien de tel.
+      score_threshold: 0.5
+    caveats:
+      - "MESURÉ — LE CONCEPT SE DONNE EN ANGLAIS. « cube » trouve l'objet à 0,94 de score ; « un cube » et « une théière violette » ne trouvent rien du tout. L'encodeur de texte est anglophone, et son silence ne se distingue pas d'un objet absent : rien n'échoue, la réponse est simplement vide."
+      - "Désigne par `prompt` — un concept en mots. Sans lui, ce variant refuse le job plutôt que de deviner : un point ou une boîte seuls ne suffisent pas à SAM 3, dont l'appel exige une invite textuelle."
+      - "PAS DE PROFIL, ET IL N'Y EN AURA PAS SANS TRAVAIL. La charge type de `image-segment` désigne par point et par boîte — c'est ce que faisait le seul modèle qui servait cette capacité. Les trois cas échouent donc ici, le banc n'écrit rien, et l'admission refusera ce variant. La charge type ne se modifie pas à la légère : y ajouter un cas par concept ferait échouer sam2-hiera-small en retour. Ce qu'il faudrait est un banc qui saute les cas qu'un variant ne peut pas servir — voir le rapport de veille du 2026-08-23."
+      - "Le chargement, lui, est mesuré : 1,72 Go sur le disque, 1,72 Gio de pic à vide, 690 ms de warmup. Aucune tension avec le budget."
+      - "Un mot ramasse toutes les instances qui lui ressemblent. La sortie `candidates` les porte toutes ; `mask` ne retient que la mieux notée."
+      - "Le seuil compte plus qu'ailleurs : « cube » ne sort qu'à 0,2, « object » en trouve deux à 0,5. `score_threshold` se règle par job."
+      - "Licence non qualifiée — voir l'en-tête. À trancher avant tout usage professionnel."
+  - id: 4bit
+    quantization: 4bit
+    tier: absent
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/sam3-4bit
+      revision: "53c009b4ef4cfa5b1d9fa4549e7b153e881b5636"   # 2026-03-28
+      allow_patterns: ["*.json", "*.safetensors", "*.txt"]
+    defaults:
+      max_side: 1024
+    options:
+      score_threshold: 0.5
+    caveats:
+      - "1,1 Go de moins que le bf16, pour un modèle qui rend des contours : c'est précisément là que la quantification se voit. À ne retenir qu'après comparaison des bords sur le golden set."

@@ -727,7 +727,7 @@
       "defaults": {
         "max_side": 2048
       },
-      "description": "Découpe l'objet qu'on lui désigne d'un point ou d'une boîte. À ne pas confondre avec le détourage, qui décide seul de ce qui est au premier plan : ici c'est l'utilisateur qui montre, et le modèle qui suit le contour.",
+      "description": "Découpe l'objet qu'on lui désigne — d'un point, d'une boîte, ou d'un mot. À ne pas confondre avec le détourage, qui décide seul de ce qui est au premier plan : ici c'est l'utilisateur qui montre, et le modèle qui suit le contour.",
       "id": "image-segment",
       "incumbent": null,
       "input": {
@@ -804,6 +804,11 @@
             },
             "maxItems": 32,
             "type": "array"
+          },
+          "prompt": {
+            "description": "Le concept à découper, en mots — « le chien », « les panneaux ». Troisième façon de désigner, à côté du point et de la boîte : elle ne demande aucun clic, mais ramasse toutes les instances qui ressemblent au mot. Tous les modèles ne la servent pas, et ceux qui l'exigent le disent dans leurs caveats plutôt que de deviner en son absence.",
+            "maxLength": 200,
+            "type": "string"
           }
         },
         "required": [
@@ -812,7 +817,8 @@
         "type": "object"
       },
       "models": [
-        "sam2-hiera-small"
+        "sam2-hiera-small",
+        "sam3"
       ],
       "output": {
         "properties": {

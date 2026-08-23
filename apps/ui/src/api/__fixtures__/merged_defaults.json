@@ -647,6 +647,24 @@
       "max_side": 2048
     }
   },
+  "sam3@4bit": {
+    "capability": "image-segment",
+    "merged": {
+      "max_side": 1024
+    },
+    "variant_defaults": {
+      "max_side": 1024
+    }
+  },
+  "sam3@bf16": {
+    "capability": "image-segment",
+    "merged": {
+      "max_side": 1024
+    },
+    "variant_defaults": {
+      "max_side": 1024
+    }
+  },
   "sdxl-base-img2img@fp16": {
     "capability": "image-to-image",
     "merged": {

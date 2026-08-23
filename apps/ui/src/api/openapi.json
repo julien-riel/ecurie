@@ -2050,6 +2050,49 @@
         ]
       }
     },
+    "/jobs/{job_id}/cancel": {
+      "post": {
+        "description": "Arrête un job et rend son état. Le même geste que `{\"op\":\"cancel\"}` en duplex.\n\nIl existe en HTTP parce qu'un bouton « stop » n'a pas besoin d'une socket :\nl'écran suit déjà le job par son flux d'événements, et lui demander d'en\nouvrir une seconde pour un seul message coûterait plus que le message.\n\n**L'arrêt tue le worker** — voir `JobRegistry.cancel`. Le job rend donc\n`failed`, avec `cancelled` à vrai et le texte déjà produit dans\n`stream_text` : c'est ce qui distingue un arrêt demandé d'une panne, et\nl'écran doit les présenter différemment.",
+        "operationId": "cancel_jobs__job_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Arrêter un job en cours",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
     "/jobs/{job_id}/events": {
       "get": {
         "description": "Flux d'événements : un `job` à chaque changement, puis un `end`.\n\nChaque événement porte l'état complet plutôt qu'un fragment : le client\nremplace ce qu'il affiche, et un événement perdu ne le laisse pas dans un\nétat composé de moitiés.",
