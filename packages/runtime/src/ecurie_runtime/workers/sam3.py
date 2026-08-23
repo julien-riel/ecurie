@@ -95,9 +95,7 @@ class Sam3Worker(Worker):
     def infer(self, request: InferRequest, progress: ProgressFn) -> InferResult:
         if self._predictor is None:
             raise WorkerError("modèle non chargé")
-        from PIL import Image
 
-        image_path = self._image(request)
         concept = str(request.get("prompt") or "").strip()
         if not concept:
             raise WorkerError(
@@ -105,6 +103,14 @@ class Sam3Worker(Worker):
                 "pas ce qu'on lui montre. Pour désigner d'un point ou d'une boîte, c'est "
                 "sam2-hiera-small qui sert cette capacité."
             )
+        # PIL après les gardes d'entrée, et non avant : un job refusé pour une
+        # raison qu'on connaît déjà ne doit pas dépendre d'un import. La règle
+        # vaut au-delà du confort — l'environnement d'Écurie n'a pas PIL, seul
+        # celui du runtime l'a, et une garde qui lèverait `ModuleNotFoundError`
+        # au lieu de sa propre phrase serait indéchiffrable.
+        from PIL import Image
+
+        image_path = self._image(request)
         seuil = float(self._reglage(request, "score_threshold", self._seuil))
         max_side = int(self._reglage(request, "max_side", 1024))
 
@@ -256,21 +262,30 @@ class Sam3Worker(Worker):
         return versions
 
 
-def _reduire(image: Any, max_side: int) -> Any:
+def _reduire(image: Any, max_side: int, filtre: Any = None) -> Any:
     """Ramène le plus grand côté sous la borne, en gardant les proportions.
 
     Le contrat expose `max_side` parce que le coût d'une segmentation suit la
     surface : doubler le côté quadruple le travail, pour un contour qui ne gagne
     presque rien passé le millier de pixels.
     """
-    from PIL import Image as PILImage
-
     plus_grand = max(image.size)
     if max_side <= 0 or plus_grand <= max_side:
         return image
+
+    if filtre is None:
+        # Résolu ici et pas au module : cette fonction est du calcul pur à un
+        # appel près, et l'environnement d'Écurie — celui des tests — n'a pas
+        # PIL. Le paramètre existe pour qu'ils puissent l'éprouver sans lui.
+        from PIL import Image as PILImage
+
+        filtre = PILImage.LANCZOS
+
     facteur = max_side / plus_grand
+    # Le plancher à 1 n'est pas théorique : une image très allongée arrondit son
+    # petit côté à zéro, et PIL lève sur une taille nulle.
     taille = (max(1, round(image.width * facteur)), max(1, round(image.height * facteur)))
-    return image.resize(taille, PILImage.LANCZOS)
+    return image.resize(taille, filtre)
 
 
 def _ecrire_masque(masque: Any, cible: Path) -> float:

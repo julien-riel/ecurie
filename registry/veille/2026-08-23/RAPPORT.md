@@ -153,26 +153,60 @@ test vérifie qu'aucun ne redéfinit `infer`.
   une fraction de leur place sans que rien n'échoue. Elle se déclare désormais
   par variant, sous `options.grid`.
 
-## 6. Déclencheurs et travail identifié
+## 6. SAM 3, et ce qu'il révèle du banc d'essai
 
-1. **L'audio de Gemma 4.** Le modèle transcrit la parole et la traduit à la
+Ajouté à la demande, servi par `mlx-vlm` qui porte l'architecture depuis sa 0.6.
+1,72 Go en bf16, 690 ms de warmup, aucune tension avec le budget. Il fonctionne :
+sur la scène du banc, l'invite « cube » rend une instance à **0,94** de score et
+un masque qui ne mord ni sur la sphère ni sur le cône.
+
+**Il désigne par le mot, pas par le clic.** Le titulaire `sam2-hiera-small` suit
+un point ou une boîte ; SAM 3 reçoit un concept et rend une instance par objet
+qui lui ressemble. C'est la même capacité au sens du contrat — une image entre,
+un masque sort, l'utilisateur désigne —, et `image-segment` a gagné un champ
+`prompt` pour cette troisième façon de montrer.
+
+**Le concept se donne en anglais**, et c'est mesuré : « cube » trouve l'objet,
+« un cube » ne trouve rien. Le silence de l'encodeur ne se distingue pas d'un
+objet absent — rien n'échoue, la réponse est vide. C'est le genre de défaut qui
+se paie en heures quand il n'est pas écrit.
+
+**Il n'a pas de profil, et cela tient au banc plutôt qu'au modèle.** La charge
+type de `image-segment` désigne par point et par boîte, parce qu'un seul modèle
+servait cette capacité quand elle a été écrite. Les trois cas échouent donc ici,
+le banc n'écrit rien, et l'admission refusera ce variant — la protection joue,
+et il faut la laisser jouer.
+
+La sortie n'est pas d'ajouter un cas : y mettre un concept ferait échouer
+`sam2-hiera-small` en retour, et modifier les trois existants détruirait la
+comparabilité de toutes les mesures antérieures, que le fichier de charge déclare
+en toutes lettres. Ce qu'il faut est **un banc qui saute les cas qu'un variant ne
+peut pas servir**, et un manifeste qui déclare ce qu'il sait recevoir. C'est le
+chantier que ce cycle a mis au jour, et il dépasse le cadre d'un ajout de modèle.
+
+## 7. Déclencheurs et travail identifié
+
+1. **Un banc d'essai qui s'adapte au variant** — préalable à toute mesure de
+   SAM 3, et plus généralement à tout modèle qui sert une capacité autrement que
+   le premier arrivé. Voir §6.
+2. **L'audio de Gemma 4.** Le modèle transcrit la parole et la traduit à la
    volée. Servir `speech-to-text` et `audio-to-text` demande un adaptateur audio
    sur `mlx-vlm` — le pendant de ce qui a été fait ici pour le texte. C'est le
    chantier le plus rentable qui reste : les poids sont déjà sur le disque.
-2. **La grille de `gemma4-12b-detect`.** Le manifeste porte le défaut hérité de
+3. **La grille de `gemma4-12b-detect`.** Le manifeste porte le défaut hérité de
    Qwen3-VL, non vérifié. À établir sur une scène aux positions connues, comme
    l'a été celle du titulaire, avant tout usage et toute comparaison.
-3. **Le golden set.** Quatre capacités ont un challenger sans qu'aucun gain de
+4. **Le golden set.** Quatre capacités ont un challenger sans qu'aucun gain de
    qualité ne soit établi. Tant qu'il n'a pas tourné, ce rapport ne peut
    recommander aucun remplacement.
-4. **`Qwen/Qwen3.8-27B`**, paru le 2026-08-14. Sa conversion 4 bits pèse 16,08 Go,
+5. **`Qwen/Qwen3.8-27B`**, paru le 2026-08-14. Sa conversion 4 bits pèse 16,08 Go,
    soit exactement la même impasse sur la vision. Le mur est la classe 27B sur
    24 Gio, pas le numéro de version.
 
-## 7. Plan de GC
+## 8. Plan de GC
 
-Deux jeux de poids sont entrés sur le disque : **16,08 Go** pour Qwen3.6-27B,
-**6,77 Go** pour Gemma 4 12B, soit 22,85 Go. Le disque en garde 511 Gio libres
+Trois jeux de poids sont entrés sur le disque : **16,08 Go** pour Qwen3.6-27B,
+**6,77 Go** pour Gemma 4 12B et **1,72 Go** pour SAM 3, soit 24,57 Go. Le disque en garde 511 Gio libres
 sur 926 — la garde des 15 % n'est pas menacée.
 
 Un seul poste mérite d'être chiffré : si Qwen3.6-27B n'est pas retenu pour la
