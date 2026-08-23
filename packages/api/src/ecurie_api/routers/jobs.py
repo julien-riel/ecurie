@@ -216,7 +216,13 @@ def submit(state: StateDep, demande: JobRequest) -> JobOut:
 
     try:
         job = state.jobs.submit(
-            model, variant, contract, résolu, demande.input, seed=demande.seed
+            model,
+            variant,
+            contract,
+            résolu,
+            demande.input,
+            seed=demande.seed,
+            overcommit=demande.overcommit,
         )
     except TooManyJobs as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc

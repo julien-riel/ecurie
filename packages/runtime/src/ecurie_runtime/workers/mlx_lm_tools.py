@@ -86,6 +86,47 @@ def _decoder(fragment: str) -> list[dict[str, Any]]:
     return appels
 
 
+# Le troisième format, et le seul qui ne soit pas du JSON. Qwen3.6 et les
+# gabarits dits « qwen3_coder » rendent leurs appels en XML imbriqué :
+#
+#     <tool_call><function=météo><parameter=ville>Paris</parameter></function></tool_call>
+#
+# L'extracteur JSON capturait bien la balise, tentait un `json.loads` sur son
+# contenu, échouait, et rendait zéro appel — sur un modèle qui avait pourtant
+# choisi le bon outil et rempli le bon argument. C'est très exactement le défaut
+# que l'en-tête de ce module dit vouloir éviter : mesurer la conformité à un
+# format plutôt que la compétence.
+FONCTION_XML = re.compile(r"<function\s*=\s*([^>\s]+)\s*>(.*?)</function>", re.DOTALL)
+PARAMETRE_XML = re.compile(r"<parameter\s*=\s*([^>\s]+)\s*>(.*?)</parameter>", re.DOTALL)
+
+# Ce qui mérite une relecture JSON : un nombre, un booléen, un nul, un objet ou
+# un tableau. Tout le reste est du texte et le reste — sans quoi une ville
+# nommée « NaN » deviendrait un flottant, et une référence « 007 » un entier.
+JSON_PROBABLE = re.compile(
+    r"^(?:-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?|true|false|null|\{.*\}|\[.*\])$", re.DOTALL
+)
+
+
+def _valeur_xml(brut: str) -> Any:
+    """Le contenu d'un `<parameter=…>`, retypé quand il en a manifestement la forme."""
+    dépouillé = brut.strip()
+    if JSON_PROBABLE.match(dépouillé):
+        try:
+            return json.loads(dépouillé)
+        except json.JSONDecodeError:
+            return dépouillé
+    return dépouillé
+
+
+def _appels_xml(texte: str) -> list[dict[str, Any]]:
+    """Les appels rendus en XML imbriqué, s'il y en a."""
+    appels: list[dict[str, Any]] = []
+    for nom, corps in FONCTION_XML.findall(texte):
+        arguments = {clé: _valeur_xml(valeur) for clé, valeur in PARAMETRE_XML.findall(corps)}
+        appels.append({"name": nom.strip(), "arguments": arguments})
+    return appels
+
+
 def _objets_nus(texte: str) -> list[str]:
     """Fragments JSON équilibrés trouvés dans du texte libre.
 
@@ -133,6 +174,15 @@ def extraire_appels(texte: str) -> tuple[list[dict[str, Any]], str, str]:
         if appels:
             reste = motif.sub("", texte).strip()
             return appels, reste, nom
+
+    appels = _appels_xml(texte)
+    if appels:
+        # On retire les `<function>` et les `<tool_call>` qui les entouraient :
+        # ce qui reste est le commentaire en clair que le gabarit autorise avant
+        # l'appel, et il a sa place dans `text.txt`.
+        reste = FONCTION_XML.sub("", texte)
+        reste = re.sub(r"</?tool_calls?>", "", reste).strip()
+        return appels, reste, "xml_function"
 
     for fragment in _objets_nus(texte):
         appels = _decoder(fragment)

@@ -1,0 +1,74 @@
+# Gemma 4 12B — description d'image. Voir gemma4-12b-texte.yaml pour l'en-tête
+# de la famille.
+#
+# Architecture encodeur-libre : l'image n'est pas encodée par une tour séparée
+# puis projetée, elle entre directement dans l'espace du modèle de langue. La
+# fiche amont en tire une propriété qui compte pour cette capacité — les images
+# sont acceptées « à des rapports d'aspect et des résolutions variables », là où
+# les VLM à tour de vision redimensionnent vers une grille de tuiles fixe.
+# Reste à voir ce que ça donne sur le golden set : c'est une promesse de fiche,
+# pas une mesure.
+id: gemma4-12b-describe
+name: Gemma 4 12B Instruct (description d'image)
+capability: image-to-text
+family: gemma4
+vendor: Google
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Challenger de qwen3-vl-8b-describe, titulaire de fait. Les deux tiennent dans
+  le budget, ce qui rend la comparaison honnête : ni l'un ni l'autre n'a besoin
+  de vider le parc pour répondre, et le golden set départagera sur la qualité
+  seule.
+
+links:
+  homepage: https://huggingface.co/google/gemma-4-12B-it
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/gemma-4-12B-it-4bit
+      revision: "73bcf09092aa277861d5a191b989b666f7f32e8f"   # 2026-06-08
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      detail: normal
+      max_tokens: 512
+      temperature: 0.2
+    options:
+      thinking: false
+    caveats:
+      - "6,81 Gio de pic, 5,3 s par sortie. L'image ne coûte que 128 Mio de plus que la génération de texte, là où l'autre candidat de ce cycle échoue en « Insufficient Memory » sur la même capacité."
+      - "Quantification 4 bits : les petits détails et le texte incrusté dans une image sont les premiers à se perdre."
+      - "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+    profile:
+      disk_bytes: 6773371194
+      peak_unified_memory_bytes: 7312156490
+      warmup_ms: 2679
+      latency_ms_p50: 4637
+      throughput: "1 sortie / 5.3 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"
+  - id: mxfp4
+    quantization: 4bit
+    tier: absent
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/gemma-4-12B-it-mxfp4
+      revision: "a3c49f92810bb45a75ed39f973d0273fcd97da5f"   # 2026-06-08
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      detail: normal
+      max_tokens: 512
+      temperature: 0.2
+    options:
+      thinking: false
+    caveats:
+      - "Non téléchargé."

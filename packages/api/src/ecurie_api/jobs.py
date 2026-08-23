@@ -84,6 +84,9 @@ class Job:
     capability: str
     input: dict[str, Any]
     seed: int | None = None
+    # Porté par le job et non par le superviseur : le dépassement est assumé pour
+    # *ce* travail-là, pas installé pour la session. Le job suivant redemandera.
+    overcommit: bool = False
     state: JobState = "queued"
     submitted_at: str = field(default_factory=_maintenant)
     started_at: str | None = None
@@ -257,6 +260,7 @@ class JobRegistry:
         entrée: dict[str, Any],
         *,
         seed: int | None = None,
+        overcommit: bool = False,
     ) -> Job:
         job = Job(
             id=new_job_id(),
@@ -266,6 +270,7 @@ class JobRegistry:
             capability=model.capability,
             input=dict(entrée),
             seed=seed,
+            overcommit=overcommit,
         )
         with self._lock:
             actifs = sum(1 for autre in self._jobs.values() if not autre.terminal)
@@ -314,6 +319,7 @@ class JobRegistry:
                 typed=True,
                 seed=job.seed,
                 db=db,
+                overcommit=job.overcommit,
                 job_id=job.id,
                 on_progress=job.advance,
                 on_wait=job.waiting_for,

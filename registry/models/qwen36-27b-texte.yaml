@@ -1,0 +1,82 @@
+# Génération de texte — cinquième emploi des mêmes poids, et le premier des
+# trois que le parc ne savait pas demander.
+#
+# Le modèle savait écrire depuis le début ; c'est l'aiguillage qui manquait. Les
+# adaptateurs de `text-generation`, `translation` et `tool-use` étaient
+# enregistrés sous le runtime `mlx-lm`, dont la version installée ne charge pas
+# l'architecture `qwen3_5`. Trois adaptateurs de plus — qui héritent des
+# premiers et n'en changent que le moteur — ont levé l'empêchement.
+#
+# Comme les six autres manifestes de la famille, celui-ci décrit un modèle dont
+# le pic dépasse le budget : il ne s'exécute qu'en mode hors budget
+# (`ecurie run … --hors-budget`), qui vide le parc et laisse macOS paginer.
+id: qwen36-27b-texte
+name: Qwen3.6 27B (génération de texte)
+capability: text-generation
+family: qwen3.6
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Challenger de qwen25-coder-7b, titulaire de fait de cette capacité et près de
+  quatre fois plus léger. La comparaison sera rude à établir honnêtement : l'un
+  tient dans le budget et cohabite avec le reste du parc, l'autre occupe la
+  machine entière. Un gain de qualité devra être large pour valoir ce prix, et
+  c'est le golden set qui le dira.
+
+links:
+  homepage: https://huggingface.co/Qwen/Qwen3.6-27B
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3.6-27B-4bit
+      revision: "c000ac2c2057d94be3fa931000c31723aac53282"   # 2026-04-22
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      temperature: 0.7
+      top_p: 0.95
+      max_tokens: 1024
+    options:
+      # Qwen3.6 raisonne à voix haute par défaut. Sur ce contrat, le brouillon
+      # consommerait le `max_tokens` de la réponse avant qu'elle ne commence.
+      # `false` est déjà le défaut de l'adaptateur ; on l'écrit pour que le
+      # manifeste porte la décision plutôt que de la subir.
+      thinking: false
+    caveats:
+      - "17,45 Gio de pic pour un budget de 17,76 : il tient, avec 0,31 Gio de marge — moins de 2 %. Aucun autre modèle ne peut être résident en même temps, et le contrôle d'admission videra le parc à chaque job."
+      - "1 sortie en 82 s en moyenne, et 197 s sur le cas long de la charge type. C'est le prix d'un 27B sur cette machine : le titulaire qwen25-coder-7b répond en 13 s."
+      - "Le raisonnement à voix haute est coupé. Le rallumer avec `thinking: true` change ce que la capacité mesure, et il faut alors relever `max_tokens` en conséquence."
+      - "Poids partagés avec les six autres manifestes qwen36-27b — les déporter avec `ecurie store tier` déplace les sept."
+    profile:
+      disk_bytes: 16081487798
+      peak_unified_memory_bytes: 18737946562
+      warmup_ms: 5729
+      latency_ms_p50: 26022
+      throughput: "1 sortie / 81.9 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"
+  - id: mxfp4
+    quantization: 4bit
+    tier: absent
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3.6-27B-mxfp4
+      revision: "b4ac73652af626fd653d0e4fe48a4e9c468a82f6"   # 2026-04-22
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      temperature: 0.7
+      top_p: 0.95
+      max_tokens: 1024
+    options:
+      thinking: false
+    caveats:
+      - "840 Mo de moins que le variant 4bit, pour une quantification équivalente : c'est le seul des deux dont le pic ait une chance d'approcher le plafond. Non téléchargé."

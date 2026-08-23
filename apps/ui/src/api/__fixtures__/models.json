@@ -139,6 +139,743 @@
       "vendor": "Hendrik Schröter et al. — conversion MLX par aufklarer"
     },
     {
+      "capability": "image-to-text",
+      "family": "gemma4",
+      "id": "gemma4-12b-describe",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/google/gemma-4-12B-it",
+        "paper": null
+      },
+      "name": "Gemma 4 12B Instruct (description d'image)",
+      "notes": "Challenger de qwen3-vl-8b-describe, titulaire de fait. Les deux tiennent dans le budget, ce qui rend la comparaison honnête : ni l'un ni l'autre n'a besoin de vider le parc pour répondre, et le golden set départagera sur la qualité seule.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "6,81 Gio de pic, 5,3 s par sortie. L'image ne coûte que 128 Mio de plus que la génération de texte, là où l'autre candidat de ce cycle échoue en « Insufficient Memory » sur la même capacité.",
+            "Quantification 4 bits : les petits détails et le texte incrusté dans une image sont les premiers à se perdre.",
+            "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+          ],
+          "defaults": {
+            "detail": "normal",
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": false,
+          "id": "4bit",
+          "options": {
+            "thinking": false
+          },
+          "profile": {
+            "disk_bytes": 6773371194,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 4637,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 7312156490,
+            "rtf": null,
+            "throughput": "1 sortie / 5.3 s",
+            "warmup_ms": 2679
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "gemma4-12b-describe@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/gemma-4-12B-it-4bit",
+            "revision": "73bcf09092aa277861d5a191b989b666f7f32e8f",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "gemma4-12b-describe@mxfp4 : poids absents du cache — ecurie pull gemma4-12b-describe@mxfp4",
+            "gemma4-12b-describe@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-describe@mxfp4"
+          ],
+          "caveats": [
+            "Non téléchargé."
+          ],
+          "defaults": {
+            "detail": "normal",
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "gemma4-12b-describe@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/gemma-4-12B-it-mxfp4",
+            "revision": "a3c49f92810bb45a75ed39f973d0273fcd97da5f",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "Google"
+    },
+    {
+      "capability": "image-detect",
+      "family": "gemma4",
+      "id": "gemma4-12b-detect",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/google/gemma-4-12B-it",
+        "paper": null
+      },
+      "name": "Gemma 4 12B Instruct (détection)",
+      "notes": "Challenger de qwen3-vl-8b-detect, dont la grille 0–1000 a été établie par la mesure sur une scène aux positions connues par fabrication. La même vérification est due ici avant tout usage, et avant toute comparaison : un score de détection calculé sur des boîtes mal converties ne mesurerait pas le modèle.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "gemma4-12b-detect@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-detect@4bit"
+          ],
+          "caveats": [
+            "Grille de coordonnées non vérifiée sur ces poids : `options.grid` porte le défaut de Qwen3-VL. Une grille fausse trace les boîtes à une fraction de leur place sans que rien n'échoue — regarder `overlay.png` du premier job.",
+            "La fiche amont annonce du « pointing », qui rend des centres là où le contrat attend des rectangles. Que le modèle sache produire des boîtes reste à établir.",
+            "Profil non mesuré pour cette capacité.",
+            "Aucun score de confiance : un VLM en produit un si on le lui demande, et rien dans son entraînement ne le calibre. Le contrat n'en déclare pas.",
+            "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+          ],
+          "defaults": {
+            "max_objects": 20,
+            "max_tokens": 1024,
+            "temperature": 0.0
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "4bit",
+          "options": {
+            "grid": 1000,
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "gemma4-12b-detect@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/gemma-4-12B-it-4bit",
+            "revision": "73bcf09092aa277861d5a191b989b666f7f32e8f",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "gemma4-12b-detect@mxfp4 : poids absents du cache — ecurie pull gemma4-12b-detect@mxfp4",
+            "gemma4-12b-detect@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-detect@mxfp4"
+          ],
+          "caveats": [
+            "Non téléchargé."
+          ],
+          "defaults": {
+            "max_objects": 20,
+            "max_tokens": 1024,
+            "temperature": 0.0
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "mxfp4",
+          "options": {
+            "grid": 1000,
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "gemma4-12b-detect@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/gemma-4-12B-it-mxfp4",
+            "revision": "a3c49f92810bb45a75ed39f973d0273fcd97da5f",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "Google"
+    },
+    {
+      "capability": "document-to-text",
+      "family": "gemma4",
+      "id": "gemma4-12b-ocr",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/google/gemma-4-12B-it",
+        "paper": null
+      },
+      "name": "Gemma 4 12B Instruct (lecture de document)",
+      "notes": "Challenger de qwen3-vl-8b-ocr. Le profil doit être mesuré pour lui-même : transcrire une page et décrire une photo ne produisent pas le même nombre de jetons, donc pas le même pic ni la même durée, et un profil recopié d'un manifeste à l'autre serait exactement l'estimation à la main que le projet s'interdit.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "gemma4-12b-ocr@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-ocr@4bit"
+          ],
+          "caveats": [
+            "Profil non mesuré pour cette capacité.",
+            "Un VLM transcrit, il ne localise pas : la sortie `layout` décrit les pages, pas des boîtes.",
+            "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+          ],
+          "defaults": {
+            "detect_layout": true,
+            "dpi": 200,
+            "format": "markdown"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "4bit",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "gemma4-12b-ocr@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/gemma-4-12B-it-4bit",
+            "revision": "73bcf09092aa277861d5a191b989b666f7f32e8f",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "gemma4-12b-ocr@mxfp4 : poids absents du cache — ecurie pull gemma4-12b-ocr@mxfp4",
+            "gemma4-12b-ocr@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-ocr@mxfp4"
+          ],
+          "caveats": [
+            "Non téléchargé."
+          ],
+          "defaults": {
+            "detect_layout": true,
+            "dpi": 200,
+            "format": "markdown"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "gemma4-12b-ocr@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/gemma-4-12B-it-mxfp4",
+            "revision": "a3c49f92810bb45a75ed39f973d0273fcd97da5f",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "Google"
+    },
+    {
+      "capability": "tool-use",
+      "family": "gemma4",
+      "id": "gemma4-12b-outils",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/google/gemma-4-12B-it",
+        "paper": null
+      },
+      "name": "Gemma 4 12B Instruct (appel d'outils)",
+      "notes": "Écurie n'exécute aucun outil : elle juge le choix et le remplissage. Ce manifeste sert à mesurer une compétence, pas à brancher un agent — la boucle d'agent reste hors périmètre (ARCHITECTURE.md §11).\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "gemma4-12b-outils@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-outils@4bit"
+          ],
+          "caveats": [
+            "Profil non mesuré pour cette capacité.",
+            "Le format d'appel de cette famille n'a pas encore été observé : lire `parse_strategy` dans les métriques du premier job. Si elle rend `aucun`, c'est l'extracteur qu'il faut regarder avant d'accuser le modèle.",
+            "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+          ],
+          "defaults": {
+            "parallel_calls": false,
+            "temperature": 0.0,
+            "tool_choice": "auto"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "4bit",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "gemma4-12b-outils@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/gemma-4-12B-it-4bit",
+            "revision": "73bcf09092aa277861d5a191b989b666f7f32e8f",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "gemma4-12b-outils@mxfp4 : poids absents du cache — ecurie pull gemma4-12b-outils@mxfp4",
+            "gemma4-12b-outils@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-outils@mxfp4"
+          ],
+          "caveats": [
+            "Non téléchargé."
+          ],
+          "defaults": {
+            "parallel_calls": false,
+            "temperature": 0.0,
+            "tool_choice": "auto"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "gemma4-12b-outils@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/gemma-4-12B-it-mxfp4",
+            "revision": "a3c49f92810bb45a75ed39f973d0273fcd97da5f",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "Google"
+    },
+    {
+      "capability": "text-generation",
+      "family": "gemma4",
+      "id": "gemma4-12b-texte",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/google/gemma-4-12B-it",
+        "paper": null
+      },
+      "name": "Gemma 4 12B Instruct (génération de texte)",
+      "notes": "Apache-2.0, ce qui n'allait pas de soi : les Gemma antérieurs étaient publiés sous une licence maison à conditions d'usage, que le score de veille classait `restricted`. Celui-ci est permissif au sens SPDX, sans clause d'usage acceptable à relire avant chaque emploi professionnel.\n11,95 milliards de paramètres, 256 000 jetons de contexte, 35 langues déclarées et plus de 140 vues au pré-entraînement.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "6,69 Gio de pic pour un budget de 17,76 : il reste 11 Gio libres. Sous le seuil de lourdeur de 8 Gio, donc il ne monopolise pas la place réservée au modèle lourd du parc et cohabite avec un autre résident.",
+            "Le raisonnement à voix haute est coupé. Le rallumer avec `thinking: true` change ce que la capacité mesure.",
+            "Poids partagés avec les six autres manifestes gemma4-12b — les déporter avec `ecurie store tier` déplace les sept."
+          ],
+          "defaults": {
+            "max_tokens": 1024,
+            "temperature": 0.7,
+            "top_p": 0.95
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": false,
+          "id": "4bit",
+          "options": {
+            "thinking": false
+          },
+          "profile": {
+            "disk_bytes": 6773371194,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 19667,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 7183433232,
+            "rtf": null,
+            "throughput": "1 sortie / 38.7 s",
+            "warmup_ms": 2743
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "gemma4-12b-texte@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/gemma-4-12B-it-4bit",
+            "revision": "73bcf09092aa277861d5a191b989b666f7f32e8f",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "gemma4-12b-texte@mxfp4 : poids absents du cache — ecurie pull gemma4-12b-texte@mxfp4",
+            "gemma4-12b-texte@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-texte@mxfp4"
+          ],
+          "caveats": [
+            "370 Mo de moins que le variant 4bit. L'écart ne décide de rien ici — les deux tiennent largement dans le budget —, ce qui en fait surtout un point de comparaison sur la qualité à taille presque égale."
+          ],
+          "defaults": {
+            "max_tokens": 1024,
+            "temperature": 0.7,
+            "top_p": 0.95
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "gemma4-12b-texte@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/gemma-4-12B-it-mxfp4",
+            "revision": "a3c49f92810bb45a75ed39f973d0273fcd97da5f",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "Google"
+    },
+    {
+      "capability": "translation",
+      "family": "gemma4",
+      "id": "gemma4-12b-traduction",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/google/gemma-4-12B-it",
+        "paper": null
+      },
+      "name": "Gemma 4 12B Instruct (traduction)",
+      "notes": "Le golden set de la capacité tranchera. Ce qui est acquis sans lui : la licence est permissive, les poids sont déjà sur le disque puisqu'ils servent six autres manifestes, et le coût marginal de cette capacité est donc nul.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "gemma4-12b-traduction@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-traduction@4bit"
+          ],
+          "caveats": [
+            "Profil non mesuré pour cette capacité : traduire un paragraphe et écrire une réponse libre ne produisent pas le même nombre de jetons, donc pas le même pic ni la même durée.",
+            "Ne détecte pas la langue de départ : il traduit ce qu'on lui donne. `detected_source_language` rend la langue déclarée, ou rien.",
+            "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+          ],
+          "defaults": {
+            "preserve_formatting": true,
+            "register": "neutre"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "4bit",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "gemma4-12b-traduction@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/gemma-4-12B-it-4bit",
+            "revision": "73bcf09092aa277861d5a191b989b666f7f32e8f",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "gemma4-12b-traduction@mxfp4 : poids absents du cache — ecurie pull gemma4-12b-traduction@mxfp4",
+            "gemma4-12b-traduction@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-traduction@mxfp4"
+          ],
+          "caveats": [
+            "Non téléchargé."
+          ],
+          "defaults": {
+            "preserve_formatting": true,
+            "register": "neutre"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "gemma4-12b-traduction@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/gemma-4-12B-it-mxfp4",
+            "revision": "a3c49f92810bb45a75ed39f973d0273fcd97da5f",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "Google"
+    },
+    {
+      "capability": "video-to-text",
+      "family": "gemma4",
+      "id": "gemma4-12b-video",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/google/gemma-4-12B-it",
+        "paper": null
+      },
+      "name": "Gemma 4 12B Instruct (description de vidéo)",
+      "notes": "Challenger de qwen3-vl-8b-video. Sur le titulaire, le chemin vidéo natif de mlx-vlm s'est révélé inutilisable — il transmettait un unique jeton de remplissage, et le modèle décrivait alors une scène figée en niant tout mouvement. L'adaptateur décode donc lui-même. Rien ne dit que cette famille se comporte pareil, et la sortie `native_video` du job dira quel chemin a servi.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "gemma4-12b-video@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-video@4bit"
+          ],
+          "caveats": [
+            "L'amont ne garantit l'analyse que jusqu'à 60 secondes de vidéo. Au-delà, le job aboutit mais la réponse sort du domaine annoncé.",
+            "Le pic suit `max_frames`, pas la durée de la vidéo : huit images d'un plan de dix minutes coûtent autant que huit images de dix secondes.",
+            "Profil non mesuré pour cette capacité, et c'est celle dont le pic est le plus élevé sur la famille comparable.",
+            "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+          ],
+          "defaults": {
+            "fps": 1.0,
+            "max_frames": 8,
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "4bit",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "gemma4-12b-video@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/gemma-4-12B-it-4bit",
+            "revision": "73bcf09092aa277861d5a191b989b666f7f32e8f",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "gemma4-12b-video@mxfp4 : poids absents du cache — ecurie pull gemma4-12b-video@mxfp4",
+            "gemma4-12b-video@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-video@mxfp4"
+          ],
+          "caveats": [
+            "Non téléchargé."
+          ],
+          "defaults": {
+            "fps": 1.0,
+            "max_frames": 8,
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "gemma4-12b-video@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/gemma-4-12B-it-mxfp4",
+            "revision": "a3c49f92810bb45a75ed39f973d0273fcd97da5f",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "Google"
+    },
+    {
       "capability": "audio-separation",
       "family": "demucs",
       "id": "htdemucs-mlx",
@@ -1288,8 +2025,8 @@
             "qwen36-27b-describe@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-describe@mxfp4"
           ],
           "caveats": [
-            "15,2 Go de poids pour un budget GPU praticable de 15 à 17 Go : le pic estimé (17,4 à 19,2 Go) dépasse le plafond. À éprouver seulement si l'on accepte que la mesure puisse conclure au rejet.",
-            "Le mode « thinking » est actif par défaut sur Qwen3.6, et aucun adaptateur du parc ne sait le désactiver : la description rendue portera un bloc <think>…</think> tant que le worker ne transmettra pas `enable_thinking` au gabarit.",
+            "840 Mo de moins que le variant 4bit, pour une quantification équivalente. Non téléchargé : c'est le variant 4bit qui a été mesuré.",
+            "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure.",
             "Quantification 4 bits à virgule flottante microscalaire : moins éprouvée dans le parc que le mode affine, et jamais mesurée ici.",
             "Poids partagés avec qwen36-27b-ocr, -detect et -video — les déporter avec `ecurie store tier` déplace les quatre."
           ],
@@ -1326,12 +2063,11 @@
         },
         {
           "blockers": [
-            "qwen36-27b-describe@4bit : poids absents du cache — ecurie pull qwen36-27b-describe@4bit",
             "qwen36-27b-describe@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-describe@4bit"
           ],
           "caveats": [
-            "16,1 Go de poids : pic estimé entre 18,3 et 20,3 Go, soit au-dessus du plafond de 17 Go dans toutes les hypothèses. Dominé par le variant mxfp4, plus léger de 840 Mo à quantification équivalente.",
-            "Le mode « thinking » est actif par défaut et aucun adaptateur ne sait le désactiver."
+            "MESURÉ : cette capacité échoue sur cette machine. Le banc rend « [METAL] Command buffer execution failed: Insufficient Memory » sur les trois cas de la charge type. Les poids chargés occupent déjà 14,95 Gio ; le buffer que réclame l'encodage de l'image ne passe plus. `--hors-budget` n'y change rien — il lève un refus d'admission, pas un refus de Metal, et l'allocation échoue en aval du contrôle.",
+            "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure."
           ],
           "defaults": {
             "detail": "normal",
@@ -1361,8 +2097,8 @@
             "revision": "c000ac2c2057d94be3fa931000c31723aac53282",
             "url": null
           },
-          "tier": "absent",
-          "weights_path": null
+          "tier": "hot",
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "Alibaba Qwen"
@@ -1389,9 +2125,9 @@
             "qwen36-27b-detect@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-detect@mxfp4"
           ],
           "caveats": [
-            "15,2 Go de poids pour un budget GPU praticable de 15 à 17 Go : le pic estimé (17,4 à 19,2 Go) dépasse le plafond.",
-            "Le mode « thinking », actif par défaut et non désactivable par les adaptateurs actuels, précède la réponse d'un bloc <think>…</think>. Sur une capacité dont la sortie est extraite par motif, c'est un risque de zéro objet qui ne mesurerait pas le modèle mais l'adaptateur.",
-            "`max_tokens` est réglé à 1024 comme chez le titulaire, mais un modèle qui raisonne à voix haute avant de répondre peut épuiser ce budget avant d'avoir rendu la moindre boîte.",
+            "840 Mo de moins que le variant 4bit, pour une quantification équivalente. Non téléchargé : c'est le variant 4bit qui a été mesuré.",
+            "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure. Sur cette capacité, dont la sortie est extraite par motif, un préambule risquait de faire rendre zéro objet — ce qui aurait mesuré l'adaptateur, pas le modèle.",
+            "La grille de coordonnées de cette famille n'a pas été vérifiée : `options.grid` porte le défaut de Qwen3-VL. Une grille fausse trace les boîtes à une fraction de leur place sans que rien n'échoue — regarder `overlay.png` du premier job.",
             "Aucun score de confiance : un VLM en produit un si on le lui demande, et rien dans son entraînement ne le calibre. Le contrat n'en déclare pas.",
             "Poids partagés avec qwen36-27b-describe, -ocr et -video — les déporter déplace les quatre."
           ],
@@ -1428,12 +2164,11 @@
         },
         {
           "blockers": [
-            "qwen36-27b-detect@4bit : poids absents du cache — ecurie pull qwen36-27b-detect@4bit",
             "qwen36-27b-detect@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-detect@4bit"
           ],
           "caveats": [
-            "16,1 Go de poids : pic estimé entre 18,3 et 20,3 Go. Dominé par le variant mxfp4.",
-            "Le mode « thinking » est actif par défaut et aucun adaptateur ne sait le désactiver."
+            "MESURÉ : cette capacité échoue sur cette machine. Le banc rend « [METAL] Command buffer execution failed: Insufficient Memory » sur les trois cas de la charge type. Les poids chargés occupent déjà 14,95 Gio ; le buffer que réclame l'encodage de l'image ne passe plus. `--hors-budget` n'y change rien — il lève un refus d'admission, pas un refus de Metal, et l'allocation échoue en aval du contrôle.",
+            "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure."
           ],
           "defaults": {
             "max_objects": 20,
@@ -1463,8 +2198,8 @@
             "revision": "c000ac2c2057d94be3fa931000c31723aac53282",
             "url": null
           },
-          "tier": "absent",
-          "weights_path": null
+          "tier": "hot",
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "Alibaba Qwen"
@@ -1491,8 +2226,8 @@
             "qwen36-27b-ocr@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-ocr@mxfp4"
           ],
           "caveats": [
-            "15,2 Go de poids pour un budget GPU praticable de 15 à 17 Go : le pic estimé (17,4 à 19,2 Go) dépasse le plafond.",
-            "Le mode « thinking » est actif par défaut : la transcription rendue sera précédée d'un bloc <think>…</think> qu'aucun adaptateur du parc ne sait supprimer. Sur une capacité dont la sortie se compare au texte attendu, ce préambule fausse la mesure autant qu'il gêne la lecture.",
+            "840 Mo de moins que le variant 4bit, pour une quantification équivalente. Non téléchargé : c'est le variant 4bit qui a été mesuré.",
+            "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure. Sur cette capacité, un préambule fausserait la comparaison au texte attendu autant qu'il gênerait la lecture.",
             "Un VLM transcrit, il ne localise pas : la sortie `layout` décrit les pages, pas des boîtes.",
             "Poids partagés avec qwen36-27b-describe, -detect et -video — les déporter déplace les quatre."
           ],
@@ -1529,12 +2264,11 @@
         },
         {
           "blockers": [
-            "qwen36-27b-ocr@4bit : poids absents du cache — ecurie pull qwen36-27b-ocr@4bit",
             "qwen36-27b-ocr@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-ocr@4bit"
           ],
           "caveats": [
-            "16,1 Go de poids : pic estimé entre 18,3 et 20,3 Go. Dominé par le variant mxfp4.",
-            "Le mode « thinking » est actif par défaut et aucun adaptateur ne sait le désactiver."
+            "MESURÉ : cette capacité échoue sur cette machine. Le banc rend « [METAL] Command buffer execution failed: Insufficient Memory » sur les trois cas de la charge type. Les poids chargés occupent déjà 14,95 Gio ; le buffer que réclame l'encodage de l'image ne passe plus. `--hors-budget` n'y change rien — il lève un refus d'admission, pas un refus de Metal, et l'allocation échoue en aval du contrôle.",
+            "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure."
           ],
           "defaults": {
             "detect_layout": true,
@@ -1562,6 +2296,320 @@
             "path": null,
             "repo": "mlx-community/Qwen3.6-27B-4bit",
             "revision": "c000ac2c2057d94be3fa931000c31723aac53282",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "tool-use",
+      "family": "qwen3.6",
+      "id": "qwen36-27b-outils",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/Qwen/Qwen3.6-27B",
+        "paper": null
+      },
+      "name": "Qwen3.6 27B (appel d'outils)",
+      "notes": "Challenger de qwen3-4b-outils. La métrique `template_tools` doit rester vraie d'une exécution à l'autre : le gabarit de Qwen3.6 accepte `tools`, donc l'appel est natif et non un repli par consigne système. Si elle passe à faux après une mise à jour du gabarit, la comparaison avec les mesures antérieures cesse d'être valide, et il vaut mieux l'apprendre là que par un score qui baisse sans raison.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "qwen36-27b-outils@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-outils@4bit"
+          ],
+          "caveats": [
+            "16,1 Go de poids : le pic dépasse le budget de la machine cible. Ne démarre qu'avec --hors-budget, parc vidé.",
+            "Format d'appel XML et non JSON : la métrique `parse_strategy` doit rendre `xml_function`. Si elle rend `aucun`, c'est l'extracteur qu'il faut regarder avant d'accuser le modèle.",
+            "Poids partagés avec les six autres manifestes qwen36-27b — les déporter déplace les sept."
+          ],
+          "defaults": {
+            "parallel_calls": false,
+            "temperature": 0.0,
+            "tool_choice": "auto"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "4bit",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "qwen36-27b-outils@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.6-27B-4bit",
+            "revision": "c000ac2c2057d94be3fa931000c31723aac53282",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "qwen36-27b-outils@mxfp4 : poids absents du cache — ecurie pull qwen36-27b-outils@mxfp4",
+            "qwen36-27b-outils@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-outils@mxfp4"
+          ],
+          "caveats": [
+            "840 Mo de moins que le variant 4bit. Non téléchargé."
+          ],
+          "defaults": {
+            "parallel_calls": false,
+            "temperature": 0.0,
+            "tool_choice": "auto"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "qwen36-27b-outils@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.6-27B-mxfp4",
+            "revision": "b4ac73652af626fd653d0e4fe48a4e9c468a82f6",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "text-generation",
+      "family": "qwen3.6",
+      "id": "qwen36-27b-texte",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/Qwen/Qwen3.6-27B",
+        "paper": null
+      },
+      "name": "Qwen3.6 27B (génération de texte)",
+      "notes": "Challenger de qwen25-coder-7b, titulaire de fait de cette capacité et près de quatre fois plus léger. La comparaison sera rude à établir honnêtement : l'un tient dans le budget et cohabite avec le reste du parc, l'autre occupe la machine entière. Un gain de qualité devra être large pour valoir ce prix, et c'est le golden set qui le dira.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "17,45 Gio de pic pour un budget de 17,76 : il tient, avec 0,31 Gio de marge — moins de 2 %. Aucun autre modèle ne peut être résident en même temps, et le contrôle d'admission videra le parc à chaque job.",
+            "1 sortie en 82 s en moyenne, et 197 s sur le cas long de la charge type. C'est le prix d'un 27B sur cette machine : le titulaire qwen25-coder-7b répond en 13 s.",
+            "Le raisonnement à voix haute est coupé. Le rallumer avec `thinking: true` change ce que la capacité mesure, et il faut alors relever `max_tokens` en conséquence.",
+            "Poids partagés avec les six autres manifestes qwen36-27b — les déporter avec `ecurie store tier` déplace les sept."
+          ],
+          "defaults": {
+            "max_tokens": 1024,
+            "temperature": 0.7,
+            "top_p": 0.95
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": true,
+          "id": "4bit",
+          "options": {
+            "thinking": false
+          },
+          "profile": {
+            "disk_bytes": 16081487798,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 26022,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 18737946562,
+            "rtf": null,
+            "throughput": "1 sortie / 81.9 s",
+            "warmup_ms": 5729
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "qwen36-27b-texte@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.6-27B-4bit",
+            "revision": "c000ac2c2057d94be3fa931000c31723aac53282",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "qwen36-27b-texte@mxfp4 : poids absents du cache — ecurie pull qwen36-27b-texte@mxfp4",
+            "qwen36-27b-texte@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-texte@mxfp4"
+          ],
+          "caveats": [
+            "840 Mo de moins que le variant 4bit, pour une quantification équivalente : c'est le seul des deux dont le pic ait une chance d'approcher le plafond. Non téléchargé."
+          ],
+          "defaults": {
+            "max_tokens": 1024,
+            "temperature": 0.7,
+            "top_p": 0.95
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "qwen36-27b-texte@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.6-27B-mxfp4",
+            "revision": "b4ac73652af626fd653d0e4fe48a4e9c468a82f6",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "translation",
+      "family": "qwen3.6",
+      "id": "qwen36-27b-traduction",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/Qwen/Qwen3.6-27B",
+        "paper": null
+      },
+      "name": "Qwen3.6 27B (traduction)",
+      "notes": "Challenger de qwen3-4b-traduction, sept fois plus léger. Le contrat expose une langue d'arrivée libre, ce qu'un modèle généraliste honore et qu'un moteur NMT dédié ne fait pas ; à ce jeu, la taille joue en faveur de ce candidat sur les langues peu servies. Reste à savoir si l'écart justifie de vider le parc.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "qwen36-27b-traduction@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-traduction@4bit"
+          ],
+          "caveats": [
+            "16,1 Go de poids : le pic dépasse le budget de la machine cible. Ne démarre qu'avec --hors-budget, parc vidé.",
+            "Ne détecte pas la langue de départ : il traduit ce qu'on lui donne. `detected_source_language` rend la langue déclarée, ou rien.",
+            "Poids partagés avec les six autres manifestes qwen36-27b — les déporter déplace les sept."
+          ],
+          "defaults": {
+            "preserve_formatting": true,
+            "register": "neutre"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "4bit",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "qwen36-27b-traduction@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.6-27B-4bit",
+            "revision": "c000ac2c2057d94be3fa931000c31723aac53282",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "qwen36-27b-traduction@mxfp4 : poids absents du cache — ecurie pull qwen36-27b-traduction@mxfp4",
+            "qwen36-27b-traduction@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-traduction@mxfp4"
+          ],
+          "caveats": [
+            "840 Mo de moins que le variant 4bit. Non téléchargé."
+          ],
+          "defaults": {
+            "preserve_formatting": true,
+            "register": "neutre"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "qwen36-27b-traduction@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.6-27B-mxfp4",
+            "revision": "b4ac73652af626fd653d0e4fe48a4e9c468a82f6",
             "url": null
           },
           "tier": "absent",
@@ -1592,9 +2640,9 @@
             "qwen36-27b-video@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-video@mxfp4"
           ],
           "caveats": [
-            "15,2 Go de poids, et la capacité du parc dont le facteur pic/disque mesuré est le plus élevé : le pic estimé (jusqu'à 19,2 Go) dépasse le plafond de 17 Go plus franchement que sur les trois autres capacités.",
+            "840 Mo de moins que le variant 4bit, pour une quantification équivalente. Non téléchargé : c'est le variant 4bit qui a été mesuré.",
             "Le pic suit `max_frames`, pas la durée de la vidéo : huit images d'un plan de dix minutes coûtent autant que huit images de dix secondes.",
-            "Le mode « thinking » est actif par défaut et aucun adaptateur du parc ne sait le désactiver.",
+            "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure.",
             "Le chemin vidéo natif de mlx-vlm est inutilisable avec les poids du titulaire ; son comportement avec ceux-ci n'a pas été éprouvé.",
             "Poids partagés avec qwen36-27b-describe, -ocr et -detect — les déporter déplace les quatre."
           ],
@@ -1632,12 +2680,11 @@
         },
         {
           "blockers": [
-            "qwen36-27b-video@4bit : poids absents du cache — ecurie pull qwen36-27b-video@4bit",
             "qwen36-27b-video@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-video@4bit"
           ],
           "caveats": [
-            "16,1 Go de poids : pic estimé jusqu'à 20,3 Go. Dominé par le variant mxfp4.",
-            "Le mode « thinking » est actif par défaut et aucun adaptateur ne sait le désactiver."
+            "MESURÉ : cette capacité échoue sur cette machine. Le banc rend « [METAL] Command buffer execution failed: Insufficient Memory » sur les trois cas de la charge type. Les poids chargés occupent déjà 14,95 Gio ; le buffer que réclame l'encodage de l'image ne passe plus. `--hors-budget` n'y change rien — il lève un refus d'admission, pas un refus de Metal, et l'allocation échoue en aval du contrôle.",
+            "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure."
           ],
           "defaults": {
             "fps": 1.0,
@@ -1668,8 +2715,8 @@
             "revision": "c000ac2c2057d94be3fa931000c31723aac53282",
             "url": null
           },
-          "tier": "absent",
-          "weights_path": null
+          "tier": "hot",
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "Alibaba Qwen"

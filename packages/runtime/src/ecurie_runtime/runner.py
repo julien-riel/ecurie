@@ -333,6 +333,7 @@ def run_job(
     on_progress: ProgressFn | None = None,
     on_wait: WaitFn | None = None,
     pin: bool = False,
+    overcommit: bool = False,
     job_id: str | None = None,
 ) -> JobOutcome:
     """Exécute un job complet et rend un résultat déjà écrit sur le disque.
@@ -371,6 +372,7 @@ def run_job(
             model,
             variant,
             pin=pin,
+            overcommit=overcommit,
             on_progress=on_progress,
             values=résolu.values,
             job_id=job_id,
@@ -397,6 +399,11 @@ def run_job(
 
     durée_ms = int((datetime.now(UTC) - démarré).total_seconds() * 1000)
     avertissements = list(lease.warnings) if lease else []
+    if lease is not None and lease.admission.overcommit:
+        # En tête, et avant même le `peak_note` du profil : quand un job hors
+        # budget met trois fois le temps annoncé, c'est la première chose que son
+        # manifeste doit apprendre à qui le relit six mois plus tard.
+        avertissements.insert(0, lease.admission.reason)
     note = variant.profile.expected_peak(résolu.values)[1] if variant.profile else None
     if note:
         avertissements.append(note)

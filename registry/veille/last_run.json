@@ -1,6 +1,6 @@
 {
   "last_run": "2026-08-23",
-  "portee": "cycle ciblé sur un modèle nommé — Qwen3.6-27B. Aucun balayage général des sources.",
+  "portee": "cycle ciblé sur deux modèles nommés — Qwen3.6-27B et Gemma 4 12B. Mené jusqu'à la phase d'épreuve, sur autorisation explicite.",
   "rapport": "registry/veille/2026-08-23/RAPPORT.md",
   "sources_balayees": [
     "huggingface.co/api/models — org Qwen, org mlx-community, recherche Qwen3.6",
@@ -15,11 +15,39 @@
     "déclencheurs des candidats déjà au registre (dont trellis2)"
   ],
   "manifestes_ajoutes": [
+    "qwen36-27b-texte",
+    "qwen36-27b-traduction",
+    "qwen36-27b-outils",
     "qwen36-27b-describe",
     "qwen36-27b-ocr",
     "qwen36-27b-detect",
-    "qwen36-27b-video"
+    "qwen36-27b-video",
+    "gemma4-12b-texte",
+    "gemma4-12b-traduction",
+    "gemma4-12b-outils",
+    "gemma4-12b-describe",
+    "gemma4-12b-ocr",
+    "gemma4-12b-detect",
+    "gemma4-12b-video"
   ],
-  "telechargements": 0,
-  "manifestes_actifs_modifies": 0
+  "telechargements": {
+    "qwen36-27b@4bit": 16081487798,
+    "gemma4-12b@4bit": 6773371194
+  },
+  "manifestes_actifs_modifies": 0,
+  "profils_mesures": [
+    "qwen36-27b-texte@4bit",
+    "gemma4-12b-texte@4bit",
+    "gemma4-12b-describe@4bit"
+  ],
+  "echecs_mesures": {
+    "qwen36-27b-describe@4bit": "[METAL] Insufficient Memory sur les 3 cas de la charge type"
+  },
+  "code_ajoute": [
+    "mode hors budget (--hors-budget / overcommit) dans le contrôle d'admission, la CLI et l'API",
+    "adaptateurs mlx_vlm_text, mlx_vlm_translate, mlx_vlm_tools (héritent de leurs jumeaux mlx-lm)",
+    "transmission de enable_thinking et séparation du raisonnement (workers/base.py)",
+    "stratégie d'extraction xml_function pour les appels d'outils",
+    "grille de détection déclarable par variant (options.grid)"
+  ]
 }

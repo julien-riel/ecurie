@@ -82,6 +82,18 @@ WORKER_MODULES_BY_CAPABILITY = {
     # appeler un outil attend du JSON validable.
     ("mlx-lm", "translation"): "ecurie_runtime.workers.mlx_lm_translate",
     ("mlx-lm", "tool-use"): "ecurie_runtime.workers.mlx_lm_tools",
+    # Les mêmes trois capacités, servies par le moteur de mlx-vlm. Un modèle
+    # vision-langage est d'abord un modèle de langue, et les familles récentes
+    # n'arrivent plus que sous cette forme : Qwen3.6 écrit, traduit et appelle
+    # des outils, mais son architecture `qwen3_5` n'est pas chargeable par
+    # mlx-lm. Sans ces trois lignes, le parc voyait un modèle capable de trois
+    # contrats de plus et n'avait aucun moyen de les lui demander.
+    #
+    # Les adaptateurs correspondants n'ajoutent presque rien : ils héritent des
+    # trois du dessus et n'en changent que le moteur (voir `mlx_vlm_lm`).
+    ("mlx-vlm", "text-generation"): "ecurie_runtime.workers.mlx_vlm_text",
+    ("mlx-vlm", "translation"): "ecurie_runtime.workers.mlx_vlm_translate",
+    ("mlx-vlm", "tool-use"): "ecurie_runtime.workers.mlx_vlm_tools",
     ("torch-vision", "image-matting"): "ecurie_runtime.workers.birefnet",
     ("torch-vision", "image-upscale"): "ecurie_runtime.workers.swin2sr",
     # Troisième adaptateur du même runtime, et la même leçon : détourer décide

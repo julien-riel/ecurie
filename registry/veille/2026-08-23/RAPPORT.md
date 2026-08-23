@@ -1,143 +1,160 @@
 # Veille — 2026-08-23
 
-Cycle ciblé, déclenché par une demande explicite : évaluer **Qwen 3.6 27B** et
-l'ajouter au parc pour les capacités qu'il supporte. Aucun balayage général des
-sources n'a été mené ; ce rapport ne dit rien de ce qui a bougé ailleurs.
+Cycle ciblé, déclenché par deux demandes explicites : mettre **Qwen3.6-27B en
+4 bits** en service pour toutes les capacités qu'il sait remplir, puis faire de
+même avec **Gemma**. Aucun balayage général des sources n'a été mené ; ce rapport
+ne dit rien de ce qui a bougé ailleurs.
+
+Contrairement à un cycle de veille ordinaire, celui-ci est allé jusqu'à la phase
+d'épreuve : les poids ont été téléchargés sur autorisation, les profils mesurés,
+et trois adaptateurs écrits. Ce qui suit n'est donc pas une projection.
 
 ## 1. Verdict
 
-**Ce qui change** : quatre manifestes `status: candidate` entrent au registre —
-`qwen36-27b-describe`, `-ocr`, `-detect`, `-video` —, tous en `tier: absent`,
-tous sans profil. Le modèle existe, sa licence est Apache-2.0, et son chemin
-d'exécution est réel : `mlx-vlm` 0.6.15, déjà installé, porte l'architecture
-`qwen3_5`.
+**Les deux modèles tournent, et un seul est utilisable partout.** Qwen3.6-27B
+tient en génération de texte — 17,45 Gio de pic pour un budget de 17,76, soit
+316 Mio de marge — et **échoue à décrire une image**, où Metal refuse le buffer
+d'encodage : `Insufficient Memory`, sur les trois cas de la charge type. Gemma 4
+12B fait tout, à 6,81 Gio de pic et quinze fois plus vite sur la vision.
 
-**Ce qui ne change pas** : rien n'est téléchargé, aucun titulaire n'est déplacé,
-aucun manifeste `active` n'est touché. Et le modèle **ne tient pas dans le budget
-mémoire** : 15,2 Go de poids pour le variant le plus léger, pic estimé entre 17,4
-et 19,2 Go, contre un plafond praticable de 17 Go. Sur les sept capacités qu'il
-sait remplir, trois n'ont par ailleurs aucun adaptateur pour les servir.
+**Le parc gagne sept capacités servies par un modèle qui tient**, et trois
+adaptateurs qui manquaient : `text-generation`, `translation` et `tool-use` sur
+le runtime `mlx-vlm`. Sans eux, aucun modèle vision-langage ne pouvait servir ces
+trois contrats — leurs adaptateurs n'existaient que sous `mlx-lm`, qui ne charge
+ni `qwen3_5` ni `gemma4_unified`.
 
-**Action demandée** : trancher entre éprouver quand même le variant `mxfp4`
-(15,2 Go de téléchargement, avec une chance sérieuse que la mesure conclue au
-rejet) et classer le dossier en attendant un déclencheur. La règle de filtrage du
-projet dit rejet d'office ; la marge est assez faible pour que la question mérite
-d'être posée plutôt que tranchée par un tableur.
+**Action demandée** : arbitrer les titulaires. Gemma 4 12B est en position de
+prendre quatre capacités à des titulaires plus légers mais plus faibles, et le
+golden set n'a pas encore tourné — aucun gain de qualité n'est établi, seulement
+des coûts.
 
-## 2. Recommandations de remplacement
+## 2. Ce que la mesure a dit
 
-**Aucune.** Qwen3.6-27B est un challenger crédible de `qwen3-vl-8b-*` sur les
-quatre capacités visuelles, mais aucune recommandation ne peut être formulée :
-
-| Capacité | Titulaire de fait | Challenger | Gain | Coût disque | Coût mémoire |
+| Variant | Capacité | Disque | Pic | Débit | État |
 |---|---|---|---|---|---|
-| `image-to-text` | qwen3-vl-8b-describe (5,78 Go, pic 6,60) | qwen36-27b-describe | **inconnu** | +9,46 Go | pic 17,4–19,2 Go |
-| `document-to-text` | qwen3-vl-8b-ocr (5,78 Go, pic 6,71) | qwen36-27b-ocr | **inconnu** | +9,46 Go | pic 17,4–19,2 Go |
-| `image-detect` | qwen3-vl-8b-detect (5,78 Go, pic 6,60) | qwen36-27b-detect | **inconnu** | +9,46 Go | pic 17,4–19,2 Go |
-| `video-to-text` | qwen3-vl-8b-video (5,78 Go, pic 7,26) | qwen36-27b-video | **inconnu** | +9,46 Go | pic 17,4–19,2 Go |
+| `qwen36-27b-texte@4bit` | `text-generation` | 16,08 Go | **17,45 Gio** | 1 / 81,9 s | tient, 316 Mio de marge |
+| `qwen36-27b-describe@4bit` | `image-to-text` | 16,08 Go | — | — | **échec Metal, OOM** |
+| `gemma4-12b-texte@4bit` | `text-generation` | 6,77 Go | **6,69 Gio** | 1 / 38,7 s | tient largement |
+| `gemma4-12b-describe@4bit` | `image-to-text` | 6,77 Go | **6,81 Gio** | 1 / 5,3 s | tient largement |
 
-Le gain est marqué inconnu et non « probable » : la fiche amont ne compare
-Qwen3.6-27B qu'à Qwen3.5-27B, à Gemma4-31B et à des modèles fermés. **Qwen3-VL
-8B n'apparaît dans aucune de ses tables.** Un modèle trois fois plus gros est
-plus souvent meilleur qu'il n'est pire, mais « plus souvent » n'est pas une
-mesure, et le golden set n'a pas tourné. Une recommandation sans gain chiffré
-est refusée par la procédure — celle-ci l'est donc aussi.
+Trois enseignements que l'estimation ne donnait pas :
 
-Le coût, lui, est chiffré : **+9,46 Go de disque** pour les quatre capacités
-réunies (poids partagés, un seul téléchargement), et un pic qui passe de ~7 Go à
-~18 Go, c'est-à-dire d'un modèle qui cohabite avec d'autres à un modèle qui
-occupe la machine à lui seul.
+**L'estimation d'avant-mesure visait juste, le seuil était faux.** Le pic prévu
+pour Qwen3.6-27B était de 18,3 à 20,3 Go ; le mesuré est 18,74 Go. Mais il était
+comparé à un plafond de « 17 Go » décimaux, quand le budget réel de la machine
+est de 17,76 **Gio**, soit 19,07 Go. Le modèle était donc déclaré hors budget
+alors qu'il y entre. La confusion Go / Gio a coûté un rejet injustifié : les
+budgets de cette procédure sont en gibioctets, et le rapport de veille doit les
+écrire ainsi.
 
-## 3. Candidats à éprouver
+**Le mode hors budget ne sauve pas tout, et c'est mesuré.** La pagination
+rattrape une croissance graduelle — un KV cache qui s'étend jeton par jeton.
+Elle ne rattrape pas une allocation massive d'un seul tenant : l'encodage d'une
+image réclame d'un coup un buffer que Metal refuse, sans ralentissement
+préalable. `--hors-budget` lève un refus d'**admission** ; il ne lève pas un
+refus du pilote, qui survient en aval et qu'aucun contrôle en amont ne peut
+prédire depuis un pic global. Le message d'admission le dit désormais en toutes
+lettres, et un test le fige.
 
-Un seul mérite le téléchargement, et sous réserve.
+**Un 27B qui tient reste un 27B qui coûte.** 81,9 s par sortie contre 38,7 s pour
+Gemma 4 12B et 12,8 s pour le titulaire `qwen25-coder-7b`. Et à 316 Mio de marge,
+il interdit tout autre résident : chaque job vide le parc.
 
-| Variant | Dépôt | Disque | Pic estimé | Budget |
-|---|---|---|---|---|
-| **`mxfp4`** | `mlx-community/Qwen3.6-27B-mxfp4` | **15,24 Go** | 17,4 – 19,2 Go | dépassé |
-| `4bit` | `mlx-community/Qwen3.6-27B-4bit` | 16,08 Go | 18,3 – 20,3 Go | dépassé |
+## 3. Recommandations de remplacement
 
-Le pic est estimé en appliquant aux poids le facteur pic/disque **mesuré** sur
-les quatre Qwen3-VL 4 bits du parc — 1,142 · 1,142 · 1,162 · 1,257. C'est une
-estimation de filtrage : elle n'entre dans aucun manifeste, et le banc d'essai
-reste seul habilité à écrire un profil.
+Aucune n'est formulée, faute de gain établi — le golden set n'a pas tourné. Les
+coûts, eux, sont chiffrés, et ils vont tous dans le même sens.
 
-Espace disque : 534 Gio libres sur 926 (57 %). Le téléchargement ne pose aucun
-problème de place — le seuil des 15 % est loin. **Le blocage est la mémoire, pas
-le disque.**
+| Capacité | Titulaire de fait | Challenger retenu | Coût disque | Coût mémoire | Débit |
+|---|---|---|---|---|---|
+| `text-generation` | qwen25-coder-7b (4,30 Go / 4,45) | **gemma4-12b-texte** | +2,47 Go | 6,69 Gio | 38,7 s vs 12,8 |
+| `image-to-text` | qwen3-vl-8b-describe (5,78 Go / 6,60) | **gemma4-12b-describe** | +0,99 Go | 6,81 Gio | 5,3 s vs 6,6 |
+| `translation` | qwen3-4b-traduction (2,28 Go / 2,76) | gemma4-12b-traduction | +4,49 Go | à mesurer | à mesurer |
+| `tool-use` | qwen3-4b-outils (2,28 Go / 2,93) | gemma4-12b-outils | +4,49 Go | à mesurer | à mesurer |
 
-Si l'épreuve est décidée, elle doit commencer par `mxfp4` : à quantification
-équivalente il est plus léger de 840 Mo, et `mlx` 0.32.1 connaît son mode
-(`group_size` 32, 4 bits — vérifié dans `mlx/nn/layers/quantized.py`). Le variant
-`4bit` n'a d'intérêt que pour comparer les deux quantifications, et il est dominé
-sur le seul critère qui bloque.
+`gemma4-12b-describe` est le seul candidat de ce cycle qui batte un titulaire sur
+un chiffre mesuré : 5,3 s contre 6,6 s par sortie, pour 210 Mio de pic en plus.
+C'est mince, et cela ne dit rien de la qualité des descriptions.
+
+Qwen3.6-27B n'est recommandé pour aucune capacité. Il reste au registre en
+`candidate` parce qu'il fonctionne en texte et que sa taille peut valoir sur des
+tâches longues que le golden set ne couvre pas encore.
 
 ## 4. Rejets motivés
 
 | Objet | Motif |
 |---|---|
-| `Qwen3.6-27B-6bit` (22,8 Go), `-8bit` (29,5 Go), `-bf16` | Pic très au-delà de 17 Go. |
-| `Qwen3.6-27B-nvfp4` (16,08 Go) | Aucun gain de taille sur `mxfp4`, mode moins courant. |
-| `Qwen3.6-27B-OptiQ-4bit` (20,0 Go) | Plus lourd que le 4 bits standard, et **sans tour de vision** — inutilisable pour les quatre capacités visées. |
-| `Qwen3.6-27B-MTP-4bit` (0,26 Go) | Tête de prédiction multi-jetons seule, pas un modèle complet. |
-| AWQ / GPTQ-Int4 (cyankiwi, QuantTrio, Intel, palmfuture…) | Formats CUDA/vLLM. Aucun chemin d'exécution Apple Silicon. |
-| Dérivés *abliterated* / *uncensored* / finetunes tiers | Ne sont pas les poids de référence ; hors périmètre d'une veille de parc. |
-| `text-generation`, `tool-use`, `translation` | Supportées par le modèle, **aucun adaptateur pour les servir** — voir §5. |
-| `audio-to-text`, `speech-to-text` | Aucun encodeur audio dans la configuration. Qwen3.6-27B est vision+vidéo, pas omni. |
-| `image-segment`, `text-to-image` | Le modèle ne rend ni masques ni images. |
+| Qwen3.6-27B sur les 4 capacités visuelles | Échec Metal mesuré. Ni `--hors-budget` ni le variant `mxfp4` (840 Mo de moins) ne changent la nature du refus. |
+| `Qwen3.6-27B-6bit` (22,8 Go), `-8bit` (29,5), `-bf16` | Très au-delà du budget. |
+| `Qwen3.6-27B-OptiQ-4bit` (20,0 Go) | Plus lourd que le 4 bits standard, et **sans tour de vision**. |
+| `Qwen3.6-27B-MTP-4bit` (0,26 Go) | Tête de prédiction multi-jetons seule, pas un modèle. |
+| AWQ / GPTQ-Int4 (cyankiwi, QuantTrio, Intel…) | Formats CUDA/vLLM. Aucun chemin Apple Silicon. |
+| Dérivés *abliterated* / *uncensored* | Ne sont pas les poids de référence. |
+| `gemma-4-31B-it` (18,44 Go en 4 bits) | Même impasse que Qwen3.6-27B, en pire. Non téléchargé. |
+| `gemma-4-26B-A4B-it` (15,37 Go) | MoE à 4 B actifs, donc rapide, mais le pic suivrait celui de Qwen3.6-27B. À éprouver seulement si la vision de la 12B déçoit. |
+| `speech-to-text`, `audio-to-text` pour Gemma 4 | Le modèle sait transcrire — il a un `audio_config`. Aucun adaptateur audio n'existe sur `mlx-vlm` : ces capacités sont servies par `mlx-audio`, sur d'autres poids. Voir §6. |
 
-## 5. Ce que le modèle sait faire et que le parc ne peut pas lui demander
+## 5. Ce qui a été construit
 
-Le modèle remplit **sept** capacités du registre. Quatre ont un adaptateur, et
-ce sont les quatre qui reçoivent un manifeste. Les trois autres n'en ont pas :
+**Le mode hors budget** (`--hors-budget`, `overcommit` dans l'API). Il lève le
+seul refus qui vienne d'un modèle trop gros pour la machine, à trois conditions
+tenues par le contrôle d'admission : le parc est vidé **entièrement**, aucun
+travail en cours n'est détruit pour faire la place, et la décision est inscrite
+en tête des avertissements du manifeste du job. Il ne force ni un profil
+manquant — on ne peut pas assumer un dépassement dont on ignore la taille — ni
+un épinglé. Neuf tests le figent.
 
-- **`text-generation`, `translation`, `tool-use`** — leurs workers
-  (`mlx_lm`, `mlx_lm_translate`, `mlx_lm_tools`) sont enregistrés pour le runtime
-  `mlx-lm`, or **`mlx-lm` ne charge pas `qwen3_5`** : le module n'existe pas dans
-  la version installée. Seul `mlx-vlm` sait charger ces poids, et
-  `WORKER_MODULES_BY_CAPABILITY` ne déclare aucun couple `("mlx-vlm", …)` pour
-  ces trois capacités.
-- **`tool-use` a un second blocage, indépendant du premier** : Qwen3.6 émet ses
-  appels en XML imbriqué — `<tool_call><function=nom><parameter=clé>valeur</parameter></function></tool_call>`.
-  L'extracteur de `mlx_lm_tools` capture bien la balise, puis tente un
-  `json.loads` sur son contenu, qui n'est pas du JSON. Il rendrait zéro appel sur
-  un modèle ayant parfaitement choisi son outil — soit exactement le défaut que
-  l'en-tête de ce worker dit vouloir éviter. Une cinquième stratégie
-  d'extraction serait à écrire.
+**Trois adaptateurs**, qui ne recopient pas leurs jumeaux : `mlx_vlm_text`,
+`mlx_vlm_translate` et `mlx_vlm_tools` héritent de `MlxLmWorker`,
+`MlxLmTranslateWorker` et `MlxLmToolsWorker`, et n'en changent que le moteur.
+Deux points d'extension ont suffi — `_import_runtime` et `_flux` —, parce que
+`mlx_vlm.stream_generate` a la même signature que celui de `mlx-lm` à deux détails
+près : un processor au lieu d'un tokenizer, et `image=None`. Les trois modules
+font une trentaine de lignes chacun, dont l'essentiel est leur en-tête, et un
+test vérifie qu'aucun ne redéfinit `infer`.
 
-Écrire des manifestes pour ces trois capacités aurait produit des fichiers
-valides au schéma et cassés au lancement. Ils sont donc laissés de côté, et
-consignés ici comme travail identifié.
+**Trois correctifs que ces modèles ont rendus nécessaires :**
 
-Un troisième point touche les **quatre** capacités retenues : Qwen3.6 raisonne à
-voix haute par défaut (`<think>…</think>`), le gabarit accepte un drapeau
-`enable_thinking`, et **aucun adaptateur du parc ne le transmet**. Sur la
-description c'est une gêne ; sur l'OCR le préambule fausse la comparaison au
-texte attendu ; sur la détection il menace de faire tomber l'extraction des
-boîtes à zéro objet. Rendre ce drapeau transmissible est le préalable à toute
-mesure honnête, avant même la question de la mémoire.
+- *le mode « thinking »*. Qwen3.6 et Gemma 4 raisonnent à voix haute par défaut.
+  Le brouillon coûte deux fois : il consomme le `max_tokens` de la réponse, et il
+  s'intercale devant elle. `enable_thinking` est désormais transmis au gabarit
+  par les sept adaptateurs `mlx-vlm`, et `sans_raisonnement` sépare ce qui en
+  réchapperait — dans `workers/base.py`, parce que ce trait n'appartient ni à une
+  famille ni à un runtime ;
+- *le format d'appel d'outils*. Qwen3.6 rend ses appels en XML imbriqué, quand
+  l'extracteur tentait un `json.loads`. Il aurait rendu zéro appel sur un modèle
+  ayant choisi le bon outil. Une stratégie `xml_function` a été ajoutée, et elle
+  profite aussi aux modèles servis par `mlx-lm` ;
+- *la grille de coordonnées de la détection*. Elle valait 1000 en dur, ce qui se
+  défendait tant qu'une seule famille servait la capacité. Dès la deuxième, la
+  constante devient un piège silencieux — une grille fausse trace les boîtes à
+  une fraction de leur place sans que rien n'échoue. Elle se déclare désormais
+  par variant, sous `options.grid`.
 
-## 6. Déclencheurs
+## 6. Déclencheurs et travail identifié
 
-Aucun déclencheur levé ce cycle. Trois posés sur ce dossier :
-
-1. Une conversion MLX du modèle de référence à **3 bits ou moins, tour de vision
-   comprise**, sous ~13 Go de poids. Aucune n'existe aujourd'hui : les seules
-   variantes basse précision publiées sont des finetunes tiers.
-2. Une machine cible à **plus de 24 Go** de mémoire unifiée.
-3. Un adaptateur `mlx-vlm` transmettant **`enable_thinking`**.
-
-**À surveiller** — `Qwen/Qwen3.8-27B` est paru le 2026-08-14, neuf jours avant ce
-cycle. Sa conversion `mlx-community/Qwen3.8-27B-4bit` pèse 16,08 Go, soit
-exactement le même dépassement, et aucune variante `mxfp4` n'existe encore. Le
-signaler n'est pas une recommandation d'en changer : **le mur est la taille de
-la classe 27B sur 24 Go, pas le numéro de version.**
+1. **L'audio de Gemma 4.** Le modèle transcrit la parole et la traduit à la
+   volée. Servir `speech-to-text` et `audio-to-text` demande un adaptateur audio
+   sur `mlx-vlm` — le pendant de ce qui a été fait ici pour le texte. C'est le
+   chantier le plus rentable qui reste : les poids sont déjà sur le disque.
+2. **La grille de `gemma4-12b-detect`.** Le manifeste porte le défaut hérité de
+   Qwen3-VL, non vérifié. À établir sur une scène aux positions connues, comme
+   l'a été celle du titulaire, avant tout usage et toute comparaison.
+3. **Le golden set.** Quatre capacités ont un challenger sans qu'aucun gain de
+   qualité ne soit établi. Tant qu'il n'a pas tourné, ce rapport ne peut
+   recommander aucun remplacement.
+4. **`Qwen/Qwen3.8-27B`**, paru le 2026-08-14. Sa conversion 4 bits pèse 16,08 Go,
+   soit exactement la même impasse sur la vision. Le mur est la classe 27B sur
+   24 Gio, pas le numéro de version.
 
 ## 7. Plan de GC
 
-**Sans objet.** Rien n'a été téléchargé, aucun poids n'est devenu orphelin, et
-aucun variant n'a changé de statut. Le parc occupe ce qu'il occupait hier.
+Deux jeux de poids sont entrés sur le disque : **16,08 Go** pour Qwen3.6-27B,
+**6,77 Go** pour Gemma 4 12B, soit 22,85 Go. Le disque en garde 511 Gio libres
+sur 926 — la garde des 15 % n'est pas menacée.
 
-Pour mémoire, si l'épreuve du §3 était décidée : 15,24 Go entreraient en
-quarantaine, à retirer d'un seul geste si la mesure conclut au rejet — les quatre
-manifestes partagent un unique jeu de poids.
+Un seul poste mérite d'être chiffré : si Qwen3.6-27B n'est pas retenu pour la
+génération de texte, ses **16,08 Go** partent d'un seul geste, les sept
+manifestes de la famille partageant un unique jeu de poids. C'est le plus gros
+gain disponible dans le parc actuel, et il ne coûte que quatre capacités qui ne
+fonctionnent pas et trois qui sont plus lentement servies qu'ailleurs.

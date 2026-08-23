@@ -17,6 +17,7 @@ panne se présente comme un « worker muet » impossible à relier à sa cause.
 import argparse
 import json
 import os
+import re
 import resource
 import signal
 import socket
@@ -113,6 +114,40 @@ class Worker:
 
 
 # --- mesures mémoire ---------------------------------------------------------
+
+
+# Ouverture facultative : un modèle dont le gabarit amorce déjà `<think>` ne
+# réémet pas la balise, et sa réponse commence directement par le raisonnement.
+RAISONNEMENT = re.compile(r"(?:<think>)?(.*?)</think>", re.DOTALL)
+
+
+def sans_raisonnement(texte: str) -> tuple[str, str]:
+    """Sépare la réponse du raisonnement à voix haute. Rend (réponse, raisonnement).
+
+    Un modèle en mode « thinking » émet son brouillon avant sa réponse. Ce
+    brouillon n'est pas une sortie : il précède le texte demandé, et tout ce qui
+    lit la réponse — la note d'une traduction, l'extracteur d'un appel d'outil,
+    les coordonnées d'une boîte, le fichier déposé dans la Bibliothèque — le
+    prendrait pour elle.
+
+    Ici plutôt que dans un adaptateur : le mode « thinking » n'appartient ni à
+    une famille de modèles ni à un runtime. Il est arrivé par Qwen3.6 sur
+    `mlx-vlm`, il touche déjà sept capacités du parc, et le prochain modèle qui
+    l'apportera ne préviendra pas.
+
+    Un raisonnement laissé ouvert, faute de jetons pour le refermer, est rendu
+    tel quel plutôt que dérobé : la réponse est vide, et c'est exactement ce
+    qu'il faut voir. La masquer donnerait un succès silencieux sur un job qui a
+    manqué de place pour répondre.
+    """
+    if "</think>" not in texte:
+        return texte, ""
+    correspondance = RAISONNEMENT.search(texte)
+    if correspondance is None:
+        return texte, ""
+    raisonnement = correspondance.group(1).strip()
+    réponse = texte[correspondance.end() :].strip()
+    return réponse, raisonnement
 
 
 def peak_rss_bytes() -> int | None:

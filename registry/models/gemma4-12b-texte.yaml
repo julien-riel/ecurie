@@ -1,0 +1,92 @@
+# Gemma 4 12B — génération de texte, et le manifeste qui porte l'en-tête de la
+# famille : les six autres y renvoient.
+#
+# Ce que Gemma 4 apporte que Qwen3.6-27B n'apportait pas : **il tient**. 6,77 Go
+# de poids en 4 bits contre 16,08, sur une machine dont le budget Metal est de
+# 17,76 Gio. Qwen3.6-27B y entre avec 316 Mio de marge — moins de 2 % — et
+# interdit tout autre résident ; Gemma 4 12B laisse la moitié du budget libre,
+# donc il cohabite. Sur un parc où la politique n'admet qu'un modèle lourd à la
+# fois, c'est la différence entre un modèle qu'on charge et un modèle qu'on
+# utilise.
+#
+# Architecture `gemma4_unified` : encodeur-libre, les modalités sont projetées
+# directement dans l'espace du modèle de langue. mlx-vlm 0.6.15 la porte
+# (`models/gemma4_unified/`), comme il porte `gemma4` et `gemma4_text`.
+#
+# **Une capacité reste hors d'atteinte, et ce n'est pas faute du modèle.** Gemma
+# 4 transcrit la parole et la traduit à la volée — il a un `audio_config` et un
+# `audio_token_id`. Servir `speech-to-text` et `audio-to-text` demanderait un
+# adaptateur audio sur mlx-vlm, qui n'existe pas : les deux capacités sont
+# aujourd'hui servies par `mlx-audio`, sur des poids qui ne sont pas ceux-ci.
+# C'est le prochain chantier de cette famille, et il est nommé dans le rapport
+# de veille plutôt que promis ici.
+id: gemma4-12b-texte
+name: Gemma 4 12B Instruct (génération de texte)
+capability: text-generation
+family: gemma4
+vendor: Google
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Apache-2.0, ce qui n'allait pas de soi : les Gemma antérieurs étaient publiés
+  sous une licence maison à conditions d'usage, que le score de veille classait
+  `restricted`. Celui-ci est permissif au sens SPDX, sans clause d'usage
+  acceptable à relire avant chaque emploi professionnel.
+
+  11,95 milliards de paramètres, 256 000 jetons de contexte, 35 langues
+  déclarées et plus de 140 vues au pré-entraînement.
+
+links:
+  homepage: https://huggingface.co/google/gemma-4-12B-it
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/gemma-4-12B-it-4bit
+      revision: "73bcf09092aa277861d5a191b989b666f7f32e8f"   # 2026-06-08
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      temperature: 0.7
+      top_p: 0.95
+      max_tokens: 1024
+    options:
+      # Même raison que chez Qwen3.6 : le gabarit de Gemma 4 lit
+      # `enable_thinking`, et un brouillon de raisonnement consommerait le
+      # budget de jetons de la réponse avant qu'elle ne commence.
+      thinking: false
+    caveats:
+      - "6,69 Gio de pic pour un budget de 17,76 : il reste 11 Gio libres. Sous le seuil de lourdeur de 8 Gio, donc il ne monopolise pas la place réservée au modèle lourd du parc et cohabite avec un autre résident."
+      - "Le raisonnement à voix haute est coupé. Le rallumer avec `thinking: true` change ce que la capacité mesure."
+      - "Poids partagés avec les six autres manifestes gemma4-12b — les déporter avec `ecurie store tier` déplace les sept."
+    profile:
+      disk_bytes: 6773371194
+      peak_unified_memory_bytes: 7183433232
+      warmup_ms: 2743
+      latency_ms_p50: 19667
+      throughput: "1 sortie / 38.7 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"
+  - id: mxfp4
+    quantization: 4bit
+    tier: absent
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/gemma-4-12B-it-mxfp4
+      revision: "a3c49f92810bb45a75ed39f973d0273fcd97da5f"   # 2026-06-08
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      temperature: 0.7
+      top_p: 0.95
+      max_tokens: 1024
+    options:
+      thinking: false
+    caveats:
+      - "370 Mo de moins que le variant 4bit. L'écart ne décide de rien ici — les deux tiennent largement dans le budget —, ce qui en fait surtout un point de comparaison sur la qualité à taille presque égale."

@@ -1,0 +1,67 @@
+# Gemma 4 12B — appel d'outils. Voir gemma4-12b-texte.yaml pour l'en-tête de la
+# famille.
+#
+# La fiche amont annonce un « native support for structured tool use », et le
+# gabarit de conversation le confirme : il accepte `tools` et sait rendre des
+# `tool_call`. La métrique `template_tools` du job doit donc rester vraie — si
+# elle passe à faux, l'appel a été demandé par consigne système et ne mesure plus
+# la même chose.
+#
+# Le format d'appel de Gemma n'est pas celui de Qwen3.6, qui a valu à
+# l'extracteur sa stratégie XML. Lequel des trois formats a servi se lit dans la
+# métrique `parse_strategy`, et c'est précisément pour ce genre de découverte
+# qu'elle est rapportée à chaque exécution.
+id: gemma4-12b-outils
+name: Gemma 4 12B Instruct (appel d'outils)
+capability: tool-use
+family: gemma4
+vendor: Google
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Écurie n'exécute aucun outil : elle juge le choix et le remplissage. Ce
+  manifeste sert à mesurer une compétence, pas à brancher un agent — la boucle
+  d'agent reste hors périmètre (ARCHITECTURE.md §11).
+
+links:
+  homepage: https://huggingface.co/google/gemma-4-12B-it
+
+variants:
+  - id: 4bit
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/gemma-4-12B-it-4bit
+      revision: "73bcf09092aa277861d5a191b989b666f7f32e8f"   # 2026-06-08
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      tool_choice: auto
+      parallel_calls: false
+      temperature: 0.0
+    options:
+      thinking: false
+    caveats:
+      - "Profil non mesuré pour cette capacité."
+      - "Le format d'appel de cette famille n'a pas encore été observé : lire `parse_strategy` dans les métriques du premier job. Si elle rend `aucun`, c'est l'extracteur qu'il faut regarder avant d'accuser le modèle."
+      - "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+  - id: mxfp4
+    quantization: 4bit
+    tier: absent
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/gemma-4-12B-it-mxfp4
+      revision: "a3c49f92810bb45a75ed39f973d0273fcd97da5f"   # 2026-06-08
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      tool_choice: auto
+      parallel_calls: false
+      temperature: 0.0
+    options:
+      thinking: false
+    caveats:
+      - "Non téléchargé."

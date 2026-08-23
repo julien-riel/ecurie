@@ -43,13 +43,13 @@ variants:
       detect_layout: true
       dpi: 200
     caveats:
-      - "15,2 Go de poids pour un budget GPU praticable de 15 à 17 Go : le pic estimé (17,4 à 19,2 Go) dépasse le plafond."
-      - "Le mode « thinking » est actif par défaut : la transcription rendue sera précédée d'un bloc <think>…</think> qu'aucun adaptateur du parc ne sait supprimer. Sur une capacité dont la sortie se compare au texte attendu, ce préambule fausse la mesure autant qu'il gêne la lecture."
+      - "840 Mo de moins que le variant 4bit, pour une quantification équivalente. Non téléchargé : c'est le variant 4bit qui a été mesuré."
+      - "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure. Sur cette capacité, un préambule fausserait la comparaison au texte attendu autant qu'il gênerait la lecture."
       - "Un VLM transcrit, il ne localise pas : la sortie `layout` décrit les pages, pas des boîtes."
       - "Poids partagés avec qwen36-27b-describe, -detect et -video — les déporter déplace les quatre."
   - id: 4bit
     quantization: 4bit
-    tier: absent
+    tier: hot
     runtime: mlx-vlm
     source:
       kind: huggingface
@@ -61,5 +61,5 @@ variants:
       detect_layout: true
       dpi: 200
     caveats:
-      - "16,1 Go de poids : pic estimé entre 18,3 et 20,3 Go. Dominé par le variant mxfp4."
-      - "Le mode « thinking » est actif par défaut et aucun adaptateur ne sait le désactiver."
+      - "MESURÉ : cette capacité échoue sur cette machine. Le banc rend « [METAL] Command buffer execution failed: Insufficient Memory » sur les trois cas de la charge type. Les poids chargés occupent déjà 14,95 Gio ; le buffer que réclame l'encodage de l'image ne passe plus. `--hors-budget` n'y change rien — il lève un refus d'admission, pas un refus de Metal, et l'allocation échoue en aval du contrôle."
+      - "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure."

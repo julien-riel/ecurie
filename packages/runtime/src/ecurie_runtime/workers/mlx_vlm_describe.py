@@ -29,13 +29,16 @@ from ecurie_runtime.workers.base import (
     WorkerError,
     main,
     peak_rss_bytes,
+    sans_raisonnement,
 )
 from ecurie_runtime.workers.mlx_vlm import (
     IMAGES,
     REPAIR,
     Runtime,
+    composer_invite,
     import_runtime,
     resolve_document,
+    thinking_demande,
 )
 
 OUTPUT_TEXT = "text.txt"
@@ -105,6 +108,7 @@ class MlxVlmDescribeWorker(Worker):
         self._config: Any = None
         self._defaults: dict[str, Any] = {}
         self._options: dict[str, Any] = {}
+        self._thinking = False
         self._peak_load = 0
 
     def load(self, variant: dict[str, Any]) -> dict[str, Any]:
@@ -118,6 +122,7 @@ class MlxVlmDescribeWorker(Worker):
 
         self._defaults = dict(variant.get("defaults") or {})
         self._options = dict(variant.get("options") or {})
+        self._thinking = thinking_demande(self._options, self._defaults)
 
         model, processor = runtime.load(str(chemin))
         self._runtime = runtime
@@ -155,7 +160,14 @@ class MlxVlmDescribeWorker(Worker):
 
         progress(10, "description en cours")
         début = time.monotonic()
-        invite = runtime.apply_chat_template(self._processor, self._config, consigne, num_images=1)
+        invite = composer_invite(
+            runtime,
+            self._processor,
+            self._config,
+            consigne,
+            num_images=1,
+            thinking=self._thinking,
+        )
         try:
             résultat = runtime.generate(
                 self._model,
@@ -172,6 +184,9 @@ class MlxVlmDescribeWorker(Worker):
 
         texte = getattr(résultat, "text", None)
         texte = (texte if texte is not None else str(résultat)).strip()
+        # Le brouillon de raisonnement n'est pas la réponse : s'il en reste un
+        # malgré `enable_thinking`, il est séparé ici plutôt que livré au client.
+        texte, _raisonnement = sans_raisonnement(texte)
         jetons = int(getattr(résultat, "generation_tokens", 0) or 0)
 
         progress(92, "écriture")

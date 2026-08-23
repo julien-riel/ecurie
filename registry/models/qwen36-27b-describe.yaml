@@ -56,8 +56,8 @@ variants:
       max_tokens: 512
       temperature: 0.2
     caveats:
-      - "15,2 Go de poids pour un budget GPU praticable de 15 à 17 Go : le pic estimé (17,4 à 19,2 Go) dépasse le plafond. À éprouver seulement si l'on accepte que la mesure puisse conclure au rejet."
-      - "Le mode « thinking » est actif par défaut sur Qwen3.6, et aucun adaptateur du parc ne sait le désactiver : la description rendue portera un bloc <think>…</think> tant que le worker ne transmettra pas `enable_thinking` au gabarit."
+      - "840 Mo de moins que le variant 4bit, pour une quantification équivalente. Non téléchargé : c'est le variant 4bit qui a été mesuré."
+      - "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure."
       - "Quantification 4 bits à virgule flottante microscalaire : moins éprouvée dans le parc que le mode affine, et jamais mesurée ici."
       - "Poids partagés avec qwen36-27b-ocr, -detect et -video — les déporter avec `ecurie store tier` déplace les quatre."
   # Le format standard, et de loin le plus téléchargé des deux. Il est inscrit
@@ -65,7 +65,7 @@ variants:
   # une chance de tenir dans le budget : il est plus lourd de 840 Mo.
   - id: 4bit
     quantization: 4bit
-    tier: absent
+    tier: hot
     runtime: mlx-vlm
     source:
       kind: huggingface
@@ -77,5 +77,5 @@ variants:
       max_tokens: 512
       temperature: 0.2
     caveats:
-      - "16,1 Go de poids : pic estimé entre 18,3 et 20,3 Go, soit au-dessus du plafond de 17 Go dans toutes les hypothèses. Dominé par le variant mxfp4, plus léger de 840 Mo à quantification équivalente."
-      - "Le mode « thinking » est actif par défaut et aucun adaptateur ne sait le désactiver."
+      - "MESURÉ : cette capacité échoue sur cette machine. Le banc rend « [METAL] Command buffer execution failed: Insufficient Memory » sur les trois cas de la charge type. Les poids chargés occupent déjà 14,95 Gio ; le buffer que réclame l'encodage de l'image ne passe plus. `--hors-budget` n'y change rien — il lève un refus d'admission, pas un refus de Metal, et l'allocation échoue en aval du contrôle."
+      - "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure."

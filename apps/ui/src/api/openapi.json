@@ -36,6 +36,18 @@
             "title": "Measure Mode",
             "type": "boolean"
           },
+          "overcommit": {
+            "default": false,
+            "description": "Le job a été admis au-delà du budget, sur demande explicite. Le parc est vidé et la machine pagine : c'est un arbitrage assumé, pas un calcul qui a débordé.",
+            "title": "Overcommit",
+            "type": "boolean"
+          },
+          "overflow_bytes": {
+            "default": 0,
+            "description": "Ce qui dépasse le budget. Renseigné même quand le dépassement fait refuser.",
+            "title": "Overflow Bytes",
+            "type": "integer"
+          },
           "peak_bytes": {
             "anyOf": [
               {
@@ -84,6 +96,12 @@
             "description": "Entrée envisagée, déjà typée. Elle sert au pic attendu quand le profil déclare une pente : trente secondes de musique coûtent le double de quinze.",
             "title": "Input",
             "type": "object"
+          },
+          "overcommit": {
+            "default": false,
+            "description": "Simuler en assumant le dépassement du budget. Le bandeau s'en sert pour montrer ce que coûterait le mode hors budget avant qu'on l'ait choisi.",
+            "title": "Overcommit",
+            "type": "boolean"
           },
           "ref": {
             "description": "« model@variant », ou « model » quand le choix est évident.",
@@ -705,6 +723,12 @@
             "description": "Entrée du job, déjà typée — un nombre pour un nombre. Les défauts du contrat et du variant sont résolus par le serveur, et écrits au manifeste.",
             "title": "Input",
             "type": "object"
+          },
+          "overcommit": {
+            "default": false,
+            "description": "Assumer un dépassement du budget mémoire plutôt que de refuser le job. Vide le parc, laisse macOS paginer, et n'offre aucune garantie que le job aille au bout. Sans effet sur un modèle qui tient dans le budget.",
+            "title": "Overcommit",
+            "type": "boolean"
           },
           "ref": {
             "description": "« model@variant », ou « model » quand le choix est évident.",

@@ -348,6 +348,7 @@
         "type": "object"
       },
       "models": [
+        "gemma4-12b-ocr",
         "qwen3-vl-8b-ocr",
         "qwen36-27b-ocr"
       ],
@@ -444,6 +445,7 @@
         "type": "object"
       },
       "models": [
+        "gemma4-12b-detect",
         "qwen3-vl-8b-detect",
         "qwen36-27b-detect"
       ],
@@ -1095,6 +1097,7 @@
         "type": "object"
       },
       "models": [
+        "gemma4-12b-describe",
         "qwen3-vl-8b-describe",
         "qwen36-27b-describe"
       ],
@@ -1128,6 +1131,7 @@
         "text": "text/plain"
       },
       "ready_variants": [
+        "gemma4-12b-describe@4bit",
         "qwen3-vl-8b-describe@4bit"
       ],
       "required": [
@@ -1595,7 +1599,9 @@
         "type": "object"
       },
       "models": [
-        "qwen25-coder-7b"
+        "gemma4-12b-texte",
+        "qwen25-coder-7b",
+        "qwen36-27b-texte"
       ],
       "output": {
         "properties": {
@@ -1628,7 +1634,9 @@
         "text": "text/plain"
       },
       "ready_variants": [
-        "qwen25-coder-7b@4bit"
+        "gemma4-12b-texte@4bit",
+        "qwen25-coder-7b@4bit",
+        "qwen36-27b-texte@4bit"
       ],
       "required": [
         "prompt"
@@ -2086,7 +2094,9 @@
         "type": "object"
       },
       "models": [
-        "qwen3-4b-outils"
+        "gemma4-12b-outils",
+        "qwen3-4b-outils",
+        "qwen36-27b-outils"
       ],
       "output": {
         "properties": {
@@ -2194,7 +2204,9 @@
         "type": "object"
       },
       "models": [
-        "qwen3-4b-traduction"
+        "gemma4-12b-traduction",
+        "qwen3-4b-traduction",
+        "qwen36-27b-traduction"
       ],
       "output": {
         "properties": {
@@ -2422,6 +2434,7 @@
         "type": "object"
       },
       "models": [
+        "gemma4-12b-video",
         "qwen3-vl-8b-video",
         "qwen36-27b-video"
       ],

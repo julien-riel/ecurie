@@ -370,10 +370,19 @@ class Supervisor:
             return None
         return variant.profile.expected_peak(values)[1]
 
-    def simulate(self, ref: str, peak_bytes: int | None, *, measure: bool = False) -> Admission:  # noqa: E501
+    def simulate(
+        self,
+        ref: str,
+        peak_bytes: int | None,
+        *,
+        measure: bool = False,
+        overcommit: bool = False,
+    ) -> Admission:
         """Ce que ferait `acquire`, sans rien charger — c'est ce qu'affiche `ecurie ps`."""
         residents = [e.as_resident() for e in self._entries().values()]
-        return plan_admission(ref, peak_bytes, residents, self.policy, measure=measure)
+        return plan_admission(
+            ref, peak_bytes, residents, self.policy, measure=measure, overcommit=overcommit
+        )
 
     # --- tour de rôle --------------------------------------------------------
 
@@ -474,12 +483,17 @@ class Supervisor:
         *,
         measure: bool = False,
         pin: bool = False,
+        overcommit: bool = False,
         on_progress: ProgressFn | None = None,
         values: dict[str, Any] | None = None,
         job_id: str | None = None,
         on_wait: WaitFn | None = None,
     ) -> Lease:
         """Rend un worker prêt pour ce variant, en respectant le budget mémoire.
+
+        `overcommit` assume un dépassement du budget plutôt que de le refuser :
+        le parc est alors vidé, et la décision suit le job jusqu'à son manifeste.
+        Voir `admission._hors_budget` pour ce qu'elle coûte.
 
         `values` est l'entrée résolue du job : elle sert au calcul du pic attendu
         quand le profil déclare une pente (`peak_scaling`). `job_id` nomme
@@ -513,7 +527,7 @@ class Supervisor:
         try:
             with self.registry_file.locked() as entries:
                 self._sync(entries)
-                admission = self._plan(ref, variant, values, entries)
+                admission = self._plan(ref, variant, values, entries, overcommit=overcommit)
                 if not admission.admitted:
                     raise AdmissionRefused(admission)
 
@@ -555,10 +569,16 @@ class Supervisor:
         entries: dict[str, ResidentEntry],
         *,
         measure: bool = False,
+        overcommit: bool = False,
     ) -> Admission:
         residents = [e.as_resident() for e in entries.values()]
         return plan_admission(
-            ref, self.peak_bytes(variant, values), residents, self.policy, measure=measure
+            ref,
+            self.peak_bytes(variant, values),
+            residents,
+            self.policy,
+            measure=measure,
+            overcommit=overcommit,
         )
 
     def _ephemeral(

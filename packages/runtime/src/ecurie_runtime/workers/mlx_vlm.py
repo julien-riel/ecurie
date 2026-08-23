@@ -35,6 +35,7 @@ from ecurie_runtime.workers.base import (
     WorkerError,
     main,
     peak_rss_bytes,
+    sans_raisonnement,
 )
 
 OUTPUT_TEXT = "text.txt"
@@ -105,6 +106,51 @@ def import_runtime() -> Runtime:
         apply_chat_template=apply_chat_template,
         load_config=load_config,
     )
+
+
+def thinking_demande(options: Mapping[str, Any], defaults: Mapping[str, Any]) -> bool:
+    """Le variant demande-t-il que le modèle raisonne à voix haute ? Non, par défaut.
+
+    Hors du contrat de capacité, donc dans les `options` du variant : le mode
+    « thinking » n'est pas un réglage qu'on voudrait voir passer d'un modèle à
+    l'autre dans un formulaire — la moitié du parc ne sait pas ce que c'est.
+    """
+    return bool(options.get("thinking", defaults.get("thinking", False)))
+
+
+def composer_invite(
+    runtime: Runtime,
+    processor: Any,
+    config: Any,
+    consigne: Any,
+    *,
+    num_images: int = 1,
+    thinking: bool = False,
+    **extra: Any,
+) -> Any:
+    """Applique le gabarit de conversation en disant s'il faut raisonner à voix haute.
+
+    Les quatre chemins visuels passent par ici pour une raison qui n'était pas
+    prévisible : les familles récentes pensent avant de répondre. Qwen3.6 émet
+    un `<think>…</think>` par défaut, et sur ces contrats-là il coûte deux fois
+    — il consomme le `max_tokens` de la réponse, et il s'intercale devant elle.
+    Sur la détection, où la sortie est extraite par motif, il fait tomber
+    l'extraction à zéro objet : le modèle aurait vu juste, le job rendrait vide.
+
+    Le repli n'est pas décoratif. `enable_thinking` traverse `**kwargs` jusqu'au
+    gabarit Jinja, qui l'ignore poliment quand il ne le connaît pas — mais rien
+    ne garantit que toutes les versions de `transformers` et de `mlx-vlm` s'y
+    prêtent. Un gabarit qui refuse le drapeau doit rendre une invite sans lui,
+    pas faire échouer le job.
+    """
+    try:
+        return runtime.apply_chat_template(
+            processor, config, consigne, num_images=num_images, enable_thinking=thinking, **extra
+        )
+    except Exception:  # noqa: BLE001 — gabarit qui refuse le drapeau : sans lui plutôt que rien
+        return runtime.apply_chat_template(
+            processor, config, consigne, num_images=num_images, **extra
+        )
 
 
 # --- préparation du document -------------------------------------------------
@@ -237,6 +283,7 @@ class MlxVlmWorker(Worker):
         self._config: Any = None
         self._defaults: dict[str, Any] = {}
         self._options: dict[str, Any] = {}
+        self._thinking = False
         self._peak_load = 0
 
     def load(self, variant: dict[str, Any]) -> dict[str, Any]:
@@ -250,6 +297,7 @@ class MlxVlmWorker(Worker):
 
         self._defaults = dict(variant.get("defaults") or {})
         self._options = dict(variant.get("options") or {})
+        self._thinking = thinking_demande(self._options, self._defaults)
 
         model, processor = runtime.load(str(chemin))
         self._runtime = runtime
@@ -377,7 +425,9 @@ class MlxVlmWorker(Worker):
     def _lire_page(self, page: PagePlan, consigne: str) -> tuple[str, Any]:
         runtime = self._runtime
         assert runtime is not None
-        invite = runtime.apply_chat_template(self._processor, self._config, consigne, num_images=1)
+        invite = composer_invite(
+            runtime, self._processor, self._config, consigne, num_images=1, thinking=self._thinking
+        )
         try:
             résultat = runtime.generate(
                 self._model,
@@ -399,7 +449,11 @@ class MlxVlmWorker(Worker):
         texte = getattr(résultat, "text", None)
         if texte is None:
             texte = str(résultat)
-        return texte.strip(), résultat
+        # Page par page : un modèle qui réfléchit le fait à chaque page, et un
+        # `<think>` recollé au milieu d'une transcription se lirait comme du
+        # texte du document.
+        propre, _raisonnement = sans_raisonnement(texte.strip())
+        return propre, résultat
 
     def _reglage(self, request: InferRequest, nom: str, defaut: Any) -> Any:
         """Entrée du job, puis options du variant, puis défauts du manifeste."""

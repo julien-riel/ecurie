@@ -29,6 +29,7 @@ from ecurie_runtime.workers.base import (
     WorkerError,
     main,
     peak_rss_bytes,
+    sans_raisonnement,
 )
 
 ENV_NAME = "mlx-lm"
@@ -56,6 +57,12 @@ class Reponse:
     prompt_tokens: int = 0
     finish_reason: str = "stop"
     seconds: float = 0.0
+    # Le raisonnement à voix haute, séparé de la réponse plutôt que jeté. Les
+    # modèles à mode « thinking » l'émettent entre <think> et </think> ; le
+    # laisser dans `text` fausserait une traduction notée au caractère près et
+    # ferait échouer l'extraction d'un appel d'outil. Le supprimer sans le garder
+    # priverait qui relit le job de la seule trace expliquant une réponse.
+    reasoning: str = ""
 
     @property
     def tokens_per_second(self) -> float | None:
@@ -97,8 +104,12 @@ class MlxLmBase(Worker):
 
     # --- chargement ----------------------------------------------------------
 
+    def _import_runtime(self) -> Runtime:
+        """Le moteur d'inférence de ce worker. Surchargé par les adaptateurs mlx-vlm."""
+        return import_runtime()
+
     def load(self, variant: dict[str, Any]) -> dict[str, Any]:
-        runtime = import_runtime()
+        runtime = self._import_runtime()
         chemin = Path(str(variant.get("weights_path") or "").strip())
         if not str(chemin) or not chemin.is_dir():
             raise WorkerError(
@@ -157,6 +168,7 @@ class MlxLmBase(Worker):
         repetition_penalty: float = 1.0,
         seed: int | None = None,
         tools: list[dict[str, Any]] | None = None,
+        thinking: bool | None = None,
         etape: str = "génération",
     ) -> tuple[Reponse, bool]:
         """Une génération complète. Rend la réponse et si le gabarit a pris `tools`.
@@ -171,7 +183,7 @@ class MlxLmBase(Worker):
             raise WorkerError("modèle non chargé")
         runtime = self._runtime
 
-        invite, gabarit_outils = self._invite(messages, tools)
+        invite, gabarit_outils = self._invite(messages, tools, thinking=thinking)
 
         runtime.mx.reset_peak_memory()
         if seed is not None:
@@ -188,13 +200,11 @@ class MlxLmBase(Worker):
         réponse = Reponse()
         début = time.monotonic()
         try:
-            flux = runtime.stream_generate(
-                self._model,
-                self._tokenizer,
+            flux = self._flux(
                 invite,
                 max_tokens=int(max_tokens),
                 sampler=échantillonneur,
-                **({"logits_processors": processeurs} if processeurs else {}),
+                logits_processors=processeurs,
             )
             for index, morceau in enumerate(flux):
                 morceaux.append(getattr(morceau, "text", "") or "")
@@ -216,30 +226,83 @@ class MlxLmBase(Worker):
             raise WorkerError(f"génération impossible : {type(exc).__name__}: {exc}") from exc
 
         réponse.seconds = time.monotonic() - début
-        réponse.text = _sans_marqueur_de_fin("".join(morceaux), self._tokenizer)
+        texte = _sans_marqueur_de_fin("".join(morceaux), self._tokenizer)
+        # Après le marqueur de fin, jamais avant : un raisonnement refermé au
+        # dernier jeton porte le marqueur collé à son `</think>`.
+        réponse.text, réponse.reasoning = sans_raisonnement(texte)
         if not réponse.generation_tokens:
             réponse.generation_tokens = len(morceaux)
         return réponse, gabarit_outils
 
+    def _flux(
+        self,
+        invite: Any,
+        *,
+        max_tokens: int,
+        sampler: Any,
+        logits_processors: Any = None,
+    ) -> Any:
+        """L'appel au moteur, isolé pour que d'autres runtimes le remplacent.
+
+        `mlx-vlm` sert les mêmes trois capacités avec la même signature à une
+        chose près — il attend un processor là où `mlx-lm` attend un tokenizer,
+        et veut savoir qu'il n'y a pas d'image. C'est la seule ligne qui les
+        sépare ; la surcharger coûte moins que de recopier `engendrer`.
+        """
+        runtime = self._runtime
+        if runtime is None:
+            raise WorkerError("modèle non chargé")
+        return runtime.stream_generate(
+            self._model,
+            self._tokenizer,
+            invite,
+            max_tokens=int(max_tokens),
+            sampler=sampler,
+            **({"logits_processors": logits_processors} if logits_processors else {}),
+        )
+
     def _invite(
-        self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        *,
+        thinking: bool | None = None,
     ) -> tuple[Any, bool]:
-        """Applique le gabarit de conversation, avec les outils quand il les prend."""
+        """Applique le gabarit de conversation, avec les outils quand il les prend.
+
+        `thinking` n'est transmis que s'il est demandé. Les gabarits qui ignorent
+        `enable_thinking` n'y verront rien — Jinja ne se plaint pas d'une
+        variable inutilisée —, et ceux qui le lisent, comme Qwen3 et Qwen3.6,
+        amorceront un `<think>` vide qui coupe le raisonnement à la racine.
+        C'est préférable à ne le retirer qu'après coup : les jetons du brouillon
+        sont facturés au budget de la réponse, et un `max_tokens` court se
+        consomme entièrement en raisonnement sans rien produire.
+        """
         tokenizer = self._tokenizer
         if tokenizer is None or not hasattr(tokenizer, "apply_chat_template"):
             raise WorkerError(
                 "ce tokenizer n'a pas de gabarit de conversation : l'invite partirait "
                 "sans balises de rôle et un modèle instruit répondrait n'importe quoi"
             )
+        extra: dict[str, Any] = {} if thinking is None else {"enable_thinking": bool(thinking)}
         if tools:
             try:
                 brut = tokenizer.apply_chat_template(
-                    messages, tools=tools, add_generation_prompt=True, tokenize=False
+                    messages, tools=tools, add_generation_prompt=True, tokenize=False, **extra
                 )
                 return _normaliser_invite(brut), True
             except Exception:  # noqa: BLE001 — gabarit sans support d'outils : on replie
                 pass
-        brut = tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
+        try:
+            brut = tokenizer.apply_chat_template(
+                messages, add_generation_prompt=True, tokenize=False, **extra
+            )
+        except Exception:  # noqa: BLE001 — gabarit qui refuse le drapeau : sans lui plutôt que rien
+            if not extra:
+                raise
+            brut = tokenizer.apply_chat_template(
+                messages, add_generation_prompt=True, tokenize=False
+            )
         return _normaliser_invite(brut), False
 
     # --- réglages ------------------------------------------------------------

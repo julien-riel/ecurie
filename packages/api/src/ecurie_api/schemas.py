@@ -332,6 +332,17 @@ class AdmissionOut(BaseModel):
     already_resident: bool = False
     measure_mode: bool = False
     blockers: list[str] = Field(default_factory=list)
+    overcommit: bool = Field(
+        default=False,
+        description=(
+            "Le job a été admis au-delà du budget, sur demande explicite. Le parc est vidé "
+            "et la machine pagine : c'est un arbitrage assumé, pas un calcul qui a débordé."
+        ),
+    )
+    overflow_bytes: int = Field(
+        default=0,
+        description="Ce qui dépasse le budget. Renseigné même quand le dépassement fait refuser.",
+    )
     peak_bytes: int | None = Field(
         default=None, description="Pic attendu pour cette entrée, pas seulement pour ce variant."
     )
@@ -364,6 +375,14 @@ class JobRequest(BaseModel):
         ),
     )
     seed: int | None = None
+    overcommit: bool = Field(
+        default=False,
+        description=(
+            "Assumer un dépassement du budget mémoire plutôt que de refuser le job. Vide le "
+            "parc, laisse macOS paginer, et n'offre aucune garantie que le job aille au bout. "
+            "Sans effet sur un modèle qui tient dans le budget."
+        ),
+    )
 
 
 class JobOut(BaseModel):
@@ -455,6 +474,13 @@ class AdmissionRequest(BaseModel):
         ),
     )
     seed: int | None = None
+    overcommit: bool = Field(
+        default=False,
+        description=(
+            "Simuler en assumant le dépassement du budget. Le bandeau s'en sert pour "
+            "montrer ce que coûterait le mode hors budget avant qu'on l'ait choisi."
+        ),
+    )
 
 
 class AdmissionResponse(BaseModel):

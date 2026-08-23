@@ -338,6 +338,18 @@ export interface components {
              */
             measure_mode: boolean;
             /**
+             * Overcommit
+             * @description Le job a été admis au-delà du budget, sur demande explicite. Le parc est vidé et la machine pagine : c'est un arbitrage assumé, pas un calcul qui a débordé.
+             * @default false
+             */
+            overcommit: boolean;
+            /**
+             * Overflow Bytes
+             * @description Ce qui dépasse le budget. Renseigné même quand le dépassement fait refuser.
+             * @default 0
+             */
+            overflow_bytes: number;
+            /**
              * Peak Bytes
              * @description Pic attendu pour cette entrée, pas seulement pour ce variant.
              */
@@ -361,6 +373,12 @@ export interface components {
             input?: {
                 [key: string]: unknown;
             };
+            /**
+             * Overcommit
+             * @description Simuler en assumant le dépassement du budget. Le bandeau s'en sert pour montrer ce que coûterait le mode hors budget avant qu'on l'ait choisi.
+             * @default false
+             */
+            overcommit: boolean;
             /**
              * Ref
              * @description « model@variant », ou « model » quand le choix est évident.
@@ -688,6 +706,12 @@ export interface components {
             input?: {
                 [key: string]: unknown;
             };
+            /**
+             * Overcommit
+             * @description Assumer un dépassement du budget mémoire plutôt que de refuser le job. Vide le parc, laisse macOS paginer, et n'offre aucune garantie que le job aille au bout. Sans effet sur un modèle qui tient dans le budget.
+             * @default false
+             */
+            overcommit: boolean;
             /**
              * Ref
              * @description « model@variant », ou « model » quand le choix est évident.
