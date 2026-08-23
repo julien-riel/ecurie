@@ -105,7 +105,8 @@ le projet s'interdit précisément pour ce genre de raison.
 | Dérivés *abliterated* / *uncensored* | Ne sont pas les poids de référence. |
 | `gemma-4-31B-it` (18,44 Go en 4 bits) | Même impasse que Qwen3.6-27B, en pire. Non téléchargé. |
 | `gemma-4-26B-A4B-it` (15,37 Go) | MoE à 4 B actifs, donc rapide, mais le pic suivrait celui de Qwen3.6-27B. À éprouver seulement si la vision de la 12B déçoit. |
-| `speech-to-text`, `audio-to-text` pour Gemma 4 | Le modèle sait transcrire — il a un `audio_config`. Aucun adaptateur audio n'existe sur `mlx-vlm` : ces capacités sont servies par `mlx-audio`, sur d'autres poids. Voir §6. |
+| `speech-to-text`, `audio-to-text` pour Gemma 4 | L'adaptateur existe désormais. Ce qui manque est l'encodeur : la conversion MLX ne garde que la projection audio, trois tenseurs sans la tour qui les précède. |
+| **Qwen-Image-Edit-2511** | Aucune conversion mflux sous 20 Go — les seules compatibles pèsent 37,5 et 151 Go, pour un budget de 17,76 Gio. Les 4 bits disponibles sont au format diffusers, et publiées en CC-BY-NC-SA quand l'officiel est Apache-2.0 : une quantification qui restreint la licence de ce qu'elle quantifie. `mflux-save` permettrait de quantifier soi-même depuis le 8 bits, au prix de 37,5 Go téléchargés pour en produire 19, et d'un résultat qui dépasserait encore. **Déclencheur : une conversion mflux sous 20 Go.** |
 
 ## 5. Ce qui a été construit
 
@@ -203,7 +204,44 @@ chantier que ce cycle a mis au jour, et il dépasse le cadre d'un ajout de modè
    soit exactement la même impasse sur la vision. Le mur est la classe 27B sur
    24 Gio, pas le numéro de version.
 
-## 8. Plan de GC
+## 8. Second lot — cinq modèles demandés nommément
+
+Demandés après coup, avec un classement d'usage. Quatre sur cinq sont entrés au
+parc ; le cinquième est écarté avec son motif. Deux d'entre eux avaient été mal
+jugés au premier examen, et les deux erreurs allaient dans le même sens : une
+conversion qui ne marche pas ne dit rien du modèle.
+
+| Modèle | État | Mesuré |
+|---|---|---|
+| **MiniCPM-V 4.6** | en service | 2,65 Gio · 1,3 s · 64 jetons/s |
+| **MiniCPM-o 4.5** | vision en service, écoute muette | 6,26 Gio · 5,7 s |
+| **Depth Anything 3 Large** | en service | 1,64 Go · 571 ms/image |
+| **SeedVR2 3B** | en service | 7,28 Go · **16,78 Gio** · 9,5 s |
+| **Qwen-Image-Edit-2511** | écarté — voir §4 | — |
+
+**Ce que le parc y gagne en propre.** Deux capacités (`depth-estimation`,
+et `image-segment` étendue au concept), trois runtimes (`depth-anything`,
+`mflux`, plus l'audio ouvert sur `mlx-vlm`), et quatre adaptateurs.
+
+**Demandés en GGUF, servis en MLX.** Le parc n'a pas de runtime GGUF —
+`llama-cpp` est hors périmètre, et en ajouter un supposerait Ollama ou LM Studio,
+donc un serveur tiers que le superviseur ne contrôle pas. Les conversions MLX
+partent des mêmes poids.
+
+**Deux erreurs de jugement, corrigées par la mesure.** SeedVR2 avait été écarté
+parce que sa conversion mlx-community est en MLX-Swift ; mflux en porte une
+implémentation Python. Et MiniCPM-o semblait irrécupérable sur un « Missing 1203
+parameters » qui venait du `sanitize` d'amont, pas des poids — tous présents,
+vérifiés tenseur par tenseur.
+
+**Ce que l'écoute a coûté pour rien.** L'adaptateur `mlx_vlm_audio` est écrit et
+testé, il charge et transmet le son correctement. Aucun modèle du parc ne peut
+l'exercer : la conversion MLX de Gemma 4 ne garde que la projection audio sans
+son encodeur, et celle de MiniCPM-o entend sans transcrire — même en 5 bits, où
+elle répond « c'est un son de synthèse », ce qui est exact mais s'arrête là. Le
+travail reste, il attend un modèle omni dont la conversion soit entière.
+
+## 9. Plan de GC
 
 Trois jeux de poids sont entrés sur le disque : **16,08 Go** pour Qwen3.6-27B,
 **6,77 Go** pour Gemma 4 12B et **1,72 Go** pour SAM 3, soit 24,57 Go. Le disque en garde 511 Gio libres

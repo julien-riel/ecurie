@@ -1,6 +1,6 @@
 {
   "last_run": "2026-08-23",
-  "portee": "cycle ciblé sur deux modèles nommés — Qwen3.6-27B et Gemma 4 12B. Mené jusqu'à la phase d'épreuve, sur autorisation explicite.",
+  "portee": "deux lots : Qwen3.6-27B et Gemma 4 12B, puis cinq modèles demandés nommément. Mené jusqu'à la phase d'épreuve sur autorisation.",
   "rapport": "registry/veille/2026-08-23/RAPPORT.md",
   "sources_balayees": [
     "huggingface.co/api/models — org Qwen, org mlx-community, recherche Qwen3.6",
@@ -28,7 +28,13 @@
     "gemma4-12b-describe",
     "gemma4-12b-ocr",
     "gemma4-12b-detect",
-    "gemma4-12b-video"
+    "gemma4-12b-video",
+    "sam3",
+    "minicpm-v46-describe",
+    "minicpm-o45-describe",
+    "minicpm-o45-ecoute",
+    "da3-large",
+    "seedvr2-3b"
   ],
   "telechargements": {
     "qwen36-27b@4bit": 16081487798,
@@ -48,6 +54,26 @@
     "adaptateurs mlx_vlm_text, mlx_vlm_translate, mlx_vlm_tools (héritent de leurs jumeaux mlx-lm)",
     "transmission de enable_thinking et séparation du raisonnement (workers/base.py)",
     "stratégie d'extraction xml_function pour les appels d'outils",
-    "grille de détection déclarable par variant (options.grid)"
+    "grille de détection déclarable par variant (options.grid)",
+    "adaptateur mlx_vlm_audio — audio-to-text pour les modèles omni",
+    "adaptateur sam3 — segmentation par concept",
+    "adaptateur depth_anything — profondeur monoculaire",
+    "adaptateur seedvr2 — agrandissement par diffusion",
+    "correctif minicpm_compat — noms de poids attendus par le sanitize d'amont",
+    "flux de jetons (ev:delta) et WebSocket /jobs/ws"
+  ],
+  "capacites_creees": [
+    "depth-estimation"
+  ],
+  "capacites_etendues": {
+    "image-segment": "champ `prompt` — désigner par le concept et non par le clic"
+  },
+  "runtimes_ouverts": [
+    "depth-anything",
+    "mflux"
+  ],
+  "erreurs_corrigees": [
+    "SeedVR2 écarté à tort sur sa conversion MLX-Swift : mflux en porte une implémentation Python",
+    "Qwen3.6-27B déclaré hors budget en comparant des Go décimaux à un budget en Gio"
   ]
 }
