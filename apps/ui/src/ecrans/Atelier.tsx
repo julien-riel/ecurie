@@ -232,105 +232,150 @@ export function Atelier({ periodeBandeau }: AtelierProps) {
 
   return (
     <section className="ecurie-atelier" aria-label="Atelier">
-      <BandeauRessources
-        sondage={parc}
-        pour={ref}
-        picParametre={parametreDuPic(variant?.profile ?? null)}
-      />
-
       <NoticeBanner notices={avis} />
 
       {contrats.erreur ? <p className="text-danger">{phraseErreur(contrats.erreur)}</p> : null}
 
-      <div className="ecurie-choix">
-        <div>
-          <label htmlFor="capacite">Capacité</label>
-          <select id="capacite" value={capId ?? ""} onChange={(e) => choisirCapacite(e.target.value)}>
-            <option value="">— choisir —</option>
-            {groupesDeCapacites(capacités).map((groupe) => (
-              <optgroup key={groupe.etat} label={groupe.titre}>
-                {groupe.capacites.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.title}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
+      {/*
+        Deux colonnes au-delà de 68 rem : la composition à gauche, le box à
+        droite. La colonne de droite est collante, ce qui règle une gêne que le
+        bandeau du 4.4 nommait sans pouvoir la traiter — « visible pendant qu'on
+        remplit un formulaire long, le contrat de tool-use fait défiler bien
+        au-delà d'un écran ». La mémoire, le coût et le bouton restent sous les
+        yeux pendant toute la saisie.
+
+        L'ordre du balisage suit la tâche — choisir, remplir, lancer — et ne
+        change pas d'une largeur à l'autre : en une colonne, le box retombe sous
+        le formulaire, là où l'on attend un bouton d'envoi. Aucun `order` CSS
+        n'intervient, si bien que la tabulation et le regard vont au même
+        endroit.
+      */}
+      <div className="ecurie-etabli">
+        <div className="ecurie-composition">
+          <div className="ecurie-carte">
+            <div className="ecurie-choix">
+              <div>
+                <label htmlFor="capacite">Capacité</label>
+                <select
+                  id="capacite"
+                  value={capId ?? ""}
+                  onChange={(e) => choisirCapacite(e.target.value)}
+                >
+                  <option value="">— choisir —</option>
+                  {groupesDeCapacites(capacités).map((groupe) => (
+                    <optgroup key={groupe.etat} label={groupe.titre}>
+                      {groupe.capacites.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.title}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                {capacité ? (
+                  <p className="ecurie-etat-champ">{phraseEtat(etatCapacite(capacité))}</p>
+                ) : null}
+              </div>
+
+              {capacité ? (
+                <div>
+                  <label htmlFor="variant">Variant</label>
+                  <select
+                    id="variant"
+                    value={ref ?? ""}
+                    onChange={(e) => poserVariant(e.target.value || null)}
+                  >
+                    <option value="">— choisir —</option>
+                    {groupesDeVariants(models, capacité.incumbent).map((groupe) => (
+                      <optgroup
+                        key={groupe.modele}
+                        label={groupe.titulaire ? `${groupe.modele} (titulaire)` : groupe.modele}
+                      >
+                        {groupe.variants.map((v) => (
+                          <option key={v.ref} value={v.ref}>
+                            {v.id}
+                            {v.ready ? "" : " — non exécutable"}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+            </div>
+
+            {variant ? <FicheVariant variant={variant} /> : null}
+          </div>
+
           {capacité ? (
-            <p className="ecurie-etat-champ">{phraseEtat(etatCapacite(capacité))}</p>
+            <div className="ecurie-carte">
+              <h2 className="ecurie-titre-capacite">{capacité.title}</h2>
+              {capacité.description ? (
+                <p className="ecurie-description">{capacité.description}</p>
+              ) : null}
+
+              <CapabilityForm
+                capability={capacité}
+                variant={variant}
+                runtimeOptions={runtimeOptions}
+                resident={estRésident}
+                formData={formData}
+                onChange={setFormData}
+                onNotices={setAvisFormulaire}
+              />
+
+              <details
+                open={projectionOuverte}
+                onToggle={(e) => setProjectionOuverte(e.currentTarget.open)}
+              >
+                <summary>Ce qui partirait ({Object.keys(entrée).length} champ(s))</summary>
+                <pre className="ecurie-json">{JSON.stringify(entrée, null, 2)}</pre>
+              </details>
+            </div>
           ) : null}
         </div>
 
-        {capacité ? (
-          <div>
-            <label htmlFor="variant">Variant</label>
-            <select
-              id="variant"
-              value={ref ?? ""}
-              onChange={(e) => poserVariant(e.target.value || null)}
-            >
-              <option value="">— choisir —</option>
-              {groupesDeVariants(models, capacité.incumbent).map((groupe) => (
-                <optgroup
-                  key={groupe.modele}
-                  label={groupe.titulaire ? `${groupe.modele} (titulaire)` : groupe.modele}
-                >
-                  {groupe.variants.map((v) => (
-                    <option key={v.ref} value={v.ref}>
-                      {v.id}
-                      {v.ready ? "" : " — non exécutable"}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-            {variant ? <FicheVariant variant={variant} /> : null}
-          </div>
-        ) : null}
-      </div>
-
-      {capacité ? (
-        <>
-          <h2>{capacité.title}</h2>
-          {capacité.description ? <p>{capacité.description}</p> : null}
-
-          <CapabilityForm
-            capability={capacité}
-            variant={variant}
-            runtimeOptions={runtimeOptions}
-            resident={estRésident}
-            formData={formData}
-            onChange={setFormData}
-            onNotices={setAvisFormulaire}
+        <aside className="ecurie-box">
+          <BandeauRessources
+            sondage={parc}
+            pour={ref}
+            picParametre={parametreDuPic(variant?.profile ?? null)}
           />
 
-          <div className="ecurie-actions">
-            <button
-              type="button"
-              className="ecurie-primaire"
-              onClick={lancerLeJob}
-              disabled={!ref || suivi.envoi || travailEnCours}
-            >
-              {suivi.envoi ? "envoi…" : "Lancer"}
-            </button>
-            <button type="button" onClick={chiffrerLeJob} disabled={!ref}>
-              Chiffrer ce job
-            </button>
-            {travailEnCours ? (
-              <p className="ecurie-etat-champ">
-                Cet écran ne suit qu'un job à la fois. Pour en lancer un second sans
-                attendre celui-ci : <code>ecurie run {ref ?? "<ref>"}</code>.
-              </p>
-            ) : null}
-            {suivi.erreur.length && !suivi.interrompu ? (
-              <ul className="text-danger">
-                {suivi.erreur.map((ligne) => (
-                  <li key={ligne}>{ligne}</li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
+          {capacité ? (
+            <div className="ecurie-carte">
+              <div className="ecurie-actions">
+                <button
+                  type="button"
+                  className="ecurie-primaire"
+                  onClick={lancerLeJob}
+                  disabled={!ref || suivi.envoi || travailEnCours}
+                >
+                  {suivi.envoi ? "envoi…" : "Lancer"}
+                </button>
+                <button type="button" onClick={chiffrerLeJob} disabled={!ref}>
+                  Chiffrer ce job
+                </button>
+                {travailEnCours ? (
+                  <p className="ecurie-etat-champ">
+                    Cet écran ne suit qu'un job à la fois. Pour en lancer un second sans attendre
+                    celui-ci : <code>ecurie run {ref ?? "<ref>"}</code>.
+                  </p>
+                ) : null}
+                {suivi.erreur.length && !suivi.interrompu ? (
+                  <ul className="text-danger">
+                    {suivi.erreur.map((ligne) => (
+                      <li key={ligne}>{ligne}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+
+              {chiffrage && chiffrage.ref === ref ? (
+                <ResultatChiffrage chiffrage={chiffrage} />
+              ) : null}
+            </div>
+          ) : null}
 
           {job ? (
             <PanneauJob
@@ -340,26 +385,22 @@ export function Atelier({ periodeBandeau }: AtelierProps) {
               onOublier={suivi.oublier}
             />
           ) : null}
+        </aside>
+      </div>
 
-          {chiffrage && chiffrage.ref === ref ? (
-            <>
-              <h3>Pour l'entrée saisie</h3>
-              <ResultatChiffrage chiffrage={chiffrage} />
-            </>
-          ) : null}
+      {/*
+        Les sorties sont sous les deux colonnes et en pleine largeur : une image
+        de 1024 pixels ou un maillage 3D n'a rien à faire dans une gouttière de
+        24 rem.
 
-          <details open={projectionOuverte} onToggle={(e) => setProjectionOuverte(e.currentTarget.open)}>
-            <summary>Ce qui partirait ({Object.keys(entrée).length} champ(s))</summary>
-            <pre className="ecurie-json">{JSON.stringify(entrée, null, 2)}</pre>
-          </details>
-
-          {/*
-            Avant le premier job, l'écran annonce ce que le contrat **promet** ;
-            après, il montre ce qui a été **produit**. Les deux composants sont
-            distincts et le titre change avec eux : une sortie fabriquée passée
-            au panneau des vraies sorties prouverait l'aiguillage en mentant sur
-            l'état du job — c'est ce que faisait le banc du 4.3.
-          */}
+        Avant le premier job, l'écran annonce ce que le contrat **promet** ;
+        après, il montre ce qui a été **produit**. Les deux composants sont
+        distincts et le titre change avec eux : une sortie fabriquée passée au
+        panneau des vraies sorties prouverait l'aiguillage en mentant sur l'état
+        du job — c'est ce que faisait le banc du 4.3.
+      */}
+      {capacité ? (
+        <section className="ecurie-production ecurie-carte">
           {sortieDuJob ? (
             <>
               <h3>Ce que ce job a produit</h3>
@@ -375,7 +416,7 @@ export function Atelier({ periodeBandeau }: AtelierProps) {
               <SortiesPromises capability={capacité} />
             </>
           )}
-        </>
+        </section>
       ) : null}
     </section>
   );
@@ -391,22 +432,41 @@ export function Atelier({ periodeBandeau }: AtelierProps) {
  */
 function FicheVariant({ variant }: { variant: Variant }) {
   const profil = variant.profile;
+  const pic = profil?.peak_unified_memory_bytes ?? null;
+
+  // Quatre faits nommés, et une phrase. La lourdeur reste une phrase parce que
+  // son cas inconnu en est une — « lourdeur inconnue, aucun profil mesuré » —,
+  // et qu'en faire une plaque obligerait à écrire un second tri-état à côté de
+  // celui de `phraseLourdeur`. Un tri-état à deux endroits finit par diverger.
+  const mesures: { clef: string; valeur: string; connu: boolean }[] = [
+    { clef: "Pic", valeur: formatBytes(pic), connu: pic !== null },
+    { clef: "Runtime", valeur: variant.runtime, connu: true },
+    { clef: "Palier", valeur: variant.tier, connu: true },
+  ];
+  if (profil) {
+    mesures.push({ clef: "Mesuré", valeur: jourMesure(profil.measured_at), connu: true });
+  }
+
   return (
     <div className="ecurie-fiche">
-      <p className="ecurie-etat-champ">
-        {formatBytes(profil?.peak_unified_memory_bytes ?? null)} · {phraseLourdeur(variant.heavy)} ·
-        runtime {variant.runtime} · palier {variant.tier}
-        {profil ? ` · mesuré le ${jourMesure(profil.measured_at)}` : ""}
-      </p>
+      <dl className="ecurie-mesures">
+        {mesures.map((m) => (
+          <div key={m.clef} data-connu={m.connu ? "oui" : "non"}>
+            <dt>{m.clef}</dt>
+            <dd className="ecurie-mesure-valeur">{m.valeur}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="ecurie-etat-champ">{phraseLourdeur(variant.heavy)}</p>
       {variant.caveats?.length ? (
-        <ul className="ecurie-etat-champ">
+        <ul className="ecurie-caveats">
           {variant.caveats.map((c) => (
             <li key={c}>{c}</li>
           ))}
         </ul>
       ) : null}
       {variant.ready ? null : (
-        <ul className="text-danger">
+        <ul className="ecurie-blockers">
           {variant.blockers.map((b) => (
             <li key={b}>{b}</li>
           ))}
@@ -416,14 +476,27 @@ function FicheVariant({ variant }: { variant: Variant }) {
   );
 }
 
-/** Le coût de l'entrée saisie — ou ce qui a empêché de le calculer. */
+/**
+ * Le coût de l'entrée saisie — ou ce qui a empêché de le calculer.
+ *
+ * Le titre est **dans** le bloc et non au-dessus de lui : posé dehors, il se
+ * collait au bouton qui vient de le produire, et la règle de marge qui l'en
+ * séparerait aurait porté sur la juxtaposition de deux composants plutôt que
+ * sur l'un d'eux.
+ */
 function ResultatChiffrage({ chiffrage }: { chiffrage: Chiffrage }) {
   if (chiffrage.erreur) {
-    return <p className="text-danger">{chiffrage.erreur}</p>;
+    return (
+      <div className="ecurie-chiffrage">
+        <p className="ecurie-plaque">Pour l'entrée saisie</p>
+        <p className="text-danger">{chiffrage.erreur}</p>
+      </div>
+    );
   }
   const lignes = phrasesAdmission(chiffrage.admission);
   return (
     <div className="ecurie-chiffrage" data-severite={severiteAdmission(chiffrage.admission)}>
+      <p className="ecurie-plaque">Pour l'entrée saisie</p>
       <ul className="ecurie-cout">
         {lignes.map((ligne) => (
           <li key={ligne}>{ligne}</li>

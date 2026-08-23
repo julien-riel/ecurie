@@ -181,14 +181,14 @@ class ContentGroup:
             par_inode = _by_inode(cohorte)
             if len(par_inode) < 2:
                 continue
-            couverture = {clef: _entierement_couvert(g) for clef, g in par_inode.items()}
+            couverture = {clef: entierement_couvert(g) for clef, g in par_inode.items()}
             keep = _preferred_keeper([g[0] for g in par_inode.values()], couverture)
             remplaçables: list[str] = []
             libérés = 0
             for clef, grappe in sorted(par_inode.items()):
                 if clef == (keep.device, keep.inode):
                     continue
-                if not _entierement_couvert(grappe):
+                if not entierement_couvert(grappe):
                     result.skipped.extend(
                         (r.path, "lien dur tenu hors du parc scanné") for r in grappe
                     )
@@ -225,7 +225,7 @@ def _by_inode(records: list[LocationRecord]) -> dict[tuple[int, int], list[Locat
     return dict(grappes)
 
 
-def _entierement_couvert(grappe: list[LocationRecord]) -> bool:
+def entierement_couvert(grappe: list[LocationRecord]) -> bool:
     """Le parc scanné voit-il TOUTES les références de cet inode ?
 
     Sinon, retirer les chemins qu'on connaît ne libère pas un octet : la référence
@@ -252,7 +252,7 @@ def _partage(
     retenus: list[tuple[str, int]] = []
     écartés: list[tuple[str, str]] = []
     for grappe in _by_inode(records).values():
-        if not _entierement_couvert(grappe):
+        if not entierement_couvert(grappe):
             écartés.extend((r.path, "lien dur tenu hors du parc scanné") for r in grappe)
             continue
         for index, r in enumerate(grappe):
@@ -330,6 +330,31 @@ def classify(
     return [(g, g.attribution(unused)) for g in group_by_content(records)]
 
 
+def cold_links(records: Iterable[LocationRecord]) -> list[ColdLink]:
+    """Les liens laissés par le tiering, et rien d'autre.
+
+    Le cache HF est lui aussi un champ de liens symboliques — chaque
+    `snapshots/<révision>/<fichier>` pointe vers un blob —, et les compter comme
+    des variants déportés annoncerait un parc entier sur volume externe. Seul
+    `meta.snapshot`, posé par le scanner HF, les distingue.
+
+    Extrait de `compute_figures` pour la même raison qu'il en sortait : la route
+    du tiering n'a besoin que de cette liste, et la lui faire payer une
+    classification complète du parc reviendrait à hacher trente giga-octets pour
+    afficher trois lignes.
+    """
+    return [
+        ColdLink(
+            path=r.path,
+            target=str(r.meta.get("target", "")),
+            available=bool(r.meta.get("available")),
+            variant_ref=r.variant_ref,
+        )
+        for r in records
+        if r.link_kind == "symlink" and not r.meta.get("snapshot")
+    ]
+
+
 def telemetry_is_conclusive(
     first_run_at: str | None, unused_after_days: int, now: datetime | None = None
 ) -> bool:
@@ -400,9 +425,7 @@ def compute_figures(
         size, count = by_manager.get(r.manager, (0, 0))
         by_manager[r.manager] = (size + r.size, count + 1)
 
-    unused = (
-        unused_variants(files, last_runs or {}, unused_after_days, now) if telemetry else set()
-    )
+    unused = unused_variants(files, last_runs or {}, unused_after_days, now) if telemetry else set()
 
     recoverable = Recoverable(unused_known=telemetry)
     duplicates: list[DuplicateGroup] = []
@@ -441,16 +464,7 @@ def compute_figures(
         unverified_bytes=sum(r.size for r in unverified),
         unverified_count=len(unverified),
         announced_bytes=sum(r.size for r in files if r.meta.get("hash_source") == "announced"),
-        cold=[
-            ColdLink(
-                path=r.path,
-                target=str(r.meta.get("target", "")),
-                available=bool(r.meta.get("available")),
-                variant_ref=r.variant_ref,
-            )
-            for r in links
-            if not r.meta.get("snapshot")  # liens internes au cache HF, pas du tiering
-        ],
+        cold=cold_links(links),
         unused_variants=sorted(unused),
         # Une divergence entre le nom du blob et son contenu ne doit pas s'oublier
         # entre deux `verify` : elle reste sous les yeux à chaque `status`.

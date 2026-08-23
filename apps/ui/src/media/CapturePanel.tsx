@@ -109,6 +109,28 @@ export function CapturePanel({ accept, onCapture, disabled, materiel }: CaptureP
     };
   }, []);
 
+  /*
+   * Le flux se branche sur l'élément **dans un effet**, jamais depuis `ouvrir`.
+   *
+   * La première version le posait dans un `queueMicrotask`, en supposant que
+   * React aurait rendu le `<video>` d'ici là. Il ne l'avait pas : `ouvrir`
+   * reprend la main après un `await`, hors du geste de l'utilisateur, si bien
+   * que le rendu est planifié par l'ordonnanceur de React — une macrotâche — là
+   * où la microtâche s'exécute tout de suite. `videoRef.current` valait donc
+   * `null`, et l'affectation partait dans le vide sans que rien ne le dise : la
+   * caméra s'allumait, le viseur restait à 300 × 150 — sa taille quand il n'a
+   * jamais reçu de trame — et *Prendre la photo* répondait « la caméra n'a pas
+   * encore envoyé d'image ». Un effet, lui, ne tourne qu'après le commit, quand
+   * l'élément existe pour de bon.
+   *
+   * Il dépend de `mode` et non du flux : c'est le passage à un mode d'image qui
+   * fait apparaître l'élément, et `fluxRef` est déjà posé quand il arrive.
+   */
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) video.srcObject = fluxRef.current;
+  }, [mode]);
+
   // Le chronomètre n'est pas une décoration : sans lui, un enregistrement audio
   // n'a aucun signe visible, et rien ne distingue « j'enregistre » de « j'ai
   // oublié de cliquer ».
@@ -141,18 +163,14 @@ export function CapturePanel({ accept, onCapture, disabled, materiel }: CaptureP
     try {
       const flux = await outils.flux(contraintes(voulu));
       fluxRef.current = flux;
+      // Le branchement sur le `<video>` se fait dans l'effet ci-dessus, qui
+      // attend que l'élément existe. La lecture, elle, est déclarée sur
+      // l'élément (`autoPlay muted`) et non lancée par un `play()` : les deux
+      // marchent, mais le second rend une promesse que le navigateur rejette dès
+      // que sa politique de lecture automatique s'y oppose, et il faudrait alors
+      // distinguer un vrai échec d'un refus sans conséquence — la trame se lit
+      // dans le flux, pas dans l'élément.
       setMode(voulu);
-      // Branché après le rendu du mode : l'élément `<video>` n'existe pas tant
-      // que `mode` est nul, et lui poser un `srcObject` avant reviendrait à
-      // l'écrire sur `null`.
-      // La lecture est déclarée sur l'élément (`autoPlay muted`) et non lancée
-      // par un `play()` : les deux marchent, mais le second rend une promesse
-      // que le navigateur rejette dès que sa politique de lecture automatique
-      // s'y oppose, et il faudrait alors distinguer un vrai échec d'un refus
-      // sans conséquence — la trame se lit dans le flux, pas dans l'élément.
-      queueMicrotask(() => {
-        if (videoRef.current) videoRef.current.srcObject = flux;
-      });
     } catch (cause) {
       setErreur(phraseRefus(cause, voulu));
       setMode(null);

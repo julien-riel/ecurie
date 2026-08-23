@@ -293,6 +293,41 @@
         "title": "CapabilityOut",
         "type": "object"
       },
+      "ColdLinkOut": {
+        "properties": {
+          "available": {
+            "description": "La cible du lien est atteignable — volume monté.",
+            "title": "Available",
+            "type": "boolean"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "variant_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Variant Ref"
+          }
+        },
+        "required": [
+          "path",
+          "target",
+          "available"
+        ],
+        "title": "ColdLinkOut",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1274,6 +1309,80 @@
         "title": "StaleWorkerOut",
         "type": "object"
       },
+      "StorePlanResponse": {
+        "description": "Le plan de récupération, **jamais écrit** — c'est toute la différence avec la CLI.\n\n`ecurie store plan` produit un fichier, parce que `ecurie store apply` en\nexige un : le plan est le document qu'on relit avant de laisser un outil\ntoucher trente giga-octets. Un `GET` ne fabrique pas de document ; il montre\nce qu'un plan dirait, et laisse la commande à taper pour l'obtenir pour de\nbon. `command` porte cette commande, parce que l'écran qui affiche un gain de\nquatre giga-octets doit dire par où on le prend.",
+        "properties": {
+          "command": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "La commande qui écrit ce plan et permet de l'appliquer.",
+            "title": "Command"
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint"
+          },
+          "labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Le libellé français de chaque motif d'action, tel que la CLI l'affiche — le front n'entretient pas sa propre table.",
+            "title": "Labels",
+            "type": "object"
+          },
+          "last_scan_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Scan At"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Le plan tel que `ecurie_store.plan.generate_plan` le produit (CONCEPTION.md §4.3), ou `null` tant qu'aucun scan n'a eu lieu.",
+            "title": "Plan"
+          },
+          "scanned": {
+            "title": "Scanned",
+            "type": "boolean"
+          },
+          "stale": {
+            "default": false,
+            "title": "Stale",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "scanned"
+        ],
+        "title": "StorePlanResponse",
+        "type": "object"
+      },
       "StoreSummaryResponse": {
         "properties": {
           "figures": {
@@ -1369,6 +1478,106 @@
         "title": "TelemetryOut",
         "type": "object"
       },
+      "TierVolumeOut": {
+        "description": "Un volume de `tier_volumes`, et son état au moment de la requête.",
+        "properties": {
+          "free_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`null` quand le volume est démonté — inconnu, pas zéro.",
+            "title": "Free Bytes"
+          },
+          "mounted": {
+            "description": "Le point de montage existe et est un dossier.",
+            "title": "Mounted",
+            "type": "boolean"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "total_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Bytes"
+          }
+        },
+        "required": [
+          "path",
+          "mounted"
+        ],
+        "title": "TierVolumeOut",
+        "type": "object"
+      },
+      "TieringResponse": {
+        "description": "Ce que le tiering donne à voir : où déporter, ce qui l'est déjà, ce qui pèse.\n\nUne lecture, et rien d'autre. Déporter copie des giga-octets et met des\noriginaux en quarantaine : `ecurie store tier` le fait, avec une\nconfirmation, et l'écran donne la commande. Un bouton qui déclencherait cela\ndepuis un navigateur mettrait une opération irréversible à un clic d'un\nsurvol de souris.",
+        "properties": {
+          "cold": {
+            "items": {
+              "$ref": "#/components/schemas/ColdLinkOut"
+            },
+            "title": "Cold",
+            "type": "array"
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint"
+          },
+          "last_scan_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Scan At"
+          },
+          "scanned": {
+            "title": "Scanned",
+            "type": "boolean"
+          },
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/VariantFootprintOut"
+            },
+            "title": "Variants",
+            "type": "array"
+          },
+          "volumes": {
+            "items": {
+              "$ref": "#/components/schemas/TierVolumeOut"
+            },
+            "title": "Volumes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "scanned"
+        ],
+        "title": "TieringResponse",
+        "type": "object"
+      },
       "UploadOut": {
         "description": "Ce qu'un dépôt devient : un chemin, que le champ fichier du formulaire porte.\n\n`path` est absolu et local à la machine du serveur. C'est délibérément la\nmême valeur qu'on saisirait à la main dans le champ, et la même que la CLI\nattend (`ecurie run -p image=…`) : le dépôt fabrique un chemin, il n'invente\npas une seconde façon de désigner une entrée.",
         "properties": {
@@ -1438,6 +1647,59 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "VariantFootprintOut": {
+        "properties": {
+          "bytes": {
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "devices": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Devices",
+            "type": "array"
+          },
+          "files": {
+            "title": "Files",
+            "type": "integer"
+          },
+          "freed_bytes": {
+            "description": "Ce que le volume de départ rendrait vraiment : un inode dont une référence échappe au parc scanné ne libère rien.",
+            "title": "Freed Bytes",
+            "type": "integer"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          },
+          "shared_with": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Shared With",
+            "type": "array"
+          },
+          "tierable": {
+            "title": "Tierable",
+            "type": "boolean"
+          },
+          "tiered_links": {
+            "default": 0,
+            "title": "Tiered Links",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ref",
+          "files",
+          "bytes",
+          "freed_bytes",
+          "tierable"
+        ],
+        "title": "VariantFootprintOut",
         "type": "object"
       },
       "VariantOut": {
@@ -1985,6 +2247,64 @@
         ]
       }
     },
+    "/store/plan": {
+      "get": {
+        "description": "Ce que `ecurie store plan` proposerait, sans écrire le fichier qu'il écrit.\n\nLe plan rendu est **complet** — actions, empreintes, écartés — et non un\nrésumé : c'est le document qu'on relit avant de laisser un outil toucher\ntrente giga-octets, et un écran qui n'en montrerait que le total demanderait\nde faire confiance sans donner de quoi juger.\n\nIl porte un `plan_id` neuf à chaque appel, comme n'importe quelle génération.\nRien ne le rend rejouable pour autant : `apply` re-vérifie chaque fichier sur\nle disque au moment d'agir, et refuse tout ce qui a bougé depuis le scan.",
+        "operationId": "plan_store_plan_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "unused_after_days",
+            "required": false,
+            "schema": {
+              "default": 90,
+              "maximum": 3650,
+              "minimum": 1,
+              "title": "Unused After Days",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Ne dédupliquer que sur des sha256 relus, jamais sur un hash annoncé.",
+            "in": "query",
+            "name": "verified_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Ne dédupliquer que sur des sha256 relus, jamais sur un hash annoncé.",
+              "title": "Verified Only",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorePlanResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Plan de récupération, à blanc",
+        "tags": [
+          "parc"
+        ]
+      }
+    },
     "/store/summary": {
       "get": {
         "operationId": "summary_store_summary_get",
@@ -2027,6 +2347,28 @@
           }
         },
         "summary": "Occupation du parc",
+        "tags": [
+          "parc"
+        ]
+      }
+    },
+    "/store/tiering": {
+      "get": {
+        "description": "Où l'on peut déporter, ce qui l'est déjà, et ce qui pèserait le plus lourd.\n\nLes volumes viennent de la **configuration** et non du disque observé : un\nvolume déclaré mais démonté doit apparaître, justement parce qu'il est\ndémonté — c'est ce qui explique qu'un variant froid soit indisponible. Sa\nplace libre est alors `null`, et non zéro.",
+        "operationId": "tiering_store_tiering_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TieringResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Volumes, variants déportés, poids",
         "tags": [
           "parc"
         ]

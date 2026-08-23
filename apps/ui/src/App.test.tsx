@@ -119,9 +119,15 @@ describe("le bandeau de ressources", () => {
     render(<App />);
 
     const bandeau = await screen.findByLabelText("Ressources");
-    expect(await within(bandeau).findByText(/7,65 Gio occupés sur 16 Gio/)).toBeInTheDocument();
+    expect(await within(bandeau).findByText(/7,65 Gio occupés/)).toBeInTheDocument();
     expect(within(bandeau).getByText(/budget mesuré/)).toBeInTheDocument();
     expect(within(bandeau).getByText(/libérable/)).toBeInTheDocument();
+    // Le libre est en gros au-dessus du rail ; les trois nombres d'un coup
+    // restent dans l'étiquette du rail, qui est ce qu'un lecteur d'écran entend
+    // au lieu de parcourir douze segments.
+    expect(
+      within(bandeau).getByRole("img", { name: "7,65 Gio occupés sur 16 Gio — 8,35 Gio libres" }),
+    ).toBeInTheDocument();
   });
 
   test("il annonce ce que lancer le variant choisi couterait", async () => {
@@ -182,7 +188,7 @@ describe("le bandeau de ressources", () => {
     await choisir("text-to-speech");
 
     const bandeau = await screen.findByLabelText("Ressources");
-    await within(bandeau).findByText(/occupés sur/);
+    await within(bandeau).findByText(/occupés ·/);
     expect(within(bandeau).queryByText(/lancer chargera/)).toBeNull();
   });
 

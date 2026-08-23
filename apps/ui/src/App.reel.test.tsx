@@ -169,10 +169,9 @@ describe.skipIf(!REEL)("l'Atelier contre un vrai ecurie serve", () => {
     // L'état se lit sur l'attribut et non sur le texte : « terminé » apparaît
     // deux fois dans un job réussi — le libellé d'état et le bilan — et
     // `getByText` refuse, à juste titre, de choisir entre deux éléments.
-    await waitFor(
-      () => expect(["done", "failed"]).toContain(panneau.getAttribute("data-etat")),
-      { timeout: 240_000 },
-    );
+    await waitFor(() => expect(["done", "failed"]).toContain(panneau.getAttribute("data-etat")), {
+      timeout: 240_000,
+    });
     expect(panneau.getAttribute("data-etat"), panneau.textContent ?? "").toBe("done");
     expect(within(panneau).getByText(/rtf/)).toBeInTheDocument();
 
@@ -219,6 +218,68 @@ describe.skipIf(!REEL)("l'Atelier contre un vrai ecurie serve", () => {
     expect(refus.textContent).toMatch(/Gio/);
     expect(refus.textContent).not.toMatch(/\d{10}/);
   }, 120_000);
+});
+
+describe.skipIf(!REEL)("le Parc contre un vrai ecurie serve", () => {
+  beforeAll(async () => {
+    globalThis.fetch = fetchReel;
+    const santé = await fetch(`${BASE_URL}/healthz`);
+    expect(santé.ok, `aucun serveur sur ${BASE_URL} — lancer « uv run ecurie serve »`).toBe(true);
+  });
+
+  test("les trois chiffres du vrai disque se lisent, et en Go", async () => {
+    // Le seul écran qui compte des octets de disque, sur un parc qui en fait
+    // quarante-six milliards. Ce qu'un double de `fetch` ne peut pas dire :
+    // que `compute_figures` réponde en un temps de requête sur trente mille
+    // chemins réels, et que ces chiffres passent par le formatage sans
+    // ressortir en notation brute.
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "Parc" }));
+
+    await screen.findByText("Trois chiffres", {}, { timeout: 20_000 });
+    const apparent = document.querySelector(".ecurie-chiffres dd")!;
+    expect(apparent.textContent).toMatch(/Go|Mo|ko|o$/);
+    expect(apparent.textContent).not.toMatch(/\d{10}/);
+
+    // Le parc réel n'a aucune télémétrie de quatre-vingt-dix jours : le
+    // quatrième poste doit rester indéterminé, et le dire.
+    const poste = screen.getByText(/variants jamais utilisés/).closest("li")!;
+    expect(poste.getAttribute("data-connu")).toBe("non");
+  }, 60_000);
+
+  test("le plan du vrai parc propose des actions, et ne les applique pas", async () => {
+    // La duplication réelle de cette machine tient à un `tokenizer.json`
+    // partagé par deux dépôts HF, annoncé par un nom de blob et jamais relu.
+    // C'est exactement le cas que `--verified-only` écarte, et le seul endroit
+    // où l'écran change ce que le serveur propose.
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "Parc" }));
+    await screen.findByText(/Total récupérable/, {}, { timeout: 20_000 });
+
+    expect(screen.getByText("ecurie store apply <plan>")).toBeInTheDocument();
+
+    const avant = screen.getByText(/Total récupérable/).textContent;
+    await userEvent.click(screen.getByLabelText(/sha256 relus/));
+    await waitFor(() => expect(screen.getByText(/Total récupérable/).textContent).not.toBe(avant), {
+      timeout: 20_000,
+    });
+  }, 60_000);
+
+  test("le tiering pese les variants du vrai parc, poids partages compris", async () => {
+    // Deux manifestes du parc réel pointent les mêmes poids — la lecture de
+    // document et la description d'image sont le même Qwen3-VL. Chacun affiche
+    // ses 5,78 Go, et c'est `shared_with` qui empêche de conclure à une double
+    // comptabilité.
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "Parc" }));
+    await screen.findByText("Ce qui pèse le plus lourd", {}, { timeout: 20_000 });
+
+    const lignes = [...document.querySelectorAll(".ecurie-table tbody tr")].map(
+      (l) => l.textContent ?? "",
+    );
+    expect(lignes.some((l) => /ecurie store tier /.test(l))).toBe(true);
+    expect(lignes.some((l) => /poids partagés avec/.test(l))).toBe(true);
+  }, 60_000);
 });
 
 /** Choisit la synthèse vocale et attend son titulaire préselectionné. */

@@ -22,12 +22,20 @@ from ecurie_store.hashing import dedup_candidates
 
 PLAN_VERSION = 1
 
+# Les cinq premiers nomment une **action** du plan ; les deux derniers nomment un
+# motif d'**écart**, et ils sont arrivés avec l'écran Parc (4.5) : la liste des
+# chemins écartés y est dépliable, et « sans-sha256 » y figurait sous sa clé
+# brute au milieu de phrases françaises. La table est la seule autorité des deux
+# côtés — la CLI l'affiche, l'API la transporte avec le plan —, si bien qu'un
+# motif ajouté ici arrive traduit dans l'écran sans qu'une ligne de front bouge.
 REASON_LABELS = {
     "duplication": "duplication inter-gestionnaires",
     "hf-stale-revision": "révision HF obsolète",
     "orphan-blob": "blob orphelin",
     "unused-variant": "variant jamais utilisé",
     "detached-snapshot": "instantané HF détaché",
+    "sans-sha256": "contenu jamais haché — ecurie store verify tranche",
+    "hash-annonce-non-verifie": "hash annoncé par le gestionnaire, jamais relu",
 }
 
 
@@ -54,9 +62,7 @@ def generate_plan(
     """Construit le plan à partir de l'état observé. Ne touche pas au disque."""
     files = [r for r in records if r.link_kind != "symlink"]
     par_chemin = {r.path: r for r in records}
-    unused = (
-        unused_variants(files, last_runs or {}, unused_after_days, now) if telemetry else set()
-    )
+    unused = unused_variants(files, last_runs or {}, unused_after_days, now) if telemetry else set()
 
     actions: list[dict[str, Any]] = []
     ignored: list[dict[str, Any]] = []

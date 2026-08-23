@@ -1,219 +1,954 @@
 /*
- * Le minimum pour que le formulaire engendré soit lisible.
+ * La feuille de l'Écurie — peinture de box, laiton, et des chiffres alignés.
  *
- * Aucun thème RJSF n'est installé — ni Bootstrap, ni MUI, ni Tailwind. Le thème
- * natif émet des classes d'inspiration Bootstrap (`form-group`, `form-control`,
- * `control-label`, `col-xs-9`) sans la feuille qui va avec ; on habille celles
- * qui comptent, et rien d'autre. Choisir un thème ici dicterait le langage
- * visuel des quatre écrans à partir d'une décision prise pour un formulaire, ce
- * qui est exactement le risque « effort du front sous-estimé » que
- * l'architecture demande de contenir.
+ * Elle remplace celle du 4.3, qui ne visait rien de plus que « rendre lisible le
+ * formulaire engendré » et qui l'a fait : quinze déclarations, aucun thème, et
+ * la promesse tenue de ne pas laisser un choix pris pour un formulaire dicter le
+ * langage visuel de quatre écrans. Ce qu'elle produisait, une fois les deux
+ * écrans montés, était un document : titres, puces et notes grises dans une
+ * plage de deux dixièmes de rem, sans une surface, sans une couleur qui décide.
+ * Un utilisateur y lisait « lancer refusé » du même œil que « mesuré le
+ * 20/08/2026 ».
+ *
+ * Ce que celle-ci fait, et qui n'est pas de la décoration :
+ *
+ * **Elle donne une matière aux surfaces.** Le fond est la cour, les cartes
+ * portent le contenu. Une carte n'est pas un ornement : c'est ce qui dit qu'un
+ * bloc a des bords, et donc qu'on peut le sauter des yeux.
+ *
+ * **Elle donne une couleur au sens, et une seule à chaque sens.** Le laiton est
+ * la matière occupée et l'action ; le pré est ce qui tient ; la brique est ce
+ * qui refuse. Il n'y a **pas de bleu** : c'est la couleur par défaut de toutes
+ * les interfaces, et une écurie n'en a pas. Aucune couleur ne porte jamais une
+ * information seule — chaque état porte aussi son mot, ce qui est déjà la règle
+ * des modules qui composent les phrases.
+ *
+ * **Elle aligne les chiffres.** `tabular-nums` partout où deux nombres se
+ * comparent, et les colonnes de mesure à droite. Un parc, ça se lit en colonne.
+ *
+ * Aucune dépendance n'est arrivée avec elle — ni thème RJSF, ni police
+ * distante. Une police Google sur un outil qui gère des modèles hors ligne
+ * casserait la page le jour où l'on travaille sans réseau, ce qui est
+ * précisément le jour où cet outil sert. Les familles nommées ici sont celles
+ * que macOS livre ; ailleurs, la pile retombe sur le système sans rien perdre.
+ */
+
+/* --- les jetons -------------------------------------------------------------
+ *
+ * Avenir Next Condensed en titres n'est pas un goût : c'est ce qui fait tenir
+ * `hunyuan3d-2.1-shape-mlx@mlx-bf16` dans un en-tête de colonne. Les références
+ * de variant sont longues, et elles sont partout.
  */
 
 :root {
-  --encre: #1b1b1b;
-  --papier: #fbfbf9;
-  --trait: #d6d3cc;
-  --sourdine: #6b6862;
-  --alerte: #a4302a;
+  --fond: #e7ebe3;
+  --carte: #f7f9f4;
+  --creux: #eef1e9;
+  --encre: #171c15;
+  --sourdine: #5c6455;
+  --trait: #cbd3c3;
+  --trait-fort: #aab3a1;
+  --champ: #fdfefb;
+
+  --laiton: #b4801f;
+  --laiton-encre: #7a5410;
+  --laiton-pale: #e8d9b4;
+  --pre: #3f6b4a;
+  --brique: #9c3b2e;
+  --brique-pale: #e8c6bf;
+
+  --ombre: 0 1px 2px rgb(23 28 21 / 6%);
+  --rayon: 6px;
+  --rayon-menu: 4px;
+
+  --titre: "Avenir Next Condensed", "Avenir Next", "Helvetica Neue", ui-sans-serif, sans-serif;
+  --corps: ui-sans-serif, -apple-system, system-ui, "Helvetica Neue", sans-serif;
+  --chasse: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+
   color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --encre: #ececea;
-    --papier: #191917;
-    --trait: #3a3934;
-    --sourdine: #9c988f;
-    --alerte: #e88b84;
+    --fond: #12160f;
+    --carte: #1b211a;
+    --creux: #161b15;
+    --encre: #e6eae0;
+    --sourdine: #98a18e;
+    --trait: #2e362a;
+    --trait-fort: #48523f;
+    --champ: #0e120d;
+
+    --laiton: #d9a441;
+    --laiton-encre: #e8bc63;
+    --laiton-pale: #4a3a17;
+    --pre: #7fb58c;
+    --brique: #c9553f;
+    --brique-pale: #4d251d;
+
+    --ombre: none;
   }
 }
 
+/* --- le socle ---------------------------------------------------------------- */
+
+* { box-sizing: border-box; }
+
 body {
   margin: 0;
-  background: var(--papier);
+  background: var(--fond);
   color: var(--encre);
-  font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  font: 0.95rem/1.6 var(--corps);
+  -webkit-font-smoothing: antialiased;
 }
+
+h1, h2, h3 {
+  font-family: var(--titre);
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  margin: 0;
+}
+
+/* Un titre qui suit quelque chose prend l'air ; un titre qui ouvre sa carte, ou
+   qui suit la plaque nommant sa question, reste collé à ce qui l'annonce. */
+h2, h3 { margin-top: 1.5rem; }
+
+h2:first-child,
+h3:first-child,
+.ecurie-plaque + h2,
+.ecurie-plaque + h3 {
+  margin-top: 0;
+}
+
+h2 { font-size: 1.32rem; }
+h3 { font-size: 1.02rem; letter-spacing: 0.02em; }
+
+p { margin: 0; }
+
+code, kbd, samp, pre {
+  font-family: var(--chasse);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+/* Un chemin de cache HF fait cent caractères : il rompt dans sa boîte, jamais
+   en poussant la page de côté. */
+code {
+  font-size: 0.86em;
+  overflow-wrap: anywhere;
+}
+
+/* Le laiton du focus vaut pour toute l'interface : une seule couleur d'anneau,
+   posée au même endroit, se reconnaît sans se lire. */
+:focus-visible {
+  outline: 2px solid var(--laiton);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* --- la coquille --------------------------------------------------------------
+ *
+ * L'en-tête est collant et tient sur une ligne : le plafond est de quatre
+ * écrans, et une barre qui se donnerait deux étages inviterait à la remplir.
+ */
 
 .ecurie {
-  max-width: 62rem;
+  max-width: 78rem;
   margin: 0 auto;
-  padding: 2rem 1.5rem 6rem;
+  padding: 0 1.25rem 5rem;
 }
 
-h1 { font-size: 1.4rem; margin: 0 0 0.25rem; }
-h2 { font-size: 1.15rem; margin: 2rem 0 0.5rem; }
-h3 { font-size: 1rem; margin: 1.5rem 0 0.5rem; }
+.ecurie-entete {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem 1.4rem;
+  padding: 0.85rem 0 0.7rem;
+  margin-bottom: 1.25rem;
+  background: color-mix(in srgb, var(--fond) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--trait);
+}
 
-section { margin-top: 1.5rem; }
-
-label, .control-label {
-  display: block;
+.ecurie-marque {
+  font-family: var(--titre);
+  font-size: 1.28rem;
   font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* Le trait de laiton sous la marque est la seule ferrure de la page : un objet
+   d'écurie a une plaque, pas un logo. */
+.ecurie-marque::after {
+  content: "";
+  display: block;
+  height: 2px;
+  margin-top: 0.2rem;
+  background: var(--laiton);
+}
+
+.ecurie-onglets {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.ecurie-onglets button {
+  font-family: var(--titre);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  border-radius: var(--rayon-menu);
+  padding: 0.2rem 0.6rem;
+  background: transparent;
+  color: var(--sourdine);
+}
+
+.ecurie-onglets button:hover { color: var(--encre); }
+
+.ecurie-onglets button[aria-current="page"] {
+  background: var(--carte);
+  border-color: var(--trait);
+  color: var(--encre);
+}
+
+/* La phrase de l'écran vit dans l'en-tête et ne répète plus le nom de l'onglet
+   qui la précède de trois centimètres. Elle se cale à droite quand elle tient
+   sur la même ligne ; passée à la ligne, une phrase alignée à droite laisserait
+   son dernier mot seul au bout d'une ligne creuse. */
+.ecurie-sujet {
+  flex: 1 1 18rem;
+  color: var(--sourdine);
+  font-size: 0.85rem;
+}
+
+@media (min-width: 56rem) {
+  .ecurie-sujet { text-align: right; }
+}
+
+/* --- les surfaces -------------------------------------------------------------
+ *
+ * Une carte par bloc dont on peut vouloir sauter le contenu. Les blocs qui
+ * relèvent d'une même question restent dans la même carte : c'est la carte qui
+ * dit « ceci se lit ensemble », pas le titre.
+ */
+
+.ecurie-carte {
+  background: var(--carte);
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+  padding: 1rem 1.15rem 1.15rem;
+  margin-bottom: 1rem;
+}
+
+/*
+ * La plaque nomme la question à laquelle la section répond.
+ *
+ * Ce n'est pas un sur-titre décoratif : « ai-je un volume », « qu'ai-je déjà
+ * déporté », « que déporterais-je ensuite » est l'ordre de décision que le
+ * composant Tiering documente déjà en tête de fichier. La plaque le rend
+ * visible sans ajouter un mot au titre.
+ */
+.ecurie-plaque {
+  display: block;
+  font-family: var(--titre);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--laiton-encre);
   margin-bottom: 0.2rem;
 }
 
-.form-group { margin-bottom: 1.1rem; }
+.ecurie-etat-champ,
+.field-description {
+  color: var(--sourdine);
+  font-size: 0.83rem;
+  line-height: 1.5;
+  margin: 0.2rem 0 0;
+}
+
+.text-danger {
+  color: var(--brique);
+  font-size: 0.88rem;
+}
+
+.required { color: var(--brique); margin-left: 0.15rem; }
+
+/* --- les contrôles ------------------------------------------------------------- */
+
+label, .control-label {
+  display: block;
+  font-family: var(--titre);
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--sourdine);
+  margin-bottom: 0.25rem;
+}
 
 .form-control,
+input[type="text"],
+input[type="number"],
+textarea,
 select {
   width: 100%;
-  max-width: 40rem;
-  padding: 0.4rem 0.55rem;
-  border: 1px solid var(--trait);
-  border-radius: 4px;
-  background: var(--papier);
+  padding: 0.42rem 0.6rem;
+  border: 1px solid var(--trait-fort);
+  border-radius: var(--rayon-menu);
+  background: var(--champ);
   color: var(--encre);
   font: inherit;
 }
 
-textarea.form-control { min-height: 5rem; resize: vertical; }
+select {
+  font-family: var(--corps);
+  /* Le sélecteur natif de macOS ne se peint pas ; on lui laisse sa flèche et on
+     n'habille que le cadre, plutôt que d'en dessiner un faux qui perdrait la
+     navigation au clavier. */
+  appearance: auto;
+}
+
+textarea.form-control { min-height: 6rem; resize: vertical; }
+
+input:hover, select:hover, textarea:hover { border-color: var(--sourdine); }
 
 button {
-  font: inherit;
-  padding: 0.35rem 0.8rem;
-  border: 1px solid var(--trait);
-  border-radius: 4px;
-  background: transparent;
+  font-family: var(--titre);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.36rem 0.85rem;
+  border: 1px solid var(--trait-fort);
+  border-radius: var(--rayon-menu);
+  background: var(--carte);
   color: var(--encre);
   cursor: pointer;
 }
 
-button:disabled { opacity: 0.5; cursor: default; }
+button:hover { border-color: var(--sourdine); }
+button:disabled { opacity: 0.45; cursor: default; }
+button:disabled:hover { border-color: var(--trait-fort); }
 
-.field-description,
-.ecurie-etat-champ {
-  color: var(--sourdine);
-  font-size: 0.85rem;
-  margin: 0.15rem 0 0;
-}
-
-.required { color: var(--alerte); margin-left: 0.15rem; }
-
-.text-danger { color: var(--alerte); font-size: 0.9rem; }
-
-/* Le thème natif émet des classes de grille Bootstrap sans la grille. */
-.rjsf-array-item { gap: 0.75rem; }
-.array-item-toolbox .btn-group { gap: 0.3rem; }
-[class^="col-xs-"], [class*=" col-xs-"] { flex: 1 1 auto; min-width: 0; }
-
-fieldset {
-  border: 1px solid var(--trait);
-  border-radius: 5px;
-  padding: 0.8rem 1rem;
-  margin: 0 0 1rem;
-}
-
-legend { font-weight: 600; padding: 0 0.35rem; }
-
-.ecurie-json, .ecurie-texte {
-  background: color-mix(in srgb, var(--encre) 5%, transparent);
-  border: 1px solid var(--trait);
-  border-radius: 4px;
-  padding: 0.6rem 0.75rem;
-  overflow-x: auto;
-  font-size: 0.85rem;
-  white-space: pre-wrap;
-}
-
-.ecurie-avis {
-  border: 1px solid var(--trait);
-  border-left: 3px solid var(--sourdine);
-  border-radius: 4px;
-  padding: 0.5rem 0.75rem;
-  margin-top: 1rem;
-}
-
-.ecurie-avis button { border: 0; padding: 0; text-align: left; }
-.ecurie-avis ul { margin: 0.5rem 0 0; padding-left: 1.1rem; font-size: 0.9rem; }
-.ecurie-avis li[data-severite="error"] { color: var(--alerte); }
-
-/* --- bandeau de ressources (4.4) --------------------------------------------
+/*
+ * Le seul bouton plein de l'interface : celui qui engage une exécution.
  *
- * Collant en haut de l'écran : « permanent » au sens du §9 de l'architecture,
- * c'est-à-dire visible pendant qu'on remplit un formulaire long — le contrat de
- * `tool-use` fait défiler bien au-delà d'un écran.
+ * Il est en laiton parce que c'est la matière de tout ce qui coûte de la
+ * mémoire dans cette page — les stalles occupées, la part à charger. Le bouton
+ * qui déclenche cette dépense porte donc la même couleur qu'elle.
  */
-.ecurie-bandeau {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--papier);
-  border-bottom: 1px solid var(--trait);
-  padding: 0.6rem 0 0.7rem;
-  margin-bottom: 0.5rem;
-}
-
-.ecurie-jauge {
-  height: 6px;
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--encre) 10%, transparent);
-  overflow: hidden;
-}
-
-.ecurie-jauge span {
-  display: block;
-  height: 100%;
-  background: var(--sourdine);
-}
-
-.ecurie-budget { margin: 0.35rem 0 0.25rem; }
-
-.ecurie-residents,
-.ecurie-admission,
-.ecurie-promesses {
-  margin: 0.3rem 0 0;
-  padding-left: 1.1rem;
-  font-size: 0.9rem;
-}
-
-.ecurie-residents li[data-occupe="oui"] { color: var(--sourdine); }
-
-.ecurie-admission[data-severite="refus"] { color: var(--alerte); }
-.ecurie-admission[data-severite="attention"] { font-weight: 600; }
-
-.ecurie-promesses li { margin-bottom: 0.35rem; }
-.ecurie-promesses li[data-fichier="non"] .ecurie-sortie-type { font-style: italic; }
-
-/* --- écran Atelier ---------------------------------------------------------- */
-
-.ecurie-choix {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  margin-top: 1.2rem;
-}
-
-.ecurie-choix > div { flex: 1 1 20rem; min-width: 0; }
-
-.ecurie-fiche { margin-top: 0.3rem; }
-.ecurie-fiche ul { margin: 0.2rem 0 0; padding-left: 1.1rem; }
-
-.ecurie-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.8rem;
-  align-items: baseline;
-  margin: 1rem 0;
-}
-
-.ecurie-actions p { flex: 1 1 22rem; margin: 0; }
-.ecurie-actions ul { flex: 1 1 100%; margin: 0; padding-left: 1.1rem; }
-
-/* Le seul bouton appuyé de l'écran : celui qui engage une exécution. */
 .ecurie-primaire {
-  border-color: var(--encre);
-  font-weight: 600;
+  background: var(--laiton);
+  border-color: var(--laiton);
+  color: #fff;
+}
+
+.ecurie-primaire:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--laiton) 85%, var(--encre));
+  border-color: color-mix(in srgb, var(--laiton) 85%, var(--encre));
+}
+
+/* L'anneau de laiton se perd sur un bouton de laiton : ici, et ici seulement,
+   il passe à l'encre. C'est le seul endroit de la feuille où la couleur du
+   focus change, parce que c'est le seul fond qui porte déjà celle du focus. */
+.ecurie-primaire:focus-visible { outline-color: var(--encre); }
+
+@media (prefers-color-scheme: dark) {
+  .ecurie-primaire { color: #17140c; }
 }
 
 /* Une action secondaire qui se lit dans une phrase, pas un bouton de plus. */
 .ecurie-lien {
+  font-family: var(--corps);
+  font-size: inherit;
+  font-weight: 400;
+  letter-spacing: 0;
   border: 0;
+  background: none;
   padding: 0;
   margin-left: 0.4rem;
+  color: var(--laiton-encre);
   text-decoration: underline;
-  font-size: inherit;
+  text-underline-offset: 2px;
+}
+
+.ecurie-lien:hover { border-color: transparent; color: var(--encre); }
+
+.ecurie-case {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-family: var(--corps);
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--encre);
+  margin: 0.6rem 0;
+}
+
+.ecurie-case input {
+  width: auto;
+  accent-color: var(--laiton);
+  margin: 0;
+}
+
+summary {
+  cursor: pointer;
+  color: var(--sourdine);
+  font-size: 0.86rem;
+  padding: 0.15rem 0;
+}
+
+summary:hover { color: var(--encre); }
+
+details[open] > summary { margin-bottom: 0.4rem; }
+
+/* --- le formulaire engendré ---------------------------------------------------
+ *
+ * Le thème natif de RJSF émet des classes d'inspiration Bootstrap sans la
+ * feuille qui va avec. On habille celles qui comptent, et rien d'autre : choisir
+ * un thème ici dicterait le langage visuel des quatre écrans à partir d'une
+ * décision prise pour un formulaire.
+ */
+
+.form-group { margin-bottom: 1.15rem; }
+.form-group:last-child { margin-bottom: 0; }
+
+/* Le champ décrit se lit dans l'ordre nom → explication → contrôle : une
+   description posée sous le contrôle arrive après la saisie qu'elle devait
+   guider. RJSF l'émet déjà avant ; ceci ne fait que le tenir. */
+.field-description { margin: -0.1rem 0 0.4rem; }
+
+/*
+ * La case à cocher, remise dans le même ordre que les autres champs.
+ *
+ * RJSF émet le booléen à l'envers de tous ses autres champs : la description
+ * d'abord, le nom ensuite, collé à la case. On lisait « Horodater chaque mot et
+ * non seulement chaque segment » sans savoir de quoi cela parlait, puis
+ * « word_timestamps » qui l'apprenait après coup. Le `order` remet le nom en
+ * tête sans qu'il faille écrire un gabarit RJSF pour cela.
+ *
+ * Son libellé est en casse normale : c'est une phrase à côté d'une case, pas un
+ * en-tête de champ, et les capitales des autres labels y sonneraient comme un
+ * cri.
+ */
+.rjsf-field-boolean .checkbox {
+  display: flex;
+  flex-direction: column;
+}
+
+.rjsf-field-boolean .checkbox > label {
+  order: -1;
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  font-family: var(--corps);
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--encre);
+  margin-bottom: 0.15rem;
+}
+
+.rjsf-field-boolean input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  accent-color: var(--laiton);
+}
+
+fieldset {
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon-menu);
+  padding: 0.9rem 1rem;
+  margin: 0 0 1rem;
+}
+
+legend {
+  font-family: var(--titre);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  color: var(--sourdine);
+  padding: 0 0.35rem;
+}
+
+.rjsf-array-item { gap: 0.75rem; }
+.array-item-toolbox .btn-group { gap: 0.3rem; }
+[class^="col-xs-"], [class*=" col-xs-"] { flex: 1 1 auto; min-width: 0; }
+
+/* On y tape du JSON à la main : la chasse fixe aligne les accolades et rend les
+   guillemets distinguables des apostrophes. */
+.ecurie-json-libre textarea {
+  font-family: var(--chasse);
+  font-size: 0.85rem;
+}
+
+.ecurie-json, .ecurie-texte {
+  background: var(--creux);
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon-menu);
+  padding: 0.65rem 0.8rem;
+  overflow-x: auto;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+/* --- ce que le registre a à redire --------------------------------------------- */
+
+.ecurie-avis {
+  background: var(--carte);
+  border: 1px solid var(--trait);
+  border-left: 3px solid var(--laiton);
+  border-radius: var(--rayon-menu);
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.ecurie-avis > button {
+  font-family: var(--corps);
+  font-size: 0.88rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  color: var(--sourdine);
+}
+
+.ecurie-avis > button:hover { color: var(--encre); }
+
+.ecurie-avis ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.88rem;
+}
+
+.ecurie-avis li[data-severite="error"] { color: var(--brique); }
+
+/* --- le rail de la mémoire (la signature) -------------------------------------
+ *
+ * Un rang de boxes : le cadre est le budget Metal, chaque plaque de laiton un
+ * modèle chargé, et la place nue ce qui reste. Ce que la jauge de six pixels du
+ * 4.4 ne pouvait pas dire, celui-ci le dit sans une phrase — **par qui** c'est
+ * plein, et donc ce qu'il faudra décharger.
+ *
+ * Les hachures ne sont pas un motif : elles distinguent ce qui est chargé de ce
+ * qui le serait, c'est-à-dire un fait d'une hypothèse. C'est aussi le second
+ * encodage qui rend la barre lisible sans la couleur.
+ */
+
+.ecurie-rail {
+  display: flex;
+  gap: 2px;
+  height: 2.4rem;
+  padding: 3px;
+  background: var(--creux);
+  border: 1px solid var(--trait-fort);
+  border-radius: var(--rayon);
+  position: relative;
+  overflow: hidden;
+}
+
+.ecurie-stalle {
+  flex: 0 0 var(--part);
+  min-width: 2px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  padding: 0 0.35rem;
+  overflow: hidden;
+  transition: flex-basis 0.4s ease;
+}
+
+.ecurie-stalle[data-espece="resident"] {
+  background: var(--laiton);
+}
+
+/*
+ * Les hachures se font vers l'**encre**, jamais vers la surface.
+ *
+ * Hachurer vers le papier ramènerait la moyenne du fond à mi-chemin de la
+ * carte, et le nom peint dessus cesserait d'être lisible une lettre sur deux.
+ * Vers l'encre, la plaque reste du côté opposé à son propre texte — foncée sous
+ * un nom clair en thème clair, claire sous un nom foncé en thème sombre — et se
+ * distingue tout de même nettement d'une plaque pleine.
+ */
+.ecurie-stalle[data-espece="arrivant"] {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--laiton) 0 5px,
+    color-mix(in srgb, var(--laiton) 62%, var(--encre)) 5px 10px
+  );
+}
+
+.ecurie-stalle[data-espece="debordement"] {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--brique) 0 5px,
+    color-mix(in srgb, var(--brique) 62%, var(--encre)) 5px 10px
+  );
+}
+
+/* Le nom peint sur la porte du box — seulement quand la porte est assez large,
+   ce que `nommable` tranche sur la part réelle plutôt que sur un espoir. */
+.ecurie-stalle-nom {
+  font-family: var(--chasse);
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  mix-blend-mode: normal;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ecurie-stalle-nom { color: #17140c; }
+}
+
+/*
+ * Le repère du budget n'apparaît que lorsque l'échelle a dû s'étendre : tant que
+ * tout tient, l'extrémité du rail dit déjà la même chose.
+ *
+ * C'est un trait nu, sans le mot « budget » qu'il portait d'abord : l'étiquette
+ * tombait pile sur le nom peint de la stalle qu'elle coupe en deux, et deux
+ * textes superposés ne valent pas mieux qu'aucun. Ce que le trait signifie est
+ * écrit deux fois en clair juste dessous — « au-delà du budget » dans la
+ * légende, et le refus d'admission dans sa phrase.
+ */
+.ecurie-repere {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--repere);
+  width: 4px;
+  margin-left: -2px;
+  /* Un liseré de papier de part et d'autre : sans lui, le trait disparaît dans
+     la plaque de laiton qu'il traverse. */
+  background: linear-gradient(
+    to right,
+    var(--carte) 0 1px,
+    var(--encre) 1px 3px,
+    var(--carte) 3px 4px
+  );
+  transition: left 0.4s ease;
+}
+
+/* La légende porte l'identité que la couleur ne porte pas : une ligne par
+   stalle, la référence à gauche, le poids à droite en chasse tabulaire. */
+.ecurie-legende {
+  list-style: none;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  font-size: 0.83rem;
+}
+
+.ecurie-legende li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.16rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--trait) 55%, transparent);
+}
+
+.ecurie-legende li:last-child { border-bottom: 0; }
+
+.ecurie-legende-pastille {
+  flex: 0 0 auto;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 2px;
+  background: var(--laiton);
+}
+
+.ecurie-legende li[data-espece="arrivant"] .ecurie-legende-pastille {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--laiton) 0 3px,
+    color-mix(in srgb, var(--laiton) 62%, var(--encre)) 3px 6px
+  );
+}
+
+.ecurie-legende li[data-espece="debordement"] .ecurie-legende-pastille {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--brique) 0 3px,
+    color-mix(in srgb, var(--brique) 62%, var(--encre)) 3px 6px
+  );
+}
+
+/* Une référence rompt plutôt qu'elle ne se tronque : `hunyuan3d-2.1-shap…` dans
+   une colonne de 24 rem n'identifie plus rien, alors que la même sur deux lignes
+   se lit entière. C'est le contraire de la stalle, qui n'a qu'une ligne de haut
+   et porte pour cela le nom court. */
+.ecurie-legende-ref {
+  flex: 1 1 8rem;
+  min-width: 0;
+  font-family: var(--chasse);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.ecurie-legende-poids {
+  flex: 0 0 auto;
+  font-family: var(--chasse);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ecurie-legende-etat {
+  flex: 0 0 auto;
+  color: var(--sourdine);
+  font-size: 0.78rem;
+}
+
+/* --- le bandeau de ressources -------------------------------------------------- */
+
+.ecurie-bandeau {
+  background: var(--carte);
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+  padding: 0.85rem 1rem 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Le chiffre que l'écran existe pour donner : gros, tabulaire, et suivi de son
+   unité en petit. Deux mesures qui se comparent doivent s'aligner au chiffre. */
+.ecurie-budget {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.6rem;
+}
+
+.ecurie-budget-libre {
+  font-family: var(--titre);
+  font-size: 1.85rem;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ecurie-budget-sur {
+  color: var(--sourdine);
+  font-size: 0.85rem;
+}
+
+.ecurie-source {
+  color: var(--sourdine);
+  font-size: 0.78rem;
+  margin-top: 0.45rem;
+}
+
+/*
+ * Ce que lancer ferait — la phrase que le bandeau existe pour porter.
+ *
+ * Encadrée et colorée par sa sévérité, parce qu'un refus et un « tient dans le
+ * budget résiduel » se lisaient jusqu'ici dans la même puce grise. La couleur ne
+ * dit rien seule : les mots la précèdent toujours.
+ */
+.ecurie-admission {
+  list-style: none;
+  margin: 0.7rem 0 0;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.86rem;
+  border-radius: var(--rayon-menu);
+  border-left: 3px solid var(--pre);
+  background: var(--creux);
+}
+
+.ecurie-admission li + li { margin-top: 0.3rem; color: var(--sourdine); }
+
+.ecurie-admission[data-severite="attention"] { border-left-color: var(--laiton); }
+
+.ecurie-admission[data-severite="refus"] {
+  border-left-color: var(--brique);
+  background: color-mix(in srgb, var(--brique-pale) 45%, var(--carte));
+  color: var(--brique);
+}
+
+.ecurie-admission[data-severite="refus"] li + li { color: inherit; }
+
+.ecurie-fantomes {
+  margin-top: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--rayon-menu);
+  background: color-mix(in srgb, var(--brique-pale) 45%, var(--carte));
+  color: var(--brique);
+  font-size: 0.84rem;
+}
+
+.ecurie-vide {
+  color: var(--sourdine);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* --- l'Atelier ----------------------------------------------------------------
+ *
+ * Deux colonnes au-delà de 68 rem : la composition à gauche, le box à droite.
+ * Ce n'est pas une mise en page de tableau de bord, c'est la réponse à une gêne
+ * nommée dans le code du bandeau — « visible pendant qu'on remplit un formulaire
+ * long, le contrat de tool-use fait défiler bien au-delà d'un écran ». Une
+ * colonne collante tient la mémoire, le coût et le bouton sous les yeux pendant
+ * toute la saisie, ce qu'un bandeau en haut de page ne faisait qu'à moitié.
+ *
+ * L'ordre du balisage est celui de la tâche — choisir, remplir, lancer — et il
+ * ne change pas d'une largeur à l'autre : en une colonne, le box retombe
+ * simplement sous le formulaire, là où l'on attend un bouton d'envoi.
+ */
+
+.ecurie-etabli {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (min-width: 68rem) {
+  .ecurie-etabli { grid-template-columns: minmax(0, 1fr) 24rem; }
+
+  .ecurie-box {
+    position: sticky;
+    top: 4.5rem;
+  }
+}
+
+.ecurie-choix {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 40rem) {
+  .ecurie-choix { grid-template-columns: 1fr 1fr; }
+}
+
+.ecurie-titre-capacite {
+  margin-bottom: 0.25rem;
+}
+
+.ecurie-description {
+  color: var(--sourdine);
+  margin-bottom: 1rem;
+}
+
+/*
+ * La fiche du variant — ce qu'on sait de la bête avant de la faire courir.
+ *
+ * Les quatre mesures sont sur une ligne de plaques plutôt qu'en phrase à
+ * séparateurs : « 7,65 Gio · modèle léger · runtime mlx-audio · palier hot »
+ * se lisait comme une seule chaîne, alors que ce sont quatre faits dont trois
+ * décident.
+ */
+.ecurie-fiche { margin-top: 0.5rem; }
+
+.ecurie-mesures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+}
+
+.ecurie-mesures > div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--trait);
+  border-radius: 3px;
+  background: var(--creux);
+  font-size: 0.8rem;
+}
+
+.ecurie-mesures dt {
+  font-family: var(--titre);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sourdine);
+}
+
+.ecurie-mesures dd { margin: 0; }
+
+.ecurie-mesure-valeur { font-variant-numeric: tabular-nums; }
+
+/* Un pic non mesuré n'est pas une valeur : c'est une absence de valeur. */
+.ecurie-mesures > div[data-connu="non"] .ecurie-mesure-valeur {
+  font-style: italic;
+  color: var(--sourdine);
+}
+
+.ecurie-caveats,
+.ecurie-blockers {
+  margin: 0.5rem 0 0;
+  padding-left: 1.05rem;
+  font-size: 0.83rem;
+  color: var(--sourdine);
+}
+
+.ecurie-blockers { color: var(--brique); }
+.ecurie-caveats li,
+.ecurie-blockers li { margin-bottom: 0.2rem; }
+
+.ecurie-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.ecurie-actions .ecurie-primaire { flex: 1 1 auto; }
+.ecurie-actions p { flex: 1 1 100%; margin: 0; }
+.ecurie-actions ul { flex: 1 1 100%; margin: 0; padding-left: 1.05rem; }
+
+/* Le chiffrage de l'entrée saisie, dans le box, sous les actions qui l'ont
+   demandé. */
+.ecurie-chiffrage {
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--trait);
+}
+
+.ecurie-cout {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.86rem;
+  border-radius: var(--rayon-menu);
+  border-left: 3px solid var(--pre);
+  background: var(--creux);
+}
+
+.ecurie-cout li + li { margin-top: 0.3rem; color: var(--sourdine); }
+
+.ecurie-chiffrage[data-severite="attention"] .ecurie-cout { border-left-color: var(--laiton); }
+
+.ecurie-chiffrage[data-severite="refus"] .ecurie-cout {
+  border-left-color: var(--brique);
+  background: color-mix(in srgb, var(--brique-pale) 45%, var(--carte));
+  color: var(--brique);
+}
+
+.ecurie-chiffrage ul.text-danger {
+  margin: 0.5rem 0 0;
+  padding-left: 1.05rem;
 }
 
 /* --- le champ fichier et sa capture -------------------------------------------
@@ -223,45 +958,85 @@ legend { font-weight: 600; padding: 0 0.35rem; }
  * demanderait de choisir sa source avant de voir ce qu'elle offre ajouterait un
  * clic à chacune des trois.
  */
+
 /* Le survol d'un glisser-déposer se voit, sinon rien ne dit que la zone
    accepte : un fichier lâché au mauvais endroit ouvre un onglet et fait
    disparaître le formulaire. */
 .ecurie-fichier[data-survol="oui"] {
-  outline: 2px dashed var(--encre);
-  outline-offset: 3px;
-  border-radius: 5px;
+  outline: 2px dashed var(--laiton);
+  outline-offset: 4px;
+  border-radius: var(--rayon-menu);
 }
 
 .ecurie-fichier-sources {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.6rem;
-  margin-top: 0.4rem;
+  gap: 0.5rem;
+  margin-top: 0.45rem;
 }
 
-/* Le sélecteur natif est illisible et impossible à styler ; le libellé fait le
-   bouton, et l'input reste dans le flux pour que le clavier l'atteigne. */
+/*
+ * Le sélecteur natif est recouvert, pas supprimé.
+ *
+ * Il annonce lui-même « Choisir un fichier | Aucun fichier choisi », si bien
+ * qu'à côté du libellé du composant on lisait deux fois la même invitation, la
+ * seconde tronquée au milieu d'un mot. L'input garde sa place et sa taille — le
+ * clavier l'atteint, un clic n'importe où sur le libellé le déclenche — et
+ * devient transparent ; le libellé est le bouton, comme le composant le voulait.
+ * `focus-within` reporte l'anneau de laiton du champ caché sur ce qu'on voit.
+ */
 .ecurie-fichier-parcourir {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  font-family: var(--titre);
   font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--encre);
+  margin: 0;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--trait-fort);
+  border-radius: var(--rayon-menu);
+  background: var(--carte);
+  cursor: pointer;
 }
 
-.ecurie-fichier-parcourir input[type="file"] { max-width: 14rem; font-size: 0.85rem; }
+.ecurie-fichier-parcourir:hover { border-color: var(--sourdine); }
+
+.ecurie-fichier-parcourir:focus-within {
+  outline: 2px solid var(--laiton);
+  outline-offset: 2px;
+}
+
+.ecurie-fichier-parcourir input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
 
 .ecurie-capture { display: contents; }
 
 .ecurie-capture-modes {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.35rem;
+}
+
+.ecurie-capture-modes button {
+  font-size: 0.85rem;
+  padding: 0.24rem 0.6rem;
 }
 
 .ecurie-capture-modes button[aria-pressed="true"] {
-  border-color: var(--encre);
-  font-weight: 600;
+  background: var(--laiton-pale);
+  border-color: var(--laiton);
 }
 
 .ecurie-capture-scene {
@@ -273,82 +1048,459 @@ legend { font-weight: 600; padding: 0 0.35rem; }
   margin-top: 0.5rem;
 }
 
-/* Le viseur est borné : un flux de webcam en 1280 pixels pousserait la mise en
-   page hors de l'écran, alors que la photo prise reste, elle, à la définition
-   du flux (voir `trameEnPng`). */
+/*
+ * Le viseur est borné : un flux de webcam en 1280 pixels pousserait la mise en
+ * page hors de l'écran, alors que la photo prise reste, elle, à la définition du
+ * flux (voir `trameEnPng`).
+ *
+ * Son fond est noir dans les deux thèmes, et non `--encre` : en thème sombre
+ * l'encre est claire, si bien que le viseur virait au crème et qu'un flux pas
+ * encore arrivé ressemblait à une panne. Un viseur est noir — c'est vrai d'un
+ * appareil photo comme d'un moniteur, et cela ne dépend pas du thème de la page.
+ *
+ * Il garde aussi une proportion tant qu'il n'a pas de trame : sans elle, un
+ * `<video>` vide prend sa taille par défaut de 300 × 150, une boîte plate qui ne
+ * ressemble à aucune caméra.
+ */
 .ecurie-capture-scene video {
-  max-width: min(100%, 28rem);
+  width: min(100%, 28rem);
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
   border: 1px solid var(--trait);
-  border-radius: 5px;
-  background: var(--encre);
+  border-radius: var(--rayon-menu);
+  background: #0b0d0a;
 }
 
-.ecurie-capture-actions { display: flex; gap: 0.6rem; }
+.ecurie-capture-actions { display: flex; gap: 0.5rem; }
 
-/* --- le job en cours ---------------------------------------------------------
+/* --- le job en cours ----------------------------------------------------------
  *
- * Encadré et non fondu dans la page : il est le seul bloc dont le contenu bouge
- * tout seul, et l'œil doit pouvoir y revenir sans le chercher.
+ * Le seul bloc dont le contenu bouge tout seul : il porte un liseré d'état à
+ * gauche pour que l'œil y revienne sans le chercher, et ce liseré est la seule
+ * chose de la page qui change de couleur sans qu'on ait cliqué.
  */
+
 .ecurie-job {
+  background: var(--carte);
   border: 1px solid var(--trait);
-  border-left: 3px solid var(--sourdine);
-  border-radius: 5px;
-  padding: 0.7rem 0.9rem;
+  border-left: 3px solid var(--laiton);
+  border-radius: var(--rayon);
+  padding: 0.8rem 0.9rem;
   margin-top: 1rem;
 }
 
-.ecurie-job[data-etat="failed"] { border-left-color: var(--alerte); }
-.ecurie-job[data-etat="done"] { border-left-color: var(--encre); }
+.ecurie-job[data-etat="done"] { border-left-color: var(--pre); }
+.ecurie-job[data-etat="failed"] { border-left-color: var(--brique); }
 
-.ecurie-job-entete { margin: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: baseline; }
+.ecurie-job-entete {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: baseline;
+  margin: 0;
+  font-size: 0.85rem;
+}
 
+.ecurie-job-etat {
+  font-family: var(--titre);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: var(--laiton-pale);
+  color: var(--laiton-encre);
+}
+
+.ecurie-job[data-etat="done"] .ecurie-job-etat {
+  background: color-mix(in srgb, var(--pre) 18%, var(--carte));
+  color: var(--pre);
+}
+
+.ecurie-job[data-etat="failed"] .ecurie-job-etat {
+  background: color-mix(in srgb, var(--brique-pale) 55%, var(--carte));
+  color: var(--brique);
+}
+
+.ecurie-job-id { color: var(--sourdine); font-size: 0.75rem; }
+
+/*
+ * La progression est native, et repeinte.
+ *
+ * Elle ne s'anime pas d'elle-même : le chargement d'un modèle n'a aucune
+ * granularité, et une barre qui glisserait toute seule pendant vingt secondes
+ * inventerait un avancement que personne ne mesure. C'est la phrase sous la
+ * barre qui dit ce qui se passe.
+ */
 .ecurie-progression {
   display: block;
   width: 100%;
-  max-width: 40rem;
-  height: 6px;
-  margin-top: 0.5rem;
+  height: 8px;
+  margin-top: 0.55rem;
+  appearance: none;
+  border: 0;
+  border-radius: 4px;
+  background: var(--creux);
+  overflow: hidden;
 }
+
+.ecurie-progression::-webkit-progress-bar { background: var(--creux); }
+
+.ecurie-progression::-webkit-progress-value {
+  background: var(--laiton);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.ecurie-progression::-moz-progress-bar { background: var(--laiton); }
 
 .ecurie-bilan,
 .ecurie-metriques,
 .ecurie-avertissements {
-  margin: 0.4rem 0 0;
-  padding-left: 1.1rem;
-  font-size: 0.9rem;
+  margin: 0.45rem 0 0;
+  padding-left: 1.05rem;
+  font-size: 0.84rem;
 }
 
-.ecurie-metriques { color: var(--sourdine); }
+.ecurie-metriques {
+  color: var(--sourdine);
+  font-variant-numeric: tabular-nums;
+}
+
 .ecurie-avertissements { color: var(--sourdine); font-style: italic; }
 
-.ecurie-chiffrage[data-severite="refus"] .ecurie-cout { color: var(--alerte); }
+/* --- les sorties ---------------------------------------------------------------
+ *
+ * Pleine largeur, sous les deux colonnes : une image de 1024 pixels ou un
+ * maillage 3D n'a rien à faire dans une gouttière de 24 rem.
+ */
 
-summary { cursor: pointer; color: var(--sourdine); font-size: 0.9rem; }
+.ecurie-production { margin-top: 1.5rem; }
 
-.ecurie-cout { font-weight: 600; margin: 0; padding-left: 1.1rem; }
-
-.ecurie-sorties { display: grid; gap: 1rem; }
+.ecurie-sorties {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+}
 
 .ecurie-sortie {
   margin: 0;
+  background: var(--carte);
   border: 1px solid var(--trait);
-  border-radius: 5px;
-  padding: 0.7rem 0.85rem;
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+  padding: 0.75rem 0.85rem;
 }
 
 .ecurie-sortie figcaption {
   display: flex;
-  gap: 0.6rem;
+  gap: 0.5rem;
   align-items: baseline;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--trait);
 }
 
-.ecurie-sortie-nom { font-weight: 600; }
-.ecurie-sortie-type { color: var(--sourdine); font-size: 0.8rem; }
-.ecurie-sortie-absente { color: var(--sourdine); font-family: ui-monospace, monospace; font-size: 0.85rem; margin: 0; }
-.ecurie-sortie-inline { display: flex; gap: 0.6rem; align-items: baseline; }
+.ecurie-sortie-nom { font-family: var(--chasse); font-size: 0.85rem; font-weight: 600; }
 
-.ecurie-sortie img, .ecurie-sortie video { max-width: 100%; height: auto; }
-.ecurie-zoom { cursor: zoom-out; max-width: none; width: auto; }
+.ecurie-sortie-type {
+  font-family: var(--titre);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sourdine);
+}
+
+.ecurie-sortie-absente {
+  color: var(--sourdine);
+  font-family: var(--chasse);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.ecurie-sortie-inline { display: flex; gap: 0.5rem; align-items: baseline; }
+
+.ecurie-sortie img,
+.ecurie-sortie video {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--rayon-menu);
+}
+
+.ecurie-sortie audio { width: 100%; }
+
 .ecurie-sortie img { cursor: zoom-in; }
+.ecurie-zoom { cursor: zoom-out; max-width: none; width: auto; }
+
+/* Ce que le contrat promet, avant le premier job. */
+.ecurie-promesses {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.88rem;
+}
+
+.ecurie-promesses li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--trait);
+}
+
+.ecurie-promesses li:last-child { border-bottom: 0; }
+.ecurie-promesses li[data-fichier="non"] .ecurie-sortie-type { font-style: italic; }
+
+/* --- le Parc ------------------------------------------------------------------
+ *
+ * Beaucoup de chiffres et beaucoup de chemins. Deux règles suffisent : les
+ * chiffres sont gros, tabulaires et alignés pour se comparer d'un coup d'œil,
+ * les chemins sont en chasse fixe et rompent dans leur boîte — un chemin de
+ * cache HF fait cent caractères, et le laisser pousser la page ferait défiler
+ * l'écran entier de côté.
+ */
+
+/* Une table de tiering porte cinq colonnes, dont une référence de variant et une
+   commande complète : sur une fenêtre étroite elle déborde, et c'est la carte
+   qui défile de côté, jamais la page. */
+.ecurie-parc .ecurie-carte { overflow-x: auto; }
+
+.ecurie-parc-entete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.ecurie-parc-entete p { flex: 1 1 20rem; margin: 0; }
+
+/*
+ * Les trois chiffres : trois cartes de mesure, pas une liste de définitions.
+ *
+ * Ils répondent à la même question sous trois angles — ce que `du` dirait, ce
+ * que le disque tient vraiment, ce qu'on pourrait en reprendre — et c'est leur
+ * **écart** qui informe. Trois tuiles côte à côte le rendent comparable ; trois
+ * paragraphes empilés ne le rendaient pas.
+ */
+.ecurie-chiffres {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  margin: 0 0 1.15rem;
+}
+
+.ecurie-chiffres > div {
+  background: var(--creux);
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon-menu);
+  padding: 0.7rem 0.85rem;
+}
+
+.ecurie-chiffres dt {
+  font-family: var(--titre);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sourdine);
+}
+
+.ecurie-chiffres dd {
+  margin: 0.15rem 0 0;
+  font-family: var(--titre);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.ecurie-chiffres dd.ecurie-etat-champ {
+  font-family: var(--corps);
+  font-size: 0.79rem;
+  font-weight: 400;
+  line-height: 1.45;
+  margin-top: 0.3rem;
+}
+
+/* Les postes se bornent : « blobs orphelins ……… 0 o » sur mille huit cents
+   pixels oblige à traverser l'écran des yeux pour joindre un intitulé à son
+   chiffre. Les tables, elles, gardent toute la largeur — elles en ont besoin. */
+.ecurie-postes {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  max-width: 52rem;
+  font-size: 0.88rem;
+}
+
+.ecurie-postes li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--trait);
+}
+
+.ecurie-postes li:last-child { border-bottom: 0; }
+.ecurie-poste-titre { flex: 1 1 auto; }
+
+/*
+ * Le chiffre reste sur la ligne de son intitulé, la note passe dessous.
+ *
+ * Elle s'intercalait entre les deux, ce qui tenait tant que la ligne tenait :
+ * dès qu'elle repliait, « inconnu » partait au milieu de sa propre explication.
+ * Un poste, ça se lit « nom … valeur » ; ce qui vient nuancer la valeur vient
+ * après elle.
+ */
+.ecurie-poste-valeur {
+  order: 2;
+  margin-left: auto;
+  font-family: var(--chasse);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ecurie-postes .ecurie-etat-champ {
+  order: 3;
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+/* Un poste indéterminé n'est pas une valeur en gras : c'est une absence de valeur. */
+.ecurie-postes li[data-connu="non"] .ecurie-poste-valeur {
+  font-weight: 400;
+  font-style: italic;
+  color: var(--sourdine);
+}
+
+.ecurie-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.87rem;
+  margin-bottom: 0.6rem;
+}
+
+.ecurie-table th,
+.ecurie-table td {
+  border-bottom: 1px solid var(--trait);
+  padding: 0.4rem 0.6rem 0.4rem 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ecurie-table thead th {
+  font-family: var(--titre);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sourdine);
+  border-bottom-color: var(--trait-fort);
+}
+
+.ecurie-table tbody th { font-weight: 400; }
+.ecurie-table tbody tr:last-child th,
+.ecurie-table tbody tr:last-child td { border-bottom: 0; }
+
+/* Les colonnes de mesure s'alignent à droite : c'est ce qui permet de comparer
+   deux tailles sans les lire. */
+.ecurie-table td:not(:first-child) {
+  white-space: nowrap;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ecurie-table thead th:not(:first-child) { text-align: right; }
+
+.ecurie-table tr[data-disponible="non"] td:last-child { color: var(--brique); }
+
+/* Une note dans une cellule passe à la ligne sous son chiffre : collée à sa
+   droite, elle poussait la mesure hors de la colonne et cassait l'alignement
+   qui est toute la raison d'être d'une table de tailles. */
+.ecurie-table .ecurie-etat-champ {
+  display: block;
+  margin: 0.15rem 0 0;
+}
+
+.ecurie-table td[data-retenu="oui"] { color: var(--sourdine); white-space: normal; }
+
+/* La commande qui ferait le geste : sur sa propre ligne, sélectionnable, et
+   jamais alignée à droite comme une mesure. */
+.ecurie-commande {
+  display: inline-block;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--trait);
+  border-radius: 3px;
+  background: var(--creux);
+  color: var(--sourdine);
+  white-space: nowrap;
+}
+
+/* La spécificité est ici explicite plutôt que laissée à l'ordre : les deux
+   sélecteurs pèsent le même poids, et une règle qui remonterait dans la feuille
+   ferait basculer une commande à droite sans qu'on voie pourquoi. */
+.ecurie-table td:not(:first-child):has(.ecurie-commande) { text-align: left; }
+
+.ecurie-duplications,
+.ecurie-actions-plan,
+.ecurie-ecartes,
+.ecurie-volumes {
+  margin: 0.4rem 0 0.8rem;
+  padding-left: 1.05rem;
+  font-size: 0.87rem;
+}
+
+.ecurie-duplications > li,
+.ecurie-actions-plan > li,
+.ecurie-ecartes > li {
+  margin-bottom: 0.7rem;
+}
+
+.ecurie-duplications ul,
+.ecurie-actions-plan ul,
+.ecurie-ecartes ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.05rem;
+}
+
+.ecurie-dup-entete {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: baseline;
+  margin: 0;
+}
+
+.ecurie-actions-plan p { margin: 0 0 0.15rem; }
+
+.ecurie-volumes { list-style: none; padding-left: 0; }
+.ecurie-volumes li { padding: 0.25rem 0; border-bottom: 1px solid var(--trait); }
+.ecurie-volumes li:last-child { border-bottom: 0; }
+.ecurie-volumes li[data-monte="non"] { color: var(--brique); }
+
+.ecurie-total {
+  font-size: 1rem;
+  margin: 0.8rem 0 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ecurie-total strong { font-family: var(--chasse); font-size: 1.05rem; }
+
+/* --- le mouvement --------------------------------------------------------------
+ *
+ * Trois transitions dans toute la feuille, et chacune montre un changement de
+ * donnée : une stalle qui grandit, un repère qui glisse, une progression qui
+ * avance. Rien ne s'anime à l'arrivée d'un écran.
+ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

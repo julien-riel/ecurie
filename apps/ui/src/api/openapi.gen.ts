@@ -213,6 +213,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/store/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Plan de récupération, à blanc
+         * @description Ce que `ecurie store plan` proposerait, sans écrire le fichier qu'il écrit.
+         *
+         *     Le plan rendu est **complet** — actions, empreintes, écartés — et non un
+         *     résumé : c'est le document qu'on relit avant de laisser un outil toucher
+         *     trente giga-octets, et un écran qui n'en montrerait que le total demanderait
+         *     de faire confiance sans donner de quoi juger.
+         *
+         *     Il porte un `plan_id` neuf à chaque appel, comme n'importe quelle génération.
+         *     Rien ne le rend rejouable pour autant : `apply` re-vérifie chaque fichier sur
+         *     le disque au moment d'agir, et refuse tout ce qui a bougé depuis le scan.
+         */
+        get: operations["plan_store_plan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/store/summary": {
         parameters: {
             query?: never;
@@ -222,6 +251,31 @@ export interface paths {
         };
         /** Occupation du parc */
         get: operations["summary_store_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/store/tiering": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Volumes, variants déportés, poids
+         * @description Où l'on peut déporter, ce qui l'est déjà, et ce qui pèserait le plus lourd.
+         *
+         *     Les volumes viennent de la **configuration** et non du disque observé : un
+         *     volume déclaré mais démonté doit apparaître, justement parce qu'il est
+         *     démonté — c'est ce qui explique qu'un variant froid soit indisponible. Sa
+         *     place libre est alors `null`, et non zéro.
+         */
+        get: operations["tiering_store_tiering_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -411,6 +465,20 @@ export interface components {
             }[];
             /** Title */
             title: string;
+        };
+        /** ColdLinkOut */
+        ColdLinkOut: {
+            /**
+             * Available
+             * @description La cible du lien est atteignable — volume monté.
+             */
+            available: boolean;
+            /** Path */
+            path: string;
+            /** Target */
+            target: string;
+            /** Variant Ref */
+            variant_ref?: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -815,6 +883,49 @@ export interface components {
             /** Socket */
             socket: string;
         };
+        /**
+         * StorePlanResponse
+         * @description Le plan de récupération, **jamais écrit** — c'est toute la différence avec la CLI.
+         *
+         *     `ecurie store plan` produit un fichier, parce que `ecurie store apply` en
+         *     exige un : le plan est le document qu'on relit avant de laisser un outil
+         *     toucher trente giga-octets. Un `GET` ne fabrique pas de document ; il montre
+         *     ce qu'un plan dirait, et laisse la commande à taper pour l'obtenir pour de
+         *     bon. `command` porte cette commande, parce que l'écran qui affiche un gain de
+         *     quatre giga-octets doit dire par où on le prend.
+         */
+        StorePlanResponse: {
+            /**
+             * Command
+             * @description La commande qui écrit ce plan et permet de l'appliquer.
+             */
+            command?: string | null;
+            /** Hint */
+            hint?: string | null;
+            /**
+             * Labels
+             * @description Le libellé français de chaque motif d'action, tel que la CLI l'affiche — le front n'entretient pas sa propre table.
+             */
+            labels?: {
+                [key: string]: string;
+            };
+            /** Last Scan At */
+            last_scan_at?: string | null;
+            /**
+             * Plan
+             * @description Le plan tel que `ecurie_store.plan.generate_plan` le produit (CONCEPTION.md §4.3), ou `null` tant qu'aucun scan n'a eu lieu.
+             */
+            plan?: {
+                [key: string]: unknown;
+            } | null;
+            /** Scanned */
+            scanned: boolean;
+            /**
+             * Stale
+             * @default false
+             */
+            stale: boolean;
+        };
         /** StoreSummaryResponse */
         StoreSummaryResponse: {
             /**
@@ -854,6 +965,50 @@ export interface components {
             unused_after_days: number;
         };
         /**
+         * TierVolumeOut
+         * @description Un volume de `tier_volumes`, et son état au moment de la requête.
+         */
+        TierVolumeOut: {
+            /**
+             * Free Bytes
+             * @description `null` quand le volume est démonté — inconnu, pas zéro.
+             */
+            free_bytes?: number | null;
+            /**
+             * Mounted
+             * @description Le point de montage existe et est un dossier.
+             */
+            mounted: boolean;
+            /** Path */
+            path: string;
+            /** Total Bytes */
+            total_bytes?: number | null;
+        };
+        /**
+         * TieringResponse
+         * @description Ce que le tiering donne à voir : où déporter, ce qui l'est déjà, ce qui pèse.
+         *
+         *     Une lecture, et rien d'autre. Déporter copie des giga-octets et met des
+         *     originaux en quarantaine : `ecurie store tier` le fait, avec une
+         *     confirmation, et l'écran donne la commande. Un bouton qui déclencherait cela
+         *     depuis un navigateur mettrait une opération irréversible à un clic d'un
+         *     survol de souris.
+         */
+        TieringResponse: {
+            /** Cold */
+            cold?: components["schemas"]["ColdLinkOut"][];
+            /** Hint */
+            hint?: string | null;
+            /** Last Scan At */
+            last_scan_at?: string | null;
+            /** Scanned */
+            scanned: boolean;
+            /** Variants */
+            variants?: components["schemas"]["VariantFootprintOut"][];
+            /** Volumes */
+            volumes?: components["schemas"]["TierVolumeOut"][];
+        };
+        /**
          * UploadOut
          * @description Ce qu'un dépôt devient : un chemin, que le champ fichier du formulaire porte.
          *
@@ -890,6 +1045,31 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** VariantFootprintOut */
+        VariantFootprintOut: {
+            /** Bytes */
+            bytes: number;
+            /** Devices */
+            devices?: number[];
+            /** Files */
+            files: number;
+            /**
+             * Freed Bytes
+             * @description Ce que le volume de départ rendrait vraiment : un inode dont une référence échappe au parc scanné ne libère rien.
+             */
+            freed_bytes: number;
+            /** Ref */
+            ref: string;
+            /** Shared With */
+            shared_with?: string[];
+            /** Tierable */
+            tierable: boolean;
+            /**
+             * Tiered Links
+             * @default 0
+             */
+            tiered_links: number;
         };
         /** VariantOut */
         VariantOut: {
@@ -1246,6 +1426,39 @@ export interface operations {
             };
         };
     };
+    plan_store_plan_get: {
+        parameters: {
+            query?: {
+                unused_after_days?: number;
+                /** @description Ne dédupliquer que sur des sha256 relus, jamais sur un hash annoncé. */
+                verified_only?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorePlanResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     summary_store_summary_get: {
         parameters: {
             query?: {
@@ -1274,6 +1487,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tiering_store_tiering_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TieringResponse"];
                 };
             };
         };

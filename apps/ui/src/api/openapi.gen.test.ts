@@ -39,6 +39,10 @@ describe("les types engendrés depuis l'OpenAPI", () => {
     // se remplissait à la main faute de route, alors qu'une image choisie dans
     // une page, une photo de la caméra et un son du micro n'ont jamais eu de
     // chemin à saisir.
+    //
+    // `/store/plan` et `/store/tiering` sont celles de l'écran Parc (4.5), et
+    // elles décrivent toutes deux une action sans la faire : le plan n'est pas
+    // écrit, le déport n'est pas exécuté. Chacune rend la commande à taper.
     const schéma = JSON.parse(readFileSync(resolve(DOSSIER, "openapi.json"), "utf8"));
     expect(Object.keys(schéma.paths).sort()).toEqual([
       "/",
@@ -51,7 +55,9 @@ describe("les types engendrés depuis l'OpenAPI", () => {
       "/registry/models",
       "/runtime/admission",
       "/runtime/residents",
+      "/store/plan",
       "/store/summary",
+      "/store/tiering",
       "/uploads",
     ]);
   });

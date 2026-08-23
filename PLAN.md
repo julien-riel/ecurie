@@ -7,21 +7,21 @@
 > Rappel du test d'existence du projet : **si le v0.1 ne sert pas dans la semaine qui
 > suit sa livraison, on arrête et on réévalue.**
 
-## État au 21 août 2026
+## État au 22 août 2026
 
 | Jalon | État | Critère de sortie |
 |---|---|---|
 | v0.1 — Voir le parc | **livré** | atteint |
 | v0.2 — Récupérer des gigaoctets | **livré** | atteint |
 | v0.3 — Exécuter sans OOM | **livré** | atteint : `run` TTS produit un wav, un job image décharge le TTS proprement, sans swap |
-| v0.4 — Utilisable au quotidien | **en cours** | 4.1 : `ecurie serve` sert le parc **et lance ses jobs** — un POST, un flux SSE, un wav téléchargeable, éprouvés sur le vrai parc. 4.3 : les contrats engendrent leur formulaire — 25 aujourd'hui —, sans un formulaire écrit à la main, et un champ fichier se remplit au chemin, au sélecteur ou à la caméra. 4.4 : l'Atelier lance, suit et montre — du clic au wav qu'on écoute, éprouvé contre un vrai serveur. 4.6 : le superviseur vit dans le processus de l'API, et `residents.json` n'est plus qu'un miroir |
+| v0.4 — Utilisable au quotidien | **en cours** | 4.1 : `ecurie serve` sert le parc **et lance ses jobs** — un POST, un flux SSE, un wav téléchargeable, éprouvés sur le vrai parc. 4.3 : les contrats engendrent leur formulaire — 25 aujourd'hui —, sans un formulaire écrit à la main, et un champ fichier se remplit au chemin, au sélecteur ou à la caméra. 4.4 : l'Atelier lance, suit et montre — du clic au wav qu'on écoute, éprouvé contre un vrai serveur. 4.5 : le Parc met la comptabilité disque à l'écran — trois chiffres, duplications, plan de GC à blanc, tiering —, et la coquille gagne sa navigation. 4.6 : le superviseur vit dans le processus de l'API, et `residents.json` n'est plus qu'un miroir |
 | v0.5 → v0.7 | à faire | — |
 
 Le parc réel compte **vingt capacités exécutables** sur vingt-cinq déclarées, et
 **chacune des vingt-cinq a au moins un modèle** — vingt-six manifestes,
 vingt-sept variants. Huit environnements de runtime, quatre paquets Python et un front,
-**825 tests Python et 371 tests de front**, plus cinq essais sur le vrai parc et
-cinq contre un vrai serveur, exclus par défaut.
+**845 tests Python et 404 tests de front**, plus cinq essais sur le vrai parc et
+huit contre un vrai serveur, exclus par défaut.
 
 Deux choses ont été faites en marge du jalon, et elles n'attendaient personne :
 le **recalibrage du seuil de lourdeur** (voir les points de contrôle), et la
@@ -280,7 +280,7 @@ vendoré, 7,37 Go de poids non téléchargés (conception §13.4).
 | 4.2 | Bibliothèque côté serveur : manifeste de job complet, rejeu | reproductibilité effective |
 | 4.3 | ✓ UI : socle React+Vite+RJSF, mapping `x-ui`, visualiseurs par media type | `apps/ui` : deux tables d'aiguillage totales, les **25 contrats** rendus par une suite qui les lit sur le disque. Le typage vient du serveur — schéma OpenAPI figé et fixtures du vrai registre, gardés par deux tests pytest. Le champ fichier a rattrapé son manque de 2026-08-22 : `POST /uploads` lui donne un chemin réel, et ses trois sources sont le clavier, le disque et le matériel (`src/media/`) |
 | 4.4 | ✓ Écran **Atelier** (capacité → variant → formulaire → progression SSE → sortie) + bandeau de ressources | `src/ecrans/Atelier.tsx` : capacités groupées par ce qui marche, variant préselectionné sur le titulaire **exécutable**, formulaire engendré, chiffrage de l'entrée, bandeau permanent sondé toutes les 2 s. Puis le **lancement** : un bouton qui n'est jamais grisé pour un variant qu'on croit incapable, un flux d'événements lu par `fetch`, une progression, un bilan qui dit ce qui a été déchargé, et la sortie réelle servie par le résolveur de fichiers. Éprouvé contre un vrai `ecurie serve` : un wav de 2,48 s produit, téléchargé et lu dans l'écran qui l'a demandé |
-| 4.5 | Écran **Parc** (trois chiffres, arbre de duplication, plan de GC dry-run, tiering) | parité avec la CLI |
+| 4.5 | ✓ Écran **Parc** (trois chiffres, arbre de duplication, plan de GC dry-run, tiering) | `src/ecrans/Parc.tsx` et `src/parc/` sur trois lectures : `/store/summary` déjà là, plus `GET /store/plan` — le plan **entier**, jamais écrit — et `GET /store/tiering` — volumes déclarés, variants déjà froids, et l'empreinte disque de chaque variant, que `footprints()` calcule. Parité avec la CLI, y compris l'unité : **Go décimaux** pour le disque, quand tout le reste de l'UI compte en Gio. Rien n'y touche au disque : chaque décision rend la commande qui l'exécute. La coquille gagne sa navigation, un `useState` et deux boutons |
 | 4.6 | ✓ Le superviseur passe dans le processus de l'API : l'occupation des résidents cesse d'être un pid dans un fichier verrouillé et redevient un état en mémoire, et deux jobs sur un même worker se sérialisent au lieu d'attendre dans le backlog du socket | Un superviseur par processus, un verrou par variant tenu de l'admission à la fin du job, l'occupation en mémoire. `residents.json` est écrit par chacun, lu pour les autres. `ecurie unload` refuse un job en cours, `health()` ne fait plus la queue derrière le sien, et l'attente se dit à qui la subit |
 | 4.7 | Bandeau de ressources **calculé sur l'entrée en cours de saisie** : un profil paramétré (§3 conception) change le pic attendu quand l'utilisateur bouge un curseur de durée ou de résolution | « lancer coûtera 17,2 Gio, déchargera X » se met à jour en direct |
 
@@ -350,11 +350,11 @@ v0.1 ── v0.2 ── v0.3 ── v0.4 ── v0.5 ── v0.6 ── v0.7
                          │                          peut démarrer n'importe quand
                          ├ 4.1 serveur ✓    4.3 socle UI ✓
                          │  (lectures,      4.4 Atelier ✓ (lancement compris)
-                         │   puis jobs)     4.6 superviseur dans l'API ✓
+                         │   puis jobs)     4.5 Parc ✓ (et la navigation)
+                         │                  4.6 superviseur dans l'API ✓
                          │
-                         └ restent 4.5 (écran Parc, sans dépendance),
-                            4.2 (Bibliothèque et rejeu, qui s'appuie sur
-                            le manifeste déjà écrit par chaque job) et
+                         └ restent 4.2 (Bibliothèque et rejeu, qui s'appuie
+                            sur le manifeste déjà écrit par chaque job) et
                             4.7 (le bandeau chiffre l'entrée en cours
                             de saisie)
 ```
@@ -639,24 +639,85 @@ l'API et chargé par la page servie par Vite —, et un refus d'admission arriv�
 **par le flux** en `failed`, « admission refusée : minimax-music3@4bit demande
 24.21 Gio, le budget entier est de 17.76 Gio : décharger ne changerait rien ».
 
+### Ce que l'écran Parc a appris — la tâche 4.5
+
+Le deuxième des quatre écrans, et le premier à parler de disque plutôt que de
+mémoire. Il a demandé deux routes de plus, une fonction de plus dans
+`ecurie_store`, et il a rendu la coquille navigable. Cinq points valent d'être
+gardés, et trois n'ont été visibles que sur le vrai parc.
+
+1. **Le verbe du plan était faux, et il l'était depuis l'origine.** La surface
+   d'API du §6 portait `POST /store/plan`, par analogie juste avec la CLI :
+   `ecurie store plan` **écrit un fichier**, parce que `ecurie store apply` en
+   exige un. Mais l'écran pose une question, il ne demande pas un document — un
+   `POST` par consultation déposerait un plan à chaque ouverture d'onglet. La
+   route est un `GET`, elle rend le plan entier sans le poser nulle part, et
+   `command` porte la commande qui l'écrit pour de bon. **La surface d'écriture
+   du parc reste donc vide**, et le tiering le confirme : le §4.4 veut que
+   l'outil laisse un `tier: cold` à committer, si bien qu'un bouton dans un
+   navigateur laisserait le manifeste mentir jusqu'au prochain commit.
+
+2. **Le front n'avait qu'une unité, et elle était fausse pour la moitié de ce
+   qu'il affiche.** `formatBytes` rend des Gio binaires — juste pour un budget
+   Metal, un pic, un seuil de lourdeur. La CLI du parc, elle, rend des Go
+   décimaux, et ce n'est pas une négligence : un disque s'annonce et s'affiche en
+   puissances de dix. Réutiliser la fonction existante aurait affiché
+   « 43,4 Gio » là où `ecurie store status` dit « 46,58 Go », dans un écran dont
+   la tâche demandait la parité avec la CLI. L'unité suit ce qu'on compte, pas le
+   composant qui l'affiche.
+
+3. **Le parc réel a déplacé le sujet de l'écran** : 46,58 Go apparents, 11,4 Mo
+   récupérables. Le plan de GC de cette machine ne propose rien, et c'est une
+   bonne nouvelle qu'aucune fixture n'aurait donnée. Ce que le même écran révèle
+   est autrement utile : **14,29 Go, tout Ollama, ne sont rattachés à aucun
+   variant du registre**, et 46,56 Go sur 46,58 portent un hash annoncé par leur
+   gestionnaire et jamais relu. Le Parc est d'abord un outil de connaissance.
+
+4. **D'où `--verified-only` en case à cocher plutôt qu'en option de CLI.** Sur ce
+   parc, elle ramène le gain proposé de 11,4 Mo à zéro : l'unique duplication
+   trouvée repose sur un nom de blob, pas sur un contenu relu. Ce n'est pas un
+   réglage d'expert, c'est la différence entre « ce qu'on peut reprendre » et
+   « ce qu'on croit pouvoir reprendre ».
+
+5. **Décider *quoi* déporter demandait un chiffre que rien ne calculait.**
+   `footprints()` rend deux nombres par variant, et leur écart est le sujet :
+   `bytes` est ce qu'il occupe, `freed_bytes` ce que le volume rendrait — nuls
+   l'un sans l'autre dès qu'un inode a une référence hors du parc scanné. Le
+   parc réel a montré le second piège dans la foulée : **les mêmes 5,78 Go de
+   Qwen3-VL servent deux variants**, la lecture de document et la description
+   d'image. Chacun affiche son poids réel, la somme de la colonne dépasse le
+   parc, et `shared_with` est ce qui empêche d'y voir une erreur de calcul.
+
+6. **Une capture d'écran a trouvé deux défauts que 405 tests laissaient
+   passer.** Les phrases portaient des accents graves autour des commandes — la
+   convention des docstrings du dépôt — et le navigateur les affichait tels
+   quels ; aucun test ne pouvait le voir, tous cherchant le texte par
+   sous-chaîne. Sur la même image : les motifs d'écart du plan s'affichaient
+   sous leur clé brute, « sans-sha256 », faute d'entrée dans `REASON_LABELS`.
+   Les deux sont corrigés et gardés. **Une suite de tests vérifie ce qu'un écran
+   dit, pas ce qu'il montre** — regarder la page une fois a coûté une minute et
+   rapporté plus que la relecture du diff.
+
+La navigation, elle, n'a rien coûté : un `useState` et deux boutons, ni routeur
+ni URL. Ce que cela coûte se dit — recharger la page revient à l'Atelier — et la
+question se reposera au quatrième écran. L'écran qu'on quitte est **démonté** :
+le Parc classe tout le parc par contenu à chaque lecture, l'Atelier sonde la
+mémoire toutes les deux secondes, et les garder tous deux montés ferait payer en
+permanence celui qu'on ne regarde pas.
+
 ## Ce qui reste à faire
 
-*Au 22 août 2026. Dix-neuf tâches ouvertes sur quarante-quatre, plus quatre
+*Au 22 août 2026. Dix-huit tâches ouvertes sur quarante-quatre, plus quatre
 chantiers qu'aucune tâche ne porte. Les tableaux des jalons font foi sur le détail ; cette
 section dit ce qui n'est pas fait, ce qui bloque chacun, et dans quel ordre s'y
 prendre.*
 
-### v0.4 — trois tâches, aucune bloquée
+### v0.4 — deux tâches, aucune bloquée
 
 | # | Tâche | Ce qu'il faut avant | Effort |
 |---|---|---|---|
-| **4.5** | Écran **Parc** : trois chiffres, arbre de duplication, plan de GC en dry-run, tiering | rien — `/store/summary` répond déjà et le bandeau de ressources se réutilise tel quel | 2–3 j |
 | **4.2** | **Bibliothèque côté serveur** : index des jobs, filtre, rejeu à partir du manifeste | rien — chaque job écrit déjà son manifeste complet, c'est la lecture qui manque | 2 j |
 | **4.7** | Bandeau **calculé sur l'entrée en cours de saisie** | rien — `POST /runtime/admission` fait déjà parler `peak_scaling` | 1 j |
-
-**4.5 d'abord**, et pas seulement parce qu'il ne dépend de rien : c'est là que la
-coquille gagne sa navigation. À un écran, un onglet était un décor ; à deux, il en
-faut une, et `App.tsx` a été tenu sans état exprès pour ce moment.
 
 **4.7 est devenue utile en cours de route.** Tant que le job ne partait pas, un
 pic qui suit la saisie était un raffinement. Depuis que le bouton *Lancer*
@@ -665,8 +726,9 @@ bouger fera échouer le job — et le parc compte désormais des variants dont l
 dépasse le budget à coup sûr.
 
 **Critère de sortie du jalon** : une semaine d'usage réel où l'UI est le chemin
-par défaut, sans retomber sur les scripts d'origine. Il n'est pas atteint tant
-que le Parc n'existe pas — la comptabilité disque reste en ligne de commande.
+par défaut, sans retomber sur les scripts d'origine. Ce qui l'empêchait — la
+comptabilité disque en ligne de commande seulement — a été levé par la 4.5 ; ce
+qui reste est du temps, pas du code.
 
 ### v0.5 — six tâches, une commencée
 
@@ -675,7 +737,7 @@ que le Parc n'existe pas — la comptabilité disque reste en ligne de commande.
 | **5.1** ◑ | Golden sets — **les douze enregistrements ASR** | une demi-heure de micro, décrite dans `registry/evals/golden/speech-to-text/SOURCING.md`. Les textes sont figés ; il manque le son. Devenu plus facile qu'hier : le champ audio accepte maintenant le micro |
 | **5.2** | `ecurie eval` : WER, exactitude OCR → `evals/results/` | 5.1 complète pour l'ASR ; les autres jeux sont prêts |
 | **5.3** | Exécution A/B — même entrée, deux variants, séquentielle sous admission | 5.2 |
-| **5.4** | Écran **Confrontation** + `preferences.jsonl` + Elo dérivé | 5.3, et la navigation de 4.5 |
+| **5.4** | Écran **Confrontation** + `preferences.jsonl` + Elo dérivé | 5.3. La navigation de 4.5 est là : y ajouter un écran est une entrée dans un tableau |
 | **5.5** | Écran **Bibliothèque** — le quatrième écran, plafond atteint | 4.2 |
 | **5.6** | Promouvoir en `incumbent` les candidats qui l'ont mérité | 5.2 et 5.4. Vingt-quatre modèles sur vingt-six sont `candidate`, et seules `text-to-speech` et `image-to-mesh` ont un titulaire : **rien n'a jamais été comparé**, et la seconde n'a même pas ses poids |
 
@@ -736,7 +798,7 @@ se relit — coûterait peu et aurait trouvé celui-là.
 
 ```
 maintenant, en parallèle et sans dépendance
-  ├─ 4.5 écran Parc  ──→ 4.2 Bibliothèque ──→ 4.7 bandeau vivant   ┐ fin du v0.4
+  ├─ 4.2 Bibliothèque ──→ 4.7 bandeau vivant                       ┐ fin du v0.4
   ├─ 7.0 éprouver Hunyuan3D   (le risque, à lever tôt)             │
   ├─ les douze enregistrements ASR (5.1)                           │
   └─ les `title` des 169 champs   (rédaction)                      ┘

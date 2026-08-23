@@ -1,5 +1,5 @@
 /**
- * Les onze routes de l'API, une fonction chacune.
+ * Les treize routes de l'API, une fonction chacune.
  *
  * C'est le seul fichier du front où une chaîne d'URL apparaît, et le seul où
  * apparaît le nom du paramètre `for`. Ce dernier point n'est pas cosmétique :
@@ -17,7 +17,14 @@
  * sélecteur de fichier, et s'en tenait à l'annoncer. Ce qui manquait n'était pas
  * une idée mais une route ; elle existe.
  *
- * **Il n'y en a pas de douzième** : l'URL d'un fichier de sortie n'est pas
+ * Les deux dernières sont celles du Parc (4.5), et elles ont ceci de commun
+ * qu'elles décrivent une action sans la faire : un plan de récupération qui
+ * n'est pas écrit, un déport qui n'est pas exécuté. Chacune rend la commande à
+ * taper — ce qui n'est pas un aveu de faiblesse du front mais la conséquence du
+ * §4.3 de la conception, où l'exécution relit chaque fichier sur le disque avant
+ * d'y toucher.
+ *
+ * **Il n'y en a pas de quatorzième** : l'URL d'un fichier de sortie n'est pas
  * composée ici, elle est *lue* dans la réponse du job. Le serveur la donne déjà
  * faite, parce qu'une sortie imbriquée — `tracks/vocals.wav` sous la clé
  * `tracks.vocals` — est un chemin à plusieurs segments que le client n'a pas à
@@ -34,7 +41,9 @@ import type {
   JobDetail,
   ModelsResponse,
   ResidentsResponse,
+  StorePlanResponse,
   StoreSummaryResponse,
+  TieringResponse,
   Upload,
 } from "./types";
 
@@ -72,6 +81,33 @@ export function storeSummary(
   const params = new URLSearchParams();
   if (unusedAfterDays !== undefined) params.set("unused_after_days", String(unusedAfterDays));
   return get<StoreSummaryResponse>("/store/summary", params, signal);
+}
+
+/**
+ * Le plan de récupération **à blanc** — ce qui serait fait, jamais ce qui est fait.
+ *
+ * La route ne dépose aucun fichier, alors que `ecurie store plan` en dépose un.
+ * Ce n'est pas une omission : `ecurie store apply` exige un chemin de plan, et
+ * la réponse porte donc `command`, la commande qui l'écrit pour de bon. Rien
+ * dans le front n'applique un plan, et rien ne devrait : chaque action
+ * re-vérifie le sha256 du fichier au moment d'agir, ce qui prend le temps de
+ * relire des giga-octets.
+ */
+export function storePlan(
+  options: { unusedAfterDays?: number; verifiedOnly?: boolean } = {},
+  signal?: AbortSignal,
+): Promise<StorePlanResponse> {
+  const params = new URLSearchParams();
+  if (options.unusedAfterDays !== undefined) {
+    params.set("unused_after_days", String(options.unusedAfterDays));
+  }
+  if (options.verifiedOnly) params.set("verified_only", "true");
+  return get<StorePlanResponse>("/store/plan", params, signal);
+}
+
+/** Les volumes déclarés, les variants déjà déportés, et ce que chacun pèse. */
+export function storeTiering(signal?: AbortSignal): Promise<TieringResponse> {
+  return get<TieringResponse>("/store/tiering", undefined, signal);
 }
 
 /**
@@ -170,11 +206,7 @@ export function evenementsDuJob(
  * disque, une image déposée depuis une page web, une capture de la caméra ou du
  * micro — parce que les trois arrivent au même endroit : un `Blob` sans chemin.
  */
-export function deposerFichier(
-  fichier: Blob,
-  nom: string,
-  signal?: AbortSignal,
-): Promise<Upload> {
+export function deposerFichier(fichier: Blob, nom: string, signal?: AbortSignal): Promise<Upload> {
   return postFichier<Upload>("/uploads", fichier, nom, signal);
 }
 

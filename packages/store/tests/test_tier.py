@@ -14,10 +14,10 @@ import pytest
 from ecurie_core.config import Config, ScanConfig
 from ecurie_store.cli import store_app
 from ecurie_store.db import LocationRecord, StateDB
-from ecurie_store.figures import compute_figures, telemetry_is_conclusive
+from ecurie_store.figures import cold_links, compute_figures, telemetry_is_conclusive
 from ecurie_store.scan import fill_from_hash_cache, run_scan
 from ecurie_store.scanners import scan_tree
-from ecurie_store.tier import TierError, migrate_path, tier_variant, yaml_patch
+from ecurie_store.tier import TierError, footprints, migrate_path, tier_variant, yaml_patch
 from ecurie_store.trash import list_trash
 from typer.testing import CliRunner
 
@@ -486,6 +486,138 @@ def test_tier_variant_ne_copie_qu_une_fois_un_inode_partage(tmp_path, db, home):
     # du même inode sont partis : en laisser un aurait tout retenu.
     assert sum(r.freed_bytes for r in résultats) == 4096
     assert sorted(e.origin for e in list_trash(home=home)) == [str(jumeau), str(original)]
+
+
+# --- footprints : ce qu'un variant pèse, et ce qu'un déport en rendrait ------------
+
+
+def test_l_empreinte_d_un_variant_est_la_somme_de_ses_fichiers(depot, tmp_path):
+    """Deux fichiers, deux tailles, un variant : le poids annoncé est celui du disque."""
+    (empreinte,) = footprints(observés(depot))
+
+    assert empreinte.ref == REF
+    assert empreinte.files == 2
+    assert empreinte.bytes == 4096 + 300
+    assert empreinte.freed_bytes == 4096 + 300
+    assert empreinte.shared_with == []
+    assert empreinte.tierable is True
+
+
+def test_les_variants_sont_ordonnes_du_plus_lourd_au_plus_leger(depot, tmp_path):
+    empreintes = footprints(_deux_variants(depot, tmp_path))
+
+    assert [e.ref for e in empreintes] == [REF, AUTRE_REF]
+    assert [e.bytes for e in empreintes] == [4396, 2048]
+
+
+def test_un_inode_a_deux_chemins_ne_pese_qu_une_fois(tmp_path):
+    """Le cache HF est plein de liens durs : les compter chacun doublerait
+    l'empreinte annoncée, et proposerait de déporter deux fois le même octet."""
+    parc = tmp_path / "parc" / "depot"
+    parc.mkdir(parents=True)
+    original = parc / "model.safetensors"
+    original.write_bytes(POIDS)
+    os.link(original, parc / "alias.safetensors")
+
+    (empreinte,) = footprints(observés(parc))
+
+    assert empreinte.files == 2
+    assert empreinte.bytes == 4096
+    # Les deux chemins sont dans le parc : l'inode lâchera bien ses octets.
+    assert empreinte.freed_bytes == 4096
+
+
+def test_un_lien_dur_tenu_hors_du_parc_ne_rend_rien(tmp_path):
+    """Déporter copierait les octets sans en libérer un seul : la référence
+    restée dehors tient le contenu. Le poids reste vrai, le gain tombe à zéro."""
+    parc = tmp_path / "parc" / "depot"
+    parc.mkdir(parents=True)
+    original = parc / "model.safetensors"
+    original.write_bytes(POIDS)
+    dehors = tmp_path / "ailleurs.safetensors"
+    dehors.parent.mkdir(parents=True, exist_ok=True)
+    os.link(original, dehors)
+
+    (empreinte,) = footprints(observés(parc))
+
+    assert empreinte.bytes == 4096
+    assert empreinte.freed_bytes == 0
+
+
+def test_des_poids_partages_par_deux_variants_le_disent(depot):
+    """Deux manifestes peuvent pointer les mêmes poids. Chacun affiche son poids
+    réel — la somme de la colonne dépasse alors le parc, et `shared_with` est ce
+    qui empêche de conclure à une erreur de calcul."""
+    records = observés(depot)
+    for rec in records:
+        rec.meta["variant_refs"] = [REF, AUTRE_REF]
+
+    par_ref = {e.ref: e for e in footprints(records)}
+
+    assert par_ref[REF].bytes == par_ref[AUTRE_REF].bytes == 4396
+    assert par_ref[REF].shared_with == [AUTRE_REF]
+    assert par_ref[AUTRE_REF].shared_with == [REF]
+
+
+def test_un_variant_deja_deporte_n_a_plus_que_des_liens(depot, tmp_path, db, home):
+    """Après un déport, il ne reste sur le volume de départ que des liens
+    symboliques : ils ne pèsent rien, mais disent que le variant est parti."""
+    tier_variant(
+        observés(depot), REF, tmp_path / "volume", require_other_volume=False, home=home, db=db
+    )
+
+    (empreinte,) = footprints(observés(depot))
+
+    assert empreinte.files == 0
+    assert empreinte.bytes == 0
+    assert empreinte.tiered_links == 2
+    assert empreinte.tierable is False
+
+
+def test_un_variant_reparti_sur_deux_volumes_n_est_pas_deportable(depot):
+    """`tier_variant` refuse ce cas ; l'annoncer avant vaut mieux que le
+    découvrir après avoir cliqué."""
+    records = observés(depot)
+    records[0].device = records[0].device + 1
+
+    (empreinte,) = footprints(records)
+
+    assert len(empreinte.devices) == 2
+    assert empreinte.tierable is False
+
+
+def test_les_liens_du_cache_hf_ne_sont_pas_des_variants_deportes():
+    """Chaque `snapshots/<révision>/<fichier>` du cache HF est un lien symbolique.
+    Les compter comme des variants froids annoncerait tout le parc sur volume
+    externe ; seul `meta.snapshot` les distingue."""
+    lien_hf = LocationRecord(
+        path="/hub/snapshots/rev/model.safetensors",
+        manager="hf",
+        size=0,
+        mtime=0.0,
+        device=1,
+        inode=1,
+        link_kind="symlink",
+        meta={"snapshot": "/hub/snapshots/rev", "target": "/hub/blobs/abc"},
+    )
+    lien_froid = LocationRecord(
+        path="/parc/model.safetensors",
+        manager="declared",
+        size=0,
+        mtime=0.0,
+        device=1,
+        inode=2,
+        link_kind="symlink",
+        variant_ref=REF,
+        meta={"target": "/Volumes/Parc/model.safetensors", "available": True},
+    )
+
+    (froid,) = cold_links([lien_hf, lien_froid])
+
+    assert froid.path == "/parc/model.safetensors"
+    assert froid.target == "/Volumes/Parc/model.safetensors"
+    assert froid.available is True
+    assert froid.variant_ref == REF
 
 
 def test_une_telemetrie_trop_jeune_ne_conclut_rien():

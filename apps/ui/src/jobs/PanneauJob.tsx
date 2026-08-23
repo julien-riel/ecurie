@@ -33,8 +33,15 @@ export function PanneauJob({ job, erreurDeSuivi = [], onReprendre, onOublier }: 
   return (
     <section className="ecurie-job" aria-label="Job" data-etat={job.state}>
       <p className="ecurie-job-entete">
-        <strong>{LIBELLE_ETAT[job.state]}</strong> · <code>{job.ref}</code> ·{" "}
-        <code className="ecurie-etat-champ">{job.id}</code>
+        {/*
+          L'état est une pastille et non un mot en gras : c'est la seule chose de
+          la page qui change de couleur sans qu'on ait cliqué, et il faut pouvoir
+          la retrouver d'un coup d'œil en revenant d'un autre onglet. Le mot y
+          reste — la couleur ne dit jamais l'état toute seule.
+        */}
+        <strong className="ecurie-job-etat">{LIBELLE_ETAT[job.state]}</strong>
+        <code>{job.ref}</code>
+        <code className="ecurie-job-id">{job.id}</code>
         {onOublier ? (
           <button type="button" className="ecurie-lien" onClick={onOublier}>
             retirer de l'écran

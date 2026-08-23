@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ecurie_store.db import LocationRecord, StateDB
+from ecurie_store.figures import entierement_couvert
 from ecurie_store.hashing import sha256_file
 from ecurie_store.trash import move_to_trash
 
@@ -60,8 +61,7 @@ def migrate_path(
     dest_dir.mkdir(parents=True, exist_ok=True)
     if require_other_volume and os.stat(dest_dir).st_dev == os.stat(source).st_dev:
         raise TierError(
-            f"{dest_dir} est sur le même volume que {source} — "
-            "déporter n'y libérerait rien"
+            f"{dest_dir} est sur le même volume que {source} — déporter n'y libérerait rien"
         )
 
     st = os.stat(source)
@@ -77,7 +77,11 @@ def migrate_path(
         if dest.is_file() and sha256_file(dest) == digest:
             _finish(source, dest, digest, db, plan_id, home)
             return TierResult(
-                str(source), str(dest), digest, st.st_size, reused=True,
+                str(source),
+                str(dest),
+                digest,
+                st.st_size,
+                reused=True,
                 freed_bytes=st.st_size if st.st_nlink == 1 else 0,
             )
         raise TierError(f"{dest} existe déjà avec un contenu différent")
@@ -100,7 +104,10 @@ def migrate_path(
     # Un fichier tenu par d'autres liens durs ne rend rien tant qu'ils tiennent :
     # la copie est faite, la place ne revient pas pour autant.
     return TierResult(
-        str(source), str(dest), digest, st.st_size,
+        str(source),
+        str(dest),
+        digest,
+        st.st_size,
         freed_bytes=st.st_size if st.st_nlink == 1 else 0,
     )
 
@@ -253,6 +260,81 @@ def tier_variant(
             résultats.append(
                 TierResult(autre.path, résultat.dest, résultat.sha256, autre.size, reused=True)
             )
+    return résultats
+
+
+@dataclass
+class VariantFootprint:
+    """Ce qu'un variant pèse sur le disque, et ce qu'un déport en rendrait.
+
+    Les deux chiffres diffèrent, et la différence est le sujet même du tiering :
+    `bytes` est ce que le variant occupe, `freed_bytes` ce que le volume de
+    départ récupérerait vraiment. Un inode dont une référence échappe au parc
+    scanné — un lien dur posé ailleurs — ne rend rien du tout : le déporter
+    copierait des giga-octets sans en libérer un seul.
+    """
+
+    ref: str
+    files: int  # chemins observés, liens symboliques exclus
+    bytes: int  # octets uniques : un inode compté une fois, quel que soit le nombre de chemins
+    freed_bytes: int  # ce que le volume de départ rendrait après `trash empty`
+    shared_with: list[str]  # autres variants qui tiennent une partie de ces octets
+    devices: list[int]  # volumes portant ces fichiers ; plus d'un, et `tier` refuse
+    tiered_links: int  # chemins déjà remplacés par un lien : le variant est déjà déporté
+
+    @property
+    def tierable(self) -> bool:
+        """Rien à déporter si tout est déjà parti, ou si les fichiers sont répartis."""
+        return self.files > 0 and len(self.devices) == 1
+
+
+def footprints(records: list[LocationRecord]) -> list[VariantFootprint]:
+    """L'empreinte disque de chaque variant observé, la plus lourde d'abord.
+
+    Trois pièges, et chacun a sa contrepartie dans le code :
+
+    - **un fichier peut appartenir à deux variants.** `variant_refs` est un
+      pluriel, et deux manifestes pointant les mêmes poids doivent tous deux
+      afficher leur poids réel : la somme de la colonne dépasse alors le parc, ce
+      que `shared_with` explique au lecteur plutôt que de le laisser conclure à
+      une erreur de calcul ;
+    - **un inode à plusieurs chemins ne pèse qu'une fois.** Le cache HF en est
+      plein, et compter chaque chemin doublerait l'empreinte annoncée ;
+    - **les liens symboliques ne pèsent rien** mais disent quelque chose : un
+      variant qui n'a plus que des liens est déjà déporté, et le proposer au
+      déport serait absurde.
+    """
+    fichiers = [r for r in records if r.link_kind != "symlink"]
+    par_ref: dict[str, list[LocationRecord]] = {}
+    liens: dict[str, int] = {}
+    for r in fichiers:
+        for ref in r.variant_refs:
+            par_ref.setdefault(ref, []).append(r)
+    for r in records:
+        if r.link_kind == "symlink" and not r.meta.get("snapshot"):
+            for ref in r.variant_refs:
+                liens[ref] = liens.get(ref, 0) + 1
+                par_ref.setdefault(ref, [])
+
+    résultats: list[VariantFootprint] = []
+    for ref, lot in par_ref.items():
+        grappes: dict[tuple[int, int], list[LocationRecord]] = {}
+        for r in lot:
+            grappes.setdefault((r.device, r.inode), []).append(r)
+        octets = sum(max(r.size for r in g) for g in grappes.values())
+        rendus = sum(max(r.size for r in g) for g in grappes.values() if entierement_couvert(g))
+        résultats.append(
+            VariantFootprint(
+                ref=ref,
+                files=len(lot),
+                bytes=octets,
+                freed_bytes=rendus,
+                shared_with=sorted({a for r in lot for a in r.variant_refs} - {ref}),
+                devices=sorted({r.device for r in lot}),
+                tiered_links=liens.get(ref, 0),
+            )
+        )
+    résultats.sort(key=lambda f: (-f.bytes, f.ref))
     return résultats
 
 

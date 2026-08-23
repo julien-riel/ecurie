@@ -1,7 +1,7 @@
 /** Le formatage des octets, et l'inconnu qui ne devient pas zéro. */
 
 import { describe, expect, test } from "vitest";
-import { formatBytes, phraseLourdeur } from "./bytes";
+import { formatBytes, formatOctetsDisque, phraseLourdeur } from "./bytes";
 
 describe("le formatage des octets", () => {
   test("un pic inconnu ne s_affiche pas comme zero", () => {
@@ -27,6 +27,27 @@ describe("le formatage des octets", () => {
   test("une valeur non finie reste inconnue", () => {
     expect(formatBytes(Number.NaN)).toBe("pic inconnu");
     expect(formatBytes(Number.POSITIVE_INFINITY)).toBe("pic inconnu");
+  });
+});
+
+describe("le formatage des octets du disque", () => {
+  test("l_unite est celle de la CLI du parc, decimale et non binaire", () => {
+    // `ecurie store status` affiche « 4.90 Go » pour ces octets-là. L'écran Parc
+    // vise la parité avec lui : afficher « 4,56 Gio » du même fichier ferait
+    // douter du chiffre plutôt que de l'unité.
+    expect(formatOctetsDisque(4_900_000_000)).toBe("4,90 Go");
+    expect(formatOctetsDisque(1_500_000)).toBe("1,5 Mo");
+    expect(formatOctetsDisque(2_000)).toBe("2 ko");
+    expect(formatOctetsDisque(512)).toBe("512 o");
+  });
+
+  test("l_inconnu du disque n_est pas un pic", () => {
+    // Le poste « variants jamais utilisés » reste indéterminé tant que la
+    // télémétrie est trop jeune, et le mot « pic » n'a rien à faire là.
+    expect(formatOctetsDisque(null)).toBe("inconnu");
+    expect(formatOctetsDisque(undefined)).toBe("inconnu");
+    expect(formatOctetsDisque(Number.NaN)).toBe("inconnu");
+    expect(formatOctetsDisque(0)).toBe("0 o");
   });
 });
 

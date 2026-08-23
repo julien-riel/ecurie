@@ -35,6 +35,18 @@ type Schemas = components["schemas"];
 /** Rend obligatoires les clés `K` de `T` — celles que le serveur émet toujours. */
 type Requis<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
 
+/**
+ * Comme `Requis`, mais `null` reste une valeur possible.
+ *
+ * La différence compte partout où `null` **veut dire quelque chose** : le
+ * `variant_ref` d'un lien froid est nul quand le fichier déporté n'est rattaché
+ * à aucun variant du registre, et la place libre d'un volume est nulle quand le
+ * volume est démonté. `NonNullable` effacerait ces deux cas du typage, et le
+ * front écrirait des accès qui paraissent sûrs sur des valeurs qui ne le sont
+ * pas.
+ */
+type Emis<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: T[P] };
+
 // --- registre ---------------------------------------------------------------------
 
 export type Issue = Schemas["IssueOut"];
@@ -149,11 +161,42 @@ export interface Recoverable {
   total_known_bytes?: number;
 }
 
+/** Un contenu détenu en plusieurs exemplaires, et ce que les lier rendrait. */
+export interface DuplicateGroup {
+  sha256: string;
+  size: number;
+  paths: string[];
+  reclaimable_bytes: number;
+}
+
+/**
+ * Un lien laissé par le tiering — la trace d'un variant parti sur un volume.
+ *
+ * Il apparaît à deux endroits sous deux noms : dans `figures.cold`, où le
+ * serveur le transporte en dictionnaire opaque avec le reste du calcul, et dans
+ * `/store/tiering`, où il est un modèle pydantic. Un seul type ici, dérivé du
+ * second : deux copies divergeraient, et c'est le même objet.
+ */
+export type ColdLink = Emis<Schemas["ColdLinkOut"], "variant_ref">;
+
 export interface Figures {
   apparent_bytes: number;
   real_unique_bytes: number;
   recoverable: Recoverable;
-  by_manager?: Record<string, [number, number]>;
+  /** `[octets apparents, nombre de fichiers]` — un tableau, non un objet. */
+  by_manager: Record<string, [number, number]>;
+  duplicates: DuplicateGroup[];
+  cold: ColdLink[];
+  /** Injecté par la route, comme `total_known_bytes` : une propriété calculée. */
+  cold_unavailable?: ColdLink[];
+  unresolved_bytes: number;
+  unresolved_count: number;
+  unverified_bytes: number;
+  unverified_count: number;
+  announced_bytes: number;
+  unused_variants: string[];
+  /** Contenu qui ne correspond pas au hash annoncé : ne rien planifier dessus. */
+  mismatched: string[];
   [autre: string]: unknown;
 }
 
@@ -162,6 +205,65 @@ export type StoreSummaryResponse = Omit<Schemas["StoreSummaryResponse"], "figure
 };
 
 export type Telemetry = Schemas["TelemetryOut"];
+
+/**
+ * Une action du plan de récupération, dans les trois formes du §4.3.
+ *
+ * Écrite à la main pour la raison qui vaut déjà pour `figures` : le plan est
+ * produit par `ecurie_store.plan`, il voyage en dictionnaire opaque, et le
+ * pydantic qui le mirroirait divergerait. Les clés diffèrent d'une action à
+ * l'autre — `hardlink` a `keep` et `replace`, `trash` a `path` — d'où les
+ * optionnels : c'est une union que le serveur n'étiquette pas, et
+ * l'aiguillage se fait sur `kind`.
+ */
+export interface PlanAction {
+  kind: "hardlink" | "trash" | "tier" | (string & {});
+  reason: string;
+  bytes_reclaimed: number;
+  sha256?: string | null;
+  keep?: string;
+  replace?: string[];
+  path?: string;
+  variant_ref?: string;
+  variant_refs?: string[];
+  hash_source?: string;
+  revision?: string;
+  stats?: Record<string, { size: number; mtime: number; inode: number; device: number }>;
+}
+
+/** Des chemins écartés du plan, groupés par la raison qui les en écarte. */
+export interface PlanIgnored {
+  reason: string;
+  paths: string[];
+}
+
+export interface Plan {
+  plan_version: number;
+  plan_id: string;
+  generated_at: string;
+  scan_id: string | null;
+  telemetry: boolean;
+  unused_after_days: number;
+  actions: PlanAction[];
+  ignored: PlanIgnored[];
+  by_reason: Record<string, number>;
+  total_bytes_reclaimed: number;
+}
+
+export type StorePlanResponse = Omit<Requis<Schemas["StorePlanResponse"], "labels">, "plan"> & {
+  plan: Plan | null;
+};
+
+export type TierVolume = Emis<Schemas["TierVolumeOut"], "free_bytes" | "total_bytes">;
+export type VariantFootprint = Requis<
+  Schemas["VariantFootprintOut"],
+  "devices" | "shared_with" | "tiered_links"
+>;
+export type TieringResponse = Omit<Schemas["TieringResponse"], "cold" | "variants" | "volumes"> & {
+  cold: ColdLink[];
+  variants: VariantFootprint[];
+  volumes: TierVolume[];
+};
 
 // --- dépôt de fichier ---------------------------------------------------------------
 
@@ -206,11 +308,7 @@ export interface IndexResponse {
 export type Tier = "hot" | "cold" | "absent" | (string & {});
 export type Status = "active" | "candidate" | "deprecated" | "retired" | (string & {});
 export type LicenseClass =
-  | "permissive"
-  | "restricted"
-  | "research-only"
-  | "unknown"
-  | (string & {});
+  "permissive" | "restricted" | "research-only" | "unknown" | (string & {});
 export type SourceKind = "huggingface" | "ollama" | "url" | "local" | (string & {});
 export type RuntimeName =
   | "mlx-lm"

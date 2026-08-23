@@ -255,6 +255,30 @@ patch YAML (`tier: cold`) à committer — cohérent avec « toute évolution du
 par Git ». Au scan, un symlink dont la cible est absente marque le variant
 `cold-unavailable` ; l'API l'expose et l'UI grise.
 
+**Décider *quoi* déporter demande un chiffre que rien ne calculait**, et l'écran
+Parc (4.5) l'a fait apparaître : `footprints()` rend l'empreinte disque de chaque
+variant observé. Deux nombres par variant, et leur écart est le sujet même du
+tiering — `bytes` est ce qu'il occupe, `freed_bytes` ce que le volume de départ
+récupérerait. Ils diffèrent dès qu'un inode a une référence hors du parc scanné :
+le déport copie alors des giga-octets sans en libérer un seul, et n'afficher que
+le premier ferait déporter pour rien. La règle est celle qu'`entierement_couvert`
+tenait déjà pour le plan de GC, rendue publique pour l'occasion — les deux
+décisions posent la même question au même endroit.
+
+Deux pièges de plus, et ils viennent du parc réel : un même inode à plusieurs
+chemins ne pèse qu'une fois — le cache HF en est plein —, et **un fichier peut
+appartenir à deux variants**. Les mêmes poids Qwen3-VL servent la lecture de
+document et la description d'image ; chacun affiche ses 5,78 Go, si bien que la
+somme de la colonne dépasse le parc. `shared_with` est ce qui explique l'écart au
+lecteur plutôt que de le laisser conclure à une erreur de calcul.
+
+`cold_links()` est sorti de `compute_figures` pour la même occasion : la route du
+tiering n'a besoin que de cette liste, et la lui faire payer une classification
+complète du parc reviendrait à parcourir trente mille chemins pour afficher trois
+lignes. Ce que la fonction porte de délicat tient en un test : le cache HF est
+lui aussi un champ de liens symboliques — chaque `snapshots/<révision>/<fichier>`
+pointe vers un blob —, et seul `meta.snapshot` les distingue d'un variant déporté.
+
 ---
 
 ## 5. `packages/runtime` — workers, adaptateurs, admission
@@ -489,16 +513,36 @@ FastAPI, lancée par `ecurie serve`. Surface v0.4 :
 ```
 GET  /registry/capabilities              GET /registry/models[?capability=]   ✓
 GET  /store/summary                      trois chiffres + arbre de duplication ✓
+GET  /store/plan[?verified_only=]        plan de récupération, à blanc         ✓
+GET  /store/tiering                      volumes, variants froids, empreintes  ✓
 GET  /runtime/residents[?for=<ref>]      mémoire, budget, admission simulée    ✓
 POST /runtime/admission {ref, input}     pic attendu pour cette entrée         ✓
 POST /jobs        {ref, input, seed?}    → 202 {id, state, …}                  ✓
 GET  /jobs/{id}   état + manifeste       GET /jobs/{id}/events   (SSE)         ✓
 GET  /jobs/{id}/files/{chemin}           fichiers de sortie                    ✓
 POST /uploads     multipart              → 201 {path, name, media_type, size}  ✓
-POST /store/plan
 POST /evals/preference  {capability, input_hash, a, b, winner}
 GET  /library[?capability=&model=]       POST /library/{job_id}/replay
 ```
+
+**Le plan de récupération est un `GET`, et la surface d'écriture du parc reste
+vide** (tâche 4.5). Cette ligne portait `POST /store/plan` depuis l'origine, et
+le verbe venait d'un raisonnement juste sur la CLI : `ecurie store plan` **écrit
+un fichier**, parce que `ecurie store apply` en exige un — le plan est le
+document qu'on relit avant de laisser un outil toucher trente giga-octets. Ce qui
+a changé n'est pas ce besoin mais l'usage : l'écran Parc pose une question, il ne
+demande pas un document. Un `POST` par consultation déposerait un plan dans
+`~/.ecurie/plans/` à chaque ouverture d'onglet, et la relecture avant exécution
+perdrait son sens à mesure que les fichiers s'accumuleraient. La route rend donc
+le plan **entier** — actions, empreintes, écartés — sans le poser nulle part, et
+`command` porte la commande qui l'écrit pour de bon.
+
+Il en va de même du tiering, où la raison est plus forte encore : le §4.4 veut
+que l'outil ne touche pas au manifeste et affiche le `tier: cold` à committer.
+Un déport lancé depuis un navigateur laisserait donc le registre mentir sur
+l'état du disque jusqu'au prochain commit — la moitié de l'opération n'est pas
+automatisable par construction. `/store/tiering` montre où déporter, ce qui l'est
+déjà, et ce que chaque variant rendrait ; `ecurie store tier` fait le reste.
 
 **La tâche 4.1 a livré les lectures**, cochées ci-dessus. Elles n'engagent rien —
 aucun modèle chargé, aucun octet déplacé, aucun manifeste écrit — et elles
@@ -764,12 +808,48 @@ qu'un dix-huitième y entre sans qu'une ligne de front bouge.
   parce qu'`audio-separation` déclare cinq pistes et n'en produit que deux ou
   quatre selon `stems`.
 - **Quatre écrans**, plafond ferme (§9 de l'architecture) : Atelier, Confrontation,
-  Parc, Bibliothèque. **Le premier est livré, et il exécute** (tâche 4.4) :
+  Parc, Bibliothèque. **Les deux premiers sont livrés.** Le second est le Parc
+  (tâche 4.5), et c'est lui qui a donné sa navigation à la coquille — un onglet
+  unique était un décor, à deux il en faut une. Elle tient en un `useState` et
+  deux boutons : ni routeur, ni URL. Ce que cela coûte est réel et se dit —
+  recharger la page revient à l'Atelier, un écran ne se met pas en signet — et la
+  question se reposera au quatrième, quand un lien vers un job précis de la
+  Bibliothèque commencera à valoir quelque chose. Les boutons ne sont pas non
+  plus des `tab` ARIA, bien que la forme y ressemble : le motif `tablist` engage
+  à une navigation par les flèches avec un `tabindex` mobile, et le déclarer sans
+  le tenir vaut moins que de ne pas le déclarer.
+
+  **L'écran qu'on quitte est démonté, pas caché** : le Parc classe tout le parc
+  par contenu à chaque lecture et l'Atelier sonde la mémoire toutes les deux
+  secondes ; les garder tous deux montés ferait payer en permanence celui qu'on
+  ne regarde pas.
+
+  Le Parc porte les trois chiffres, l'arbre de duplication, le plan de GC et le
+  tiering, et trois décisions le gouvernent :
+  - **il ne sonde pas.** Le bandeau de ressources se rafraîchit parce que la
+    mémoire bouge sans qu'on touche à l'écran ; le disque observé, lui, ne bouge
+    qu'après un `ecurie store scan`, qui est une commande qu'on tape. Un bouton
+    *Relire* remplace le sondage ;
+  - **rien n'y touche au disque**, et c'est un choix et non une étape suivante —
+    les raisons sont au §6, elles tiennent au §4.3 et au §4.4 ;
+  - **trois lectures indépendantes**, chacune affichant son propre échec : un
+    parc sans volume de tiering déclaré n'a aucune raison de perdre ses trois
+    chiffres.
+
+  Le bandeau de ressources n'y figure pas, bien qu'il soit « global par sa
+  nature » : il parle de mémoire unifiée quand cet écran parle de disque. Les
+  deux ne se comptent même pas dans la même unité — **Gio binaires pour le budget
+  Metal, Go décimaux pour le disque**, comme la CLI, parce qu'un disque s'annonce
+  et s'affiche en puissances de dix. Un écran Parc qui dirait « 4,56 Gio » de ce
+  que `ecurie store status` appelle 4,90 Go ferait douter du chiffre plutôt que
+  de l'unité, et la tâche demandait la parité avec la CLI.
+
+  **Le premier exécute** (tâche 4.4) :
   `src/ecrans/Atelier.tsx` remplace le banc de rendu, avec le choix de la capacité
   groupé par ce qui marche, le variant préselectionné sur le titulaire exécutable,
   le formulaire engendré, le chiffrage de l'entrée, le bouton *Lancer*, la
-  progression en direct et la sortie réelle. `App.tsx` n'est plus qu'une coquille
-  sans état ; la navigation attend le Parc (4.5), un onglet unique étant un décor.
+  progression en direct et la sortie réelle. `App.tsx` reste une coquille : elle
+  ne porte qu'un état d'écran, et n'en portera pas d'autre.
   Trois décisions gouvernent le lancement, et aucune n'était au plan :
   - **le bouton n'est jamais grisé pour un variant qu'on croit incapable.** « Ce
     morceau de 30 s demanderait 24,2 Gio » vaut mieux qu'un bouton mort ; un
@@ -813,6 +893,84 @@ qu'un dix-huitième y entre sans qu'une ligne de front bouge.
   chiffres, qui restent affichés datés de l'heure où ils étaient vrais ; et un
   onglet caché **ne sonde pas** — à deux secondes, un onglet laissé ouvert une
   journée fait quarante mille requêtes dont chacune vérifie l'existence de processus.
+
+**La feuille de style est devenue un langage visuel, et le bandeau une barre de
+stalles.** Celle du 4.3 ne visait rien de plus que « rendre lisible le formulaire
+engendré », et tenait la promesse qui allait avec — ne pas laisser un choix pris
+pour un formulaire dicter le langage visuel de quatre écrans. Une fois les deux
+écrans montés, ce qu'elle produisait était un document : titres, puces et notes
+grises dans une plage de deux dixièmes de rem, sans une surface, sans une couleur
+qui décide. On y lisait « lancer refusé » du même œil que « mesuré le
+20/08/2026 ». Ce que la refonte change, et qui n'est pas cosmétique :
+
+- **L'Atelier passe à deux colonnes** au-delà de 68 rem — la composition à
+  gauche, le box à droite, collant. C'est la réponse à une gêne que le code du
+  bandeau nommait sans pouvoir la traiter : « visible pendant qu'on remplit un
+  formulaire long, le contrat de `tool-use` fait défiler bien au-delà d'un
+  écran ». Un bandeau en haut de page ne le tenait qu'à moitié. L'ordre du
+  balisage — choisir, remplir, lancer — ne change pas d'une largeur à l'autre :
+  en une colonne le box retombe sous le formulaire, là où l'on attend un bouton
+  d'envoi, si bien qu'aucun `order` CSS ne sépare le regard de la tabulation.
+  Ce n'est pas la première marche vers un clone de ComfyUI : deux colonnes de
+  document ne sont pas un canevas de nœuds, et le plafond de quatre écrans est
+  intact.
+- **La jauge devient un rang de boxes.** Une part unique et grise répondait à
+  « c'est plein aux deux tiers » et à rien d'autre, alors que la question de
+  l'écran est **« que faudra-t-il décharger »** — et la réponse tient dans la
+  répartition, pas dans le total. Le rail porte une plaque par résident, à sa
+  largeur réelle, et la part de l'arrivant hachurée à la suite : les hachures
+  distinguent un fait d'une hypothèse. Quand la demande dépasse le budget,
+  **l'échelle s'étend** à `occupé + demandé` et un repère marque où tombe le
+  budget ; une jauge bornée à 100 % répondait « plein » aussi bien à un
+  dépassement de 200 Mio qu'à un dépassement de douze gigaoctets, et ces deux
+  situations n'appellent pas le même geste. Le calcul vit dans
+  `src/ressources/stalles.ts`, testé sans rendre un composant, comme tout ce qui
+  décide dans ce front. `used_bytes` valant exactement `Σ peak_bytes` côté
+  serveur, les segments couvrent l'occupé sans reste ni arrondi à cacher.
+- **Une couleur par sens, et jamais une couleur seule.** Le laiton est la matière
+  occupée et l'action, le pré est ce qui tient, la brique est ce qui refuse. Il
+  n'y a **pas de bleu** — c'est la couleur par défaut de toutes les interfaces,
+  et une écurie n'en a pas. Chaque état porte aussi son mot, ce qui était déjà la
+  règle des modules qui composent les phrases : une stalle nomme son occupant,
+  son poids et son état dans la légende, et le repère du budget a perdu son
+  étiquette parce qu'elle tombait pile sur le nom peint de la plaque qu'elle
+  coupe.
+- **Aucune dépendance n'est arrivée avec elle** — ni thème RJSF, ni police
+  distante. Une police servie par un tiers sur un outil qui gère des modèles hors
+  ligne casserait la page le jour où l'on travaille sans réseau, ce qui est
+  précisément le jour où cet outil sert.
+
+Trois défauts ne se voyaient qu'à l'écran, et aucun test ne pouvait les
+attraper : le nom peint sur une plaque hachurée devenait illisible une lettre sur
+deux tant que les hachures allaient vers le papier plutôt que vers l'encre ; RJSF
+émet le champ booléen à l'envers de tous ses autres champs, description d'abord
+et nom ensuite, si bien qu'on lisait « Horodater chaque mot » sans savoir de quoi
+cela parlait ; et le sélecteur de fichier natif annonce lui-même « Choisir un
+fichier », doublant le libellé du composant d'une seconde invitation tronquée au
+milieu d'un mot. C'est la même leçon que le reste du dépôt : une capture d'écran
+montre en une seconde ce qu'une suite qui cherche du texte par sous-chaîne ne
+verra jamais.
+
+**Le quatrième n'était pas cosmétique : la caméra ne montrait rien.** Le viseur
+restait vide et *Prendre la photo* répondait « la caméra n'a pas encore envoyé
+d'image », alors que le matériel s'ouvrait bel et bien — diode comprise. La cause
+est un branchement posé depuis un `queueMicrotask` : `ouvrir` reprend la main
+après son `await`, hors du geste de l'utilisateur, si bien que le rendu du
+`<video>` est planifié par l'ordonnanceur de React — une macrotâche — quand la
+microtâche, elle, s'exécute tout de suite. `videoRef.current` valait `null`, et
+`srcObject` partait dans le vide sans une erreur. Le flux se branche désormais
+dans un **effet**, qui ne tourne qu'après le commit. Deux enseignements : un
+`useRef` sur un élément conditionnel n'est jamais garanti au retour d'un `await`,
+et **vérifier qu'on a appelé `getUserMedia` ne prouve rien** — c'est l'élément
+qui doit porter le flux, ce que la suite garde maintenant en lisant `srcObject`.
+Le défaut a survécu à la tâche qui l'a livré parce que jsdom n'a pas de caméra ;
+il s'éprouve avec la mire factice de Chrome
+(`--use-fake-device-for-media-stream`), comme un vrai `ecurie serve` éprouve le
+reste du front.
+
+Le fond du viseur est noir dans les deux thèmes, et non `--encre` : en thème
+sombre l'encre est claire, et le viseur virait au crème — un flux pas encore
+arrivé y ressemblait à une panne.
 
 **Le typage vient du serveur.** `tools/openapi_dump.py` fige le schéma OpenAPI
 dans `apps/ui/src/api/openapi.json`, dont `openapi-typescript` engendre les
@@ -896,6 +1054,54 @@ change de capacité pendant que le `POST` vole — revenait bloquer *Lancer*
 pendant une reprise réapparaissait tout seul. Le chiffrage avait la même faille
 là où le bandeau avait déjà sa garde. La règle vaut pour tout l'écran : **une
 réponse qui revient doit prouver qu'on lui a posé la question la plus récente.**
+
+Le Parc en a coûté trois autres, et deux ne se voyaient que sur le vrai disque.
+
+**Le front n'avait qu'une unité, et elle était fausse pour la moitié de ce
+qu'il affiche.** `formatBytes` rend des Gio binaires, ce qui est juste pour tout
+ce que l'UI comptait jusqu'ici — le budget Metal, un pic, un seuil de lourdeur.
+`ecurie_store.figures.fmt_bytes`, lui, rend des Go décimaux, et ce n'est pas une
+négligence de la CLI : un disque s'annonce, se vend et s'affiche dans le Finder
+en puissances de dix. Réutiliser la fonction existante aurait affiché « 43,4 Gio »
+là où `ecurie store status` dit « 46,58 Go » — pour les mêmes octets, dans un
+écran dont la tâche demandait la parité avec la CLI. Deux fonctions, donc, et la
+règle est que **l'unité suit ce qu'on compte, pas le composant qui l'affiche**.
+
+**Le parc réel a déplacé le sujet de l'écran.** Sur la machine de référence :
+46,58 Go apparents, 11,4 Mo récupérables. Rapporté au total, le plan de GC ne
+propose rien — et c'est une bonne nouvelle qu'aucune fixture n'aurait donnée. Ce
+que le même écran révèle, en revanche, est autrement utile : **14,29 Go, tout
+Ollama, ne sont rattachés à aucun variant du registre**, et 46,56 Go sur 46,58
+portent un hash *annoncé par leur gestionnaire et jamais relu*. Le Parc n'est
+donc pas d'abord un outil de nettoyage mais un outil de **connaissance** — ce que
+le disque contient, et ce qu'on n'en sait pas.
+
+**D'où la case à cocher plutôt qu'une option de CLI.** `--verified-only` avait
+l'air d'un réglage d'expert ; sur ce parc, elle ramène le gain proposé de
+11,4 Mo à zéro, parce que l'unique duplication trouvée repose sur un nom de blob
+et non sur un contenu relu. Ce n'est pas un raffinement, c'est la différence
+entre « voici ce qu'on peut reprendre » et « voici ce qu'on croit pouvoir
+reprendre ». Une décision de cette portée doit être visible et réversible d'un
+clic dans l'écran qui affiche le chiffre, pas enfouie dans un `--help`.
+
+**Une capture d'écran a trouvé deux défauts que quatre cent cinq tests
+laissaient passer**, et les deux tiennent au même geste. Les phrases du serveur
+et du front étaient écrites avec des accents graves autour des commandes — la
+convention des docstrings de ce dépôt —, et le navigateur les affichait tels
+quels au milieu de phrases françaises. Aucun test ne pouvait le voir : tous
+cherchent le texte par sous-chaîne, et « `ecurie store verify` » contient
+« ecurie store verify ». La règle est désormais explicite des deux côtés — les
+commandes s'écrivent en `<code>` dans le front, en clair dans les chaînes du
+serveur, comme les blockers le font depuis le 4.4 — et deux tests la gardent, le
+second en interrogeant le texte rendu de l'écran entier. Second défaut, trouvé
+sur la même image : les motifs d'**écart** du plan s'affichaient sous leur clé
+brute (« sans-sha256 ») faute d'entrée dans `REASON_LABELS`, qui ne nommait que
+les motifs d'action. Deux lignes côté serveur, et l'écran hérite de la
+traduction.
+
+La leçon dépasse ces deux-là : **une suite de tests vérifie ce qu'un écran dit,
+pas ce qu'il montre.** Regarder la page une fois a coûté une minute et rapporté
+plus que la relecture du diff.
 
 ---
 

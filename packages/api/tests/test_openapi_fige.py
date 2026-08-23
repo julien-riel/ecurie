@@ -68,6 +68,13 @@ def test_les_routes_figees_sont_celles_que_le_front_appelle():
     d'être vrai — le chemin rendu est toujours local — mais le raisonnement qui
     en découlait : une image choisie dans une page, une photo de la caméra et un
     son du micro n'ont jamais eu de chemin à saisir, quelle que soit la machine.
+
+    Les deux dernières sont celles de l'écran Parc (tâche 4.5). Elles auraient pu
+    manquer : `/store/summary` porte déjà les trois chiffres et l'arbre de
+    duplication, et un écran s'en serait contenté. Ce qui aurait manqué avec, ce
+    sont les deux moitiés de la décision — ce qu'un plan de GC propose, et ce
+    qu'un déport rendrait —, c'est-à-dire tout ce qui distingue un tableau de
+    bord d'un écran sur lequel on agit.
     """
     if not FIGE.exists():
         pytest.skip("apps/ui absent : le front n'est pas installé dans cette copie")
@@ -79,6 +86,8 @@ def test_les_routes_figees_sont_celles_que_le_front_appelle():
         "/registry/capabilities",
         "/registry/models",
         "/store/summary",
+        "/store/plan",
+        "/store/tiering",
         "/runtime/residents",
         "/runtime/admission",
         "/jobs",

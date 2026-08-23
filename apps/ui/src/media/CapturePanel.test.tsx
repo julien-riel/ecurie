@@ -91,6 +91,34 @@ describe("les modes offerts", () => {
 });
 
 describe("la photo", () => {
+  test("le flux arrive jusqu_a l_element, et pas seulement jusqu_au composant", async () => {
+    // Ce que ce test garde a été livré cassé et n'a été vu qu'à l'écran : le
+    // flux était branché depuis un `queueMicrotask`, qui s'exécute avant que
+    // React ait posé le `<video>`. `videoRef.current` valait `null`,
+    // l'affectation partait dans le vide sans une erreur, la caméra s'allumait
+    // — la diode aussi — et le viseur restait noir. Vérifier que `flux` a été
+    // appelé ne suffit donc pas : c'est l'élément qui doit le porter.
+    const { materiel, flux } = materielFactice();
+    render(<CapturePanel accept={["image/*"]} onCapture={vi.fn()} materiel={materiel} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Caméra" }));
+    const video = (await screen.findByLabelText("Aperçu de la caméra")) as HTMLVideoElement;
+
+    await waitFor(() => expect(video.srcObject).toBe(flux));
+  });
+
+  test("refermer detache le flux de l_element", async () => {
+    const { materiel } = materielFactice();
+    render(<CapturePanel accept={["image/*"]} onCapture={vi.fn()} materiel={materiel} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Caméra" }));
+    const video = (await screen.findByLabelText("Aperçu de la caméra")) as HTMLVideoElement;
+    await waitFor(() => expect(video.srcObject).not.toBeNull());
+
+    await userEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    expect(video.srcObject).toBeNull();
+  });
+
   test("le clic ouvre la camera, le second bouton la photographie", async () => {
     const { materiel } = materielFactice();
     const onCapture = vi.fn();

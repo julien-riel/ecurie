@@ -192,6 +192,92 @@ class StoreSummaryResponse(BaseModel):
     )
 
 
+class StorePlanResponse(BaseModel):
+    """Le plan de récupération, **jamais écrit** — c'est toute la différence avec la CLI.
+
+    `ecurie store plan` produit un fichier, parce que `ecurie store apply` en
+    exige un : le plan est le document qu'on relit avant de laisser un outil
+    toucher trente giga-octets. Un `GET` ne fabrique pas de document ; il montre
+    ce qu'un plan dirait, et laisse la commande à taper pour l'obtenir pour de
+    bon. `command` porte cette commande, parce que l'écran qui affiche un gain de
+    quatre giga-octets doit dire par où on le prend.
+    """
+
+    scanned: bool
+    last_scan_at: str | None = None
+    stale: bool = False
+    plan: Json | None = Field(
+        default=None,
+        description=(
+            "Le plan tel que `ecurie_store.plan.generate_plan` le produit "
+            "(CONCEPTION.md §4.3), ou `null` tant qu'aucun scan n'a eu lieu."
+        ),
+    )
+    labels: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Le libellé français de chaque motif d'action, tel que la CLI "
+            "l'affiche — le front n'entretient pas sa propre table."
+        ),
+    )
+    command: str | None = Field(
+        default=None, description="La commande qui écrit ce plan et permet de l'appliquer."
+    )
+    hint: str | None = None
+
+
+class TierVolumeOut(BaseModel):
+    """Un volume de `tier_volumes`, et son état au moment de la requête."""
+
+    path: str
+    mounted: bool = Field(description="Le point de montage existe et est un dossier.")
+    free_bytes: int | None = Field(
+        default=None, description="`null` quand le volume est démonté — inconnu, pas zéro."
+    )
+    total_bytes: int | None = None
+
+
+class ColdLinkOut(BaseModel):
+    path: str
+    target: str
+    available: bool = Field(description="La cible du lien est atteignable — volume monté.")
+    variant_ref: str | None = None
+
+
+class VariantFootprintOut(BaseModel):
+    ref: str
+    files: int
+    bytes: int
+    freed_bytes: int = Field(
+        description=(
+            "Ce que le volume de départ rendrait vraiment : un inode dont une "
+            "référence échappe au parc scanné ne libère rien."
+        )
+    )
+    shared_with: list[str] = Field(default_factory=list)
+    devices: list[int] = Field(default_factory=list)
+    tiered_links: int = 0
+    tierable: bool
+
+
+class TieringResponse(BaseModel):
+    """Ce que le tiering donne à voir : où déporter, ce qui l'est déjà, ce qui pèse.
+
+    Une lecture, et rien d'autre. Déporter copie des giga-octets et met des
+    originaux en quarantaine : `ecurie store tier` le fait, avec une
+    confirmation, et l'écran donne la commande. Un bouton qui déclencherait cela
+    depuis un navigateur mettrait une opération irréversible à un clic d'un
+    survol de souris.
+    """
+
+    scanned: bool
+    last_scan_at: str | None = None
+    volumes: list[TierVolumeOut] = Field(default_factory=list)
+    cold: list[ColdLinkOut] = Field(default_factory=list)
+    variants: list[VariantFootprintOut] = Field(default_factory=list)
+    hint: str | None = None
+
+
 # --- exécution ---------------------------------------------------------------------
 
 
