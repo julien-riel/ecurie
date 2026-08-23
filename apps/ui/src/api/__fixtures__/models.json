@@ -1150,12 +1150,11 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "minicpm-o45-describe@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench minicpm-o45-describe@4bit"
-          ],
+          "blockers": [],
           "caveats": [
-            "MESURÉ — CE VARIANT NE SE CHARGE PAS. mlx-vlm 0.6.15 rend « Missing 1203 parameters ». Les poids sont pourtant tous là : les 367 tenseurs `audio_tower` de l'index sont bien dans les fichiers, vérifié tenseur par tenseur. Le défaut est dans le `sanitize` du module `minicpmo`, qui attend les noms d'origine du dépôt OpenBMB (`llm.`, `vpm.`, `apm.`) et jette tout ce qui ne commence pas par eux — or cette conversion porte déjà les noms normalisés (`language_model.`, `vision_tower.`, `audio_tower.`). Le manifeste reste au registre pour porter ce déclencheur : une version de mlx-vlm dont le sanitize accepte les deux formes, ou une conversion aux noms d'origine — `andrevp/MiniCPM-o-4_5-MLX-4bit` (6,99 Go) est à essayer.",
+            "6,26 Gio de pic, 5,7 s par sortie. Il se charge grâce au correctif `minicpm_compat`, qui rend aux poids les noms que le sanitize de mlx-vlm attend — sans lui, ce variant rendait « Missing 1203 parameters » sur des poids pourtant tous présents.",
             "Le modèle porte une tête de synthèse vocale (`tts_config: minicpmtts`) qu'aucun manifeste du parc n'emploie : `text-to-speech` est servi par qwen3-tts-1.7b, et faire parler celui-ci demanderait un adaptateur de plus. Ce qui est chargé ici l'est donc en partie pour rien — environ le poids de la tête TTS, à mesurer.",
+            "OBSERVÉ — LE FRANÇAIS EST CORRECT, contrairement à celui de MiniCPM-V 4.6 : « un cube, une sphère et un cône », les genres et les accords tiennent. C'est le principal argument de ce modèle face à son cadet, qui décrit aussi juste mais écrit mal — pour 3,6 Gio de pic en plus et quatre fois le temps de réponse.",
             "Poids partagés avec les autres manifestes minicpm-o45 — les déporter les déplace tous."
           ],
           "defaults": {
@@ -1165,14 +1164,25 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": false,
           "id": "4bit",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 6157966275,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 4131,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 6724309086,
+            "rtf": null,
+            "throughput": "1 sortie / 5.7 s",
+            "warmup_ms": 1735
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "minicpm-o45-describe@4bit",
           "runtime": "mlx-vlm",
           "source": {
@@ -1257,7 +1267,8 @@
             "minicpm-o45-ecoute@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench minicpm-o45-ecoute@4bit"
           ],
           "caveats": [
-            "MESURÉ — CE VARIANT NE SE CHARGE PAS. mlx-vlm 0.6.15 rend « Missing 1203 parameters ». Les poids sont pourtant tous là : les 367 tenseurs `audio_tower` de l'index sont bien dans les fichiers, vérifié tenseur par tenseur. Le défaut est dans le `sanitize` du module `minicpmo`, qui attend les noms d'origine du dépôt OpenBMB (`llm.`, `vpm.`, `apm.`) et jette tout ce qui ne commence pas par eux — or cette conversion porte déjà les noms normalisés (`language_model.`, `vision_tower.`, `audio_tower.`). Le manifeste reste au registre pour porter ce déclencheur : une version de mlx-vlm dont le sanitize accepte les deux formes, ou une conversion aux noms d'origine — `andrevp/MiniCPM-o-4_5-MLX-4bit` (6,99 Go) est à essayer.",
+            "MESURÉ — IL SE CHARGE, IL N'ÉCOUTE PAS. Le correctif `minicpm_compat` a levé le refus de chargement, et la tour audio est bien construite (367 tenseurs). L'audio parvient au modèle — le gabarit porte son jeton, vérifié. Mais la sortie est inexploitable : « <unk><|tts_eos|> » sur une demande de transcription, et une boucle dégénérée sur une demande de description (« un chien abattant son chien », répété). La cause est en aval du chargement — préparation du signal, ou encodeur audio abîmé par la quantification à 4 bits. Le variant reste au registre pour porter ce constat, pas pour être employé.",
+            "Ce qu'il faudrait essayer avant de conclure : le variant 5 bits, et le modèle amont en Torch. Ni l'un ni l'autre n'a été téléchargé — 7,19 Go et 20,05 Go, pour une hypothèse et non pour un besoin.",
             "`listened_seconds` n'est renseigné que pour un WAV, dont l'en-tête donne la durée sans décoder. Pour les autres conteneurs la sortie est absente plutôt qu'inventée : le contrat déclare la durée écoutée, pas la durée devinée.",
             "Le contrat expose `max_seconds`, que cet adaptateur ne peut pas honorer : le son est décodé par le processeur du runtime, pas par le worker, qui n'a donc pas la main pour tronquer. Un enregistrement plus long que la fenêtre du modèle sera coupé par le modèle, sans que rien ne le dise.",
             "Poids partagés avec minicpm-o45-describe — les déporter avec `ecurie store tier` déplace les deux."

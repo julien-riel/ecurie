@@ -1141,6 +1141,7 @@
       },
       "ready_variants": [
         "gemma4-12b-describe@4bit",
+        "minicpm-o45-describe@4bit",
         "minicpm-v46-describe@4bit",
         "qwen3-vl-8b-describe@4bit"
       ],

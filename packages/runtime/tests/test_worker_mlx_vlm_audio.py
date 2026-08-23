@@ -130,3 +130,49 @@ def test_un_wav_illisible_ne_fait_pas_echouer_le_job(tmp_path):
     chemin.write_bytes(b"RIFF....pas vraiment")
 
     assert _duree(chemin) is None
+
+
+# --- le correctif MiniCPM-o -------------------------------------------------------
+
+
+def test_les_noms_normalises_reviennent_aux_noms_d_origine():
+    """mlx-vlm 0.6.15 traduit `llm.`/`vpm.`/`apm.` vers les noms MLX et jette
+    tout le reste. Les conversions publiées portent déjà les noms d'arrivée."""
+    from ecurie_runtime.workers.minicpm_compat import renommer
+
+    traduits = renommer(
+        {"language_model.a": 1, "vision_tower.b": 2, "audio_tower.c": 3}
+    )
+
+    assert traduits == {"llm.a": 1, "vpm.b": 2, "apm.c": 3}
+
+
+def test_l_autre_nom_de_la_tour_audio_est_reconnu():
+    """Les conversions ne s'accordent pas entre elles : `audio_tower` chez
+    mlx-community, `audio_encoder` chez andrevp."""
+    from ecurie_runtime.workers.minicpm_compat import renommer
+
+    assert renommer({"audio_encoder.conv1.bias": 1}) == {"apm.conv1.bias": 1}
+
+
+def test_ce_que_le_sanitize_d_amont_accepte_deja_n_est_pas_touche():
+    from ecurie_runtime.workers.minicpm_compat import renommer
+
+    intact = {"resampler.a": 1, "audio_projection_layer.b": 2, "tts.c": 3}
+
+    assert renommer(intact) == intact
+
+
+def test_une_cle_deja_sous_son_nom_d_origine_traverse_intacte():
+    """Le correctif doit s'effacer le jour où l'amont livrera les noms attendus,
+    ou face à une conversion qui les porte déjà."""
+    from ecurie_runtime.workers.minicpm_compat import renommer
+
+    assert renommer({"llm.model.embed": 1}) == {"llm.model.embed": 1}
+
+
+def test_une_cle_inconnue_des_deux_cotes_est_laissee_au_sanitize_d_amont():
+    """Décider ici de ce qu'il doit jeter reviendrait à recopier sa politique."""
+    from ecurie_runtime.workers.minicpm_compat import renommer
+
+    assert renommer({"inattendu.x": 1}) == {"inattendu.x": 1}

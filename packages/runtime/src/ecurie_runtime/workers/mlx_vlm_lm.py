@@ -34,6 +34,7 @@ import gc
 from typing import Any
 
 from ecurie_runtime.workers.base import WorkerError
+from ecurie_runtime.workers.minicpm_compat import poser as poser_compat_minicpmo
 from ecurie_runtime.workers.mlx_lm import Runtime
 
 ENV_NAME = "mlx-vlm"
@@ -56,6 +57,9 @@ def import_runtime() -> Runtime:
         raise WorkerError(
             f"runtime mlx-vlm indisponible dans cet environnement ({exc}) — `{REPAIR}`"
         ) from exc
+    # Correctif d'emprunt, sans effet sur les autres familles : il ne touche
+    # que le module `minicpmo` d'amont. Voir `minicpm_compat`.
+    poser_compat_minicpmo()
     return Runtime(
         mx=mx,
         load=load,

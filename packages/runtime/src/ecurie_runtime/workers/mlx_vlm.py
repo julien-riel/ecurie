@@ -37,6 +37,7 @@ from ecurie_runtime.workers.base import (
     peak_rss_bytes,
     sans_raisonnement,
 )
+from ecurie_runtime.workers.minicpm_compat import poser as poser_compat_minicpmo
 
 OUTPUT_TEXT = "text.txt"
 OUTPUT_LAYOUT = "layout.json"
@@ -99,6 +100,9 @@ def import_runtime() -> Runtime:
             f"runtime mlx-vlm indisponible dans cet environnement ({exc}) — "
             f"le reconstruire avec `{REPAIR}`"
         ) from exc
+    # Correctif d'emprunt, sans effet sur les autres familles : il ne touche
+    # que le module `minicpmo` d'amont. Voir `minicpm_compat`.
+    poser_compat_minicpmo()
     return Runtime(
         mx=mx,
         load=load,
