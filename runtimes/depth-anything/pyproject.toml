@@ -1,0 +1,83 @@
+# Environnement isolé du runtime `depth-anything` (CONCEPTION.md §5.3).
+#
+# Neuvième famille du parc, et celle dont l'isolement se justifie le plus vite :
+# `depth-anything-3` déclare vingt-six dépendances dures, dont deux qui ne
+# s'installent pas ici et une contrainte qui casserait le voisinage.
+#
+# **Pourquoi pas dans `torch-vision`, qui a déjà torch et transformers.** Le
+# paquet impose `numpy<2`. BiRefNet, Swin2SR et SAM 2 tournent aujourd'hui sur
+# numpy 2 dans cet env ; y faire entrer la contrainte reviendrait à rétrograder
+# trois modèles mesurés et profilés pour en ajouter un quatrième. C'est très
+# exactement l'arbitrage que l'isolation par environnement existe pour ne plus
+# avoir à faire (ARCHITECTURE.md §0, piège 2).
+#
+# **Deux dépendances déclarées sont écartées, et c'est vérifié plutôt que
+# supposé.** Les imports du paquet ont été relevés fichier par fichier :
+#
+#     xformers   déclaré, importé nulle part — 0 fichier sur tout le paquet,
+#                et aucune roue macOS de toute façon (sources seulement)
+#     open3d     importé seulement sous `bench/`, jamais par `api.py` ; aucune
+#                roue Python 3.13, et aucune roue arm64 même en 3.12
+#
+# Les autres sont installables : `pycolmap` a sa roue arm64 pour 3.13, et `evo`,
+# `e3nn`, `trimesh`, `omegaconf`, `plyfile` sont purs Python. `pre-commit` est un
+# outil de développement qui n'a rien à faire dans un env d'exécution.
+#
+# La liste est donc écrite à la main plutôt que déléguée à la résolution du
+# paquet. C'est un coût d'entretien réel — une version d'amont qui déplacerait un
+# import casserait ici et pas ailleurs —, assumé contre l'impossibilité pure et
+# simple d'installer le paquet tel qu'il se déclare.
+#
+# Le `.venv` n'est pas versionné, ce fichier l'est. Pour le reconstruire :
+#
+#     ecurie env sync depth-anything
+
+[project]
+name = "ecurie-runtime-depth-anything"
+version = "0.4.0"
+description = "Écurie — env isolé : profondeur monoculaire et pose, sur PyTorch/MPS"
+requires-python = ">=3.12"
+dependencies = [
+    # Même borne que les autres env torch, et pour la même raison : les wheels
+    # macOS arm64 passent de `macosx_11_0` à `macosx_14_0` en 2.12, donc
+    # torch>=2.12 imposerait macOS 14+.
+    "torch>=2.6,<2.14",
+    "torchvision",
+    # `depth-anything-3` sans ses dépendances : voir l'en-tête. Ce qui suit est
+    # ce que le chemin d'inférence importe réellement.
+    "depth-anything-3==0.1.1",
+    # Le paquet l'impose, et c'est la contrainte qui a décidé de cet env.
+    "numpy<2",
+    "einops",
+    "safetensors",
+    "huggingface-hub",
+    "pillow",
+    "pillow-heif",
+    "opencv-python",
+    "omegaconf",
+    "imageio",
+    "requests",
+    "typer",
+    # Atteints depuis `api.py` : `utils/export/__init__.py` importe ses six
+    # exportateurs à plat, donc les trois sont chargés même quand on ne veut
+    # qu'une carte de profondeur.
+    "evo",
+    "trimesh",
+    "pycolmap",
+    "moviepy",
+    "plyfile",
+    # Non déclarées par l'amont, révélées par le premier chargement — le même
+    # défaut que celui rencontré sur BiRefNet, et la même réponse : on les
+    # inscrit ici plutôt que de les découvrir en production.
+    "addict",
+]
+
+[tool.uv]
+# `depth-anything-3` tirerait `open3d` et `xformers` par sa résolution, et
+# aucun des deux ne s'installe sur cette machine. On les exclut explicitement
+# plutôt que de laisser la résolution échouer.
+override-dependencies = [
+    "open3d; sys_platform == 'never'",
+    "xformers; sys_platform == 'never'",
+    "pre-commit; sys_platform == 'never'",
+]

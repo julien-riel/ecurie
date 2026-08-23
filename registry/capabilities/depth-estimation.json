@@ -1,0 +1,82 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "depth-estimation",
+  "title": "Profondeur monoculaire",
+  "description": "Estime la distance de chaque pixel à la caméra, depuis une seule image, et rend en même temps les paramètres de la caméra qui l'a prise. À ne pas confondre avec l'image vers maillage, qui reconstruit une surface fermée : ici la sortie reste une image, dont chaque pixel porte une distance plutôt qu'une couleur. C'est ce qui précède un maillage plutôt que ce qui le remplace — et ce qui permet de détourer par la distance, de flouter un arrière-plan, ou de recaler deux prises de vue.",
+  "input": {
+    "type": "object",
+    "required": [
+      "image"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image dont il faut estimer la profondeur."
+      },
+      "process_res": {
+        "type": "integer",
+        "minimum": 256,
+        "maximum": 2048,
+        "default": 504,
+        "description": "Côté de la grille sur laquelle le modèle raisonne. Le coût suit la surface : doubler ce nombre quadruple le travail. La sortie est rendue à cette résolution, pas à celle de l'image d'entrée — une carte de profondeur remise à l'échelle par interpolation invente des distances qui n'ont pas été estimées."
+      },
+      "colormap": {
+        "type": "string",
+        "enum": [
+          "turbo",
+          "magma",
+          "gris"
+        ],
+        "default": "turbo",
+        "description": "Palette de l'aperçu lisible. Elle ne change rien aux valeurs rendues dans `depth`, qui restent celles du modèle."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": [
+      "depth",
+      "preview",
+      "near",
+      "far"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "depth": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de la carte de profondeur en PNG 16 bits, relatif au dossier du job. Les valeurs sont normalisées entre `near` et `far` : sans ces deux bornes, l'image ne dit qu'un ordre, pas des distances."
+      },
+      "preview": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de la même carte colorisée pour être lue, relatif au dossier du job. Un PNG 16 bits s'affiche noir dans la plupart des visionneuses ; l'aperçu existe pour qu'un résultat faux se voie en un coup d'œil."
+      },
+      "confidence": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de la confiance du modèle pixel par pixel, relatif au dossier du job. Les bords d'objets et les surfaces uniformes y tombent, et c'est là que la profondeur est à prendre avec précaution."
+      },
+      "near": {
+        "type": "number",
+        "description": "Distance du pixel le plus proche, dans l'unité du modèle. Avec `far`, elle rend les valeurs de `depth` interprétables."
+      },
+      "far": {
+        "type": "number",
+        "description": "Distance du pixel le plus lointain, même unité."
+      },
+      "focal_length_px": {
+        "type": "number",
+        "description": "Focale estimée, en pixels de la grille de traitement. Le modèle la déduit de l'image : ce n'est pas une donnée EXIF, et elle peut être fausse sur une photo recadrée."
+      },
+      "intrinsics": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin du JSON portant la matrice intrinsèque 3×3 et la pose extrinsèque 3×4, relatif au dossier du job. Ce que le contrat ne promet pas : une échelle métrique. La profondeur monoculaire est relative — deux photos de la même scène ne donnent pas la même unité."
+      }
+    }
+  }
+}

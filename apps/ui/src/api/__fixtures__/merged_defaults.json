@@ -10,6 +10,17 @@
       "max_side": 1024
     }
   },
+  "da3-large@fp32": {
+    "capability": "depth-estimation",
+    "merged": {
+      "colormap": "turbo",
+      "process_res": 504
+    },
+    "variant_defaults": {
+      "colormap": "turbo",
+      "process_res": 504
+    }
+  },
   "deepfilternet3-mlx@fp32-mlx": {
     "capability": "audio-denoise",
     "merged": {

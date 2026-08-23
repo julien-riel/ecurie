@@ -24,6 +24,7 @@ CAPACITÉS_DU_DÉPÔT = [
     "audio-denoise",
     "audio-separation",
     "audio-to-text",
+    "depth-estimation",
     "document-to-text",
     "image-detect",
     "image-inpaint",
@@ -148,7 +149,9 @@ def test_chaque_sortie_typee_annonce_un_chemin_de_fichier(repo_root):
         for nom, champ in _sorties_typées(contract.output_schema).items()
     }
 
-    assert len(typées) == 40
+    # 44 depuis que `depth-estimation` en apporte quatre : la carte, son
+    # aperçu colorisé, la confiance et les paramètres de caméra.
+    assert len(typées) == 44
     mal_décrites = {
         ref
         for ref, champ in typées.items()

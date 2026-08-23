@@ -1,0 +1,64 @@
+# Depth Anything 3 Large — la distance de chaque pixel, et la caméra qui a pris
+# la photo.
+#
+# Premier modèle du parc à servir `depth-estimation`, capacité créée pour lui.
+# Ce qu'il rend n'est pas un maillage : la sortie reste une image, dont chaque
+# pixel porte une distance plutôt qu'une couleur. C'est ce qui précède un
+# maillage plutôt que ce qui le remplace — et ce qui permet de détourer par la
+# distance, de flouter un arrière-plan, ou de recaler deux prises de vue.
+#
+# ATTENTION — LICENCE NON COMMERCIALE. Les poids sont publiés en CC-BY-NC-4.0,
+# ce qui ferme tout usage professionnel. Le code d'inférence, lui, est en
+# Apache-2.0 : c'est une distinction qui compte, et qui ne sauve rien ici
+# puisque ce sont les poids qu'on exécute. `license_class: restricted` le dit au
+# score de veille, et ce manifeste ne doit pas passer en `active` sans que la
+# question ait été tranchée pour de bon.
+#
+# Il a fallu un environnement à lui. `depth-anything-3` impose `numpy<2` quand
+# les trois modèles de `torch-vision` tournent sur numpy 2 : les faire cohabiter
+# aurait rétrogradé trois modèles mesurés pour en ajouter un quatrième. Deux de
+# ses vingt-six dépendances ne s'installent pas sur cette machine — `open3d` n'a
+# aucune roue pour Python 3.13, `xformers` aucune roue macOS — et aucune des
+# deux n'est importée par le chemin d'inférence : vérifié fichier par fichier
+# plutôt que supposé.
+id: da3-large
+name: Depth Anything 3 Large
+capability: depth-estimation
+family: depth-anything-3
+vendor: ByteDance Seed
+license: cc-by-nc-4.0
+license_class: restricted
+status: candidate
+
+notes: >
+  411 millions de paramètres, 1,64 Go sur le disque. Estime en une passe la
+  profondeur, la confiance associée, et les paramètres intrinsèques et
+  extrinsèques de la caméra.
+
+  La profondeur est **relative** : deux photos de la même scène ne donnent pas
+  la même unité, et aucune n'est en mètres. Le contrat ne promet donc pas
+  d'échelle métrique, et rend `near`/`far` pour que les valeurs normalisées du
+  PNG redeviennent interprétables.
+
+links:
+  homepage: https://huggingface.co/depth-anything/DA3-LARGE
+  code: https://github.com/ByteDance-Seed/Depth-Anything-3
+
+variants:
+  - id: fp32
+    quantization: fp32
+    tier: hot
+    runtime: depth-anything
+    source:
+      kind: huggingface
+      repo: depth-anything/DA3-LARGE
+      revision: "c54c26b16ec04d218e8d584ecf4bce082a9fcc20"   # 2025-11-19
+      allow_patterns: ["*.json", "*.safetensors"]
+    defaults:
+      process_res: 504
+      colormap: turbo
+    caveats:
+      - "Licence CC-BY-NC-4.0 : usage professionnel fermé. À trancher avant tout passage en `active`."
+      - "Profondeur relative, sans échelle métrique. `near` et `far` sont indispensables pour interpréter le PNG 16 bits — sans eux, l'image ne dit qu'un ordre."
+      - "La sortie est rendue à la résolution de traitement (504 par défaut), pas à celle de l'image d'entrée : remettre une carte de profondeur à l'échelle par interpolation inventerait des distances qui n'ont pas été estimées."
+      - "Le chargement lie deux copies du runtime OpenMP — celle de torch et celle de pycolmap. Le worker pose `KMP_DUPLICATE_LIB_OK` avant tout import lourd, faute de quoi la bibliothèque avorte le processus. Les deux paquets sont nécessaires au chemin d'inférence et aucun ne se recompile."

@@ -115,6 +115,11 @@ WORKER_MODULES_BY_CAPABILITY = {
     # est un troisième moteur d'inférence, et son isolement dans son propre env
     # est la raison d'être du §5.3.
     ("rtmlib", "video-to-motion"): "ecurie_runtime.workers.rtmw3d",
+    # Neuvième famille, et le second runtime torch du parc. Il en fallait un
+    # second parce que `depth-anything-3` impose `numpy<2` : le faire entrer dans
+    # `torch-vision` aurait rétrogradé trois modèles mesurés pour en ajouter un
+    # quatrième.
+    ("depth-anything", "depth-estimation"): "ecurie_runtime.workers.depth_anything",
 }
 
 

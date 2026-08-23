@@ -294,6 +294,107 @@
     {
       "composite": false,
       "defaults": {
+        "colormap": "turbo",
+        "process_res": 504
+      },
+      "description": "Estime la distance de chaque pixel à la caméra, depuis une seule image, et rend en même temps les paramètres de la caméra qui l'a prise. À ne pas confondre avec l'image vers maillage, qui reconstruit une surface fermée : ici la sortie reste une image, dont chaque pixel porte une distance plutôt qu'une couleur. C'est ce qui précède un maillage plutôt que ce qui le remplace — et ce qui permet de détourer par la distance, de flouter un arrière-plan, ou de recaler deux prises de vue.",
+      "id": "depth-estimation",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "colormap": {
+            "default": "turbo",
+            "description": "Palette de l'aperçu lisible. Elle ne change rien aux valeurs rendues dans `depth`, qui restent celles du modèle.",
+            "enum": [
+              "turbo",
+              "magma",
+              "gris"
+            ],
+            "type": "string"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image dont il faut estimer la profondeur.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "process_res": {
+            "default": 504,
+            "description": "Côté de la grille sur laquelle le modèle raisonne. Le coût suit la surface : doubler ce nombre quadruple le travail. La sortie est rendue à cette résolution, pas à celle de l'image d'entrée — une carte de profondeur remise à l'échelle par interpolation invente des distances qui n'ont pas été estimées.",
+            "maximum": 2048,
+            "minimum": 256,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "da3-large"
+      ],
+      "output": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de la confiance du modèle pixel par pixel, relatif au dossier du job. Les bords d'objets et les surfaces uniformes y tombent, et c'est là que la profondeur est à prendre avec précaution.",
+            "type": "string"
+          },
+          "depth": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de la carte de profondeur en PNG 16 bits, relatif au dossier du job. Les valeurs sont normalisées entre `near` et `far` : sans ces deux bornes, l'image ne dit qu'un ordre, pas des distances.",
+            "type": "string"
+          },
+          "far": {
+            "description": "Distance du pixel le plus lointain, même unité.",
+            "type": "number"
+          },
+          "focal_length_px": {
+            "description": "Focale estimée, en pixels de la grille de traitement. Le modèle la déduit de l'image : ce n'est pas une donnée EXIF, et elle peut être fausse sur une photo recadrée.",
+            "type": "number"
+          },
+          "intrinsics": {
+            "contentMediaType": "application/json",
+            "description": "Chemin du JSON portant la matrice intrinsèque 3×3 et la pose extrinsèque 3×4, relatif au dossier du job. Ce que le contrat ne promet pas : une échelle métrique. La profondeur monoculaire est relative — deux photos de la même scène ne donnent pas la même unité.",
+            "type": "string"
+          },
+          "near": {
+            "description": "Distance du pixel le plus proche, dans l'unité du modèle. Avec `far`, elle rend les valeurs de `depth` interprétables.",
+            "type": "number"
+          },
+          "preview": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de la même carte colorisée pour être lue, relatif au dossier du job. Un PNG 16 bits s'affiche noir dans la plupart des visionneuses ; l'aperçu existe pour qu'un résultat faux se voie en un coup d'œil.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "depth",
+          "preview",
+          "near",
+          "far"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "confidence": "image/png",
+        "depth": "image/png",
+        "intrinsics": "application/json",
+        "preview": "image/png"
+      },
+      "ready_variants": [],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Profondeur monoculaire"
+    },
+    {
+      "composite": false,
+      "defaults": {
         "detect_layout": true,
         "dpi": 200,
         "format": "markdown"
