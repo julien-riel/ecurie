@@ -245,6 +245,116 @@
       "temperature": 0.2
     }
   },
+  "qwen36-27b-describe@4bit": {
+    "capability": "image-to-text",
+    "merged": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    },
+    "variant_defaults": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    }
+  },
+  "qwen36-27b-describe@mxfp4": {
+    "capability": "image-to-text",
+    "merged": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    },
+    "variant_defaults": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    }
+  },
+  "qwen36-27b-detect@4bit": {
+    "capability": "image-detect",
+    "merged": {
+      "max_objects": 20,
+      "max_tokens": 1024,
+      "temperature": 0.0
+    },
+    "variant_defaults": {
+      "max_objects": 20,
+      "max_tokens": 1024,
+      "temperature": 0.0
+    }
+  },
+  "qwen36-27b-detect@mxfp4": {
+    "capability": "image-detect",
+    "merged": {
+      "max_objects": 20,
+      "max_tokens": 1024,
+      "temperature": 0.0
+    },
+    "variant_defaults": {
+      "max_objects": 20,
+      "max_tokens": 1024,
+      "temperature": 0.0
+    }
+  },
+  "qwen36-27b-ocr@4bit": {
+    "capability": "document-to-text",
+    "merged": {
+      "detect_layout": true,
+      "dpi": 200,
+      "format": "markdown"
+    },
+    "variant_defaults": {
+      "detect_layout": true,
+      "dpi": 200,
+      "format": "markdown"
+    }
+  },
+  "qwen36-27b-ocr@mxfp4": {
+    "capability": "document-to-text",
+    "merged": {
+      "detect_layout": true,
+      "dpi": 200,
+      "format": "markdown"
+    },
+    "variant_defaults": {
+      "detect_layout": true,
+      "dpi": 200,
+      "format": "markdown"
+    }
+  },
+  "qwen36-27b-video@4bit": {
+    "capability": "video-to-text",
+    "merged": {
+      "fps": 1.0,
+      "max_frames": 8,
+      "max_pixels": 451584,
+      "max_tokens": 512,
+      "temperature": 0.2
+    },
+    "variant_defaults": {
+      "fps": 1.0,
+      "max_frames": 8,
+      "max_tokens": 512,
+      "temperature": 0.2
+    }
+  },
+  "qwen36-27b-video@mxfp4": {
+    "capability": "video-to-text",
+    "merged": {
+      "fps": 1.0,
+      "max_frames": 8,
+      "max_pixels": 451584,
+      "max_tokens": 512,
+      "temperature": 0.2
+    },
+    "variant_defaults": {
+      "fps": 1.0,
+      "max_frames": 8,
+      "max_tokens": 512,
+      "temperature": 0.2
+    }
+  },
   "rtmw3d-x@onnx": {
     "capability": "video-to-motion",
     "merged": {

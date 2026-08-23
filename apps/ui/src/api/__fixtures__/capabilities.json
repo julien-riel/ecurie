@@ -348,7 +348,8 @@
         "type": "object"
       },
       "models": [
-        "qwen3-vl-8b-ocr"
+        "qwen3-vl-8b-ocr",
+        "qwen36-27b-ocr"
       ],
       "output": {
         "properties": {
@@ -443,7 +444,8 @@
         "type": "object"
       },
       "models": [
-        "qwen3-vl-8b-detect"
+        "qwen3-vl-8b-detect",
+        "qwen36-27b-detect"
       ],
       "output": {
         "properties": {
@@ -1093,7 +1095,8 @@
         "type": "object"
       },
       "models": [
-        "qwen3-vl-8b-describe"
+        "qwen3-vl-8b-describe",
+        "qwen36-27b-describe"
       ],
       "output": {
         "properties": {
@@ -2419,7 +2422,8 @@
         "type": "object"
       },
       "models": [
-        "qwen3-vl-8b-video"
+        "qwen3-vl-8b-video",
+        "qwen36-27b-video"
       ],
       "output": {
         "properties": {

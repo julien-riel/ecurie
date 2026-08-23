@@ -1267,6 +1267,414 @@
       "vendor": "Alibaba Qwen"
     },
     {
+      "capability": "image-to-text",
+      "family": "qwen3.6",
+      "id": "qwen36-27b-describe",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/Qwen/Qwen3.6-27B",
+        "paper": null
+      },
+      "name": "Qwen3.6 27B (description d'image)",
+      "notes": "Challenger de qwen3-vl-8b-describe, à trois fois sa taille. Le gain de qualité est inconnu tant que le golden set n'a pas tourné : la fiche amont ne compare Qwen3.6-27B qu'à Qwen3.5-27B et à des modèles fermés, jamais à Qwen3-VL 8B. Rien ne permet donc d'affirmer aujourd'hui qu'il décrit mieux une image que le titulaire en poste, et la seule chose qui soit certaine est qu'il coûte 2,6 fois plus de disque et qu'il ne rentre pas dans le budget mémoire.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "qwen36-27b-describe@mxfp4 : poids absents du cache — ecurie pull qwen36-27b-describe@mxfp4",
+            "qwen36-27b-describe@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-describe@mxfp4"
+          ],
+          "caveats": [
+            "15,2 Go de poids pour un budget GPU praticable de 15 à 17 Go : le pic estimé (17,4 à 19,2 Go) dépasse le plafond. À éprouver seulement si l'on accepte que la mesure puisse conclure au rejet.",
+            "Le mode « thinking » est actif par défaut sur Qwen3.6, et aucun adaptateur du parc ne sait le désactiver : la description rendue portera un bloc <think>…</think> tant que le worker ne transmettra pas `enable_thinking` au gabarit.",
+            "Quantification 4 bits à virgule flottante microscalaire : moins éprouvée dans le parc que le mode affine, et jamais mesurée ici.",
+            "Poids partagés avec qwen36-27b-ocr, -detect et -video — les déporter avec `ecurie store tier` déplace les quatre."
+          ],
+          "defaults": {
+            "detail": "normal",
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "mxfp4",
+          "options": null,
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "qwen36-27b-describe@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.6-27B-mxfp4",
+            "revision": "b4ac73652af626fd653d0e4fe48a4e9c468a82f6",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        },
+        {
+          "blockers": [
+            "qwen36-27b-describe@4bit : poids absents du cache — ecurie pull qwen36-27b-describe@4bit",
+            "qwen36-27b-describe@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-describe@4bit"
+          ],
+          "caveats": [
+            "16,1 Go de poids : pic estimé entre 18,3 et 20,3 Go, soit au-dessus du plafond de 17 Go dans toutes les hypothèses. Dominé par le variant mxfp4, plus léger de 840 Mo à quantification équivalente.",
+            "Le mode « thinking » est actif par défaut et aucun adaptateur ne sait le désactiver."
+          ],
+          "defaults": {
+            "detail": "normal",
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "4bit",
+          "options": null,
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "qwen36-27b-describe@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.6-27B-4bit",
+            "revision": "c000ac2c2057d94be3fa931000c31723aac53282",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "image-detect",
+      "family": "qwen3.6",
+      "id": "qwen36-27b-detect",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/Qwen/Qwen3.6-27B",
+        "paper": null
+      },
+      "name": "Qwen3.6 27B (détection)",
+      "notes": "Challenger de qwen3-vl-8b-detect. Comme les trois autres manifestes de la famille, il décrit un modèle dont le pic estimé dépasse le budget de la machine cible : voir l'en-tête de qwen36-27b-describe pour le calcul.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "qwen36-27b-detect@mxfp4 : poids absents du cache — ecurie pull qwen36-27b-detect@mxfp4",
+            "qwen36-27b-detect@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-detect@mxfp4"
+          ],
+          "caveats": [
+            "15,2 Go de poids pour un budget GPU praticable de 15 à 17 Go : le pic estimé (17,4 à 19,2 Go) dépasse le plafond.",
+            "Le mode « thinking », actif par défaut et non désactivable par les adaptateurs actuels, précède la réponse d'un bloc <think>…</think>. Sur une capacité dont la sortie est extraite par motif, c'est un risque de zéro objet qui ne mesurerait pas le modèle mais l'adaptateur.",
+            "`max_tokens` est réglé à 1024 comme chez le titulaire, mais un modèle qui raisonne à voix haute avant de répondre peut épuiser ce budget avant d'avoir rendu la moindre boîte.",
+            "Aucun score de confiance : un VLM en produit un si on le lui demande, et rien dans son entraînement ne le calibre. Le contrat n'en déclare pas.",
+            "Poids partagés avec qwen36-27b-describe, -ocr et -video — les déporter déplace les quatre."
+          ],
+          "defaults": {
+            "max_objects": 20,
+            "max_tokens": 1024,
+            "temperature": 0.0
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "mxfp4",
+          "options": null,
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "qwen36-27b-detect@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.6-27B-mxfp4",
+            "revision": "b4ac73652af626fd653d0e4fe48a4e9c468a82f6",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        },
+        {
+          "blockers": [
+            "qwen36-27b-detect@4bit : poids absents du cache — ecurie pull qwen36-27b-detect@4bit",
+            "qwen36-27b-detect@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-detect@4bit"
+          ],
+          "caveats": [
+            "16,1 Go de poids : pic estimé entre 18,3 et 20,3 Go. Dominé par le variant mxfp4.",
+            "Le mode « thinking » est actif par défaut et aucun adaptateur ne sait le désactiver."
+          ],
+          "defaults": {
+            "max_objects": 20,
+            "max_tokens": 1024,
+            "temperature": 0.0
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "4bit",
+          "options": null,
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "qwen36-27b-detect@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.6-27B-4bit",
+            "revision": "c000ac2c2057d94be3fa931000c31723aac53282",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "document-to-text",
+      "family": "qwen3.6",
+      "id": "qwen36-27b-ocr",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/Qwen/Qwen3.6-27B",
+        "paper": null
+      },
+      "name": "Qwen3.6 27B (lecture de document)",
+      "notes": "Aucun téléchargement propre : ce manifeste désigne les dépôts et révisions de qwen36-27b-describe. Le profil, lui, devra être mesuré pour lui-même — transcrire une page et décrire une photo ne produisent ni le même nombre de jetons ni le même pic, et un profil recopié d'un manifeste à l'autre serait exactement l'estimation à la main que le projet s'interdit.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "qwen36-27b-ocr@mxfp4 : poids absents du cache — ecurie pull qwen36-27b-ocr@mxfp4",
+            "qwen36-27b-ocr@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-ocr@mxfp4"
+          ],
+          "caveats": [
+            "15,2 Go de poids pour un budget GPU praticable de 15 à 17 Go : le pic estimé (17,4 à 19,2 Go) dépasse le plafond.",
+            "Le mode « thinking » est actif par défaut : la transcription rendue sera précédée d'un bloc <think>…</think> qu'aucun adaptateur du parc ne sait supprimer. Sur une capacité dont la sortie se compare au texte attendu, ce préambule fausse la mesure autant qu'il gêne la lecture.",
+            "Un VLM transcrit, il ne localise pas : la sortie `layout` décrit les pages, pas des boîtes.",
+            "Poids partagés avec qwen36-27b-describe, -detect et -video — les déporter déplace les quatre."
+          ],
+          "defaults": {
+            "detect_layout": true,
+            "dpi": 200,
+            "format": "markdown"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "mxfp4",
+          "options": null,
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "qwen36-27b-ocr@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.6-27B-mxfp4",
+            "revision": "b4ac73652af626fd653d0e4fe48a4e9c468a82f6",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        },
+        {
+          "blockers": [
+            "qwen36-27b-ocr@4bit : poids absents du cache — ecurie pull qwen36-27b-ocr@4bit",
+            "qwen36-27b-ocr@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-ocr@4bit"
+          ],
+          "caveats": [
+            "16,1 Go de poids : pic estimé entre 18,3 et 20,3 Go. Dominé par le variant mxfp4.",
+            "Le mode « thinking » est actif par défaut et aucun adaptateur ne sait le désactiver."
+          ],
+          "defaults": {
+            "detect_layout": true,
+            "dpi": 200,
+            "format": "markdown"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "4bit",
+          "options": null,
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "qwen36-27b-ocr@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.6-27B-4bit",
+            "revision": "c000ac2c2057d94be3fa931000c31723aac53282",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "video-to-text",
+      "family": "qwen3.6",
+      "id": "qwen36-27b-video",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/Qwen/Qwen3.6-27B",
+        "paper": null
+      },
+      "name": "Qwen3.6 27B (description de vidéo)",
+      "notes": "Challenger de qwen3-vl-8b-video. Comme les trois autres manifestes de la famille, il décrit un modèle dont le pic estimé dépasse le budget de la machine cible : voir l'en-tête de qwen36-27b-describe pour le calcul.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [
+            "qwen36-27b-video@mxfp4 : poids absents du cache — ecurie pull qwen36-27b-video@mxfp4",
+            "qwen36-27b-video@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-video@mxfp4"
+          ],
+          "caveats": [
+            "15,2 Go de poids, et la capacité du parc dont le facteur pic/disque mesuré est le plus élevé : le pic estimé (jusqu'à 19,2 Go) dépasse le plafond de 17 Go plus franchement que sur les trois autres capacités.",
+            "Le pic suit `max_frames`, pas la durée de la vidéo : huit images d'un plan de dix minutes coûtent autant que huit images de dix secondes.",
+            "Le mode « thinking » est actif par défaut et aucun adaptateur du parc ne sait le désactiver.",
+            "Le chemin vidéo natif de mlx-vlm est inutilisable avec les poids du titulaire ; son comportement avec ceux-ci n'a pas été éprouvé.",
+            "Poids partagés avec qwen36-27b-describe, -ocr et -detect — les déporter déplace les quatre."
+          ],
+          "defaults": {
+            "fps": 1.0,
+            "max_frames": 8,
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "mxfp4",
+          "options": null,
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "qwen36-27b-video@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.6-27B-mxfp4",
+            "revision": "b4ac73652af626fd653d0e4fe48a4e9c468a82f6",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        },
+        {
+          "blockers": [
+            "qwen36-27b-video@4bit : poids absents du cache — ecurie pull qwen36-27b-video@4bit",
+            "qwen36-27b-video@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-video@4bit"
+          ],
+          "caveats": [
+            "16,1 Go de poids : pic estimé jusqu'à 20,3 Go. Dominé par le variant mxfp4.",
+            "Le mode « thinking » est actif par défaut et aucun adaptateur ne sait le désactiver."
+          ],
+          "defaults": {
+            "fps": 1.0,
+            "max_frames": 8,
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": null,
+          "id": "4bit",
+          "options": null,
+          "profile": null,
+          "quantization": "4bit",
+          "ready": false,
+          "ref": "qwen36-27b-video@4bit",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.6-27B-4bit",
+            "revision": "c000ac2c2057d94be3fa931000c31723aac53282",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
       "capability": "video-to-motion",
       "family": "rtmpose",
       "id": "rtmw3d-x",
