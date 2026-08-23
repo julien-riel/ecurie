@@ -12,7 +12,7 @@ Le reste — le chargement, la génération, le pic — demande des poids et vit
 import pytest
 from ecurie_runtime.envs import worker_module
 from ecurie_runtime.workers.base import sans_raisonnement
-from ecurie_runtime.workers.mlx_lm import MlxLmWorker
+from ecurie_runtime.workers.mlx_lm import MlxLmWorker, _formes_d_outils
 from ecurie_runtime.workers.mlx_lm_tools import MlxLmToolsWorker, extraire_appels
 from ecurie_runtime.workers.mlx_lm_translate import MlxLmTranslateWorker
 from ecurie_runtime.workers.mlx_vlm_lm import SurMlxVlm
@@ -174,3 +174,68 @@ def test_une_reponse_sans_appel_ne_fabrique_pas_d_appel():
     clair = "Aucun outil ne convient ici."
 
     assert extraire_appels(clair) == ([], clair, "aucun")
+
+
+# --- appels d'outils au format Gemma ----------------------------------------------
+
+
+def test_le_format_de_gemma4_est_extrait():
+    """Quatrième format rencontré, et le plus déroutant : du JSON dont les clés
+    sont nues et les guillemets rendus par un jeton spécial."""
+    texte = '<|tool_call>call:meteo{ville:<|"|>Paris<|"|>}<tool_call|>'
+
+    appels, reste, stratégie = extraire_appels(texte)
+
+    assert stratégie == "gemma_tool_call"
+    assert appels == [{"name": "meteo", "arguments": {"ville": "Paris"}}]
+    assert reste == ""
+
+
+def test_les_scalaires_nus_de_gemma_sont_retypes():
+    texte = '<|tool_call>call:reserver{couverts:4,terrasse:true,ville:<|"|>Lyon<|"|>}<tool_call|>'
+
+    appels, _, _ = extraire_appels(texte)
+
+    assert appels[0]["arguments"] == {"couverts": 4, "terrasse": True, "ville": "Lyon"}
+
+
+def test_une_virgule_dans_une_chaine_ne_coupe_pas_l_argument():
+    """Un `split(",")` couperait la valeur en deux, dont la seconde moitié
+    n'aurait pas de clé — et serait perdue sans que rien ne le signale."""
+    texte = '<|tool_call>call:x{a:<|"|>Lyon, 3e arrondissement<|"|>}<tool_call|>'
+
+    appels, _, _ = extraire_appels(texte)
+
+    assert appels[0]["arguments"] == {"a": "Lyon, 3e arrondissement"}
+
+
+def test_le_commentaire_qui_precede_un_appel_gemma_est_conserve():
+    texte = 'Je consulte.\n<|tool_call>call:meteo{ville:<|"|>Nice<|"|>}<tool_call|>'
+
+    appels, reste, _ = extraire_appels(texte)
+
+    assert appels[0]["name"] == "meteo"
+    assert reste == "Je consulte."
+
+
+def test_les_outils_plats_sont_aussi_proposes_enveloppes_au_gabarit():
+    """Qwen3 lit un outil plat, Gemma 4 lit `tool.function.name` et lève sur la
+    forme plate. Sans cette seconde tentative, `template_tools` rendait faux et
+    l'on mesurait un repli là où l'appel natif était disponible."""
+    plat = {"name": "f", "parameters": {}}
+
+    formes = _formes_d_outils([plat])
+
+    assert formes[0] == [plat]
+    assert formes[1] == [{"type": "function", "function": plat}]
+
+
+def test_un_outil_deja_enveloppe_n_est_pas_propose_deux_fois():
+    enveloppé = {"type": "function", "function": {"name": "f", "parameters": {}}}
+
+    assert _formes_d_outils([enveloppé]) == [[enveloppé]]
+
+
+def test_sans_outil_il_n_y_a_rien_a_proposer():
+    assert _formes_d_outils(None) == []
+    assert _formes_d_outils([]) == []

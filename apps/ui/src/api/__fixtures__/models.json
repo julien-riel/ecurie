@@ -474,12 +474,11 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "gemma4-12b-outils@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-outils@4bit"
-          ],
+          "blockers": [],
           "caveats": [
-            "Profil non mesuré pour cette capacité.",
-            "Le format d'appel de cette famille n'a pas encore été observé : lire `parse_strategy` dans les métriques du premier job. Si elle rend `aucun`, c'est l'extracteur qu'il faut regarder avant d'accuser le modèle.",
+            "7,15 Gio de pic, 2,3 s par sortie, et un appel juste sur les trois cas de la charge type — 3, 8 et 16 outils déclarés, aucun reproche sur les arguments.",
+            "Appel natif confirmé : `template_tools` rend vrai, donc les outils passent par le gabarit et non par une consigne système. Il a fallu les lui déclarer au format enveloppé — le gabarit lit `tool.function.name` et lève sur la forme plate que Qwen3 accepte.",
+            "Format d'appel propre à cette famille : `parse_strategy` doit rendre `gemma_tool_call`. Si elle rend `aucun`, c'est l'extracteur qu'il faut regarder avant d'accuser le modèle.",
             "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
           ],
           "defaults": {
@@ -489,14 +488,25 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": false,
           "id": "4bit",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 6773371194,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 2153,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 7677838752,
+            "rtf": null,
+            "throughput": "1 sortie / 2.3 s",
+            "warmup_ms": 1838
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "gemma4-12b-outils@4bit",
           "runtime": "mlx-vlm",
           "source": {
@@ -687,9 +697,7 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "gemma4-12b-traduction@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-traduction@4bit"
-          ],
+          "blockers": [],
           "caveats": [
             "Profil non mesuré pour cette capacité : traduire un paragraphe et écrire une réponse libre ne produisent pas le même nombre de jetons, donc pas le même pic ni la même durée.",
             "Ne détecte pas la langue de départ : il traduit ce qu'on lui donne. `detected_source_language` rend la langue déclarée, ou rien.",
@@ -701,14 +709,25 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": false,
           "id": "4bit",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 6773371194,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 3866,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 7234268354,
+            "rtf": null,
+            "throughput": "1 sortie / 4.3 s",
+            "warmup_ms": 1745
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "gemma4-12b-traduction@4bit",
           "runtime": "mlx-vlm",
           "source": {

@@ -44,6 +44,15 @@ variants:
       - "Profil non mesuré pour cette capacité : traduire un paragraphe et écrire une réponse libre ne produisent pas le même nombre de jetons, donc pas le même pic ni la même durée."
       - "Ne détecte pas la langue de départ : il traduit ce qu'on lui donne. `detected_source_language` rend la langue déclarée, ou rien."
       - "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+    profile:
+      disk_bytes: 6773371194
+      peak_unified_memory_bytes: 7234268354
+      warmup_ms: 1745
+      latency_ms_p50: 3866
+      throughput: "1 sortie / 4.3 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"
   - id: mxfp4
     quantization: 4bit
     tier: absent

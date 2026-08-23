@@ -127,6 +127,77 @@ def _appels_xml(texte: str) -> list[dict[str, Any]]:
     return appels
 
 
+# Le quatrième format, découvert sur Gemma 4 dès que son gabarit a reçu ses
+# outils au format qu'il attend :
+#
+#     <|tool_call>call:reserver{couverts:4,terrasse:true,ville:<|"|>Lyon<|"|>}<tool_call|>
+#
+# C'est du JSON à deux détails près : les clés sont nues, et les guillemets sont
+# rendus par un jeton spécial. Le modèle choisissait le bon outil et remplissait
+# les bons arguments ; l'extracteur rendait zéro appel.
+GEMMA_BLOC = re.compile(r"<\|tool_call>\s*(.*?)\s*<tool_call\|>", re.DOTALL)
+GEMMA_TETE = re.compile(r"^call:\s*([A-Za-z0-9_.\-]+)\s*\{(.*)\}$", re.DOTALL)
+GEMMA_GUILLEMET = '<|"|>'
+
+
+def _decouper_arguments(corps: str) -> list[str]:
+    """Découpe sur les virgules de premier niveau, en épargnant celles des chaînes.
+
+    Un `split(",")` couperait « Lyon, 3e arrondissement » en deux arguments dont
+    le second n'aurait pas de clé — donc serait perdu en silence.
+    """
+    morceaux: list[str] = []
+    courant: list[str] = []
+    dans_chaine = False
+    échappé = False
+    for caractère in corps:
+        if dans_chaine:
+            if échappé:
+                échappé = False
+            elif caractère == "\\":
+                échappé = True
+            elif caractère == '"':
+                dans_chaine = False
+        elif caractère == '"':
+            dans_chaine = True
+        elif caractère == ",":
+            morceaux.append("".join(courant))
+            courant = []
+            continue
+        courant.append(caractère)
+    if courant:
+        morceaux.append("".join(courant))
+    return [m for m in (morceau.strip() for morceau in morceaux) if m]
+
+
+def _appels_gemma(texte: str) -> list[dict[str, Any]]:
+    """Les appels au format `<|tool_call>call:nom{…}<tool_call|>`, s'il y en a."""
+    appels: list[dict[str, Any]] = []
+    for bloc in GEMMA_BLOC.findall(texte):
+        tête = GEMMA_TETE.match(bloc.strip())
+        if tête is None:
+            continue
+        nom, corps = tête.group(1), tête.group(2).replace(GEMMA_GUILLEMET, '"')
+        arguments: dict[str, Any] = {}
+        for morceau in _decouper_arguments(corps):
+            clé, séparateur, valeur = morceau.partition(":")
+            if not séparateur:
+                continue
+            arguments[clé.strip()] = _valeur_gemma(valeur.strip())
+        appels.append({"name": nom.strip(), "arguments": arguments})
+    return appels
+
+
+def _valeur_gemma(brut: str) -> Any:
+    """Une valeur du format Gemma : chaîne délimitée, ou scalaire nu."""
+    if brut.startswith('"'):
+        try:
+            return json.loads(brut)
+        except json.JSONDecodeError:
+            return brut.strip('"')
+    return _valeur_xml(brut)
+
+
 def _objets_nus(texte: str) -> list[str]:
     """Fragments JSON équilibrés trouvés dans du texte libre.
 
@@ -174,6 +245,10 @@ def extraire_appels(texte: str) -> tuple[list[dict[str, Any]], str, str]:
         if appels:
             reste = motif.sub("", texte).strip()
             return appels, reste, nom
+
+    appels = _appels_gemma(texte)
+    if appels:
+        return appels, GEMMA_BLOC.sub("", texte).strip(), "gemma_tool_call"
 
     appels = _appels_xml(texte)
     if appels:

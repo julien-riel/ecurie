@@ -285,14 +285,18 @@ class MlxLmBase(Worker):
                 "sans balises de rôle et un modèle instruit répondrait n'importe quoi"
             )
         extra: dict[str, Any] = {} if thinking is None else {"enable_thinking": bool(thinking)}
-        if tools:
+        for déclaration in _formes_d_outils(tools):
             try:
                 brut = tokenizer.apply_chat_template(
-                    messages, tools=tools, add_generation_prompt=True, tokenize=False, **extra
+                    messages,
+                    tools=déclaration,
+                    add_generation_prompt=True,
+                    tokenize=False,
+                    **extra,
                 )
                 return _normaliser_invite(brut), True
             except Exception:  # noqa: BLE001 — gabarit sans support d'outils : on replie
-                pass
+                continue
         try:
             brut = tokenizer.apply_chat_template(
                 messages, add_generation_prompt=True, tokenize=False, **extra
@@ -367,6 +371,31 @@ def _sans_marqueur_de_fin(texte: str, tokenizer: Any) -> str:
                 dépouillé = dépouillé[: -len(marqueur)].rstrip()
                 encore = True
     return dépouillé
+
+
+def _formes_d_outils(tools: list[dict[str, Any]] | None) -> list[list[dict[str, Any]]]:
+    """Les façons de déclarer des outils à un gabarit, de la plus simple à l'autre.
+
+    Il n'y a pas de convention commune, et l'écart se paie cher. Qwen3 lit un
+    outil plat — `{"name": …, "parameters": …}` ; Gemma 4 lit son gabarit avec
+    `tool.function.name` et lève un `UndefinedError` sur la forme plate, ce qui
+    faisait replier sur la description en message système. Le modèle appelait
+    quand même le bon outil, mais `template_tools` rendait faux : on mesurait un
+    repli là où l'appel natif était disponible, et la comparaison avec les autres
+    modèles cessait de porter sur la même chose.
+
+    Essayer les deux coûte un rendu de gabarit raté dans le pire cas — quelques
+    millisecondes, une fois par job — et évite de conclure qu'un modèle ne sait
+    pas faire ce qu'il fait.
+    """
+    if not tools:
+        return []
+    plats = [outil for outil in tools if "function" not in outil]
+    enveloppés = [
+        outil if "function" in outil else {"type": "function", "function": outil}
+        for outil in tools
+    ]
+    return [tools, enveloppés] if plats else [tools]
 
 
 def _normaliser_invite(brut: Any) -> Any:

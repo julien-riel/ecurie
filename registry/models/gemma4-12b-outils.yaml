@@ -45,9 +45,19 @@ variants:
     options:
       thinking: false
     caveats:
-      - "Profil non mesuré pour cette capacité."
-      - "Le format d'appel de cette famille n'a pas encore été observé : lire `parse_strategy` dans les métriques du premier job. Si elle rend `aucun`, c'est l'extracteur qu'il faut regarder avant d'accuser le modèle."
+      - "7,15 Gio de pic, 2,3 s par sortie, et un appel juste sur les trois cas de la charge type — 3, 8 et 16 outils déclarés, aucun reproche sur les arguments."
+      - "Appel natif confirmé : `template_tools` rend vrai, donc les outils passent par le gabarit et non par une consigne système. Il a fallu les lui déclarer au format enveloppé — le gabarit lit `tool.function.name` et lève sur la forme plate que Qwen3 accepte."
+      - "Format d'appel propre à cette famille : `parse_strategy` doit rendre `gemma_tool_call`. Si elle rend `aucun`, c'est l'extracteur qu'il faut regarder avant d'accuser le modèle."
       - "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+    profile:
+      disk_bytes: 6773371194
+      peak_unified_memory_bytes: 7677838752
+      warmup_ms: 1838
+      latency_ms_p50: 2153
+      throughput: "1 sortie / 2.3 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"
   - id: mxfp4
     quantization: 4bit
     tier: absent

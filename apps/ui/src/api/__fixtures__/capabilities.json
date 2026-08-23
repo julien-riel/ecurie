@@ -2136,6 +2136,7 @@
         "text": "text/plain"
       },
       "ready_variants": [
+        "gemma4-12b-outils@4bit",
         "qwen3-4b-outils@4bit"
       ],
       "required": [
@@ -2234,6 +2235,7 @@
         "text": "text/plain"
       },
       "ready_variants": [
+        "gemma4-12b-traduction@4bit",
         "qwen3-4b-traduction@4bit"
       ],
       "required": [

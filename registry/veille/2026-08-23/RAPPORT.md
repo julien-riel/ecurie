@@ -36,6 +36,8 @@ des coûts.
 | `qwen36-27b-describe@4bit` | `image-to-text` | 16,08 Go | — | — | **échec Metal, OOM** |
 | `gemma4-12b-texte@4bit` | `text-generation` | 6,77 Go | **6,69 Gio** | 1 / 38,7 s | tient largement |
 | `gemma4-12b-describe@4bit` | `image-to-text` | 6,77 Go | **6,81 Gio** | 1 / 5,3 s | tient largement |
+| `gemma4-12b-traduction@4bit` | `translation` | 6,77 Go | **6,74 Gio** | 1 / 4,3 s | tient largement |
+| `gemma4-12b-outils@4bit` | `tool-use` | 6,77 Go | **7,15 Gio** | 1 / 2,3 s | tient, appel natif |
 
 Trois enseignements que l'estimation ne donnait pas :
 
@@ -69,8 +71,8 @@ coûts, eux, sont chiffrés, et ils vont tous dans le même sens.
 |---|---|---|---|---|---|
 | `text-generation` | qwen25-coder-7b (4,30 Go / 4,45) | **gemma4-12b-texte** | +2,47 Go | 6,69 Gio | 38,7 s vs 12,8 |
 | `image-to-text` | qwen3-vl-8b-describe (5,78 Go / 6,60) | **gemma4-12b-describe** | +0,99 Go | 6,81 Gio | 5,3 s vs 6,6 |
-| `translation` | qwen3-4b-traduction (2,28 Go / 2,76) | gemma4-12b-traduction | +4,49 Go | à mesurer | à mesurer |
-| `tool-use` | qwen3-4b-outils (2,28 Go / 2,93) | gemma4-12b-outils | +4,49 Go | à mesurer | à mesurer |
+| `translation` | qwen3-4b-traduction (2,28 Go / 2,76) | **gemma4-12b-traduction** | +4,49 Go | 6,74 Gio | 4,3 s vs 1,6 |
+| `tool-use` | qwen3-4b-outils (2,28 Go / 2,93) | **gemma4-12b-outils** | +4,49 Go | 7,15 Gio | 2,3 s vs 1,0 |
 
 `gemma4-12b-describe` est le seul candidat de ce cycle qui batte un titulaire sur
 un chiffre mesuré : 5,3 s contre 6,6 s par sortie, pour 210 Mio de pic en plus.
@@ -121,10 +123,19 @@ test vérifie qu'aucun ne redéfinit `infer`.
   par les sept adaptateurs `mlx-vlm`, et `sans_raisonnement` sépare ce qui en
   réchapperait — dans `workers/base.py`, parce que ce trait n'appartient ni à une
   famille ni à un runtime ;
-- *le format d'appel d'outils*. Qwen3.6 rend ses appels en XML imbriqué, quand
-  l'extracteur tentait un `json.loads`. Il aurait rendu zéro appel sur un modèle
-  ayant choisi le bon outil. Une stratégie `xml_function` a été ajoutée, et elle
-  profite aussi aux modèles servis par `mlx-lm` ;
+- *les formats d'appel d'outils*, et ils ont coûté trois correctifs à eux seuls.
+  L'extracteur ne connaissait que le JSON ; Qwen3.6 rend du **XML imbriqué**,
+  Gemma 4 rend `<|tool_call>call:nom{clé:<|"|>valeur<|"|>}<tool_call|>` — du JSON
+  dont les clés sont nues et les guillemets remplacés par un jeton spécial. Les
+  deux auraient rendu zéro appel sur un modèle ayant parfaitement choisi son
+  outil. Deux stratégies ont été ajoutées, `xml_function` et `gemma_tool_call`.
+  Entre les deux, il a fallu régler la **déclaration** : Gemma lit son gabarit
+  avec `tool.function.name` et lève sur la forme plate que Qwen3 accepte, ce qui
+  faisait replier sur une description en message système — `template_tools`
+  rendait faux, et l'on mesurait un repli là où l'appel natif existait. Les deux
+  formes sont désormais proposées au gabarit. Résultat mesuré sur Gemma :
+  `template_tools` vrai, un appel juste sur 3, 8 et 16 outils déclarés, aucun
+  reproche sur les arguments ;
 - *la grille de coordonnées de la détection*. Elle valait 1000 en dur, ce qui se
   défendait tant qu'une seule famille servait la capacité. Dès la deuxième, la
   constante devient un piège silencieux — une grille fausse trace les boîtes à
