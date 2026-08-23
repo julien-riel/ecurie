@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from ecurie_runtime.workers.base import (
+    FluxRaisonnement,
     InferRequest,
     InferResult,
     ProgressFn,
@@ -197,6 +198,7 @@ class MlxLmBase(Worker):
         )
 
         morceaux: list[str] = []
+        aiguilleur = FluxRaisonnement()
         réponse = Reponse()
         début = time.monotonic()
         try:
@@ -207,7 +209,14 @@ class MlxLmBase(Worker):
                 logits_processors=processeurs,
             )
             for index, morceau in enumerate(flux):
-                morceaux.append(getattr(morceau, "text", "") or "")
+                fragment = getattr(morceau, "text", "") or ""
+                morceaux.append(fragment)
+                # Le texte part vers qui regarde au moment où il est produit, et
+                # non à la fin : c'est tout l'objet du flux. Le résultat, lui, est
+                # recomposé plus bas depuis `morceaux` — ce canal ne le remplace
+                # pas, et un fragment qui se perdrait ne changerait rien au job.
+                for texte, canal in aiguilleur.pousser(fragment):
+                    self.stream(texte, canal)
                 if index % 32 == 0:
                     # Bornée à 88 : la progression ne doit jamais annoncer la fin
                     # avant que le fichier de sortie ne soit écrit.
@@ -225,6 +234,8 @@ class MlxLmBase(Worker):
         except Exception as exc:  # noqa: BLE001 — remonte en ev:error avec le contexte utile
             raise WorkerError(f"génération impossible : {type(exc).__name__}: {exc}") from exc
 
+        for texte_restant, canal in aiguilleur.vider():
+            self.stream(texte_restant, canal)
         réponse.seconds = time.monotonic() - début
         texte = _sans_marqueur_de_fin("".join(morceaux), self._tokenizer)
         # Après le marqueur de fin, jamais avant : un raisonnement refermé au

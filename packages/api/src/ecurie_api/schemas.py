@@ -412,6 +412,30 @@ class JobOut(BaseModel):
         default_factory=list, description="Ce qu'il a fallu décharger pour faire de la place."
     )
     warnings: list[str] = Field(default_factory=list)
+    stream_text: str = Field(
+        default="",
+        description=(
+            "La réponse telle qu'elle s'est écrite, cumulée depuis les `delta`. Ce n'est "
+            "pas le résultat — `output` et les fichiers du job restent seuls à faire foi. "
+            "Elle est ici pour qu'un client arrivé en cours de route n'ait pas manqué le "
+            "début, et parce qu'un job annulé n'a que cela à montrer."
+        ),
+    )
+    stream_reasoning: str = Field(
+        default="",
+        description=(
+            "Le raisonnement à voix haute, séparé de la réponse à la source. Vide pour "
+            "les modèles qui n'en produisent pas, ou dont le variant l'a coupé."
+        ),
+    )
+    cancelled: bool = Field(
+        default=False,
+        description=(
+            "Le job a été arrêté à la demande. Il rend alors `failed` — l'arrêt passe par "
+            "la mort du worker —, mais l'échec n'en est pas un, et `stream_text` garde ce "
+            "qui avait déjà été produit."
+        ),
+    )
     metrics: Json = Field(default_factory=dict)
     output: Json = Field(
         default_factory=dict,

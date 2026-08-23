@@ -35,6 +35,7 @@ import json
 import mimetypes
 import re
 import time
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -42,8 +43,9 @@ from ecurie_core.capabilities import CapabilityContract
 from ecurie_core.models import Model, Variant
 from ecurie_runtime.runner import InputError, resolve_typed_input
 from ecurie_runtime.supervisor import RefError, parse_ref
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import ValidationError
 
 from ecurie_api.deps import StateDep
 from ecurie_api.jobs import Job, TooManyJobs, file_url
@@ -286,7 +288,11 @@ async def _flux(job: Job, request: Request):
         nouveaux = job.events_since(index)
         for événement in nouveaux:
             index += 1
-            yield _sse(événement["kind"], événement["job"])
+            # Un `delta` ne porte pas l'état du job mais le seul fragment produit
+            # — mille cinq cents copies du snapshot coûteraient plus cher à
+            # transporter que la réponse elle-même. Les deux formes traversent
+            # donc le même journal, et c'est ici qu'on les distingue.
+            yield _sse(événement["kind"], événement.get("job") or événement.get("delta") or {})
             dernier_signe = time.monotonic()
         if not nouveaux and terminal:
             yield _sse("end", {"id": job.id, "state": job.state})
@@ -323,3 +329,166 @@ def fichier(state: StateDep, job_id: str, chemin: str) -> FileResponse:
     return FileResponse(
         cible, media_type=_media_type(state, job_id, chemin) or "application/octet-stream"
     )
+
+
+# --- full duplex --------------------------------------------------------------
+
+
+@router.websocket("/ws")
+async def duplex(websocket: WebSocket) -> None:
+    """Lancer un job, le lire pendant qu'il s'écrit, et l'arrêter — sur une seule socket.
+
+    Ce que le SSE ne pouvait pas faire, et pourquoi il en fallait une autre. Un
+    flux d'événements ne descend que : pour arrêter un job, il fallait une
+    seconde requête, sur une seconde connexion, dont l'ordre d'arrivée par
+    rapport au flux n'était garanti par rien. Ici les deux sens partagent la même
+    socket et le même ordre.
+
+    Le dialogue tient en trois opérations :
+
+        → {"op":"submit","ref":"gemma4-12b-texte@4bit","input":{…}}
+        ← {"kind":"state","job":{…}}                (l'état complet, à chaque changement)
+        ← {"kind":"delta","delta":{"text":"…","channel":"answer"}}   (0..n)
+        ← {"kind":"end","job":{…}}
+        → {"op":"cancel"}                           (à tout moment pendant le job)
+        → {"op":"ping"}   ← {"kind":"pong"}         (garder la socket en vie)
+
+    Les `delta` ne portent que leur fragment ; tout le reste porte l'état complet
+    du job, pour qu'un client qui arrive en retard n'ait rien à recomposer — le
+    snapshot contient déjà le texte cumulé des deux canaux.
+
+    **Une socket, un job.** Ce n'est pas une limite technique mais un choix : un
+    modèle sert un job à la fois, et multiplexer sur une socket ce que le
+    superviseur sérialise de toute façon donnerait deux files d'attente au lieu
+    d'une, dont une invisible.
+    """
+    await websocket.accept()
+    state: AppState = websocket.app.state.ecurie
+    job: Job | None = None
+    arret = asyncio.Event()
+
+    async def ecouter() -> None:
+        """Le sens montant : il ne s'arrête pas pendant que le job travaille."""
+        nonlocal job
+        try:
+            while True:
+                message = await websocket.receive_json()
+                op = str(message.get("op") or "")
+                if op == "cancel":
+                    if job is not None:
+                        state.jobs.cancel(job.id)
+                elif op == "ping":
+                    await websocket.send_json({"kind": "pong"})
+                elif op == "submit":
+                    if job is not None:
+                        await websocket.send_json(
+                            {
+                                "kind": "error",
+                                "error": "un job tourne déjà sur cette socket — "
+                                "en ouvrir une autre, ou attendre la fin",
+                            }
+                        )
+                        continue
+                    job = await _lancer(state, websocket, message)
+                    if job is None:
+                        arret.set()
+                        return
+                else:
+                    await websocket.send_json(
+                        {"kind": "error", "error": f"opération inconnue : {op!r}"}
+                    )
+        except (WebSocketDisconnect, RuntimeError, ValueError):
+            # Client parti, ou trame illisible : dans les deux cas il n'y a plus
+            # personne à qui répondre, et le job en cours n'en meurt pas — il
+            # laisse son manifeste comme n'importe quel autre.
+            arret.set()
+
+    ecoute = asyncio.create_task(ecouter())
+    try:
+        await _pousser(websocket, lambda: job, arret)
+    finally:
+        ecoute.cancel()
+        with suppress(asyncio.CancelledError):
+            await ecoute
+        with suppress(RuntimeError):
+            await websocket.close()
+
+
+async def _lancer(state: "AppState", websocket: WebSocket, message: dict) -> "Job | None":
+    """Valide et soumet le job. Rend None si la demande est refusée — dit pourquoi avant."""
+    try:
+        demande = JobRequest.model_validate(
+            {
+                "ref": message.get("ref"),
+                "input": message.get("input") or {},
+                "seed": message.get("seed"),
+                "overcommit": bool(message.get("overcommit")),
+            }
+        )
+    except ValidationError as exc:
+        await websocket.send_json({"kind": "error", "error": f"demande invalide : {exc}"})
+        return None
+
+    try:
+        model, variant, résolu, contract = _resolve(state, demande.ref)
+        état = inspect_variant(state.root, state.config, model, variant, résolu)
+        if not état.ready:
+            await websocket.send_json(
+                {
+                    "kind": "error",
+                    "error": f"{résolu} n'est pas exécutable en l'état",
+                    "blockers": list(état.blockers),
+                }
+            )
+            return None
+        resolve_typed_input(contract, variant, demande.input, seed=demande.seed)
+        return state.jobs.submit(
+            model,
+            variant,
+            contract,
+            résolu,
+            demande.input,
+            seed=demande.seed,
+            overcommit=demande.overcommit,
+        )
+    except HTTPException as exc:
+        await websocket.send_json({"kind": "error", "error": str(exc.detail)})
+    except (InputError, TooManyJobs) as exc:
+        await websocket.send_json({"kind": "error", "error": str(exc)})
+    return None
+
+
+async def _pousser(websocket: WebSocket, lire_job, arret: asyncio.Event) -> None:
+    """Le sens descendant : le journal du job, puis la fin."""
+    index = 0
+    dernier_signe = time.monotonic()
+    while not arret.is_set():
+        job = lire_job()
+        if job is None:
+            await asyncio.sleep(PAS_DU_FLUX_S)
+            if time.monotonic() - dernier_signe > BATTEMENT_S:
+                await websocket.send_json({"kind": "waiting"})
+                dernier_signe = time.monotonic()
+            continue
+
+        # Même ordre qu'en SSE, et pour la même raison : lire l'état terminal
+        # avant le journal, faute de quoi le dernier événement se perd et le
+        # client reste sur un job « en cours » à jamais.
+        terminal = job.terminal
+        nouveaux = job.events_since(index)
+        for événement in nouveaux:
+            index += 1
+            charge = {"kind": événement["kind"]}
+            if "job" in événement:
+                charge["job"] = événement["job"]
+            if "delta" in événement:
+                charge["delta"] = événement["delta"]
+            await websocket.send_json(charge)
+            dernier_signe = time.monotonic()
+        if not nouveaux and terminal:
+            await websocket.send_json({"kind": "end", "job": job.snapshot()})
+            return
+        if time.monotonic() - dernier_signe > BATTEMENT_S:
+            await websocket.send_json({"kind": "pong"})
+            dernier_signe = time.monotonic()
+        await asyncio.sleep(PAS_DU_FLUX_S)

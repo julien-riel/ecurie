@@ -33,7 +33,7 @@ from jsonschema import Draft202012Validator
 
 from ecurie_runtime import __version__ as HARNESS_VERSION
 from ecurie_runtime.supervisor import AdmissionRefused, Lease, Supervisor, WaitFn
-from ecurie_runtime.worker import JobResult, ProgressFn
+from ecurie_runtime.worker import DeltaFn, JobResult, ProgressFn
 
 INPUTS_DIR = "inputs"
 
@@ -331,6 +331,7 @@ def run_job(
     db: StateDB | None = None,
     outputs_dir: Path | None = None,
     on_progress: ProgressFn | None = None,
+    on_delta: DeltaFn | None = None,
     on_wait: WaitFn | None = None,
     pin: bool = False,
     overcommit: bool = False,
@@ -374,6 +375,7 @@ def run_job(
             pin=pin,
             overcommit=overcommit,
             on_progress=on_progress,
+            on_delta=on_delta,
             values=résolu.values,
             job_id=job_id,
             on_wait=on_wait,

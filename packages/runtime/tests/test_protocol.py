@@ -42,7 +42,7 @@ def test_le_vocabulaire_est_celui_de_la_conception():
     """Ces chaînes-là voyagent sur le canal. Les renommer casse tout worker déjà
     installé dans son venv, y compris ceux qu'Écurie n'a pas écrits."""
     assert OPS == {"load", "infer", "unload", "ping"}
-    assert EVENTS == {"loaded", "progress", "result", "error", "pong", "unloaded"}
+    assert EVENTS == {"loaded", "progress", "delta", "result", "error", "pong", "unloaded"}
 
 
 def test_op_construit_une_operation_avec_ses_champs():
@@ -223,7 +223,7 @@ def test_name_of_refuse_un_nom_qui_n_est_pas_une_chaine():
 
 
 def test_is_terminal_ne_laisse_passer_que_la_progression():
-    assert {nom for nom in EVENTS if is_terminal({"ev": nom})} == EVENTS - {"progress"}
+    assert {nom for nom in EVENTS if is_terminal({"ev": nom})} == EVENTS - {"progress", "delta"}
     assert is_terminal(ev("progress", job_id="j1", pct=40)) is False
     # Une opération ne clôt rien : un worker qui renverrait l'`op` reçue ne doit
     # pas débloquer l'attente d'un résultat.

@@ -69,6 +69,7 @@ from ecurie_runtime.residents import (
     socket_path,
 )
 from ecurie_runtime.worker import (
+    DeltaFn,
     Loaded,
     Timeouts,
     WorkerProcess,
@@ -485,6 +486,7 @@ class Supervisor:
         pin: bool = False,
         overcommit: bool = False,
         on_progress: ProgressFn | None = None,
+        on_delta: DeltaFn | None = None,
         values: dict[str, Any] | None = None,
         job_id: str | None = None,
         on_wait: WaitFn | None = None,
@@ -520,7 +522,7 @@ class Supervisor:
                     raise AdmissionRefused(admission)
                 for victime in admission.evict:
                     self._evict(entries, victime)
-                return self._ephemeral(ref, spec, document, admission, on_progress)
+                return self._ephemeral(ref, spec, document, admission, on_progress, on_delta)
 
         poignée = self._handle(ref)
         self._enter(poignée, job_id or SANS_IDENTIFIANT, on_wait)
@@ -542,7 +544,7 @@ class Supervisor:
                     self._evict(entries, ref)
                     entrée = None
                 if entrée is not None:
-                    lease = self._reconnect(ref, entrée, admission, poignée, on_progress)
+                    lease = self._reconnect(ref, entrée, admission, poignée, on_progress, on_delta)
                     if lease is not None:
                         entrée.last_used = time.time()
                         entrée.pinned = entrée.pinned or pin
@@ -555,7 +557,16 @@ class Supervisor:
                     self._evict(entries, ref)
 
                 return self._start_resident(
-                    entries, poignée, ref, variant, spec, document, admission, pin, on_progress
+                    entries,
+                    poignée,
+                    ref,
+                    variant,
+                    spec,
+                    document,
+                    admission,
+                    pin,
+                    on_progress,
+                    on_delta,
                 )
         except BaseException:
             self._leave(poignée)
@@ -588,12 +599,14 @@ class Supervisor:
         document: dict[str, Any],
         admission: Admission,
         on_progress: ProgressFn | None,
+        on_delta: DeltaFn | None,
     ) -> Lease:
         worker = WorkerProcess.spawn(
             spec,
             log_path=log_path(self.home, ref),
             timeouts=self.timeouts,
             on_progress=on_progress,
+            on_delta=on_delta,
         )
         try:
             loaded = worker.load(document)
@@ -620,6 +633,7 @@ class Supervisor:
         admission: Admission,
         pin: bool,
         on_progress: ProgressFn | None,
+        on_delta: DeltaFn | None,
     ) -> Lease:
         sock_path = socket_path(self.home, ref)
         journal = log_path(self.home, ref)
@@ -629,7 +643,7 @@ class Supervisor:
         )
         try:
             wait_for_socket(sock_path, pid, timeout_s=self.timeouts.load_s, log_path=journal)
-            session = self._connect(sock_path, on_progress)
+            session = self._connect(sock_path, on_progress, on_delta)
             loaded = session.load(document)
         except BaseException:
             # `BaseException` et non `Exception` : un Ctrl-C pendant le
@@ -690,6 +704,7 @@ class Supervisor:
         admission: Admission,
         poignée: WorkerHandle,
         on_progress: ProgressFn | None,
+        on_delta: DeltaFn | None,
     ) -> Lease | None:
         """Se rattache à un worker résident, sans le déranger.
 
@@ -702,7 +717,7 @@ class Supervisor:
         soit le nombre de processus qui le lui demandent.
         """
         try:
-            session = self._connect(Path(entrée.socket), on_progress)
+            session = self._connect(Path(entrée.socket), on_progress, on_delta)
         except OSError:  # socket absent ou refusant la connexion : worker fantôme
             return None
         return Lease(
@@ -716,10 +731,14 @@ class Supervisor:
             on_release=lambda: self._release(poignée),
         )
 
-    def _connect(self, sock_path: Path, on_progress: ProgressFn | None) -> ResidentSession:
+    def _connect(
+        self, sock_path: Path, on_progress: ProgressFn | None, on_delta: DeltaFn | None = None
+    ) -> ResidentSession:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.connect(str(sock_path))
-        return ResidentSession(sock, timeouts=self.timeouts, on_progress=on_progress)
+        return ResidentSession(
+            sock, timeouts=self.timeouts, on_progress=on_progress, on_delta=on_delta
+        )
 
     # --- déchargement --------------------------------------------------------
 
