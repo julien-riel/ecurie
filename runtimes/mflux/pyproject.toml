@@ -1,0 +1,26 @@
+# Environnement isolé du runtime `mflux` (CONCEPTION.md §5.3).
+#
+# Dixième famille du parc, et le troisième moteur de diffusion après
+# `diffusers-mps` et `hunyuan3d`. Il existe parce que les modèles d'image de la
+# famille Qwen et FLUX ne se chargent pas par `diffusers` sur Apple Silicon :
+# leurs conversions MLX sont publiées pour `mflux`, qui a son propre format de
+# dépôt — un dossier par composant (`transformer/`, `text_encoder/`, `vae/`),
+# et non un `model_index.json` de diffusers.
+#
+# Pourquoi pas dans `diffusers-mps`, qui fait déjà de l'image : mflux dépend de
+# `transformers>=5.0` quand SDXL y tourne sur une branche antérieure, et de
+# `mlx<0.33` — deux contraintes qui n'ont rien à faire dans l'environnement qui
+# sert la génération d'image du parc.
+#
+# Le `.venv` n'est pas versionné, ce fichier l'est. Pour le reconstruire :
+#
+#     ecurie env sync mflux
+
+[project]
+name = "ecurie-runtime-mflux"
+version = "0.4.0"
+description = "Écurie — env isolé : édition et génération d'image sur MLX, via mflux"
+requires-python = ">=3.12"
+dependencies = [
+    "mflux>=0.19,<0.20",
+]
