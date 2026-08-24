@@ -48,7 +48,8 @@ WATCHED = (
     ("registry/schema", "*.json"),
     ("registry/capabilities", "*.json"),
     ("registry/models", "*.yaml"),
-    ("registry/measurements", "*.json"),
+    # `**/` : les relevés sont rangés par variant puis par machine.
+    ("registry/measurements", "**/*.json"),
 )
 
 

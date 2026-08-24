@@ -90,7 +90,7 @@ registry/
     qwen3-tts-1.7b.yaml
     hunyuan3d-2.1-shape-mlx.yaml
     …
-  measurements/                 # profils mesurés, écrits par le banc d'essai
+  measurements/<ref>/<machine>.json  # profils mesurés, un fichier par machine
     qwen3-tts-1.7b@8bit-mlx.json
   evals/                        # golden sets + résultats + préférences humaines
 ```
@@ -336,7 +336,7 @@ Tu arbitres. Rien n'est téléchargé sans ton accord.
 |---|---|---|
 | `veille-scan` | Balayer les sources depuis le dernier passage | `veille/YYYY-MM-DD/candidats.json` |
 | `veille-qualifier` | Filtrer sur budget, licence, disponibilité Apple Silicon | candidats scorés + rejets motivés |
-| `veille-eprouver` | Télécharger, mesurer, exécuter le golden set | `measurements/*.json` + sorties d'éval |
+| `veille-eprouver` | Télécharger, mesurer, exécuter le golden set | `measurements/<ref>/<machine>.json` + sorties d'éval |
 | `veille-elaguer` | Proposer des retraits selon télémétrie et redondance | plan de GC chiffré en Go |
 
 Sources de `veille-scan` :

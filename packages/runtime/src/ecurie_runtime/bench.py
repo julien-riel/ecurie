@@ -16,15 +16,14 @@ avec la règle du projet : toute évolution du parc passe par Git et par un huma
 """
 
 import json
-import platform
 import statistics
-import subprocess
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from ecurie_core.capabilities import CapabilityContract
+from ecurie_core.machine import describe_machine, hardware_of, machine_slug
 from ecurie_core.models import Model, Variant
 from ecurie_store.db import LocationRecord
 from ecurie_store.weights import resolve_weights, variant_disk_bytes
@@ -80,6 +79,11 @@ class BenchReport:
     harness_version: str = HARNESS_VERSION
     budget_bytes: int | None = None
     warnings: list[str] = field(default_factory=list)
+
+    @property
+    def machine_slug(self) -> str:
+        """Le nom de fichier de ce relevé sous `measurements/<ref>/`."""
+        return machine_slug(hardware_of(self.measured_on))
 
     @property
     def ok(self) -> bool:
@@ -455,8 +459,20 @@ def _throughput(cases: list[CaseResult]) -> str | None:
 
 
 def write_measurement(root: Path, report: BenchReport) -> Path:
-    """Écrit `registry/measurements/<ref>.json`, l'autorité du profil."""
-    destination = root / MEASUREMENTS_DIR / f"{report.ref}.json"
+    """Écrit `registry/measurements/<ref>/<machine>.json`, l'autorité du profil.
+
+    Un fichier par machine, et non un par variant. Le dépôt est partagé et les
+    Macs ne le sont pas : deux personnes qui mesurent le même variant écrivaient
+    au même endroit, la seconde effaçait la première, et `registry validate`
+    reprochait ensuite au manifeste une divergence qui n'était que l'autre
+    machine. Rien ne le signalait — c'était le seul défaut multi-machine du dépôt
+    à passer en silence.
+
+    La même machine qui remesure, elle, remplace bien son relevé : le nom du
+    fichier ne retient que le matériel, et `measured_on` à l'intérieur dit sous
+    quelles versions la mesure a été reprise.
+    """
+    destination = root / MEASUREMENTS_DIR / report.ref / f"{report.machine_slug}.json"
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(report.document(), ensure_ascii=False, indent=2) + "\n")
     return destination
@@ -499,32 +515,3 @@ def _yaml_valeur(valeur: Any) -> str:
     if isinstance(valeur, list):
         return "[" + ", ".join(_yaml_valeur(v) for v in valeur) + "]"
     return str(valeur)
-
-
-def describe_machine(versions: dict[str, Any] | None = None) -> str:
-    """« Mac16,12 24 Gio / macOS 26.2 / mlx 0.32.1 » — un profil sans contexte
-    est ininterprétable, et c'est ce champ qui dit sur quoi il vaut."""
-    morceaux = []
-    modèle = _sysctl("hw.model") or platform.machine()
-    mémoire = _sysctl("hw.memsize")
-    if mémoire and mémoire.isdigit():
-        morceaux.append(f"{modèle} {int(mémoire) / (1 << 30):.0f} Gio")
-    else:
-        morceaux.append(modèle)
-    if platform.system() == "Darwin":
-        version = platform.mac_ver()[0]
-        morceaux.append(f"macOS {version}" if version else "macOS")
-    else:
-        morceaux.append(f"{platform.system()} {platform.release()}")
-    for nom, valeur in sorted((versions or {}).items()):
-        morceaux.append(f"{nom} {valeur}")
-    return " / ".join(morceaux)
-
-
-def _sysctl(clé: str) -> str | None:
-    try:
-        out = subprocess.run(["sysctl", "-n", clé], capture_output=True, text=True, check=False)
-    except OSError:
-        return None
-    valeur = out.stdout.strip()
-    return valeur or None

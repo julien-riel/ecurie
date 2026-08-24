@@ -84,7 +84,7 @@ Pour chaque candidat retenu par l'utilisateur :
    débit. MLX → `mx.get_peak_memory()`. Sinon → échantillonnage RSS à 100 ms.
 4. Exécuter le golden set de la capacité. Métriques automatiques en CI (WER, exactitude
    OCR) ; le reste produit des paires A/B en attente d'arbitrage humain dans l'UI.
-5. Écrire `registry/measurements/<id>@<variant>.json`.
+5. Écrire `registry/measurements/<id>@<variant>/<machine>.json` (le banc le nomme).
 
 ## Phase 4 — Élagage
 

@@ -31,7 +31,7 @@ Séparation stricte :
 
 | État | Support | Contenu |
 |---|---|---|
-| Déclaré | `registry/` en Git | manifestes, capacités, `measurements/`, `evals/preferences.jsonl` |
+| Déclaré | `registry/` en Git | manifestes, capacités, `measurements/` (un fichier par machine), `evals/preferences.jsonl` |
 | Observé | `~/.ecurie/state.db` (SQLite) | artifacts, locations, cache de hash, télémétrie |
 | Observé | `~/.ecurie/residents.json` | modèles chargés, **miroir** de ce que chaque processus tient en mémoire |
 | Dérivé | recalculé, jamais committé | classement Elo, trois chiffres d'occupation, plans de GC |
@@ -112,7 +112,7 @@ ecurie/                          # monorepo uv workspace
     schema/{model,capability,golden}.schema.json  ✓
     capabilities/*.json                        ✓ 25 contrats atomiques
     models/*.yaml                              ✓ 26 manifestes, un par capacité au moins
-    measurements/<id>@<variant>.json           ✓ 21 profils mesurés
+    measurements/<id>@<variant>/<machine>.json ✓ 29 profils mesurés, par machine
     evals/
       bench/<capability>.json + assets/        ✓ charges type du banc d'essai
       golden/<capability>/manifest.json        ✓ 11 jeux (§9), dont l'ASR sans son
@@ -1184,10 +1184,14 @@ autres disent ce qu'il faudrait pour qu'elles le deviennent.
    moindres carrés sur ses points, et rend le R² avec. Sous 0,9, la pente est
    jetée et le profil garde le pire cas : une droite ajustée sur une relation qui
    n'en est pas une vaut moins que rien.
-5. Écrit `registry/measurements/<id>@<variant>.json` avec `measured_on`,
-   `harness_version`, et affiche le patch `profile:` à committer dans le YAML.
-   Le fichier de mesure est l'autorité ; le bloc `profile` du manifeste en est la
-   copie committée par un humain. Le patch porte un en-tête nommant le fichier et
+5. Écrit `registry/measurements/<id>@<variant>/<machine>.json` avec
+   `measured_on`, `harness_version`, et affiche le patch `profile:` à committer
+   dans le YAML. Les fichiers de mesure sont l'autorité ; le bloc `profile` du
+   manifeste en est la copie committée par un humain. **Un fichier par machine** :
+   le dépôt est partagé et les Macs ne le sont pas, et un emplacement unique
+   faisait s'écraser les relevés de deux postes. Le nom du fichier ne retient que
+   le matériel, si bien que la même machine qui remesure remplace bien son
+   relevé. Le patch porte un en-tête nommant le fichier et
    le variant : collé d'un cran trop loin, il atterrit dans `source:` et YAML
    l'accepte sans broncher.
 
@@ -1273,8 +1277,15 @@ de l'être, l'un des deux est faux.
   3. `revision` : refus des placeholders `0000000` et de `main` sur `status: active` ;
   4. existence des révisions épinglées via l'API HF (job hebdomadaire aussi, pour
      détecter les dépôts disparus et les licences changées) ;
-  5. refus d'un bloc `profile:` sans fichier `measurements/` correspondant de même
-     `harness_version` — c'est l'application mécanique de « jamais estimé à la main ».
+  5. refus d'un bloc `profile:` qui n'est la copie d'aucun relevé de
+     `measurements/<ref>/` — c'est l'application mécanique de « jamais estimé à la
+     main ». Le relevé dont le `measured_on` est celui que le manifeste annonce est
+     comparé à l'égalité, `harness_version` comprise ; à défaut — le manifeste vient
+     d'un poste dont ce clone n'a pas le relevé —, il suffit que ses chiffres
+     **portables** (`peak_unified_memory_bytes`, `disk_bytes`) s'accordent avec l'un
+     des relevés présents. `warmup_ms`, `latency_ms_p50` et `throughput` en sont
+     exclus : ils mesurent la machine autant que le modèle, et les comparer d'un
+     poste à l'autre déclencherait un avertissement chez tout le monde.
 
 ---
 

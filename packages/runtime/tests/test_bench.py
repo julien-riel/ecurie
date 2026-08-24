@@ -4,6 +4,8 @@ import json
 import struct
 import zlib
 
+from ecurie_core.machine import hardware_of, machine_slug
+from ecurie_core.registry import load_registry, measurement_records
 from ecurie_runtime.bench import (
     CaseResult,
     build_profile,
@@ -26,7 +28,6 @@ def _pieces(superviseur, ref="tts-test"):
 
 def test_la_charge_type_reelle_du_depot_se_charge():
     """Les trois entrées figées de `registry/evals/bench/` sont lisibles telles quelles."""
-    from ecurie_core.registry import load_registry
 
     registre = load_registry(REPO)
     charge = load_workload(REPO, registre.capabilities["text-to-speech"])
@@ -97,7 +98,10 @@ def test_le_banc_mesure_le_profil_et_ecrit_la_mesure(parc, supervisor_factory):
     assert any("aucune charge type versionnée" in a for a in rapport.warnings)
 
     chemin = write_measurement(parc.root, rapport)
-    assert chemin == parc.root / "registry" / "measurements" / "tts-test@essai.json"
+    # Un dossier par variant, un fichier par machine : le nom du fichier est
+    # celui de la machine qui a mesuré, pas celui du variant.
+    assert chemin.parent == parc.root / "registry" / "measurements" / "tts-test@essai"
+    assert chemin.name == f"{machine_slug(hardware_of(rapport.measured_on))}.json"
     document = json.loads(chemin.read_text())
     assert document["harness_version"] == rapport.harness_version
     assert document["profile"] == rapport.profile
@@ -195,7 +199,6 @@ def test_le_patch_colle_dans_un_manifeste_donne_un_registre_valide(parc, supervi
     Vérifier que le patch est du YAML lisible ne suffit pas — c'est le schéma du
     manifeste qui tranche, et c'est lui qui refusait la date non quotée.
     """
-    from ecurie_core.registry import load_registry
 
     parc.capability().model(peak_bytes=None)
     superviseur = supervisor_factory(parc)
@@ -219,7 +222,6 @@ def test_le_patch_colle_dans_un_manifeste_donne_un_registre_valide(parc, supervi
 
 def test_le_registre_signale_un_profil_qui_a_derive_de_sa_mesure(parc):
     """Le manifeste est une copie ; le fichier de mesure est l'autorité."""
-    from ecurie_core.registry import load_registry
 
     parc.capability().model(peak_bytes=3 * GIB)
     parc.mesure(
@@ -230,8 +232,133 @@ def test_le_registre_signale_un_profil_qui_a_derive_de_sa_mesure(parc):
     assert any("a divergé de measurements/" in i.message for i in registre.warnings)
 
 
+def _reproches_de_profil(registre) -> list[str]:
+    """Ce que la validation reproche au bloc `profile:`, et rien d'autre.
+
+    Un `warnings == []` attraperait aussi l'environnement de runtime absent du
+    dépôt d'essai, qui n'a rien à voir avec la mesure.
+    """
+    marqueurs = (
+        "divergé",
+        "sans mesure correspondante",
+        "ne correspondent à aucun",
+        "profil mesuré par le banc",
+    )
+    return [i.message for i in registre.warnings if any(m in i.message for m in marqueurs)]
+
+
+def test_deux_machines_gardent_chacune_leur_releve(parc):
+    """Le dépôt est partagé, les Macs ne le sont pas.
+
+    C'était le seul défaut multi-machine du dépôt à passer en silence : les deux
+    relevés visaient le même fichier, le second effaçait le premier, et
+    `registry validate` reprochait ensuite au manifeste une divergence qui
+    n'était que l'autre machine.
+    """
+    parc.capability().model(peak_bytes=3 * GIB)
+    parc.mesure("tts-test@essai", {"disk_bytes": 4096, "peak_unified_memory_bytes": 3 * GIB})
+    parc.mesure(
+        "tts-test@essai",
+        {"disk_bytes": 4096, "peak_unified_memory_bytes": 3 * GIB, "warmup_ms": 4000},
+        measured_on="Mac de l'autre 16 Gio",
+    )
+
+    relevés, issues = measurement_records(parc.root, "tts-test@essai")
+    assert issues == []
+    assert sorted(doc["measured_on"] for _, doc in relevés) == [
+        "Mac de l'autre 16 Gio",
+        "machine d'essai",
+    ]
+    assert _reproches_de_profil(load_registry(parc.root)) == []
+
+
+def test_un_manifeste_mesure_ailleurs_passe_s_il_dit_les_memes_chiffres(parc):
+    """Le clone n'a que son propre relevé, le manifeste vient d'un autre poste.
+
+    C'est l'ordinaire d'un dépôt partagé, pas une anomalie : le pic et
+    l'occupation disque se transportent, donc il suffit qu'ils s'accordent avec
+    l'un des relevés présents.
+    """
+    parc.capability().model(peak_bytes=3 * GIB)
+    parc.mesure(
+        "tts-test@essai",
+        {"disk_bytes": 4096, "peak_unified_memory_bytes": 3 * GIB},
+        measured_on="Mac de l'autre 16 Gio",
+    )
+
+    assert _reproches_de_profil(load_registry(parc.root)) == []
+
+
+def test_un_warmup_different_d_une_machine_a_l_autre_n_est_pas_une_derive(parc):
+    """`warmup_ms` mesure la machine autant que le modèle.
+
+    Le comparer d'un poste à l'autre ne reprocherait au manifeste que d'avoir été
+    mesuré ailleurs — un avertissement qui se déclencherait chez tout le monde et
+    qu'on apprendrait à ignorer, emportant les vrais avec lui.
+    """
+    parc.capability().model(peak_bytes=3 * GIB)  # le manifeste annonce warmup_ms: 10
+    parc.mesure(
+        "tts-test@essai",
+        {"disk_bytes": 4096, "peak_unified_memory_bytes": 3 * GIB, "warmup_ms": 9000},
+        measured_on="Mac de l'autre 16 Gio",
+    )
+
+    assert _reproches_de_profil(load_registry(parc.root)) == []
+
+
+def test_un_profil_qui_ne_correspond_a_aucun_releve_est_signale(parc):
+    """Ce qu'on refusait, on le refuse encore : un profil qui n'est la copie de rien."""
+    parc.capability().model(peak_bytes=3 * GIB)
+    parc.mesure(
+        "tts-test@essai",
+        {"disk_bytes": 4096, "peak_unified_memory_bytes": 9 * GIB},
+        measured_on="Mac de l'autre 16 Gio",
+    )
+
+    avertissements = [i.message for i in load_registry(parc.root).warnings]
+    assert any("ne correspondent à aucun" in m for m in avertissements), avertissements
+    assert any("Mac de l'autre 16 Gio" in m for m in avertissements), (
+        "l'avertissement doit nommer les relevés dont le dépôt dispose"
+    )
+
+
+def test_un_releve_a_l_ancienne_disposition_est_encore_lu(parc):
+    """Une branche antérieure à la mesure par machine ne perd pas ses relevés.
+
+    Le banc n'écrit plus que dans le dossier ; le fichier plat reste lu, sans
+    quoi toute branche en cours verrait ses profils déclarés « sans mesure » au
+    premier rebasage.
+    """
+    parc.capability().model(peak_bytes=3 * GIB)
+    plat = parc.root / "registry" / "measurements" / "tts-test@essai.json"
+    plat.parent.mkdir(parents=True, exist_ok=True)
+    plat.write_text(
+        json.dumps(
+            {
+                "ref": "tts-test@essai",
+                "measured_on": "machine d'essai",
+                "profile": {"disk_bytes": 4096, "peak_unified_memory_bytes": 3 * GIB},
+                "harness_version": "0.3.0",
+            }
+        )
+    )
+
+    assert _reproches_de_profil(load_registry(parc.root)) == []
+
+
+def test_un_releve_illisible_n_emporte_pas_ceux_de_ses_voisins(parc):
+    parc.capability().model(peak_bytes=3 * GIB)
+    parc.mesure("tts-test@essai", {"disk_bytes": 4096, "peak_unified_memory_bytes": 3 * GIB})
+    (parc.root / "registry" / "measurements" / "tts-test@essai" / "corrompu.json").write_text(
+        "{ pas du json"
+    )
+
+    registre = load_registry(parc.root)
+    assert any("JSON illisible" in i.message for i in registre.errors)
+    assert not any("sans mesure correspondante" in i.message for i in registre.warnings)
+
+
 def test_un_profil_sans_mesure_est_signale(parc):
-    from ecurie_core.registry import load_registry
 
     parc.capability().model(peak_bytes=3 * GIB)
     registre = load_registry(parc.root)
