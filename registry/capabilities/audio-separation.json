@@ -1,9 +1,12 @@
 {
   "id": "audio-separation",
   "title": "Séparation de pistes audio",
+  "description": "Découpe un mélange en pistes — voix, basse, batterie, reste. Elle suppose de la musique, là où le débruitage suppose une voix dans du bruit.",
   "input": {
     "type": "object",
-    "required": ["audio"],
+    "required": [
+      "audio"
+    ],
     "additionalProperties": false,
     "properties": {
       "audio": {
@@ -14,7 +17,10 @@
       },
       "stems": {
         "type": "integer",
-        "enum": [2, 4],
+        "enum": [
+          2,
+          4
+        ],
         "default": 2,
         "description": "2 = voix et accompagnement. 4 = voix, batterie, basse et le reste."
       },
@@ -36,11 +42,15 @@
   },
   "output": {
     "type": "object",
-    "required": ["tracks"],
+    "required": [
+      "tracks"
+    ],
     "properties": {
       "tracks": {
         "type": "object",
-        "required": ["vocals"],
+        "required": [
+          "vocals"
+        ],
         "description": "Pistes produites. Les clés présentes dépendent du paramètre stems.",
         "properties": {
           "vocals": {

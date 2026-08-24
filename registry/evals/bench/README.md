@@ -28,6 +28,8 @@ sets de `registry/evals/golden/`, au v0.5.
 | `translation` | court, moyen, long | trois textes français vers l'anglais, de longueur croissante — langue d'arrivée fixée pour que la comparaison porte sur le coût et non sur la difficulté d'une paire |
 | `tool-use` | outils-3, outils-8, outils-16 | la même demande, trois catalogues : c'est le nombre d'outils déclarés qui gonfle le contexte, la réponse tenant dans les mêmes quelques dizaines de jetons |
 | `text-generation` | court-128, moyen-512, long-1536 | trois plafonds de jetons, température nulle partout — une charge qui échantillonnerait ne serait pas reproductible |
+| `face-detect` | res-320, res-640, res-1280 | une scène à quatre visages, trois définitions d'entrée — `input_size` pilote le coût au carré, et à 320 les plus petits visages sortent du champ du réseau, ce qui est précisément ce que ce paramètre gouverne |
+| `face-landmark`, `face-parse`, `face-embed`, `face-headpose`, `face-gaze` | visages-1, visages-2, visages-4 | la même scène, trois plafonds — ces cinq capacités ne cherchent pas les visages, elles traitent ceux qu'un détecteur leur désigne, et c'est le nombre de passages qui fait la durée |
 
 Les images de `assets/` sont produites par une recette déterministe (silhouette
 et dégradé calculés, pas de photo) : elles n'ont ni licence ni provenance à
@@ -41,6 +43,35 @@ recommence pas. Elles sont en **RGBA avec un
 fond réellement transparent** — le pipeline Hunyuan3D recadre sur le canal alpha,
 et une image opaque le prive de sa seule indication de silhouette. Un fond gris
 uniforme n'est pas un détourage.
+
+## Les visages, et pourquoi ils sont calculés
+
+`assets/visages-groupe.png` montre quatre visages. Aucun n'existe : ils sont
+rendus par lancer de rayons sur une fonction de distance signée, comme les
+solides de `image-to-mesh`, et leur recette est dans `tools/golden_assets.py`.
+
+Ce n'est pas une élégance, c'est la seule issue. Une charge type est versionnée,
+publique et figée pour des années — exactement ce qu'on ne fait pas du portrait
+de quelqu'un. Un visage calculé n'a ni identité, ni consentement à recueillir, ni
+licence à suivre, et il se refabrique à l'identique.
+
+**Il a fallu deux essais.** La première version, sans paupières — le globe
+oculaire entier apparent —, était trouvée par RetinaFace MobileNet à 1,00 et par
+SCRFD à 0,61, mais **pas du tout par RetinaFace ResNet-50**. Une charge qu'un
+variant ne peut pas servir le rend non profilable, donc inadmissible : c'est ce
+qui est arrivé à SAM 3 sur `image-segment`. Paupières ajoutées, les neuf
+détecteurs essayés trouvent le visage, ResNet-50 à 0,976.
+
+**Ce que cette charge donne et qu'une photographie ne donnerait pas :** les
+quatre visages sont rendus à des lacets connus — 0°, +24°, −18°, +8° — puisque
+c'est la recette qui les pose. `face-headpose` s'y vérifie donc contre une vérité
+terrain qu'on contrôle, sans annotation manuelle.
+
+**Ce qu'elle ne donne pas :** de la texture de peau. `face-parse` place
+correctement les régions mais range de larges plages de joue sous `hat`, faute de
+grain auquel se raccrocher. La charge mesure un coût, pas une qualité — et c'est
+le golden set qui posera la question des photographies, avec celle du
+consentement que cette charge-ci évite.
 
 Une capacité sans fichier de charge type reste mesurable — `ecurie bench` déduit
 alors une entrée minimale du contrat — mais la mesure porte la mention « non

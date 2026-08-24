@@ -29,6 +29,11 @@
       "$ref": "#/$defs/sortie",
       "description": "Schéma de la sortie. Le visualiseur est choisi d'après contentMediaType."
     },
+    "human_subject": {
+      "type": "string",
+      "enum": ["analyzes", "identifies", "synthesizes"],
+      "description": "Ce que la capacité fait d'une personne réelle. Absent = elle ne porte pas spécifiquement sur des personnes, ce qui est le cas de la grande majorité. `analyzes` mesure quelqu'un qui est déjà dans l'entrée sans le nommer ni le reproduire — une boîte, des points clés, une orientation de tête. `identifies` rattache l'entrée à une personne nommable : c'est de la reconnaissance, et le résultat désigne quelqu'un. `synthesizes` produit l'image ou la voix d'une personne faisant ce qu'elle n'a pas fait. Le registre a `license_class` pour ce que le droit interdit ; ce champ-ci dit ce que la capacité fait, ce qui n'est pas la même question — un modèle parfaitement permissif peut servir à identifier quelqu'un qui n'a rien demandé. Déclaré sur le contrat et non sur le variant : c'est la capacité qui décide, et tous ses modèles en héritent."
+    },
     "composite": {
       "type": "boolean",
       "default": false,

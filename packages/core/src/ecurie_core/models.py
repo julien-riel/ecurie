@@ -38,6 +38,16 @@ Capability = Literal[
     "audio-to-text",
     "speaker-diarization",
     "voice-clone",
+    # La famille visage. Six contrats plutôt qu'un seul « analyse de visage » :
+    # ils ne rendent ni la même chose ni le même type — des boîtes, des points,
+    # une carte de régions, un vecteur, des angles —, et une capacité dont la
+    # sortie change avec le modèle n'est plus un contrat.
+    "face-detect",
+    "face-landmark",
+    "face-parse",
+    "face-embed",
+    "face-headpose",
+    "face-gaze",
 ]
 
 Status = Literal["active", "candidate", "deprecated", "retired"]
@@ -52,6 +62,7 @@ Runtime = Literal[
     "depth-anything",
     "mflux",
     "rtmlib",
+    "uniface",
     "comfy",
     "ollama",
     "llama-cpp",

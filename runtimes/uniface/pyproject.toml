@@ -1,0 +1,57 @@
+# Environnement isolé du runtime `uniface` (CONCEPTION.md §5.3).
+#
+# Onzième famille du parc, et le second environnement bâti sur onnxruntime après
+# `rtmlib`. La question s'est posée de les fondre en un seul — les deux servent
+# de l'ONNX et rien d'autre — et la réponse est non, pour la raison qui a fait
+# exister les dix autres : rtmlib épingle ses propres bornes, uniface impose
+# `scikit-image` et `scipy` que rtmlib n'a jamais vus, et une capacité qui
+# rétrograderait un modèle déjà mesuré chez le voisin est précisément ce que
+# l'isolement existe pour éviter (ARCHITECTURE.md §0, piège 2).
+#
+#     ecurie env sync uniface
+#
+# **Ce runtime ne touche pas Metal.** onnxruntime tourne ici sur CoreML ou sur le
+# CPU, jamais sur MPS : le pic mémoire de ses workers se mesure donc au RSS, et
+# c'est — avec `rtmlib` — le seul cas du parc où le RSS dit la vérité. Ailleurs
+# il ignore la mémoire Metal, ce que le v0.3 a payé d'un facteur 38.
+#
+# **Le plancher macOS est épinglé, comme chez rtmlib et pour la même raison.**
+# onnxruntime ≥ 1.26 ne publie que des roues macOS 14 ; le dépôt plafonne
+# délibérément torch < 2.14 pour rester en macosx_11. Épingler `<1.26` conserve
+# un plancher macOS 13 plutôt que d'imposer à tout le parc une contrainte venue
+# d'une seule famille de capacités.
+
+[project]
+name = "ecurie-runtime-uniface"
+version = "0.4.0"
+description = "Écurie — env isolé : analyse de visage (détection, points clés, parsing, identité, pose, regard) sur ONNX"
+# Aligné sur le socle 3.12 d'Écurie : le worker exécute
+# `ecurie_runtime.workers.base`, écrit pour cette version. uniface accepte
+# 3.10 à 3.14, donc la borne qui décide est celle du socle.
+requires-python = ">=3.12"
+
+dependencies = [
+    # La bibliothèque elle-même est MIT et ne pèse rien : elle n'est qu'une
+    # couche de pré/post-traitement au-dessus d'onnxruntime — pas de torch, pas
+    # de mmcv, pas de code amont à vendorer. C'est tout ce qui a fait retenir
+    # cette piste plutôt que les six autres familles visage du backlog §D.
+    #
+    # **Les poids, eux, ne sont pas MIT** : ils viennent d'une quinzaine de
+    # projets amont aux licences distinctes, jusqu'au « non-commercial research
+    # only » d'InsightFace. C'est le manifeste de chaque modèle qui porte la
+    # sienne, jamais cette ligne-ci.
+    "uniface>=4.0,<5",
+    # `uniface[cpu]` tirerait onnxruntime sans borne haute. On le déclare donc à
+    # part : voir l'en-tête, la borne tient le plancher macOS et non une
+    # prudence de version.
+    "onnxruntime>=1.23,<1.26",
+    # Déclarées par uniface, redites ici parce que les workers les importent
+    # directement — lire une image, la redimensionner, écrire un aperçu.
+    "opencv-python>=4.10",
+    "numpy>=1.26",
+    "scikit-image>=0.22",
+    "scipy>=1.11",
+]
+
+[tool.uv]
+package = false

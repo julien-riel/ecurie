@@ -1,9 +1,12 @@
 {
   "id": "text-to-speech",
   "title": "Synthèse vocale",
+  "description": "Lit un texte avec une voix que le modèle embarque. À distinguer de la synthèse à voix de référence : ici on choisit dans un catalogue fermé, là on fournit un échantillon à imiter.",
   "input": {
     "type": "object",
-    "required": ["text"],
+    "required": [
+      "text"
+    ],
     "additionalProperties": false,
     "properties": {
       "text": {
@@ -33,7 +36,9 @@
   },
   "output": {
     "type": "object",
-    "required": ["audio"],
+    "required": [
+      "audio"
+    ],
     "properties": {
       "audio": {
         "type": "string",

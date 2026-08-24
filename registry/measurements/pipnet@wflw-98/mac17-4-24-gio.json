@@ -1,0 +1,67 @@
+{
+  "ref": "pipnet@wflw-98",
+  "model": "pipnet",
+  "variant": "wflw-98",
+  "capability": "face-landmark",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/face-landmark.json",
+    "version": 1,
+    "cases": [
+      "visages-1",
+      "visages-2",
+      "visages-4"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 55970720,
+    "peak_unified_memory_bytes": 575602688,
+    "warmup_ms": 692,
+    "latency_ms_p50": 54,
+    "throughput": "1 sortie / 0.1 s"
+  },
+  "cases": [
+    {
+      "id": "visages-1",
+      "ok": true,
+      "duration_ms": 76,
+      "metrics": {
+        "duration_ms": 76,
+        "faces": 1,
+        "points_per_face": 98,
+        "peak_memory_bytes": 556908544
+      },
+      "error": null
+    },
+    {
+      "id": "visages-2",
+      "ok": true,
+      "duration_ms": 51,
+      "metrics": {
+        "duration_ms": 51,
+        "faces": 2,
+        "points_per_face": 98,
+        "peak_memory_bytes": 575471616
+      },
+      "error": null
+    },
+    {
+      "id": "visages-4",
+      "ok": true,
+      "duration_ms": 54,
+      "metrics": {
+        "duration_ms": 54,
+        "faces": 4,
+        "points_per_face": 98,
+        "peak_memory_bytes": 575602688
+      },
+      "error": null
+    }
+  ],
+  "warnings": [
+    "pente du pic mal ajustée (R² = 0.58) sur max_faces : la relation n'a pas l'air linéaire, le profil garde le pire cas mesuré"
+  ]
+}

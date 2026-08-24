@@ -1,0 +1,66 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "face-detect",
+  "title": "Détection de visages",
+  "description": "Trouve les visages d'une image et rend, pour chacun, une boîte et les cinq points d'ancrage — les deux yeux, le nez, les deux coins de la bouche. Ce qui la sépare de la détection d'objets n'est pas le sujet mais la sortie : ces cinq points définissent la transformation qui redresse un visage, et toutes les autres capacités de la famille la consomment. Un détecteur généraliste qui rendrait une boîte étiquetée « personne » ne permettrait ni de recadrer, ni d'aligner, ni de comparer.",
+  "human_subject": "analyzes",
+  "input": {
+    "type": "object",
+    "required": ["image"],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image à analyser."
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "default": 0.5,
+        "description": "Score en dessous duquel une détection est écartée. C'est le réglage qui arbitre entre les visages manqués et les faux positifs, et il ne se règle pas une fois pour toutes : une photo de foule et un portrait ne demandent pas le même seuil."
+      },
+      "max_faces": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 500,
+        "default": 50,
+        "description": "Plafond de visages rendus, les plus grands d'abord. Sans lui, une photo de gradins remplit la sortie de vignettes de quinze pixels dont aucune n'est exploitable."
+      },
+      "input_size": {
+        "type": "integer",
+        "enum": [320, 480, 640, 960, 1280],
+        "default": 640,
+        "description": "Côté auquel l'image entre dans le réseau. C'est lui qui décide du coût, et au carré : un visage lointain n'apparaît qu'en montant, une photo de portrait n'y gagne rien."
+      },
+      "overlay": {
+        "type": "boolean",
+        "default": true,
+        "description": "Produire l'image annotée. Une liste de coordonnées ne se relit pas ; c'est cette vignette qui rend la sortie vérifiable à l'œil."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["faces", "count"],
+    "properties": {
+      "faces": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin de la liste produite, relatif au dossier du job : pour chaque visage, la boîte [x1, y1, x2, y2] en **pixels absolus de l'image fournie**, le score, et les cinq points d'ancrage dans le même repère. Les modèles travaillent sur une image redimensionnée ; la remise à l'échelle est faite par l'adaptateur, parce qu'un client qui recevrait les coordonnées de l'entrée du réseau croirait recevoir celles de son image."
+      },
+      "overlay": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de l'image annotée, relatif au dossier du job : les boîtes et les points tracés sur l'image d'origine."
+      },
+      "count": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de visages trouvés. Zéro est une réponse, pas un échec — c'est même la bonne réponse sur une photo de paysage."
+      }
+    }
+  }
+}

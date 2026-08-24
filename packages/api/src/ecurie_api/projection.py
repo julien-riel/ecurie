@@ -92,6 +92,7 @@ def capability_out(
         id=contract.id,
         title=contract.title,
         description=contract.document.get("description"),
+        human_subject=contract.human_subject,
         composite=contract.composite,
         steps=contract.steps,
         input=contract.input_schema,

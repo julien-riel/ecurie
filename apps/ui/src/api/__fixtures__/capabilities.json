@@ -7,7 +7,8 @@
         "segment_seconds": 15,
         "strength": 1.0
       },
-      "description": null,
+      "description": "Retire d'un enregistrement ce qui n'est pas la voix. Elle ne sépare pas les instruments : elle suppose qu'il y a une parole à sauver et un fond à écarter.",
+      "human_subject": null,
       "id": "audio-denoise",
       "incumbent": null,
       "input": {
@@ -83,7 +84,8 @@
         "shifts": 1,
         "stems": 2
       },
-      "description": null,
+      "description": "Découpe un mélange en pistes — voix, basse, batterie, reste. Elle suppose de la musique, là où le débruitage suppose une voix dans du bruit.",
+      "human_subject": null,
       "id": "audio-separation",
       "incumbent": null,
       "input": {
@@ -193,6 +195,7 @@
         "temperature": 0.2
       },
       "description": "Répond à une question sur un enregistrement : ce qu'on y entend, l'émotion d'une voix, l'instrument qui joue, le résumé d'une réunion. C'est à la transcription ce que la description d'image est à la lecture de document — on demande au modèle ce qu'il entend, pas de recopier ce qui est dit.",
+      "human_subject": null,
       "id": "audio-to-text",
       "incumbent": null,
       "input": {
@@ -301,6 +304,7 @@
         "process_res": 504
       },
       "description": "Estime la distance de chaque pixel à la caméra, depuis une seule image, et rend en même temps les paramètres de la caméra qui l'a prise. À ne pas confondre avec l'image vers maillage, qui reconstruit une surface fermée : ici la sortie reste une image, dont chaque pixel porte une distance plutôt qu'une couleur. C'est ce qui précède un maillage plutôt que ce qui le remplace — et ce qui permet de détourer par la distance, de flouter un arrière-plan, ou de recaler deux prises de vue.",
+      "human_subject": null,
       "id": "depth-estimation",
       "incumbent": null,
       "input": {
@@ -404,7 +408,8 @@
         "dpi": 200,
         "format": "markdown"
       },
-      "description": null,
+      "description": "Transcrit une page en respectant sa mise en forme — colonnes, tableaux, champs de formulaire. Ce n'est pas décrire une image : on attend ici ce qui est écrit, au mot près.",
+      "human_subject": null,
       "id": "document-to-text",
       "incumbent": null,
       "input": {
@@ -501,11 +506,576 @@
     {
       "composite": false,
       "defaults": {
+        "confidence_threshold": 0.5,
+        "input_size": 640,
+        "max_faces": 50,
+        "overlay": true
+      },
+      "description": "Trouve les visages d'une image et rend, pour chacun, une boîte et les cinq points d'ancrage — les deux yeux, le nez, les deux coins de la bouche. Ce qui la sépare de la détection d'objets n'est pas le sujet mais la sortie : ces cinq points définissent la transformation qui redresse un visage, et toutes les autres capacités de la famille la consomment. Un détecteur généraliste qui rendrait une boîte étiquetée « personne » ne permettrait ni de recadrer, ni d'aligner, ni de comparer.",
+      "human_subject": "analyzes",
+      "id": "face-detect",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence_threshold": {
+            "default": 0.5,
+            "description": "Score en dessous duquel une détection est écartée. C'est le réglage qui arbitre entre les visages manqués et les faux positifs, et il ne se règle pas une fois pour toutes : une photo de foule et un portrait ne demandent pas le même seuil.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image à analyser.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "input_size": {
+            "default": 640,
+            "description": "Côté auquel l'image entre dans le réseau. C'est lui qui décide du coût, et au carré : un visage lointain n'apparaît qu'en montant, une photo de portrait n'y gagne rien.",
+            "enum": [
+              320,
+              480,
+              640,
+              960,
+              1280
+            ],
+            "type": "integer"
+          },
+          "max_faces": {
+            "default": 50,
+            "description": "Plafond de visages rendus, les plus grands d'abord. Sans lui, une photo de gradins remplit la sortie de vignettes de quinze pixels dont aucune n'est exploitable.",
+            "maximum": 500,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "overlay": {
+            "default": true,
+            "description": "Produire l'image annotée. Une liste de coordonnées ne se relit pas ; c'est cette vignette qui rend la sortie vérifiable à l'œil.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "retinaface"
+      ],
+      "output": {
+        "properties": {
+          "count": {
+            "description": "Nombre de visages trouvés. Zéro est une réponse, pas un échec — c'est même la bonne réponse sur une photo de paysage.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "faces": {
+            "contentMediaType": "application/json",
+            "description": "Chemin de la liste produite, relatif au dossier du job : pour chaque visage, la boîte [x1, y1, x2, y2] en **pixels absolus de l'image fournie**, le score, et les cinq points d'ancrage dans le même repère. Les modèles travaillent sur une image redimensionnée ; la remise à l'échelle est faite par l'adaptateur, parce qu'un client qui recevrait les coordonnées de l'entrée du réseau croirait recevoir celles de son image.",
+            "type": "string"
+          },
+          "overlay": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de l'image annotée, relatif au dossier du job : les boîtes et les points tracés sur l'image d'origine.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "faces",
+          "count"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "faces": "application/json",
+        "overlay": "image/png"
+      },
+      "ready_variants": [
+        "retinaface@mnet050",
+        "retinaface@mnet025",
+        "retinaface@r50"
+      ],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Détection de visages"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "confidence_threshold": 0.5,
+        "max_faces": 10,
+        "normalize": true
+      },
+      "description": "Redresse un visage sur ses cinq points d'ancrage et rend un vecteur, tel que deux photos d'une même personne donnent deux vecteurs proches. C'est la reconnaissance faciale : la sortie ne décrit pas une image, elle désigne quelqu'un. Elle ne se compare qu'à elle-même — deux modèles de cette capacité produisent des vecteurs de même longueur qui ne veulent pas dire la même chose, et un cosinus entre les deux ne signifie rien. La confrontation A/B porte donc sur les rangs, jamais sur les valeurs.",
+      "human_subject": "identifies",
+      "id": "face-embed",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "compare_to": {
+            "contentMediaType": "image/*",
+            "description": "Seconde image, facultative. Fournie, le job rend aussi la similarité entre le visage principal de chacune. C'est la seule façon de vérifier cette capacité sans index : un vecteur de 512 nombres ne se relit pas, un cosinus se lit.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "confidence_threshold": {
+            "default": 0.5,
+            "description": "Seuil du détecteur qui précède. Un visage écarté ici n'est pas encodé : cette capacité ne cherche pas les visages, elle encode ceux qu'on lui désigne.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image contenant le ou les visages à encoder.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "max_faces": {
+            "default": 10,
+            "description": "Plafond de visages encodés, les plus grands d'abord. Chaque visage coûte un redressement et un passage de plus dans le réseau.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "normalize": {
+            "default": true,
+            "description": "Ramener chaque vecteur à la norme 1. C'est ce qui rend le produit scalaire égal au cosinus, donc directement comparable ; le désactiver n'a d'intérêt que pour un index qui normalise lui-même.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "arcface",
+        "edgeface"
+      ],
+      "output": {
+        "properties": {
+          "count": {
+            "description": "Nombre de visages encodés.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "dimensions": {
+            "description": "Longueur d'un vecteur. Une même longueur chez deux modèles ne rend pas leurs vecteurs comparables.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "embeddings": {
+            "contentMediaType": "application/json",
+            "description": "Chemin des vecteurs produits, relatif au dossier du job : pour chaque visage, sa boîte, son score de détection et son vecteur. Le document nomme le modèle qui l'a écrit, sans quoi rien ne dit à quel espace ces nombres appartiennent.",
+            "type": "string"
+          },
+          "similarity": {
+            "description": "Cosinus entre le visage principal de `image` et celui de `compare_to`, quand la seconde image est fournie. Il n'y a pas de seuil universel : le seuil d'une décision d'identité appartient au modèle et au risque qu'on accepte, et cette capacité ne décide pas à la place de qui l'appelle.",
+            "maximum": 1.0,
+            "minimum": -1.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "embeddings",
+          "count",
+          "dimensions"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "embeddings": "application/json"
+      },
+      "ready_variants": [
+        "arcface@resnet",
+        "edgeface@s-gamma-05"
+      ],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Empreinte d'identité faciale"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "confidence_threshold": 0.5,
+        "max_faces": 10,
+        "overlay": true
+      },
+      "description": "Rend la direction dans laquelle les yeux pointent, en deux angles — tangage et lacet, en degrés, relatifs à la caméra. À distinguer de l'orientation de la tête, qu'un autre contrat mesure : une tête de face avec l'œil en coin donne un lacet de tête nul et un lacet de regard franc, et confondre les deux fait dire à la mesure l'inverse de ce qui se passe. La mesure porte sur le visage entier et non sur les yeux découpés : c'est la pose de la tête qui donne au réseau son référentiel.",
+      "human_subject": "analyzes",
+      "id": "face-gaze",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence_threshold": {
+            "default": 0.5,
+            "description": "Seuil du détecteur qui précède. Cette capacité ne cherche pas les visages, elle mesure ceux qu'on lui désigne.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image contenant le ou les visages à mesurer.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "max_faces": {
+            "default": 10,
+            "description": "Plafond de visages mesurés, les plus grands d'abord.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "overlay": {
+            "default": true,
+            "description": "Produire l'image annotée, une flèche partant de chaque visage dans la direction mesurée.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "mobilegaze"
+      ],
+      "output": {
+        "properties": {
+          "count": {
+            "description": "Nombre de visages mesurés.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "gazes": {
+            "contentMediaType": "application/json",
+            "description": "Chemin du relevé produit, relatif au dossier du job : pour chaque visage, sa boîte et ses deux angles en degrés.",
+            "type": "string"
+          },
+          "overlay": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de l'image annotée, relatif au dossier du job.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "gazes",
+          "count"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "gazes": "application/json",
+        "overlay": "image/png"
+      },
+      "ready_variants": [
+        "mobilegaze@r34"
+      ],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Direction du regard"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "confidence_threshold": 0.5,
+        "max_faces": 10,
+        "overlay": true
+      },
+      "description": "Rend les trois angles d'une tête — tangage, lacet, roulis — en degrés. C'est où la tête pointe, et non où les yeux regardent : quelqu'un peut avoir la tête de face et l'œil ailleurs, ce que `face-gaze` mesure séparément. La convention est celle des trois rotations successives ; leur signe dépend du modèle, et le contrat le fixe pour tous : tangage positif quand le menton monte, lacet positif quand le sujet tourne vers sa gauche, roulis positif quand la tête penche vers son épaule droite.",
+      "human_subject": "analyzes",
+      "id": "face-headpose",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence_threshold": {
+            "default": 0.5,
+            "description": "Seuil du détecteur qui précède. Cette capacité ne cherche pas les visages, elle mesure ceux qu'on lui désigne.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image contenant le ou les visages à mesurer.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "max_faces": {
+            "default": 10,
+            "description": "Plafond de visages mesurés, les plus grands d'abord.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "overlay": {
+            "default": true,
+            "description": "Produire l'image annotée, repère d'orientation dessiné sur chaque visage. Trois angles ne se vérifient pas de tête ; un axe tracé, si.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "headpose-6drepnet"
+      ],
+      "output": {
+        "properties": {
+          "count": {
+            "description": "Nombre de visages mesurés.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "overlay": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de l'image annotée, relatif au dossier du job.",
+            "type": "string"
+          },
+          "poses": {
+            "contentMediaType": "application/json",
+            "description": "Chemin du relevé produit, relatif au dossier du job : pour chaque visage, sa boîte et ses trois angles en degrés.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "poses",
+          "count"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "overlay": "image/png",
+        "poses": "application/json"
+      },
+      "ready_variants": [
+        "headpose-6drepnet@r18"
+      ],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Orientation de la tête"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "confidence_threshold": 0.5,
+        "max_faces": 10,
+        "overlay": true
+      },
+      "description": "Rend la géométrie fine d'un visage : plusieurs dizaines à plusieurs centaines de points le long du contour, des sourcils, des paupières, du nez et des lèvres. `face-detect` en rend cinq, qui suffisent à redresser un visage et à rien d'autre ; ceux-ci décrivent sa forme, et c'est ce qui permet de suivre une paupière qui se ferme ou une bouche qui s'ouvre. Le nombre de points appartient au modèle et non à la demande : 68, 98, 106 ou 468 ne sont pas des réglages d'une même chose, ce sont des conventions d'annotation différentes, et l'indice 33 ne désigne pas le même endroit de l'une à l'autre.",
+      "human_subject": "analyzes",
+      "id": "face-landmark",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence_threshold": {
+            "default": 0.5,
+            "description": "Seuil du détecteur qui précède. Un visage écarté ici n'a pas de points clés : cette capacité ne cherche pas les visages, elle décrit ceux qu'on lui désigne.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image contenant le ou les visages à décrire.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "max_faces": {
+            "default": 10,
+            "description": "Plafond de visages traités, les plus grands d'abord. Chaque visage coûte un passage de plus dans le réseau : c'est ce paramètre qui pilote la durée, la détection ne se faisant qu'une fois.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "overlay": {
+            "default": true,
+            "description": "Produire l'image annotée, points tracés sur l'image d'origine. Sur une sortie de plusieurs centaines de coordonnées, c'est la seule relecture possible.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "face-mesh",
+        "pipnet"
+      ],
+      "output": {
+        "properties": {
+          "count": {
+            "description": "Nombre de visages décrits.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "landmarks": {
+            "contentMediaType": "application/json",
+            "description": "Chemin de la liste produite, relatif au dossier du job : pour chaque visage, sa boîte, et ses points en **pixels absolus de l'image fournie**. Le document nomme la convention d'annotation (`scheme`), sans quoi les indices ne veulent rien dire.",
+            "type": "string"
+          },
+          "overlay": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de l'image annotée, relatif au dossier du job.",
+            "type": "string"
+          },
+          "points_per_face": {
+            "description": "Nombre de points par visage. Appartient au modèle : c'est la valeur à lire avant d'interpréter un indice.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "scheme": {
+            "description": "Convention d'annotation employée — par exemple `wflw-98`, `300w-68`, `mediapipe-468`. Deux conventions ne se comparent pas point à point.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "landmarks",
+          "count",
+          "points_per_face"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "landmarks": "application/json",
+        "overlay": "image/png"
+      },
+      "ready_variants": [
+        "face-mesh@v1-468",
+        "face-mesh@v2-478",
+        "pipnet@wflw-98",
+        "pipnet@dw300w-68"
+      ],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Points clés du visage"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "confidence_threshold": 0.5,
+        "max_faces": 5,
+        "overlay": true
+      },
+      "description": "Découpe un visage en ses parties nommées — peau, sourcils, yeux, nez, lèvres, oreilles, cheveux, cou, lunettes — et rend une carte où chaque pixel porte le numéro de sa région. Ce qui la sépare de la segmentation guidée n'est pas la finesse mais la désignation : `image-segment` découpe ce qu'on lui montre ou ce qu'on lui nomme, une région à la fois ; ici le vocabulaire est fixé d'avance et tout le visage est étiqueté d'un coup. Personne ne demande « la lèvre supérieure » : on demande le découpage, et il vient entier.",
+      "human_subject": "analyzes",
+      "id": "face-parse",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence_threshold": {
+            "default": 0.5,
+            "description": "Seuil du détecteur qui précède. Cette capacité ne cherche pas les visages, elle découpe ceux qu'on lui désigne.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image contenant le ou les visages à découper.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "max_faces": {
+            "default": 5,
+            "description": "Plafond de visages traités, les plus grands d'abord. Chaque visage coûte un passage de plus dans le réseau.",
+            "maximum": 20,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "overlay": {
+            "default": true,
+            "description": "Produire l'image annotée, régions teintées sur l'image d'origine. Une carte d'indices est illisible telle quelle : elle est presque noire, les numéros de classe tenant tous entre 0 et 18.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "bisenet-parsing"
+      ],
+      "output": {
+        "properties": {
+          "count": {
+            "description": "Nombre de visages découpés.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "mask": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de la carte des régions, relatif au dossier du job : une image en niveaux de gris **aux dimensions de l'entrée**, où la valeur d'un pixel est le numéro de sa région et non une intensité. Elle paraît noire à l'écran, et c'est normal — c'est `overlay` qui se regarde, celle-ci qui se lit.",
+            "type": "string"
+          },
+          "overlay": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de l'image annotée, relatif au dossier du job : chaque région teintée de sa couleur, par-dessus l'image d'origine.",
+            "type": "string"
+          },
+          "regions": {
+            "contentMediaType": "application/json",
+            "description": "Chemin du relevé produit, relatif au dossier du job : pour chaque visage, sa boîte, et pour chaque région trouvée son numéro, son nom et le nombre de pixels qu'elle occupe. C'est ce document qui donne le sens des valeurs de `mask` — sans lui, la carte est une suite d'entiers sans légende.",
+            "type": "string"
+          },
+          "scheme": {
+            "description": "Vocabulaire des régions employé — par exemple `celebamask-hq-19`. Deux vocabulaires ne partagent pas la numérotation, et la comparer serait une faute.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mask",
+          "count",
+          "regions"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "mask": "image/png",
+        "overlay": "image/png",
+        "regions": "application/json"
+      },
+      "ready_variants": [
+        "bisenet-parsing@r18"
+      ],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Régions du visage"
+    },
+    {
+      "composite": false,
+      "defaults": {
         "max_objects": 50,
         "max_tokens": 1024,
         "temperature": 0.0
       },
       "description": "Situe dans une image ce qu'on lui demande de trouver, et rend des boîtes plutôt qu'une phrase. C'est ce qui la sépare de la description d'image : celle-ci dit « une chaise près de la fenêtre », celle-là dit où elle est, en pixels, pour qu'un autre outil puisse s'en servir.",
+      "human_subject": null,
       "id": "image-detect",
       "incumbent": null,
       "input": {
@@ -608,6 +1178,7 @@
         "strength": 0.99
       },
       "description": "Repeint une zone d'image désignée par un masque, ou étend la toile au-delà de ses bords. À ne pas confondre avec la transformation d'image, qui reprend toute la surface : ici, ce qui n'est pas masqué doit revenir intact.",
+      "human_subject": null,
       "id": "image-inpaint",
       "incumbent": null,
       "input": {
@@ -759,6 +1330,7 @@
         "max_side": 1024
       },
       "description": "Isole le sujet d'une image et rend son canal alpha. C'est le chaînon qui manque entre une photo et une reconstruction 3D : le pipeline image vers maillage recadre sur l'alpha, et une image opaque le prive de sa seule indication de silhouette.",
+      "human_subject": null,
       "id": "image-matting",
       "incumbent": null,
       "input": {
@@ -841,6 +1413,7 @@
         "max_side": 2048
       },
       "description": "Découpe l'objet qu'on lui désigne — d'un point, d'une boîte, ou d'un mot. À ne pas confondre avec le détourage, qui décide seul de ce qui est au premier plan : ici c'est l'utilisateur qui montre, et le modèle qui suit le contour.",
+      "human_subject": null,
       "id": "image-segment",
       "incumbent": null,
       "input": {
@@ -987,7 +1560,8 @@
         "steps": 25,
         "strength": 0.6
       },
-      "description": null,
+      "description": "Retransforme une image entière d'après une consigne. Ni masque à fabriquer, ni raccord de bord à surveiller : ce qui la distingue de la retouche tient à la force appliquée, qui décide du nombre de pas réellement exécutés.",
+      "human_subject": null,
       "id": "image-to-image",
       "incumbent": null,
       "input": {
@@ -1085,7 +1659,8 @@
         "num_inference_steps": 30,
         "octree_resolution": 256
       },
-      "description": null,
+      "description": "Reconstruit un objet en trois dimensions depuis une seule image. Le pipeline recadre sur le canal alpha : une image opaque le prive de sa seule indication de silhouette.",
+      "human_subject": null,
       "id": "image-to-mesh",
       "incumbent": "hunyuan3d-2.1-shape-mlx",
       "input": {
@@ -1160,6 +1735,7 @@
         "temperature": 0.2
       },
       "description": "Décrit une image, ou répond à une question sur elle. À ne pas confondre avec la lecture de document, qui transcrit ce qui est écrit : ici on demande au modèle ce qu'il voit, pas ce qui est imprimé.",
+      "human_subject": null,
       "id": "image-to-text",
       "incumbent": null,
       "input": {
@@ -1277,7 +1853,8 @@
         "num_frames": 81,
         "steps": 30
       },
-      "description": null,
+      "description": "Anime une image fixe, qui donne le premier plan et fixe le cadrage. À distinguer du texte vers vidéo, qui invente la scène autant que le mouvement.",
+      "human_subject": null,
       "id": "image-to-video",
       "incumbent": null,
       "input": {
@@ -1373,6 +1950,7 @@
         "scale": 2
       },
       "description": "Augmente la définition d'une image sans en changer le contenu. C'est ce qui rend utilisable la sortie d'un générateur qui travaille en 1024 : la contrainte est de restituer du détail plausible sans inventer d'objet.",
+      "human_subject": null,
       "id": "image-upscale",
       "incumbent": null,
       "input": {
@@ -1463,6 +2041,7 @@
         "threshold": 0.5
       },
       "description": "Découpe un enregistrement en tours de parole et attribue chacun à un locuteur. Elle ne transcrit rien : elle dit qui parle et à quel moment, ce que la transcription seule ne sait pas faire même quand elle rend des horodatages.",
+      "human_subject": null,
       "id": "speaker-diarization",
       "incumbent": null,
       "input": {
@@ -1564,7 +2143,8 @@
         "temperature": 0.0,
         "word_timestamps": false
       },
-      "description": null,
+      "description": "Transcrit ce qui est dit dans un enregistrement. Elle rend des mots et rien d'autre : qui parle relève de la diarisation, ce qu'on entend d'autre que de la parole relève de la compréhension audio.",
+      "human_subject": null,
       "id": "speech-to-text",
       "incumbent": null,
       "input": {
@@ -1667,7 +2247,8 @@
         "temperature": 0.7,
         "top_p": 0.95
       },
-      "description": null,
+      "description": "Écrit un texte à partir d'une consigne. Le contrat le plus général du parc, et la référence à laquelle la traduction et l'appel d'outils se comparent — ces deux-là ont leur propre contrat parce qu'ils attendent une sortie qu'on sait vérifier.",
+      "human_subject": null,
       "id": "text-generation",
       "incumbent": null,
       "input": {
@@ -1787,7 +2368,8 @@
         "steps": 25,
         "width": 1024
       },
-      "description": null,
+      "description": "Produit une image à partir d'une description. Le format et le nombre de pas font le coût, et le coût suit le produit largeur × hauteur × pas.",
+      "human_subject": null,
       "id": "text-to-image",
       "incumbent": null,
       "input": {
@@ -1880,7 +2462,8 @@
         "guidance_scale": 3.0,
         "temperature": 1.0
       },
-      "description": null,
+      "description": "Compose un morceau à partir d'une consigne, voix comprise si on le demande. C'est le job le plus lourd du parc — la durée demandée pilote directement la mémoire.",
+      "human_subject": null,
       "id": "text-to-music",
       "incumbent": null,
       "input": {
@@ -1962,7 +2545,8 @@
       "defaults": {
         "speed": 1.0
       },
-      "description": null,
+      "description": "Lit un texte avec une voix que le modèle embarque. À distinguer de la synthèse à voix de référence : ici on choisit dans un catalogue fermé, là on fournit un échantillon à imiter.",
+      "human_subject": null,
       "id": "text-to-speech",
       "incumbent": "qwen3-tts-1.7b",
       "input": {
@@ -2035,7 +2619,8 @@
         "steps": 30,
         "width": 832
       },
-      "description": null,
+      "description": "Produit une séquence animée à partir d'une consigne. Le nombre d'images demandé multiplie tout — la durée du calcul comme la mémoire.",
+      "human_subject": null,
       "id": "text-to-video",
       "incumbent": null,
       "input": {
@@ -2144,6 +2729,7 @@
         "tool_choice": "auto"
       },
       "description": "Choisir le bon outil parmi ceux qu'on lui déclare, et en remplir les arguments. C'est ce qui décide si un modèle est utilisable dans un harnais : une réponse juste mais mal formée ne s'exécute pas, et une réponse bien formée qui appelle le mauvais outil s'exécute — ce qui est pire. Écurie n'exécute AUCUN outil déclaré ici, et ne le fera pas : elle juge le choix et le remplissage, pas leur effet. La boucle d'agent est hors périmètre (ARCHITECTURE.md §11).",
+      "human_subject": null,
       "id": "tool-use",
       "incumbent": null,
       "input": {
@@ -2292,6 +2878,7 @@
         "register": "neutre"
       },
       "description": "Traduit un texte d'une langue vers une autre. Contrat distinct de la génération de texte, et pour une raison qui se paie au v0.5 : une traduction a une référence, donc une métrique automatique — là où une réponse libre n'a que des juges.",
+      "human_subject": null,
       "id": "translation",
       "incumbent": null,
       "input": {
@@ -2396,6 +2983,7 @@
         "smoothing": 0.3
       },
       "description": "Suit une personne filmée et rend la position de ses articulations, image par image, en trois dimensions. Le titre ne dit pas « capture de mouvement » à dessein : aucun modèle de cette chaîne ne produit de rotations d'os, et un fichier d'animation demande des rotations. Ce qui est mesuré ici, ce sont des points.",
+      "human_subject": null,
       "id": "video-to-motion",
       "incumbent": null,
       "input": {
@@ -2514,6 +3102,7 @@
         "temperature": 0.2
       },
       "description": "Décrit ce qui se passe dans une vidéo, la résume, ou répond à une question sur elle. C'est la même distinction qu'entre la description d'image et la lecture de document : ici on demande au modèle ce qu'il voit se dérouler, pas de transcrire ce qui est dit — la parole appartient à la transcription.",
+      "human_subject": null,
       "id": "video-to-text",
       "incumbent": null,
       "input": {
@@ -2642,6 +3231,7 @@
         "speed": 1.0
       },
       "description": "Lit un texte avec la voix d'un échantillon fourni, sans entraînement préalable. C'est une capacité distincte de la synthèse vocale et non un champ de plus : le titulaire de celle-ci choisit parmi les voix qu'il embarque, et il ne saurait pas quoi faire d'un enregistrement de référence.",
+      "human_subject": "synthesizes",
       "id": "voice-clone",
       "incumbent": null,
       "input": {

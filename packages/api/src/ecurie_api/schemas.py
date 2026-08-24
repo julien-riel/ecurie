@@ -128,6 +128,17 @@ class CapabilityOut(BaseModel):
     id: str
     title: str
     description: str | None = None
+    human_subject: str | None = Field(
+        default=None,
+        description=(
+            "Ce que la capacité fait d'une personne réelle, quand elle en fait quelque "
+            "chose : `analyzes` la mesure sans la nommer, `identifies` la désigne, "
+            "`synthesizes` produit son image ou sa voix. Absent pour la grande majorité "
+            "des capacités. Distinct de `license_class`, qui dit ce que le droit interdit : "
+            "un modèle parfaitement permissif peut servir à identifier quelqu'un qui n'a "
+            "rien demandé."
+        ),
+    )
     composite: bool = False
     steps: list[Json] = Field(default_factory=list)
     input: Json = Field(description="JSON Schema du formulaire. L'UI le rend tel quel.")

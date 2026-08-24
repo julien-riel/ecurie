@@ -16,25 +16,70 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test } from "vitest";
 import { repond, requetes } from "../vitest.setup";
-import { CAPACITES, GIO, choisir, parc, poserLeParc, resident } from "./__essais__/parc";
+import {
+  CAPACITES,
+  GIO,
+  choisir,
+  choisirCapacite,
+  ouvrirLeSelecteur,
+  parc,
+  poserLeParc,
+  poserLeParcAvecCapaciteBloquee,
+  resident,
+} from "./__essais__/parc";
 import { App } from "./App";
 import { Atelier } from "./ecrans/Atelier";
 
 beforeEach(poserLeParc);
 
 describe("le choix de la capacité et du variant", () => {
-  test("les capacites du parc sont groupees, les executables d_abord", async () => {
+  test("le panneau range le parc par famille, sans en perdre une", async () => {
     render(<App />);
-    const sélecteur = (await screen.findByLabelText("Capacité")) as HTMLSelectElement;
-    await waitFor(() => expect(sélecteur.options.length).toBeGreaterThan(1));
+    await ouvrirLeSelecteur();
+    const panneau = await screen.findByRole("dialog");
 
-    expect(sélecteur.options.length - 1).toBe(CAPACITES.capabilities.length);
-    const groupes = [...sélecteur.querySelectorAll("optgroup")].map((g) => g.label);
-    expect(groupes[0]).toBe("Exécutables");
-    // Le parc n'a plus de capacité sans modèle, et un groupe vide ne s'affiche
-    // pas : ce qui reste à part, ce sont celles dont rien n'est téléchargé.
-    expect(groupes).toContain("Déclarées, rien d'exécutable en l'état");
-    expect(groupes).not.toContain("Aucun modèle au registre");
+    // Toutes les capacités du registre sont là, y compris celles qu'on ne peut
+    // pas lancer : le panneau ne cache jamais ce qui ne marche pas.
+    for (const c of CAPACITES.capabilities) {
+      expect(within(panneau).getAllByText(c.title).length).toBeGreaterThan(0);
+    }
+
+    const familles = within(panneau)
+      .getAllByRole("heading", { level: 3 })
+      .map((h) => h.textContent);
+    expect(familles).toContain("Son et parole");
+    expect(familles).toContain("Visage");
+    // Le texte ouvre : c'est par là qu'on entre dans un parc de modèles.
+    expect(familles[0]).toBe("Texte");
+  });
+
+  test("le panneau filtre sur ce qui entre et sur ce qui sort", async () => {
+    render(<App />);
+    await ouvrirLeSelecteur();
+    const panneau = await screen.findByRole("dialog");
+
+    await userEvent.click(within(panneau).getByRole("button", { name: "Maillage" }));
+
+    // `image-to-mesh` rend un maillage ; la synthèse vocale, non.
+    expect(within(panneau).getAllByText("Image vers maillage 3D").length).toBeGreaterThan(0);
+    expect(within(panneau).queryByText("Synthèse vocale")).toBeNull();
+
+    await userEvent.click(within(panneau).getByRole("button", { name: "Tout afficher" }));
+    expect(within(panneau).getAllByText("Synthèse vocale").length).toBeGreaterThan(0);
+  });
+
+  test("la recherche trouve une capacite par son nom", async () => {
+    render(<App />);
+    await ouvrirLeSelecteur();
+    const panneau = await screen.findByRole("dialog");
+
+    await userEvent.type(
+      within(panneau).getByRole("searchbox", { name: "Chercher une capacité" }),
+      "visage",
+    );
+
+    expect(within(panneau).getAllByText("Détection de visages").length).toBeGreaterThan(0);
+    expect(within(panneau).queryByText("Synthèse vocale")).toBeNull();
   });
 
   test("le titulaire est preselectionne, et ses defauts avec", async () => {
@@ -75,9 +120,13 @@ describe("le choix de la capacité et du variant", () => {
   });
 
   test("une capacite sans variant executable n_en preselectionne aucun", async () => {
-    // `image-to-mesh` affiche un titulaire dont les poids ne sont pas
+    // Une capacité qui affiche un titulaire dont les poids ne sont pas
     // téléchargés : ouvrir l'écran dessus donnerait un formulaire dont rien ne
     // peut sortir. Ce qui manque est écrit sous le sélecteur, pas dans l'option.
+    poserLeParcAvecCapaciteBloquee("image-to-mesh", [
+      "poids absents — ecurie pull hunyuan3d-2.1-shape-mlx@mlx-bf16",
+      "venv absent — ecurie env sync hunyuan3d",
+    ]);
     render(<App />);
     const variants = await choisir("image-to-mesh");
     expect(variants.value).toBe("");
@@ -89,7 +138,7 @@ describe("le choix de la capacité et du variant", () => {
 
   test("choisir une capacite rend son formulaire depuis le contrat", async () => {
     render(<App />);
-    await userEvent.selectOptions(await screen.findByLabelText("Capacité"), "text-to-speech");
+    await choisirCapacite("text-to-speech");
 
     const texte = (await screen.findByLabelText(/^text/i)) as HTMLTextAreaElement;
     expect(texte.tagName).toBe("TEXTAREA");
@@ -99,7 +148,7 @@ describe("le choix de la capacité et du variant", () => {
 
   test("ce qui partirait ne contient que des cles du contrat", async () => {
     render(<App />);
-    await userEvent.selectOptions(await screen.findByLabelText("Capacité"), "text-to-speech");
+    await choisirCapacite("text-to-speech");
     await userEvent.type(await screen.findByLabelText(/^text/i), "bonjour");
 
     const projeté = document.querySelector("pre.ecurie-json")!;
@@ -412,8 +461,9 @@ describe("ce que l'écran dit de lui-même", () => {
   });
 
   test("sans variant choisi, il n_y a rien a lancer", async () => {
+    poserLeParcAvecCapaciteBloquee("image-to-mesh", ["poids absents — ecurie pull"]);
     render(<App />);
-    await userEvent.selectOptions(await screen.findByLabelText("Capacité"), "image-to-mesh");
+    await choisirCapacite("image-to-mesh");
 
     expect(await screen.findByRole("button", { name: /^Lancer/ })).toBeDisabled();
   });
@@ -422,7 +472,7 @@ describe("ce que l'écran dit de lui-même", () => {
     // `audio-separation` est la seule capacité à sorties imbriquées : s'arrêter
     // au premier niveau annoncerait « tracks » comme un fichier unique.
     render(<App />);
-    await userEvent.selectOptions(await screen.findByLabelText("Capacité"), "audio-separation");
+    await choisirCapacite("audio-separation");
 
     await screen.findByText(/Ce que ce job produirait/);
     const liste = document.querySelector("ul.ecurie-promesses")!;
@@ -433,7 +483,7 @@ describe("ce que l'écran dit de lui-même", () => {
 
   test("les constats du registre s_affichent sans bloquer le formulaire", async () => {
     render(<App />);
-    await userEvent.selectOptions(await screen.findByLabelText("Capacité"), "text-to-speech");
+    await choisirCapacite("text-to-speech");
     await screen.findByLabelText(/^text/i);
 
     // Le parc réel porte deux avertissements sur trellis2.

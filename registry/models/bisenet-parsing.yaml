@@ -1,0 +1,81 @@
+# Régions du visage — BiSeNet, servi par uniface en ONNX.
+#
+# Dix-neuf classes sémantiques sur un visage : peau, sourcils, yeux, lunettes,
+# oreilles, boucle d'oreille, nez, bouche, lèvre supérieure, lèvre inférieure,
+# cou, collier, vêtement, cheveux, chapeau. Le vocabulaire est celui de
+# CelebAMask-HQ, il est fixé, et c'est ce qui sépare cette capacité de
+# `image-segment` : là-bas on désigne une région à la fois, ici tout le visage
+# est étiqueté d'un coup et personne ne choisit les étiquettes.
+id: bisenet-parsing
+name: BiSeNet (régions du visage)
+capability: face-parse
+family: bisenet
+vendor: Yakhyokhuja Valikhujaev, d'après Yu et al.
+license: mit
+license_class: restricted
+status: candidate
+
+notes: >
+  Dépôt sous MIT, entraînement sur CelebAMask-HQ, dont la licence réserve l'usage
+  à la recherche non commerciale. Même arbitrage que pour `retinaface` et
+  `pipnet` : `restricted`.
+
+  **Le réseau travaille sur un visage cadré, le contrat promet une carte aux
+  dimensions de l'entrée.** L'écart est absorbé par l'adaptateur, qui recadre,
+  découpe puis recolle — un masque à la taille du crop, qu'il faudrait replacer
+  soi-même en connaissant la boîte, ne serait utilisable par aucun compositeur,
+  et sur une image à deux visages il y en aurait deux sans dire où les poser.
+
+links:
+  homepage: https://github.com/yakhyo/uniface
+  code: https://github.com/yakhyo/face-parsing
+
+variants:
+  - id: r18
+    quantization: fp32
+    tier: hot
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["parsing_resnet18.onnx", "retinaface_mnet050.onnx"]
+    options:
+      weights: parsing_resnet18
+      detector: retinaface_mnet050
+    defaults:
+      confidence_threshold: 0.5
+      max_faces: 5
+    caveats:
+      - "Dorsale ResNet-18, 51 Mo. Le compromis par défaut de la capacité."
+      - "Le cadrage est élargi de 25 % autour de la boîte du détecteur avant découpage : ce réseau est entraîné sur des visages cadrés large, front et menton compris, et la boîte nue lui fait étiqueter du cheveu en « peau »."
+      - "MESURÉ SUR LA CHARGE TYPE — LES RÉGIONS SONT JUSTES, LEURS ÉTIQUETTES PAS TOUJOURS. Sur les visages calculés de la charge, le réseau place correctement peau, nez, yeux, sourcils et lèvres, mais range de larges plages de joue et de front sous `hat` (33 000 pixels sur le plus grand visage) et ne rend qu'un sourcil sur deux. Ces visages n'ont pas de texture de peau : le réseau n'a rien à quoi se raccrocher là où une photo lui donne du grain. La charge mesure un coût, pas une qualité — c'est le golden set qui demandera de vraies photographies, et il faudra alors résoudre la question du consentement que cette charge-ci évite."
+      - "Entraîné sur CelebAMask-HQ, réservé à la recherche non commerciale — voir les notes."
+    profile:
+      disk_bytes: 59853255
+      peak_unified_memory_bytes: 741769216
+      warmup_ms: 873
+      latency_ms_p50: 120
+      throughput: "1 sortie / 0.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"
+
+  - id: r34
+    quantization: fp32
+    tier: absent
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["parsing_resnet34.onnx", "retinaface_mnet050.onnx"]
+    options:
+      weights: parsing_resnet34
+      detector: retinaface_mnet050
+    defaults:
+      confidence_threshold: 0.5
+      max_faces: 5
+    caveats:
+      - "Dorsale ResNet-34 : contours un peu plus fermes sur les cheveux et les oreilles, pour un coût mémoire supérieur. C'est le golden set qui devra dire si l'écart justifie la différence."
+      - "Entraîné sur CelebAMask-HQ — voir les notes."

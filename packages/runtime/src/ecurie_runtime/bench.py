@@ -303,34 +303,61 @@ def _disk_bytes(
     `store plan` proposera de récupérer. On mesure donc l'instantané lui-même, et
     on ne retombe sur l'état observé que pour un variant dont les poids ne sont
     plus résolvables.
+
+    **Et l'instantané lui-même ne suffit plus.** Le parc a longtemps eu un dépôt
+    par modèle, si bien que mesurer le dossier revenait à mesurer le variant.
+    `yakhyo/uniface-weights` a rompu cette équivalence : soixante-quatre modèles y
+    cohabitent, et un variant n'en veut qu'un ou deux — ce que ses
+    `allow_patterns` disent déjà, puisque c'est sur eux que `ecurie pull`
+    télécharge. Sans ce filtre, les douze variants de la famille visage
+    déclareraient 595 Mo chacun pour 600 Mo réellement partagés : le contrôle
+    d'admission refuserait des jobs qui passent, et la comptabilité disque
+    compterait le parc dix fois.
     """
     try:
         weights = resolve_weights(supervisor.config, variant, ref=ref)
     except Exception:  # noqa: BLE001 — poids introuvables : l'état observé, à défaut
         return variant_disk_bytes(records, ref) if records else 0
-    mesuré = _tree_bytes(weights.path)
+    mesuré = _tree_bytes(weights.path, variant.source.allow_patterns)
     if mesuré:
         return mesuré
     return variant_disk_bytes(records, ref) if records else 0
 
 
-def _tree_bytes(path: Path) -> int:
+def _tree_bytes(path: Path, allow_patterns: list[str] | None = None) -> int:
     """Taille réelle d'une arborescence, chaque contenu compté une seule fois.
 
     Un instantané Hugging Face n'est qu'une forêt de liens vers `blobs/` : suivre
     les liens sans dédupliquer par inode doublerait la taille annoncée.
+
+    `allow_patterns` restreint le compte aux fichiers que le variant a demandés,
+    par le filtre de `huggingface_hub` et non par une réimplémentation — celui-là
+    même qui a décidé de ce qui a été téléchargé. Deux filtres pour une seule
+    question finiraient par diverger, et le profil annoncerait des octets que le
+    pull n'a jamais écrits.
     """
     vus: set[tuple[int, int]] = set()
     total = 0
     if path.is_file():
         st = path.stat()
         return st.st_size
-    for enfant in path.rglob("*"):
+
+    fichiers = [enfant for enfant in path.rglob("*") if enfant.is_file()]
+    if allow_patterns:
+        from huggingface_hub.utils import filter_repo_objects
+
+        fichiers = list(
+            filter_repo_objects(
+                fichiers,
+                allow_patterns=list(allow_patterns),
+                key=lambda p: str(p.relative_to(path)),
+            )
+        )
+
+    for enfant in fichiers:
         try:
             st = enfant.stat()  # suit les liens symboliques, c'est voulu
         except OSError:
-            continue
-        if not enfant.is_file():
             continue
         clé = (st.st_dev, st.st_ino)
         if clé in vus:

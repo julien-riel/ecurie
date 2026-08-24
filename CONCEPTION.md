@@ -170,6 +170,26 @@ Outillage : Python 3.12, `uv` workspace (un `pyproject.toml` racine, un par paqu
   capacité, ne sont pas croisés avec le contrat, et sont transmis tels quels au
   worker en `params`. Sans cette séparation, il faudrait choisir entre relâcher la
   validation croisée et interdire tout réglage spécifique à un moteur.
+- **Ce que la capacité fait d'une personne réelle** : `human_subject` sur le
+  contrat, à trois valeurs — `analyzes` mesure quelqu'un déjà présent dans
+  l'entrée sans le nommer ni le reproduire, `identifies` rattache l'entrée à une
+  personne nommable, `synthesizes` produit son image ou sa voix faisant ce
+  qu'elle n'a pas fait. Absent pour la grande majorité des capacités, qui ne
+  portent pas spécifiquement sur des personnes.
+
+  **Ce champ ne double pas `license_class`, il répond à l'autre question.** Le
+  premier dit ce que le droit interdit ; celui-ci dit ce que la capacité fait.
+  Les deux ne se recouvrent pas : EdgeFace est sous BSD-3, la licence la plus
+  permissive de la famille visage, et cela ne rend pas plus légitime d'encoder le
+  visage de quelqu'un qui n'a rien demandé. Un manifeste parfaitement en règle
+  peut servir un usage qui ne l'est pas.
+
+  Porté par le **contrat** et non par le variant, parce que c'est la capacité qui
+  décide : tous ses modèles rendent la même chose. Le premier bénéficiaire n'est
+  d'ailleurs pas la famille qui l'a fait naître — `voice-clone` est au parc
+  depuis le v0.3 et n'avait aucun moyen de dire qu'il fabrique la voix de
+  quelqu'un.
+
 - **Config machine** : `~/.ecurie/config.toml` — chemins des gestionnaires scannés
   (avec autodétection par défaut), volumes de tiering autorisés, budget mémoire
   (`auto` = `recommendedMaxWorkingSetSize` lu via MLX, ou valeur explicite),
@@ -338,35 +358,54 @@ bibliothèque du runtime. Rien n'est installé dans le venv du runtime : seuls
 `protocol`, `channel` et `workers/base` y sont visibles, tous trois en
 bibliothèque standard pure.
 
-Vingt sont livrés, plus le chemin `custom` :
+Trente-sept sont livrés, plus le chemin `custom` :
 
 | runtime | capacité | adaptateur | poids partagés avec |
 |---|---|---|---|
-| `mlx-audio` | `text-to-speech` | `workers/mlx_audio.py` | |
+| `mlx-audio` | *défaut du runtime* | `workers/mlx_audio.py` | |
 | `mlx-audio` | `text-to-music` | `workers/mlx_audio_music.py` | |
 | `mlx-audio` | `speaker-diarization` | `workers/moss_diarize.py` | |
 | `mlx-audio` | `speech-to-text` | `workers/moss_transcribe.py` | `moss-transcribe-diarize` |
 | `mlx-audio` | `audio-to-text` | `workers/qwen2_audio.py` | |
 | `mlx-audio` | `voice-clone` | `workers/omnivoice.py` | |
-| `mlx-vlm` | `document-to-text` | `workers/mlx_vlm.py` | |
+| `mlx-audio` | `audio-denoise` | `workers/dfn3_denoise.py` | |
+| `mlx-audio` | `audio-separation` | `workers/demucs_separate.py` | |
+| `mlx-vlm` | *défaut du runtime* | `workers/mlx_vlm.py` | |
 | `mlx-vlm` | `image-to-text` | `workers/mlx_vlm_describe.py` | `qwen3-vl-8b-ocr` |
 | `mlx-vlm` | `video-to-text` | `workers/mlx_vlm_video.py` | `qwen3-vl-8b-ocr` |
 | `mlx-vlm` | `image-detect` | `workers/mlx_vlm_detect.py` | `qwen3-vl-8b-ocr` |
-| `mlx-lm` | `text-generation` | `workers/mlx_lm.py` | |
+| `mlx-vlm` | `text-generation` | `workers/mlx_vlm_text.py` | `qwen36-27b-*` |
+| `mlx-vlm` | `translation` | `workers/mlx_vlm_translate.py` | `qwen36-27b-*` |
+| `mlx-vlm` | `tool-use` | `workers/mlx_vlm_tools.py` | `qwen36-27b-*` |
+| `mlx-vlm` | `image-segment` | `workers/sam3.py` | |
+| `mlx-vlm` | `audio-to-text` | `workers/mlx_vlm_audio.py` | |
+| `mlx-lm` | *défaut du runtime* | `workers/mlx_lm.py` | |
 | `mlx-lm` | `translation` | `workers/mlx_lm_translate.py` | |
 | `mlx-lm` | `tool-use` | `workers/mlx_lm_tools.py` | |
 | `torch-vision` | `image-matting` | `workers/birefnet.py` | |
 | `torch-vision` | `image-upscale` | `workers/swin2sr.py` | |
 | `torch-vision` | `image-segment` | `workers/sam2.py` | |
-| `diffusers-mps` | `text-to-image` | `workers/diffusers_mps.py` | |
+| `diffusers-mps` | *défaut du runtime* | `workers/diffusers_mps.py` | |
 | `diffusers-mps` | `image-inpaint` | `workers/diffusers_inpaint.py` | `sdxl-base` |
 | `diffusers-mps` | `image-to-image` | `workers/diffusers_img2img.py` | `sdxl-base` |
+| `diffusers-mps` | `text-to-video` | `workers/ltx_video.py` | |
+| `diffusers-mps` | `image-to-video` | `workers/ltx_video_i2v.py` | `ltx-video-2b` |
+| `depth-anything` | `depth-estimation` | `workers/depth_anything.py` | |
+| `mflux` | `image-upscale` | `workers/seedvr2.py` | |
 | `rtmlib` | `video-to-motion` | `workers/rtmw3d.py` | |
+| `uniface` | `face-detect` | `workers/uniface_detect.py` | |
+| `uniface` | `face-landmark` | `workers/uniface_landmark.py` | `retinaface` |
+| `uniface` | `face-parse` | `workers/uniface_parse.py` | `retinaface` |
+| `uniface` | `face-embed` | `workers/uniface_embed.py` | `retinaface` |
+| `uniface` | `face-headpose` | `workers/uniface_headpose.py` | `retinaface` |
+| `uniface` | `face-gaze` | `workers/uniface_gaze.py` | `retinaface` |
 | `custom` | — | l'`entrypoint` du manifeste (chemin de Hunyuan3D) | |
 
-La quatrième colonne est celle qui décide du coût d'une capacité de plus : cinq
-des vingt adaptateurs tournent sur des octets déjà téléchargés pour un autre
-contrat. `diffusers_img2img` en est le cas le plus net — il ne diffère de son
+La quatrième colonne est celle qui décide du coût d'une capacité de plus : un
+tiers des adaptateurs tournent sur des octets déjà téléchargés pour un autre
+contrat. La famille `uniface` en est le cas le plus systématique — cinq de ses
+six capacités partagent le **détecteur** de la sixième, parce qu'aucune ne
+cherche les visages qu'elle traite. `diffusers_img2img` en est le cas le plus net — il ne diffère de son
 voisin `diffusers_inpaint` que par l'absence d'un masque, et il est exécutable le
 jour où son manifeste entre au registre.
 
@@ -427,6 +466,14 @@ que l'amont oublie de déclarer**. `mlx-vlm` charge `jinja2` pour son gabarit de
 conversation sans la déclarer : le modèle se chargeait, puis le premier job
 mourait sur un `ImportError`. Une ligne dans l'env, et le problème est réglé sans
 attendre l'amont.
+
+**Deux environnements peuvent porter le même moteur d'inférence sans fusionner.**
+`rtmlib` et `uniface` servent tous deux de l'ONNX et rien d'autre, et la question
+de les fondre s'est posée. La réponse est non, pour la raison qui a fait exister
+les autres : `uniface` impose `scikit-image` et `scipy` que `rtmlib` n'a jamais
+vus, et `rtmlib` épingle ses propres bornes. Faire entrer une capacité neuve au
+prix d'une rétrogradation chez un modèle déjà mesuré est exactement l'arbitrage
+que l'isolation existe pour ne plus avoir à faire.
 
 ### 5.4 Contrôle d'admission
 
@@ -737,6 +784,42 @@ un type de média inconnu dégrade avec un avis, sans jamais lever ni se taire.
 C'est ce qui rend « ajouter un modèle = ajouter un YAML » vérifiable : les 17
 contrats du registre sont rendus par une suite qui les lit sur le disque, si bien
 qu'un dix-huitième y entre sans qu'une ligne de front bouge.
+
+**Le choix de la capacité n'est plus une liste** (tâche 4.8). Le `<select>`
+groupé tenait sur dix-sept contrats ; à trente-deux, il fallait lire une liste de
+titres pour en reconnaître un, et rien n'y disait ce qu'une capacité prend, ce
+qu'elle rend, ni s'il y avait de quoi la lancer. Le panneau qui le remplace tient
+sur quatre décisions.
+
+**La glyphe dit le contrat.** Une forme, une flèche, une forme : l'entrée et la
+sortie, qui sont exactement ce qu'une capacité déclare. Seize formes se
+recombinent pour trente-deux capacités, donc des formes qu'on reconnaît d'une
+carte à l'autre — une icône par capacité aurait demandé d'inventer un symbole
+pour « débruitage » et un autre pour « séparation de pistes », que personne
+n'aurait distingués. Le vocabulaire est plus fin que les types de média quand il
+le faut : quatre capacités rendent « du JSON », et ce JSON est tour à tour des
+boîtes, des points, un vecteur et des angles.
+
+**Les filtres se déduisent, la catégorie s'écrit.** Ce qu'une capacité prend et
+rend sort du JSON Schema d'entrée et d'`output_media_types` (`schema/modalites.ts`),
+si bien qu'un contrat qui entre au registre demain est filtrable le jour même.
+La catégorie, elle, ne se déduit pas : `image-detect` et `face-detect` prennent
+une image et rendent des boîtes, et on ne les cherche pas dans le même geste.
+Elle vit donc dans une table d'écran, avec un test qui refuse qu'une capacité du
+registre n'y soit pas — une capacité neuve tombe dans « Divers » à l'écran plutôt
+que de disparaître, et fait rougir la CI le lendemain.
+
+**Le rangement par état devient une marque.** Grouper par famille et par état à
+la fois donnerait douze sections ; l'état passe donc sur la carte, et à
+l'intérieur d'une famille les exécutables viennent d'abord. Ce qui ne change pas :
+**une capacité sans variant exécutable reste affichée.** Elle dit ce qu'un
+`ecurie pull` rendrait possible, ce qui est la moitié de ce qu'un registre sert à
+savoir.
+
+**Douze contrats y ont gagné une description.** Le sélecteur montre une phrase
+par capacité, et douze des trente-deux n'en avaient aucune — la carte était alors
+un titre et deux chiffres. Elles sont écrites comme les vingt autres : ce que la
+capacité fait, et ce qui la sépare de sa voisine la plus proche.
 
 - **Extensions `x-ui`** mappées sur des widgets RJSF. Le méta-schéma en énumère
   **cinq**, pas trois — `textarea`, `select`, `file`, `slider`, `hidden` — et la
@@ -1168,6 +1251,45 @@ refusera. Le manifeste existe quand même, et c'est délibéré — un modèle c
 avec son pic annoncé apprend exactement où est le mur, là qu'une capacité vide
 n'apprenait rien. Sur les vingt-cinq capacités, vingt sont exécutables ; les cinq
 autres disent ce qu'il faudrait pour qu'elles le deviennent.
+
+---
+
+### Ce que la famille visage a appris
+
+Le 24 août 2026, six capacités entrent d'un coup — `face-detect`,
+`face-landmark`, `face-parse`, `face-embed`, `face-headpose`, `face-gaze` — sur
+un runtime neuf. Le détail est au rapport (`registry/veille/2026-08-24/`) ;
+quatre points touchent la conception.
+
+**Le registre savait dire ce que le droit interdit, pas ce que la capacité
+fait.** `license_class` couvre la licence ; il ne dit rien de ce qu'un modèle
+parfaitement en règle permet de faire à quelqu'un. D'où `human_subject` au
+contrat (§3). La preuve que le champ manquait vraiment n'est pas dans la famille
+qui l'a fait naître : c'est `voice-clone`, au parc depuis le v0.3, qui fabrique
+la voix d'une personne réelle et n'avait aucun moyen de le déclarer.
+
+**Une capacité peut en exiger une autre en amont, et le registre ne sait pas
+encore le dire.** Cinq de ces six capacités chargent un détecteur avant leur
+propre réseau, parce qu'aucune ne cherche les visages qu'elle traite. Aujourd'hui
+c'est `options.detector` au manifeste, donc une convention de runtime que rien ne
+valide. Le §11 esquisse la composition pour `text-to-mesh` ; ce cas-ci est plus
+faible — pas un enchaînement de jobs, une dépendance de chargement — et il
+mériterait d'être déclaré plutôt que conventionnel.
+
+**Un dépôt de poids peut servir soixante-quatre modèles, et la comptabilité
+disque le supposait unique.** `yakhyo/uniface-weights` a fait déclarer 595 Mo à
+un variant qui en pèse 6,6 : `_tree_bytes` mesurait l'instantané entier. Le
+manifeste disait pourtant déjà ce qu'il voulait, par les `allow_patterns` sur
+lesquels `pull` télécharge. Corrigé en réemployant le filtre de
+`huggingface_hub` — deux filtres pour une seule question finiraient par diverger.
+
+**Une charge type peut porter une vérité terrain que la photographie ne donne
+pas.** Les visages de `assets/visages-groupe.png` sont calculés, d'abord parce
+qu'on ne committe pas le portrait de quelqu'un pour dix ans. Mais comme c'est la
+recette qui pose leurs angles, `face-headpose` s'y vérifie contre des lacets
+connus — 0°, +24°, −18°, +8° — sans annotation manuelle. Une charge synthétique
+n'est pas seulement un pis-aller juridique ; elle sait des choses de son contenu
+qu'aucune photo annotée après coup ne saurait.
 
 ---
 

@@ -31,12 +31,11 @@ describe("l'état d'une capacité", () => {
   });
 
   test("un titulaire n_implique pas un variant pret", () => {
-    // image-to-mesh affiche un titulaire et n'a rien d'exécutable : ses 7,37 Go
-    // de poids ne sont pas téléchargés.
-    const mesh = CAPACITES.find((c) => c.id === "image-to-mesh");
-    if (!mesh) return;
-    expect(mesh.incumbent).toBeTruthy();
-    expect(etatCapacite(mesh)).toBe("sans-variant-prêt");
+    // Un titulaire déclaré ne dit rien de ce qui est sur le disque : c'est
+    // `ready_variants` qui décide, et lui seul. Le cas est construit plutôt que
+    // cueilli dans les fixtures, où il dépendrait de ce qu'un poste a téléchargé.
+    const titulaireSansPoids = { incumbent: "un-modele", models: ["un-modele"], ready_variants: [] };
+    expect(etatCapacite(titulaireSansPoids)).toBe("sans-variant-prêt");
   });
 
   test("chaque etat a sa phrase", () => {

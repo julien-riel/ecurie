@@ -1557,3 +1557,399 @@ legend {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* --- le sélecteur de capacité -------------------------------------------------
+ *
+ * Le `<select>` groupé du 4.4 tenait sur dix-sept contrats. À trente-deux, il
+ * demandait de lire une liste de titres pour en reconnaître un : rien n'y disait
+ * ce qu'une capacité prend, ce qu'elle rend, ni s'il y avait de quoi la lancer.
+ *
+ * Ce qui remplace la liste tient en trois gestes, et un seul est décoratif :
+ *
+ * **La glyphe de flux.** Une forme, une flèche, une forme — l'entrée et la
+ * sortie du contrat, qui sont exactement ce qu'une capacité déclare. C'est la
+ * seule audace de ce panneau, et tout le reste est tenu au calme pour qu'elle
+ * porte. Sa flèche est en laiton : c'est la matière de ce qui agit dans cette
+ * feuille, et une transformation est ce qui agit.
+ *
+ * **Les familles.** On cherche « quelque chose sur le son » avant de chercher un
+ * titre. Le rangement par état, lui, ne disparaît pas : il devient une marque
+ * sur la carte, parce qu'une capacité qu'on ne peut pas lancer doit rester
+ * visible — c'est la moitié de ce qu'un registre sert à savoir.
+ *
+ * **Les pastilles d'entrée et de sortie.** Déduites des contrats, jamais
+ * écrites : une capacité qui entre au registre demain est filtrable le jour
+ * même.
+ */
+
+.ecurie-selecteur { display: flex; flex-direction: column; gap: 0.3rem; }
+
+.ecurie-etiquette {
+  font-family: var(--titre);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sourdine);
+}
+
+/* Le déclencheur est un champ, pas un bouton : il occupe la place du `<select>`
+   qu'il remplace et se lit dans la même colonne que celui du variant. */
+.ecurie-declencheur {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--trait-fort);
+  border-radius: var(--rayon-menu);
+  background: var(--champ);
+  font-family: var(--corps);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-align: left;
+}
+
+.ecurie-declencheur:hover { border-color: var(--sourdine); }
+
+.ecurie-declencheur-texte {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.ecurie-declencheur-texte strong {
+  font-family: var(--titre);
+  font-size: 1.02rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ecurie-declencheur-texte small {
+  font-size: 0.78rem;
+  color: var(--sourdine);
+  font-variant-numeric: tabular-nums;
+}
+
+.ecurie-declencheur .ecurie-chevron { color: var(--sourdine); flex: none; }
+
+/* --- la glyphe de flux --------------------------------------------------------- */
+
+.ecurie-transformation {
+  display: inline-flex;
+  flex: none;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.3rem 0.42rem;
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon-menu);
+  background: var(--creux);
+  color: var(--encre);
+}
+
+.ecurie-transformation .ecurie-transformation-fleche { color: var(--laiton); flex: none; }
+.ecurie-glyphe { flex: none; }
+.ecurie-declencheur-glyphe { flex: none; }
+
+/* --- le voile et le panneau ---------------------------------------------------- */
+
+.ecurie-voile {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 3rem 1rem;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--encre) 42%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.ecurie-panneau {
+  display: flex;
+  flex-direction: column;
+  width: min(68rem, 100%);
+  max-height: 86vh;
+  background: var(--carte);
+  border: 1px solid var(--trait-fort);
+  border-radius: var(--rayon);
+  box-shadow: 0 12px 40px rgb(23 28 21 / 22%);
+  overflow: hidden;
+  animation: ecurie-monte 140ms ease-out;
+}
+
+@keyframes ecurie-monte {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.ecurie-panneau-tete {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem 0.9rem;
+  border-bottom: 1px solid var(--trait);
+}
+
+.ecurie-panneau-tete h2 { font-size: 1.35rem; margin: 0; }
+
+.ecurie-panneau-tete .ecurie-sous-titre {
+  margin: 0.25rem 0 0;
+  max-width: 54ch;
+  font-size: 0.86rem;
+  color: var(--sourdine);
+}
+
+.ecurie-fermer {
+  flex: none;
+  margin-left: auto;
+  padding: 0.3rem;
+  line-height: 0;
+  color: var(--sourdine);
+  background: transparent;
+  border-color: transparent;
+}
+
+.ecurie-fermer:hover { color: var(--encre); border-color: var(--trait-fort); }
+
+/* --- la barre de recherche et les filtres --------------------------------------- */
+
+.ecurie-panneau-barre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.4rem;
+  padding: 0.8rem 1.25rem;
+  border-bottom: 1px solid var(--trait);
+  background: var(--creux);
+}
+
+.ecurie-recherche {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1 0 100%;
+  padding: 0.36rem 0.6rem;
+  border: 1px solid var(--trait-fort);
+  border-radius: var(--rayon-menu);
+  background: var(--champ);
+  color: var(--sourdine);
+}
+
+.ecurie-recherche input {
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--encre);
+  font: inherit;
+}
+
+.ecurie-recherche input:focus { outline: none; }
+.ecurie-recherche:focus-within { outline: 2px solid var(--laiton); outline-offset: 2px; }
+
+.ecurie-filtres {
+  display: flex;
+  /* Les pastilles se replient plutôt que de sortir du panneau : sur un écran
+     étroit, la version d'avant coupait « Document » et « Données » au bord, et
+     le panneau étant en `overflow: hidden`, rien ne permettait d'y accéder. */
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ecurie-filtres legend {
+  float: left;
+  margin-right: 0.5rem;
+  padding: 0;
+  font-family: var(--titre);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sourdine);
+}
+
+/* Une pastille dit un fait, pas une action : elle est en corps de texte et
+   n'emprunte ni la casse ni l'interlettrage des boutons de commande. */
+.ecurie-pastille {
+  padding: 0.16rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--trait-fort);
+  background: var(--carte);
+  font-family: var(--corps);
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  color: var(--sourdine);
+}
+
+.ecurie-pastille:hover { color: var(--encre); border-color: var(--sourdine); }
+
+.ecurie-pastille[aria-pressed="true"] {
+  background: var(--laiton-pale);
+  border-color: var(--laiton);
+  color: var(--laiton-encre);
+  font-weight: 600;
+}
+
+/* --- les familles --------------------------------------------------------------- */
+
+.ecurie-panneau-corps { overflow-y: auto; padding: 0.4rem 1.25rem 1.25rem; }
+
+.ecurie-famille + .ecurie-famille { margin-top: 1.6rem; }
+
+.ecurie-famille-tete {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  padding: 0.9rem 0 0.55rem;
+  border-bottom: 1px solid var(--trait);
+  margin-bottom: 0.85rem;
+}
+
+.ecurie-famille-tete h3 { margin: 0; font-size: 1.05rem; }
+
+.ecurie-famille-tete p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--sourdine);
+}
+
+.ecurie-compteur-famille {
+  margin-left: auto;
+  font-family: var(--chasse);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--sourdine);
+}
+
+.ecurie-grille-capacites {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* --- la carte d'une capacité ------------------------------------------------------ */
+
+.ecurie-capacite {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  height: 100%;
+  padding: 0.75rem 0.8rem 0.7rem;
+  border: 1px solid var(--trait);
+  border-radius: var(--rayon);
+  background: var(--carte);
+  font-family: var(--corps);
+  font-weight: 400;
+  letter-spacing: normal;
+  text-align: left;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.ecurie-capacite:hover { border-color: var(--laiton); background: var(--champ); }
+.ecurie-capacite:hover .ecurie-transformation { border-color: var(--laiton); background: var(--laiton-pale); }
+
+.ecurie-capacite[aria-pressed="true"] {
+  border-color: var(--laiton);
+  background: var(--laiton-pale);
+}
+
+.ecurie-capacite[aria-pressed="true"] .ecurie-transformation {
+  border-color: var(--laiton);
+  background: var(--carte);
+}
+
+.ecurie-capacite-tete {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2rem;
+}
+
+/* La marque ne dit pas une couleur, elle dit un mot : le laiton se double
+   toujours de « rien d'exécutable », comme partout ailleurs dans la feuille. */
+.ecurie-etat-carte {
+  margin-left: auto;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--laiton);
+  background: var(--laiton-pale);
+  color: var(--laiton-encre);
+  font-size: 0.72rem;
+}
+
+.ecurie-capacite[data-etat="sans-modèle"] .ecurie-etat-carte {
+  border-color: var(--trait-fort);
+  background: var(--creux);
+  color: var(--sourdine);
+}
+
+.ecurie-capacite-titre {
+  font-family: var(--titre);
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* Trois lignes : de quoi reconnaître une capacité, pas de quoi la lire en
+   entier. La description complète attend dans la carte du formulaire. */
+.ecurie-capacite-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.83rem;
+  line-height: 1.45;
+  color: var(--sourdine);
+}
+
+.ecurie-capacite-pied {
+  margin-top: auto;
+  padding-top: 0.35rem;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--sourdine);
+}
+
+.ecurie-capacite[aria-pressed="true"] .ecurie-capacite-pied,
+.ecurie-capacite[aria-pressed="true"] .ecurie-capacite-description {
+  color: var(--laiton-encre);
+}
+
+/* --- le pied du panneau ------------------------------------------------------------ */
+
+.ecurie-panneau-pied {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 1.25rem;
+  border-top: 1px solid var(--trait);
+  background: var(--creux);
+  font-size: 0.83rem;
+  color: var(--sourdine);
+  font-variant-numeric: tabular-nums;
+}
+
+.ecurie-panneau-pied .ecurie-lien { margin-left: auto; }
+
+.ecurie-panneau-vide {
+  margin: 2rem auto;
+  max-width: 34ch;
+  text-align: center;
+  color: var(--sourdine);
+}

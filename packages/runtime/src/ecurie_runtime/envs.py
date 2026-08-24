@@ -141,6 +141,23 @@ WORKER_MODULES_BY_CAPABILITY = {
     # photo, inventer un grain est ce qu'on veut ; sur une capture d'écran,
     # inventer un caractère est une faute.
     ("mflux", "image-upscale"): "ecurie_runtime.workers.seedvr2",
+    # Onzième famille, et la plus fournie : six capacités pour un seul runtime.
+    # Elles ne se ressemblent pas — des boîtes, des points, une carte de régions,
+    # un vecteur, deux jeux d'angles — mais elles partagent un socle réel, et pas
+    # seulement une pile : cinq d'entre elles chargent un détecteur avant leur
+    # propre modèle, parce qu'aucune ne cherche les visages qu'elle traite.
+    #
+    # Six adaptateurs plutôt qu'un seul aiguillé sur la capacité, pour la raison
+    # qui a séparé la synthèse vocale de la chanson chez `mlx-audio` : ce qui
+    # leur est commun est dans `uniface_base`, ce qui leur est propre — l'appel,
+    # la sortie, l'aperçu — n'a rien à faire dans un fichier qui commencerait par
+    # un aiguillage et ne se relirait plus.
+    ("uniface", "face-detect"): "ecurie_runtime.workers.uniface_detect",
+    ("uniface", "face-landmark"): "ecurie_runtime.workers.uniface_landmark",
+    ("uniface", "face-parse"): "ecurie_runtime.workers.uniface_parse",
+    ("uniface", "face-embed"): "ecurie_runtime.workers.uniface_embed",
+    ("uniface", "face-headpose"): "ecurie_runtime.workers.uniface_headpose",
+    ("uniface", "face-gaze"): "ecurie_runtime.workers.uniface_gaze",
 }
 
 
@@ -161,6 +178,11 @@ NOT_YET = {
         "sert image-matting et image-upscale, et rien d'autre : ces deux capacités "
         "ont chacune leur adaptateur, il n'y a pas d'appel commun à une famille "
         "de modèles de vision"
+    ),
+    "uniface": (
+        "sert les six capacités de la famille visage, et chacune a son adaptateur : "
+        "détecter, décrire, découper, encoder, orienter et suivre le regard ne "
+        "partagent ni l'appel ni la sortie"
     ),
 }
 

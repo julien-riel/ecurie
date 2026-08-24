@@ -1,0 +1,69 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "face-landmark",
+  "title": "Points clés du visage",
+  "description": "Rend la géométrie fine d'un visage : plusieurs dizaines à plusieurs centaines de points le long du contour, des sourcils, des paupières, du nez et des lèvres. `face-detect` en rend cinq, qui suffisent à redresser un visage et à rien d'autre ; ceux-ci décrivent sa forme, et c'est ce qui permet de suivre une paupière qui se ferme ou une bouche qui s'ouvre. Le nombre de points appartient au modèle et non à la demande : 68, 98, 106 ou 468 ne sont pas des réglages d'une même chose, ce sont des conventions d'annotation différentes, et l'indice 33 ne désigne pas le même endroit de l'une à l'autre.",
+  "human_subject": "analyzes",
+  "input": {
+    "type": "object",
+    "required": ["image"],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image contenant le ou les visages à décrire."
+      },
+      "max_faces": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10,
+        "description": "Plafond de visages traités, les plus grands d'abord. Chaque visage coûte un passage de plus dans le réseau : c'est ce paramètre qui pilote la durée, la détection ne se faisant qu'une fois."
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "default": 0.5,
+        "description": "Seuil du détecteur qui précède. Un visage écarté ici n'a pas de points clés : cette capacité ne cherche pas les visages, elle décrit ceux qu'on lui désigne."
+      },
+      "overlay": {
+        "type": "boolean",
+        "default": true,
+        "description": "Produire l'image annotée, points tracés sur l'image d'origine. Sur une sortie de plusieurs centaines de coordonnées, c'est la seule relecture possible."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["landmarks", "count", "points_per_face"],
+    "properties": {
+      "landmarks": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin de la liste produite, relatif au dossier du job : pour chaque visage, sa boîte, et ses points en **pixels absolus de l'image fournie**. Le document nomme la convention d'annotation (`scheme`), sans quoi les indices ne veulent rien dire."
+      },
+      "overlay": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de l'image annotée, relatif au dossier du job."
+      },
+      "count": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de visages décrits."
+      },
+      "points_per_face": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de points par visage. Appartient au modèle : c'est la valeur à lire avant d'interpréter un indice."
+      },
+      "scheme": {
+        "type": "string",
+        "description": "Convention d'annotation employée — par exemple `wflw-98`, `300w-68`, `mediapipe-468`. Deux conventions ne se comparent pas point à point."
+      }
+    }
+  }
+}

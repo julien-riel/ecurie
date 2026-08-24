@@ -172,6 +172,16 @@ Trois conséquences majeures, et c'est ce qui fait tenir le projet :
    consomme `image/*` : la composition est vérifiable statiquement. C'est ce qui rend
    le cas texte→3D propre (§10).
 
+Une quatrième est venue plus tard, et elle ne découle pas des types : **le
+contrat est aussi l'endroit où se dit ce qu'une capacité fait d'une personne
+réelle.** `human_subject` prend `analyzes`, `identifies` ou `synthesizes`, et
+reste absent pour la grande majorité des capacités. Il ne double pas
+`license_class` : celui-ci dit ce que le droit interdit, celui-là ce que la
+capacité fait — un modèle sous licence permissive peut parfaitement servir à
+identifier quelqu'un qui n'a rien demandé. Porté par le contrat et non par le
+variant, parce que c'est la capacité qui décide et que tous ses modèles rendent
+la même chose.
+
 Capacités du parc initial : `text-to-speech`, `speech-to-text`, `text-to-music`,
 `text-to-image`, `image-to-video`, `text-to-video`, `document-to-text` (OCR),
 `image-to-mesh`, `audio-separation`, `audio-denoise`, `text-to-mesh` (composite).
@@ -196,6 +206,20 @@ Capacités du parc initial : `text-to-speech`, `speech-to-text`, `text-to-music`
 > divisé le vivier de la confrontation en deux moitiés qui ne se compareraient
 > plus. `tool-use`, à l'inverse, porte des schémas en entrée et une sortie
 > structurée : c'est un autre contrat, donc une autre capacité.
+
+> **Six de plus le 24 août 2026 — la famille visage** : `face-detect`,
+> `face-landmark`, `face-parse`, `face-embed`, `face-headpose`, `face-gaze`.
+> Six contrats et non un seul « analyse de visage », parce qu'ils ne rendent ni
+> la même chose ni le même type : des boîtes, des points, une carte de régions,
+> un vecteur, deux jeux d'angles. Une capacité dont la sortie change avec le
+> modèle n'est plus un contrat.
+>
+> Elles ont fait naître `human_subject` (ci-dessus), et elles posent une question
+> que le §10 ne couvre pas : **cinq d'entre elles ont besoin d'une autre capacité
+> en amont.** PIPNet décrit un visage qu'on lui donne, il ne le cherche pas.
+> Ce n'est pas la composition de jobs du cas texte→3D, c'est une dépendance de
+> chargement — aujourd'hui portée par une convention de manifeste que rien ne
+> valide.
 
 ---
 

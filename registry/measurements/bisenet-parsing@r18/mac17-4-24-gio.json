@@ -1,0 +1,67 @@
+{
+  "ref": "bisenet-parsing@r18",
+  "model": "bisenet-parsing",
+  "variant": "r18",
+  "capability": "face-parse",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/face-parse.json",
+    "version": 1,
+    "cases": [
+      "visages-1",
+      "visages-2",
+      "visages-4"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 59853255,
+    "peak_unified_memory_bytes": 741769216,
+    "warmup_ms": 873,
+    "latency_ms_p50": 120,
+    "throughput": "1 sortie / 0.1 s"
+  },
+  "cases": [
+    {
+      "id": "visages-1",
+      "ok": true,
+      "duration_ms": 120,
+      "metrics": {
+        "duration_ms": 120,
+        "faces": 1,
+        "regions_max": 9,
+        "peak_memory_bytes": 702201856
+      },
+      "error": null
+    },
+    {
+      "id": "visages-2",
+      "ok": true,
+      "duration_ms": 107,
+      "metrics": {
+        "duration_ms": 107,
+        "faces": 2,
+        "regions_max": 9,
+        "peak_memory_bytes": 741605376
+      },
+      "error": null
+    },
+    {
+      "id": "visages-4",
+      "ok": true,
+      "duration_ms": 156,
+      "metrics": {
+        "duration_ms": 156,
+        "faces": 4,
+        "regions_max": 12,
+        "peak_memory_bytes": 741769216
+      },
+      "error": null
+    }
+  ],
+  "warnings": [
+    "pente du pic mal ajustée (R² = 0.57) sur max_faces : la relation n'a pas l'air linéaire, le profil garde le pire cas mesuré"
+  ]
+}
