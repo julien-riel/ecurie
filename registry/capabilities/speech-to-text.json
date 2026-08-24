@@ -1,9 +1,12 @@
 {
   "id": "speech-to-text",
   "title": "Transcription de la parole",
+  "description": "Transcrit ce qui est dit dans un enregistrement. Elle rend des mots et rien d'autre : qui parle relève de la diarisation, ce qu'on entend d'autre que de la parole relève de la compréhension audio.",
   "input": {
     "type": "object",
-    "required": ["audio"],
+    "required": [
+      "audio"
+    ],
     "additionalProperties": false,
     "properties": {
       "audio": {
@@ -20,7 +23,10 @@
       },
       "task": {
         "type": "string",
-        "enum": ["transcribe", "translate"],
+        "enum": [
+          "transcribe",
+          "translate"
+        ],
         "default": "transcribe",
         "description": "transcribe restitue la langue d'origine, translate traduit vers l'anglais."
       },
@@ -47,7 +53,9 @@
   },
   "output": {
     "type": "object",
-    "required": ["text"],
+    "required": [
+      "text"
+    ],
     "properties": {
       "text": {
         "type": "string",

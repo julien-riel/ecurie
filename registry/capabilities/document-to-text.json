@@ -1,9 +1,12 @@
 {
   "id": "document-to-text",
   "title": "Lecture de document (OCR)",
+  "description": "Transcrit une page en respectant sa mise en forme — colonnes, tableaux, champs de formulaire. Ce n'est pas décrire une image : on attend ici ce qui est écrit, au mot près.",
   "input": {
     "type": "object",
-    "required": ["document"],
+    "required": [
+      "document"
+    ],
     "additionalProperties": false,
     "properties": {
       "document": {
@@ -20,7 +23,10 @@
       },
       "format": {
         "type": "string",
-        "enum": ["text", "markdown"],
+        "enum": [
+          "text",
+          "markdown"
+        ],
         "default": "markdown",
         "description": "Mise en forme du texte extrait : brut, ou Markdown avec titres, listes et tableaux."
       },
@@ -45,7 +51,9 @@
   },
   "output": {
     "type": "object",
-    "required": ["text"],
+    "required": [
+      "text"
+    ],
     "properties": {
       "text": {
         "type": "string",

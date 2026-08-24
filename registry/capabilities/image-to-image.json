@@ -1,9 +1,13 @@
 {
   "id": "image-to-image",
   "title": "Transformation d'image",
+  "description": "Retransforme une image entière d'après une consigne. Ni masque à fabriquer, ni raccord de bord à surveiller : ce qui la distingue de la retouche tient à la force appliquée, qui décide du nombre de pas réellement exécutés.",
   "input": {
     "type": "object",
-    "required": ["image", "prompt"],
+    "required": [
+      "image",
+      "prompt"
+    ],
     "additionalProperties": false,
     "properties": {
       "image": {
@@ -60,7 +64,9 @@
   },
   "output": {
     "type": "object",
-    "required": ["image"],
+    "required": [
+      "image"
+    ],
     "properties": {
       "image": {
         "type": "string",

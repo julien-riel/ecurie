@@ -1,9 +1,12 @@
 {
   "id": "audio-denoise",
   "title": "Débruitage audio",
+  "description": "Retire d'un enregistrement ce qui n'est pas la voix. Elle ne sépare pas les instruments : elle suppose qu'il y a une parole à sauver et un fond à écarter.",
   "input": {
     "type": "object",
-    "required": ["audio"],
+    "required": [
+      "audio"
+    ],
     "additionalProperties": false,
     "properties": {
       "audio": {
@@ -21,7 +24,12 @@
       },
       "sample_rate": {
         "type": "integer",
-        "enum": [16000, 24000, 44100, 48000],
+        "enum": [
+          16000,
+          24000,
+          44100,
+          48000
+        ],
         "default": 48000,
         "description": "Fréquence d'échantillonnage du fichier produit."
       },
@@ -36,7 +44,9 @@
   },
   "output": {
     "type": "object",
-    "required": ["audio"],
+    "required": [
+      "audio"
+    ],
     "properties": {
       "audio": {
         "type": "string",

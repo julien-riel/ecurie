@@ -1,9 +1,12 @@
 {
   "id": "text-generation",
   "title": "Génération de texte",
+  "description": "Écrit un texte à partir d'une consigne. Le contrat le plus général du parc, et la référence à laquelle la traduction et l'appel d'outils se comparent — ces deux-là ont leur propre contrat parce qu'ils attendent une sortie qu'on sait vérifier.",
   "input": {
     "type": "object",
-    "required": ["prompt"],
+    "required": [
+      "prompt"
+    ],
     "additionalProperties": false,
     "properties": {
       "prompt": {
@@ -48,7 +51,9 @@
       "stop": {
         "type": "array",
         "maxItems": 4,
-        "items": { "type": "string" },
+        "items": {
+          "type": "string"
+        },
         "description": "Séquences qui interrompent la génération dès qu'elles apparaissent."
       },
       "seed": {
@@ -60,7 +65,9 @@
   },
   "output": {
     "type": "object",
-    "required": ["text"],
+    "required": [
+      "text"
+    ],
     "properties": {
       "text": {
         "type": "string",
@@ -74,7 +81,11 @@
       },
       "finish_reason": {
         "type": "string",
-        "enum": ["stop", "length", "stop_sequence"],
+        "enum": [
+          "stop",
+          "length",
+          "stop_sequence"
+        ],
         "description": "Cause de l'arrêt : fin naturelle, plafond de jetons atteint, séquence d'arrêt rencontrée."
       }
     }

@@ -27,6 +27,11 @@ function modèlesDe(capability: string): Model[] {
   return MODELES.filter((m) => m.capability === capability);
 }
 
+/** La même capacité, mais dont plus aucun variant n'est exécutable. */
+function bloquée(c: Capability): Capability {
+  return { ...c, ready_variants: [] };
+}
+
 describe("les capacités groupées par état", () => {
   test("les executables viennent en premier", () => {
     const groupes = groupesDeCapacites(CAPACITES);
@@ -50,11 +55,16 @@ describe("les capacités groupées par état", () => {
     expect(groupes.map((g) => g.etat)).not.toContain("sans-modèle");
   });
 
-  test("image-to-mesh a ses propres mots", () => {
-    // Elle a deux modèles déclarés, un titulaire, et rien de lançable : la
-    // ranger avec les capacités qu'on n'a jamais pourvues afficherait la même
-    // phrase pour deux situations dont l'une est à un `ecurie pull` de marcher.
-    const groupes = groupesDeCapacites(CAPACITES);
+  test("une capacite pourvue mais rien de telecharge a ses propres mots", () => {
+    // Des modèles déclarés, un titulaire, et rien de lançable : la ranger avec
+    // les capacités qu'on n'a jamais pourvues afficherait la même phrase pour
+    // deux situations dont l'une est à un `ecurie pull` de marcher.
+    //
+    // Le cas est fabriqué, non cueilli : la version d'avant prenait
+    // `image-to-mesh` dans les fixtures et est tombée le jour où quelqu'un a
+    // téléchargé Hunyuan3D. Un test qui dépend du disque d'un poste ne dit pas
+    // ce qu'il prétend dire.
+    const groupes = groupesDeCapacites([bloquée(capacité("image-to-mesh"))]);
     const sansVariant = groupes.find((g) => g.etat === "sans-variant-prêt")!;
     expect(sansVariant.capacites.map((c) => c.id)).toContain("image-to-mesh");
   });
@@ -103,10 +113,10 @@ describe("le variant préselectionné", () => {
   });
 
   test("jamais un variant qui ne peut pas tourner", () => {
-    // `image-to-mesh` affiche un titulaire dont les 7,37 Go de poids ne sont pas
+    // Une capacité qui affiche un titulaire dont les poids ne sont pas
     // téléchargés : le préselectionner ouvrirait l'écran sur un formulaire dont
     // rien ne peut sortir.
-    expect(variantParDefaut(capacité("image-to-mesh"))).toBeNull();
+    expect(variantParDefaut(bloquée(capacité("image-to-mesh")))).toBeNull();
   });
 
   test("un titulaire declare mais non pret cede la place a un autre", () => {

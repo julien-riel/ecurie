@@ -785,6 +785,42 @@ C'est ce qui rend « ajouter un modèle = ajouter un YAML » vérifiable : les 1
 contrats du registre sont rendus par une suite qui les lit sur le disque, si bien
 qu'un dix-huitième y entre sans qu'une ligne de front bouge.
 
+**Le choix de la capacité n'est plus une liste** (tâche 4.8). Le `<select>`
+groupé tenait sur dix-sept contrats ; à trente-deux, il fallait lire une liste de
+titres pour en reconnaître un, et rien n'y disait ce qu'une capacité prend, ce
+qu'elle rend, ni s'il y avait de quoi la lancer. Le panneau qui le remplace tient
+sur quatre décisions.
+
+**La glyphe dit le contrat.** Une forme, une flèche, une forme : l'entrée et la
+sortie, qui sont exactement ce qu'une capacité déclare. Seize formes se
+recombinent pour trente-deux capacités, donc des formes qu'on reconnaît d'une
+carte à l'autre — une icône par capacité aurait demandé d'inventer un symbole
+pour « débruitage » et un autre pour « séparation de pistes », que personne
+n'aurait distingués. Le vocabulaire est plus fin que les types de média quand il
+le faut : quatre capacités rendent « du JSON », et ce JSON est tour à tour des
+boîtes, des points, un vecteur et des angles.
+
+**Les filtres se déduisent, la catégorie s'écrit.** Ce qu'une capacité prend et
+rend sort du JSON Schema d'entrée et d'`output_media_types` (`schema/modalites.ts`),
+si bien qu'un contrat qui entre au registre demain est filtrable le jour même.
+La catégorie, elle, ne se déduit pas : `image-detect` et `face-detect` prennent
+une image et rendent des boîtes, et on ne les cherche pas dans le même geste.
+Elle vit donc dans une table d'écran, avec un test qui refuse qu'une capacité du
+registre n'y soit pas — une capacité neuve tombe dans « Divers » à l'écran plutôt
+que de disparaître, et fait rougir la CI le lendemain.
+
+**Le rangement par état devient une marque.** Grouper par famille et par état à
+la fois donnerait douze sections ; l'état passe donc sur la carte, et à
+l'intérieur d'une famille les exécutables viennent d'abord. Ce qui ne change pas :
+**une capacité sans variant exécutable reste affichée.** Elle dit ce qu'un
+`ecurie pull` rendrait possible, ce qui est la moitié de ce qu'un registre sert à
+savoir.
+
+**Douze contrats y ont gagné une description.** Le sélecteur montre une phrase
+par capacité, et douze des trente-deux n'en avaient aucune — la carte était alors
+un titre et deux chiffres. Elles sont écrites comme les vingt autres : ce que la
+capacité fait, et ce qui la sépare de sa voisine la plus proche.
+
 - **Extensions `x-ui`** mappées sur des widgets RJSF. Le méta-schéma en énumère
   **cinq**, pas trois — `textarea`, `select`, `file`, `slider`, `hidden` — et la
   table les couvre toutes. Deux ne sont pas celles qu'on croyait :

@@ -83,7 +83,8 @@ import { parametreDuPic, phrasesAdmission, severiteAdmission } from "../ressourc
 import { initialValues } from "../schema/defaults";
 import { etatCapacite, phraseEtat } from "../schema/etat";
 import { toContractInput } from "../schema/projection";
-import { groupesDeCapacites, groupesDeVariants, variantParDefaut } from "./choix";
+import { groupesDeVariants, variantParDefaut } from "./choix";
+import { SelecteurCapacite } from "./SelecteurCapacite";
 
 export interface AtelierProps {
   /** Cadence du sondage du bandeau ; les tests la raccourcissent. */
@@ -125,6 +126,13 @@ export function Atelier({ periodeBandeau }: AtelierProps) {
     (s) => (capacité ? api.models(capacité.id, s) : Promise.resolve(null)),
     [capacité?.id],
   );
+  // Le registre entier, pour le seul sélecteur : il compte les variants de
+  // chaque capacité, et `models` du contrat n'en donne que les modèles. Un
+  // modèle en porte de un à sept, et c'est le variant qu'on lance — « 2 modèles »
+  // ne dit pas s'il y a deux choses à essayer ou onze. Chargé une fois, à part
+  // de la ressource ci-dessus qui suit la capacité choisie.
+  const catalogue = useResource((s) => api.models(undefined, s), []);
+  const tousLesModeles = catalogue.données?.models ?? [];
   // Le filtre sur `capability` n'est pas une ceinture de sécurité : `useResource`
   // garde les dernières données pendant qu'il recharge — c'est ce qui évite de
   // vider l'écran à chaque changement —, si bien qu'entre le clic sur une
@@ -255,23 +263,12 @@ export function Atelier({ periodeBandeau }: AtelierProps) {
           <div className="ecurie-carte">
             <div className="ecurie-choix">
               <div>
-                <label htmlFor="capacite">Capacité</label>
-                <select
-                  id="capacite"
-                  value={capId ?? ""}
-                  onChange={(e) => choisirCapacite(e.target.value)}
-                >
-                  <option value="">— choisir —</option>
-                  {groupesDeCapacites(capacités).map((groupe) => (
-                    <optgroup key={groupe.etat} label={groupe.titre}>
-                      {groupe.capacites.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.title}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
+                <SelecteurCapacite
+                  capacites={capacités}
+                  models={tousLesModeles}
+                  valeur={capId}
+                  onChoisir={choisirCapacite}
+                />
                 {capacité ? (
                   <p className="ecurie-etat-champ">{phraseEtat(etatCapacite(capacité))}</p>
                 ) : null}

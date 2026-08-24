@@ -1,6 +1,7 @@
 {
   "id": "text-to-music",
   "title": "Génération musicale",
+  "description": "Compose un morceau à partir d'une consigne, voix comprise si on le demande. C'est le job le plus lourd du parc — la durée demandée pilote directement la mémoire.",
   "input": {
     "type": "object",
     "required": [

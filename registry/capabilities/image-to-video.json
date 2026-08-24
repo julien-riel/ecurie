@@ -1,9 +1,12 @@
 {
   "id": "image-to-video",
   "title": "Image vers vidéo",
+  "description": "Anime une image fixe, qui donne le premier plan et fixe le cadrage. À distinguer du texte vers vidéo, qui invente la scène autant que le mouvement.",
   "input": {
     "type": "object",
-    "required": ["image"],
+    "required": [
+      "image"
+    ],
     "additionalProperties": false,
     "properties": {
       "image": {
@@ -59,7 +62,9 @@
   },
   "output": {
     "type": "object",
-    "required": ["video"],
+    "required": [
+      "video"
+    ],
     "properties": {
       "video": {
         "type": "string",

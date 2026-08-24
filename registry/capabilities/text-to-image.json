@@ -1,9 +1,12 @@
 {
   "id": "text-to-image",
   "title": "Texte vers image",
+  "description": "Produit une image à partir d'une description. Le format et le nombre de pas font le coût, et le coût suit le produit largeur × hauteur × pas.",
   "input": {
     "type": "object",
-    "required": ["prompt"],
+    "required": [
+      "prompt"
+    ],
     "additionalProperties": false,
     "properties": {
       "prompt": {
@@ -56,7 +59,9 @@
   },
   "output": {
     "type": "object",
-    "required": ["image"],
+    "required": [
+      "image"
+    ],
     "properties": {
       "image": {
         "type": "string",

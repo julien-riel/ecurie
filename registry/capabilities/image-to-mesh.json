@@ -1,9 +1,12 @@
 {
   "id": "image-to-mesh",
   "title": "Image vers maillage 3D",
+  "description": "Reconstruit un objet en trois dimensions depuis une seule image. Le pipeline recadre sur le canal alpha : une image opaque le prive de sa seule indication de silhouette.",
   "input": {
     "type": "object",
-    "required": ["image"],
+    "required": [
+      "image"
+    ],
     "additionalProperties": false,
     "properties": {
       "image": {
@@ -14,7 +17,12 @@
       },
       "octree_resolution": {
         "type": "integer",
-        "enum": [128, 256, 384, 512],
+        "enum": [
+          128,
+          256,
+          384,
+          512
+        ],
         "default": 256
       },
       "num_inference_steps": {
@@ -31,7 +39,9 @@
   },
   "output": {
     "type": "object",
-    "required": ["mesh"],
+    "required": [
+      "mesh"
+    ],
     "properties": {
       "mesh": {
         "type": "string",

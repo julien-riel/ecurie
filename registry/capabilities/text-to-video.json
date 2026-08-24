@@ -1,9 +1,12 @@
 {
   "id": "text-to-video",
   "title": "Texte vers vidéo",
+  "description": "Produit une séquence animée à partir d'une consigne. Le nombre d'images demandé multiplie tout — la durée du calcul comme la mémoire.",
   "input": {
     "type": "object",
-    "required": ["prompt"],
+    "required": [
+      "prompt"
+    ],
     "additionalProperties": false,
     "properties": {
       "prompt": {
@@ -70,7 +73,9 @@
   },
   "output": {
     "type": "object",
-    "required": ["video"],
+    "required": [
+      "video"
+    ],
     "properties": {
       "video": {
         "type": "string",
