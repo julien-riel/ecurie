@@ -1,0 +1,59 @@
+{
+  "capability": "time-series-forecast",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Une seule série horaire, vue par trois fenêtres emboîtées : `contexte` décide de ce que le modèle regarde, et c'est lui qui pilote le coût — de 512 à 8192 pas, la latence est multipliée par quatre. L'horizon reste fixé à 168 : le modèle rend jusqu'à 1024 pas en un seul passage, si bien que l'allonger ne coûte presque rien et ne mesurerait rien. Les trois fichiers portent la même histoire et se terminent au même horodatage ; ils sont calculés — deux saisonnalités, une tendance, un bruit de graine fixe — donc sans licence ni provenance à suivre. Les cas ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "scaling_parameter": "contexte",
+  "cases": [
+    {
+      "id": "ctx-512",
+      "input": {
+        "serie": "assets/serie-horaire-512.csv",
+        "contexte": 512,
+        "horizon": 168,
+        "quantiles": [0.1, 0.25, 0.5, 0.75, 0.9],
+        "graphique": true
+      },
+      "source": {
+        "recipe": "series",
+        "outil": "uv run --project runtimes/chronos python tools/bench_assets.py series",
+        "pas": 512,
+        "graine": 20260824,
+        "sha256": "5e684916fbc05fba0c5deb412f3ecacc9fcecbefe5bb60b3ec670199aa9da47f"
+      }
+    },
+    {
+      "id": "ctx-2048",
+      "input": {
+        "serie": "assets/serie-horaire-2048.csv",
+        "contexte": 2048,
+        "horizon": 168,
+        "quantiles": [0.1, 0.25, 0.5, 0.75, 0.9],
+        "graphique": true
+      },
+      "source": {
+        "recipe": "series",
+        "outil": "uv run --project runtimes/chronos python tools/bench_assets.py series",
+        "pas": 2048,
+        "graine": 20260824,
+        "sha256": "d4a819105da4afb76a56f50a44b13ee5b97171434453751ee553a414b7a0640c"
+      }
+    },
+    {
+      "id": "ctx-8192",
+      "input": {
+        "serie": "assets/serie-horaire-8192.csv",
+        "contexte": 8192,
+        "horizon": 168,
+        "quantiles": [0.1, 0.25, 0.5, 0.75, 0.9],
+        "graphique": true
+      },
+      "source": {
+        "recipe": "series",
+        "outil": "uv run --project runtimes/chronos python tools/bench_assets.py series",
+        "pas": 8192,
+        "graine": 20260824,
+        "sha256": "6567d6e8cca69deb5f164c32594861056fe63045ab5c0dd92c37130f49f03dde"
+      }
+    }
+  ]
+}

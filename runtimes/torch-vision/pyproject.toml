@@ -43,7 +43,20 @@ dependencies = [
     # exécuté est un adaptateur faux.
     "einops>=0.8",
     "kornia>=0.7",
-    "timm>=1.0",
+    # Plancher relevé de `>=1.0` à `>=1.0.20` par la quatrième capacité de cet
+    # env, l'empreinte visuelle : DINOv3 a été publié le 14 août 2025, 1.0.19
+    # date du 24 juillet et ne peut donc pas le connaître ; 1.0.20 (21 septembre)
+    # est la première à l'ajouter — « DINOv3 ConvNeXt and ViT models added ».
+    # Une reconstruction d'environnement qui résoudrait vers une 1.0.x antérieure
+    # ferait échouer `create_model` sur un nom d'architecture inconnu, jamais sur
+    # une version : le message ne dirait pas ce qu'il faut corriger.
+    #
+    # Aucun des trois modèles déjà profilés ici ne bouge : 1.0.28 est installée
+    # et c'est la dernière publiée, le plancher passe donc sous la version en
+    # place au lieu de la déplacer. C'est la seule modification tolérable —
+    # rétrograder birefnet, swin2sr ou sam2 pour faire entrer une capacité de
+    # plus est exactement l'arbitrage que le §5.3 existe pour éviter.
+    "timm>=1.0.20",
     "torchvision>=0.21",
     "accelerate>=0.31.0",
     "safetensors>=0.8.0",

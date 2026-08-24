@@ -108,6 +108,39 @@ CAS = [
     ("runtime inconnu", muté(runtime="vllm"), False),
     ("tier inconnu", muté(tier="tiède"), False),
     ("source de type inconnu", muté(source={"kind": "torrent"}), False),
+    # Un variant peut avoir besoin de plus d'un dépôt — un tokenizer publié à
+    # part, un encodeur visuel. La source secondaire suit exactement les mêmes
+    # règles que celle des poids : la révision y est épinglée de la même façon,
+    # et un champ inventé y est refusé de la même façon.
+    (
+        "second dépôt avec son rôle",
+        muté(
+            extra_sources=[
+                {
+                    "kind": "huggingface",
+                    "repo": "Qwen/Qwen2-1.5B",
+                    "revision": "8a16abf2848eda07cc5253dec660bf1ce007ad7a",
+                    "role": "tokenizer",
+                }
+            ]
+        ),
+        True,
+    ),
+    (
+        "second dépôt à révision flottante",
+        muté(extra_sources=[{"kind": "huggingface", "repo": "o/n", "revision": "main"}]),
+        False,
+    ),
+    (
+        "rôle en majuscules",
+        muté(extra_sources=[{"kind": "huggingface", "repo": "o/n", "role": "Tokenizer"}]),
+        False,
+    ),
+    (
+        "champ inventé dans un second dépôt",
+        muté(extra_sources=[{"kind": "huggingface", "repo": "o/n", "priorité": 2}]),
+        False,
+    ),
 ]
 
 

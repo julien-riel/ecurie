@@ -1,0 +1,73 @@
+# Environnement isolé du runtime `chronos` (CONCEPTION.md §5.3).
+#
+# Douzième famille du parc, et la première qui ne regarde ni n'écoute rien : une
+# série de nombres entre, un éventail de quantiles sort.
+#
+# **Pourquoi pas dans un env torch existant.** Trois env portent déjà PyTorch —
+# `torch-vision`, `depth-anything`, `mflux` — et aucun des trois ne peut
+# accueillir celui-ci sans qu'un modèle déjà mesuré y perde quelque chose :
+#
+#   depth-anything   impose `numpy<2` pour Depth-Anything-3, quand la résolution
+#                    de `chronos-forecasting` rend numpy 2.5. Y entrer
+#                    rétrograderait numpy pour tout l'env, ou refuserait de
+#                    résoudre.
+#   torch-vision     ne borne pas `transformers` ; `chronos-forecasting` plafonne
+#                    à `<6`. Et ni lui ni `depth-anything` n'ont pandas :
+#                    l'entrée de cette capacité est un tableau, pas une image.
+#
+# La contrainte qui décide est donc la même que celle qui a fait exister
+# `depth-anything` : faire entrer une capacité neuve au prix d'une
+# rétrogradation chez un modèle déjà profilé est exactement l'arbitrage que
+# l'isolation existe pour ne plus avoir à faire (ARCHITECTURE.md §0, piège 2).
+#
+#     ecurie env sync chronos
+#
+# **Cet env tourne sur le CPU, et ce n'est pas un repli.** Mesuré sur cette
+# machine, un processus par périphérique, médiane de cinq passages après deux
+# tours de chauffe : au contexte 8192, le CPU rend 139 ms là où MPS en met 190.
+# MPS ne gagne qu'au contexte 512, et perd dès 2048 — le modèle est petit
+# (120 M de paramètres, fp32) et le transfert vers Metal coûte plus que le
+# calcul qu'il économise. Le pic mémoire se mesure donc au RSS, qui dit vrai
+# tant que rien n'est alloué sur Metal ; le variant `mps`, lui, relève en plus
+# `driver_allocated_memory`.
+#
+# **Premier env pandas 3 du parc.** La résolution rend pandas 3.0.5 et
+# numpy 2.5.2. Tout ce que l'adaptateur emploie — `read_csv`, `date_range`,
+# `reindex`, `to_csv`, et `predict_df` d'amont — a été exécuté dessus avant
+# d'écrire ces lignes. La borne `<4` vient de `chronos-forecasting`, pas d'une
+# prudence de dépôt.
+
+[project]
+name = "ecurie-runtime-chronos"
+version = "0.4.0"
+description = "Écurie — env isolé : prévision probabiliste de série temporelle, sur PyTorch CPU"
+# Aligné sur le socle 3.12 d'Écurie : le worker exécute
+# `ecurie_runtime.workers.base`, écrit pour cette version.
+requires-python = ">=3.12"
+
+dependencies = [
+    # La bibliothèque d'amont, apache-2.0 comme les poids. Elle apporte
+    # `Chronos2Pipeline.predict_df`, qui est la seule API du paquet à parler
+    # DataFrame — les autres modèles de la famille (Chronos, Chronos-Bolt) n'ont
+    # que des tenseurs, et c'est cette API-là qui permet au contrat d'accepter
+    # un CSV en format long plutôt qu'un tableau de nombres à plat.
+    "chronos-forecasting>=2.3,<3",
+    # Même borne que les trois autres env torch du parc, et pour la même raison :
+    # les roues macOS arm64 passent de `macosx_11_0` à `macosx_14_0` en 2.12,
+    # donc `torch>=2.12` imposerait macOS 14 à tout le parc.
+    "torch>=2.6,<2.14",
+    # La borne haute vient de `chronos-forecasting` lui-même.
+    "transformers>=4.41,<6",
+    # Déclarées par l'amont, redites ici parce que l'adaptateur les importe
+    # directement : c'est lui qui lit le CSV, réindexe la série sur une grille
+    # régulière et projette les colonnes de sortie sur celles du contrat.
+    "pandas>=2,<4",
+    "numpy>=1.26",
+    # Le seul usage est l'éventail en PNG, et il n'est pas décoratif : le CSV se
+    # rend en texte brut dans l'UI, et sur 168 lignes de sept colonnes une
+    # prévision fausse ne se voit pas. Backend Agg, aucune fenêtre.
+    "matplotlib>=3.9",
+]
+
+[tool.uv]
+package = false

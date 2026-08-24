@@ -1,0 +1,116 @@
+{
+  "ref": "cad-recode@bf16",
+  "model": "cad-recode",
+  "variant": "bf16",
+  "capability": "pointcloud-to-cad",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / numpy 2.5.2 / torch 2.13.0 / transformers 4.57.6 / trimesh 5.0.0",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/pointcloud-to-cad.json",
+    "version": 1,
+    "cases": [
+      "cube",
+      "cylindre-perce",
+      "piece-en-l"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 3087787687,
+    "peak_unified_memory_bytes": 4415291392,
+    "warmup_ms": 3002,
+    "latency_ms_p50": 4001,
+    "throughput": "1 sortie / 4.4 s"
+  },
+  "cases": [
+    {
+      "id": "cube",
+      "ok": true,
+      "duration_ms": 4001,
+      "metrics": {
+        "duration_ms": 4001,
+        "device": "mps",
+        "n_points": 256,
+        "n_points_entrainement": 256,
+        "tokens_generes": 53,
+        "max_new_tokens": 768,
+        "plafond_atteint": false,
+        "lignes_de_code": 3,
+        "execution": "ok",
+        "execution_volume": 7999999.999999999,
+        "execution_surface": 240000.0,
+        "execution_etanche": true,
+        "execution_sommets": 8,
+        "execution_faces": 12,
+        "peak_memory_bytes": 4415291392,
+        "warnings": [
+          "nuage-cube.ply est un nuage de 256 points, pris tels quels : aucune surface n'est échantillonnée, et `seed` n'a pas d'effet",
+          "256 point(s) disponibles pour 256 demandés : tous sont soumis, sans échantillonnage du plus lointain",
+          "programme exécuté : interpréteur séparé, environnement vidé, dossier de travail limité au job, délai 20 s, RLIMIT_CPU et RLIMIT_FSIZE. Le réseau n'est PAS coupé et la mémoire n'est PAS bornée — macOS refuse RLIMIT_AS, RLIMIT_DATA et RLIMIT_RSS quelle que soit la valeur demandée",
+          "bornes refusées par la plateforme : RLIMIT_AS"
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "cylindre-perce",
+      "ok": true,
+      "duration_ms": 3986,
+      "metrics": {
+        "duration_ms": 3986,
+        "device": "mps",
+        "n_points": 256,
+        "n_points_entrainement": 256,
+        "tokens_generes": 56,
+        "max_new_tokens": 768,
+        "plafond_atteint": false,
+        "lignes_de_code": 3,
+        "execution": "ok",
+        "execution_volume": 5277875.658030853,
+        "execution_surface": 228707.94518133695,
+        "execution_etanche": true,
+        "execution_sommets": 504,
+        "execution_faces": 1008,
+        "peak_memory_bytes": 4415291392,
+        "warnings": [
+          "nuage-cylindre-perce.ply est un nuage de 256 points, pris tels quels : aucune surface n'est échantillonnée, et `seed` n'a pas d'effet",
+          "256 point(s) disponibles pour 256 demandés : tous sont soumis, sans échantillonnage du plus lointain",
+          "programme exécuté : interpréteur séparé, environnement vidé, dossier de travail limité au job, délai 20 s, RLIMIT_CPU et RLIMIT_FSIZE. Le réseau n'est PAS coupé et la mémoire n'est PAS bornée — macOS refuse RLIMIT_AS, RLIMIT_DATA et RLIMIT_RSS quelle que soit la valeur demandée",
+          "bornes refusées par la plateforme : RLIMIT_AS"
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "piece-en-l",
+      "ok": true,
+      "duration_ms": 5232,
+      "metrics": {
+        "duration_ms": 5232,
+        "device": "mps",
+        "n_points": 256,
+        "n_points_entrainement": 256,
+        "tokens_generes": 93,
+        "max_new_tokens": 768,
+        "plafond_atteint": false,
+        "lignes_de_code": 3,
+        "execution": "ok",
+        "execution_volume": 1671599.9999999998,
+        "execution_surface": 101288.0,
+        "execution_etanche": true,
+        "execution_sommets": 12,
+        "execution_faces": 20,
+        "peak_memory_bytes": 4415291392,
+        "warnings": [
+          "nuage-piece-en-l.ply est un nuage de 256 points, pris tels quels : aucune surface n'est échantillonnée, et `seed` n'a pas d'effet",
+          "256 point(s) disponibles pour 256 demandés : tous sont soumis, sans échantillonnage du plus lointain",
+          "programme exécuté : interpréteur séparé, environnement vidé, dossier de travail limité au job, délai 20 s, RLIMIT_CPU et RLIMIT_FSIZE. Le réseau n'est PAS coupé et la mémoire n'est PAS bornée — macOS refuse RLIMIT_AS, RLIMIT_DATA et RLIMIT_RSS quelle que soit la valeur demandée",
+          "bornes refusées par la plateforme : RLIMIT_AS"
+        ]
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

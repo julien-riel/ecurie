@@ -158,6 +158,41 @@ WORKER_MODULES_BY_CAPABILITY = {
     ("uniface", "face-embed"): "ecurie_runtime.workers.uniface_embed",
     ("uniface", "face-headpose"): "ecurie_runtime.workers.uniface_headpose",
     ("uniface", "face-gaze"): "ecurie_runtime.workers.uniface_gaze",
+    # --- les capacités qui rendent une mesure plutôt qu'un média -------------
+    #
+    # Douzième famille, et la première du parc qui ne voit ni n'entend rien : une
+    # série de nombres entre, un éventail de quantiles sort. Elle tourne sur le
+    # CPU par défaut, et ce n'est pas un repli — mesuré, le CPU bat MPS dès que
+    # le contexte dépasse deux mille pas.
+    ("chronos", "time-series-forecast"): "ecurie_runtime.workers.chronos_forecast",
+    # Neuvième emploi de `mlx-audio`, et le seul qui reçoit le texte au lieu de
+    # le produire : aligner n'est pas transcrire. Le modèle sait ce qui est dit,
+    # on lui demande **quand**.
+    ("mlx-audio", "audio-align"): "ecurie_runtime.workers.qwen3_align",
+    # Quatrième capacité de `torch-vision`, et la première dont la sortie ne se
+    # regarde pas : un vecteur. Même patron que `face-embed`, sans le
+    # redressement — une pièce mécanique n'a pas cinq points d'ancrage.
+    ("torch-vision", "image-embed"): "ecurie_runtime.workers.dinov3_embed",
+    # Treizième famille. Deux capacités sur les mêmes poids et deux têtes
+    # différentes : segmenter une scène satellite et l'encoder ne partagent que
+    # l'encodeur, ce qui est exactement le partage que le §5.2 décrit.
+    ("terratorch", "geo-segment"): "ecurie_runtime.workers.prithvi_segment",
+    ("terratorch", "geo-embed"): "ecurie_runtime.workers.prithvi_embed",
+    # Second emploi de `depth-anything`, et le seul du parc qui relie plusieurs
+    # images entre elles : `depth-estimation` rend une carte par image, sans
+    # rien qui dise où étaient les caméras l'une par rapport à l'autre.
+    ("depth-anything", "multiview-to-3d"): "ecurie_runtime.workers.da3_multiview",
+    # Quatorzième famille : une séquence de lettres vers un vecteur. Le patron de
+    # `face-embed` transposé à une protéine, sans image ni détecteur.
+    ("esm-torch", "protein-embed"): "ecurie_runtime.workers.esm_embed",
+    # Quinzième famille, et la seule dont la sortie est **un programme**. Le
+    # parc rendait des maillages ; celle-ci rend le code qui les construit, donc
+    # une pièce qu'on peut encore modifier.
+    ("cad-recode", "pointcloud-to-cad"): "ecurie_runtime.workers.cad_recode",
+    # Seizième famille, et la seule dont la sortie est une **action**. Sans
+    # robot au bout, ce qu'on mesure est le modèle, pas l'usage — et le contrat
+    # le dit.
+    ("lerobot", "robot-action"): "ecurie_runtime.workers.smolvla_act",
 }
 
 
@@ -184,6 +219,27 @@ NOT_YET = {
         "détecter, décrire, découper, encoder, orienter et suivre le regard ne "
         "partagent ni l'appel ni la sortie"
     ),
+    # Les cinq familles de la mesure. Aucune n'a d'adaptateur « par défaut », et
+    # pour la raison du §5.2 : un runtime est une famille de bibliothèques, pas
+    # une promesse d'API commune. Le message nomme donc la capacité attendue
+    # plutôt que de laisser tomber sur un « adaptateur non livré » qui
+    # n'apprendrait rien à qui se trompe de contrat.
+    # Ce runtime a servi une seule capacité pendant quatre jours, et l'oubli ne
+    # se voyait pas : sans capacité, il rendait « adaptateur non livré » alors
+    # qu'il en porte deux.
+    "depth-anything": (
+        "sert `depth-estimation` et `multiview-to-3d`. Les mêmes poids, et deux "
+        "questions qui ne se ressemblent pas : la profondeur d'une image, ou ce qui "
+        "relie plusieurs vues entre elles"
+    ),
+    "chronos": "sert `time-series-forecast`, et rien d'autre : la pile ne connaît que des séries",
+    "terratorch": (
+        "sert `geo-segment` et `geo-embed`. Les deux partagent l'encodeur Prithvi et "
+        "rien de plus : l'une rend une carte de classes, l'autre un vecteur"
+    ),
+    "esm-torch": "sert `protein-embed`, et rien d'autre : la pile ne lit que des séquences",
+    "cad-recode": "sert `pointcloud-to-cad`, et rien d'autre",
+    "lerobot": "sert `robot-action`, et rien d'autre",
 }
 
 

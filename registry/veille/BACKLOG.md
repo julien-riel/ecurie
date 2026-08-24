@@ -6,10 +6,10 @@ Silicon, ni le budget mémoire. C'est la file d'entrée du skill `veille-modeles
 qui décide, mesure et rend un rapport daté sous `registry/veille/<date>/`.
 
 Ce qu'il apporte par rapport à la liste d'origine : le **croisement avec le parc
-réel** (46 modèles, 26 capacités au 23 août 2026 ; 54 et 32 depuis le 24). Une
-piste qui double un titulaire ne se traite pas comme une piste qui ouvre une
-capacité — la seconde coûte un contrat, un adaptateur, une charge type et
-souvent un runtime.
+réel** (46 modèles, 26 capacités au 23 août 2026 ; 54 et 32 le 24 au matin ;
+**64 et 41** le 24 au soir). Une piste qui double un titulaire ne se traite pas
+comme une piste qui ouvre une capacité — la seconde coûte un contrat, un
+adaptateur, une charge type et souvent un runtime.
 
 ## Ordre de priorité voulu
 
@@ -28,6 +28,13 @@ et c'est un argument d'ordonnancement, pas de valeur.
 > **Fait le 2026-08-24.** Le pari était juste : six capacités pour un runtime de
 > vingt lignes de `pyproject.toml`, aucun code amont à vendorer. La file revient
 > donc à l'ordre voulu ci-dessus — séries temporelles en tête.
+>
+> **Et l'ordre voulu a été suivi le même jour** : les six familles de tête sont
+> instruites, sept d'entre elles sont entrées au parc, plus les deux pistes que
+> ce fichier désignait comme les moins coûteuses. Voir
+> [le rapport du 2026-08-24 (mesure)](2026-08-24-mesure/RAPPORT.md). Ce qui reste
+> de la file est en bas de ce fichier, et il a changé de nature : ce ne sont plus
+> des familles entières, ce sont des pistes isolées et une brique manquante.
 
 ---
 
@@ -69,45 +76,107 @@ Constaté par la campagne d'essai des 23–24 août, à solder avant d'élargir.
 Chacune demande, au minimum : un contrat dans `registry/capabilities/`, une
 charge type figée, un adaptateur, et souvent un runtime isolé de plus.
 
-### Séries temporelles — `time-series-forecast`
+> **Neuf de ces capacités sont entrées le 2026-08-24**, dans l'ordre de priorité
+> voulu. Les sections traitées portent leur verdict en tête ; le texte d'origine
+> est conservé pour ce qu'il annonçait, et les écarts sont au rapport. Ce qui
+> reste de cette section, après ce cycle : la **météo** (la donnée d'entrée est
+> un projet à elle seule), l'**édition musicale**, la **métrologie**,
+> l'**anticipation vidéo**, le `text-to-cad` — et l'**index**, qui n'est pas une
+> capacité mais la brique dont quatre capacités dépendent désormais.
+
+### Séries temporelles — `time-series-forecast` — FAITE LE 2026-08-24
+
+> **Chronos-2, apache-2.0, 478 Mo, pic mesuré 0,93 Go.** Le diagnostic de ce
+> backlog était juste jusque dans sa formulation : la difficulté n'était pas la
+> mémoire, c'était le contrat. Il porte une série en CSV long et rend un éventail
+> de quantiles. Deux surprises que la file n'annonçait pas — le CPU bat MPS dès
+> deux mille pas de contexte, et la bibliothèque rabat les quantiles hors plage
+> sous l'étiquette du niveau demandé, ce que l'adaptateur corrige lui-même.
+
 **Chronos-2** (120 M), **TimesFM 2.5** (200 M), **Moirai 2.0**. Petits modèles,
 donc un coût mémoire dérisoire à l'échelle du parc. La difficulté n'est pas là :
 le contrat doit porter des **séries en entrée et des quantiles en sortie**, ce
 qu'aucun contrat actuel ne ressemble. Usages cités : consommation électrique,
 trafic, ventes, télémétrie IoT, charge réseau.
 
-### CAO — `pointcloud-to-cad`, `text-to-cad`
+### CAO — `pointcloud-to-cad` FAITE, `text-to-cad` non — 2026-08-24
+
+> **CAD-Recode v1.5 entre, mais en `research-only`** : CC BY-NC 4.0 sur les poids
+> ET sur le code amont. Aucune alternative permissive n'existe pour cette
+> famille. La sortie annoncée est tenue — du code CadQuery éditable, et un STEP
+> quand on demande son exécution —, et le chaînage depuis `image-to-mesh` marche :
+> le GLB d'un job repasse en entrée. Ce que le backlog n'avait pas vu : exécuter
+> du code engendré est une décision de sécurité, tranchée dans le contrat (faux
+> par défaut), et le garde-fou mémoire qu'on croyait poser **n'existe pas sur
+> macOS** — RLIMIT_AS y est refusé quelle que soit la valeur.
+
 **CAD-Recode** (nuage de points → programme CadQuery éditable), **Text2CAD**
 (texte → séquence paramétrique), variante agentique qui pilote FreeCAD et
 vérifie sa géométrie. Sortie inhabituelle pour le parc : **du code et du STEP**,
 pas un fichier binaire opaque. Prolonge naturellement `image-to-mesh`, qui ne
 rend qu'un maillage.
 
-### Géospatial — `geo-segment`, `geo-embed`
+### Géospatial — `geo-segment`, `geo-embed` — FAITES LE 2026-08-24
+
+> **Prithvi-EO-2.0 300M, apache-2.0, par `terratorch`.** L'intuition du backlog
+> était bonne : le contrat ne pouvait pas être `image/png`, il est `image/tiff`
+> multi-bandes. Ce qu'il ne pouvait pas prévoir : MPS refuse un `adaptive_avg_pool2d`
+> non divisible, ce qui impose des tuiles **multiples de 192** — la taille native
+> des chips, 512, ne passe donc pas. TerraMind reste non instruit.
+
 **TerraMind** (IBM/ESA), **Prithvi EO 2.0** (NASA/IBM, 100–600 M), **DINOv3 Geo**
 (hauteur de canopée). Plus le pipeline « SAM + orthophoto » pour vectoriser
 bâtiments, routes et plans d'eau. Entrée multi-bandes : le contrat ne peut pas
 être `image/png`.
 
-### Reconstruction spatiale — `multiview-to-3d`
+### Reconstruction spatiale — `multiview-to-3d` — FAITE LE 2026-08-24
+
+> **Depth Anything 3 Large 1.1, apache-2.0** — et non VGGT, non instruit. La
+> capacité rend ce que la file annonçait : une pose de caméra par vue dans un
+> repère commun, et un nuage de points. C'est la première capacité du parc dont
+> un champ accepte **plusieurs fichiers**, ce qui a demandé d'outiller le socle.
+> Pic 11,77 Go à trente-deux vues : le plus lourd du lot.
+
 **VGGT** (photos → caméras, profondeur, nuage de points), **WorldMirror**
 (vidéo → scène), **Depth Anything 3 Streaming** (séquences longues),
 **Segment Anything 3D** (masques 2D → nuage). Sorties : poses de caméra, nuages
 de points. Ambition affichée : un jumeau numérique plutôt qu'une image.
 
-### Robotique — `robot-action`
+### Robotique — `robot-action` — FAITE LE 2026-08-24, avec sa réserve
+
+> **SmolVLA 450M LIBERO** plutôt qu'OpenVLA 7B — même capacité, un dixième du
+> coût. La phrase du backlog reste exacte après coup : « sans matériel, l'intérêt
+> est la mesure du modèle, pas l'usage ». Cinq contrôles restent possibles et
+> sont faits ; aucun n'est sémantique. Le contrat porte l'incarnation en sortie
+> **obligatoire** : sept nombres sans elle ne veulent rien dire.
+
 **OpenVLA** (image + consigne → commandes articulaires), **V-JEPA 2-AC** (world
 model conditionné par l'action), **FAST** (représentation compacte des
 mouvements). Suppose un contrat qui décrive un robot ; sans matériel, l'intérêt
 est la mesure du modèle, pas l'usage.
 
-### Science — protéines, chimie
+### Science — `protein-embed` FAITE, le reste non — 2026-08-24
+
+> **ESM-2 650M, MIT** — une transposition littérale de `face-embed`, et la moins
+> chère du lot. ESM3 et MatterGen restent écartés par leur licence de recherche ;
+> Boltz-2 par son serveur de MSA, qu'un parc local ne peut pas appeler. Le piège
+> qui aurait tué le premier lancement : `AutoModel` initialise **au hasard** un
+> pooler absent du checkpoint, et rien n'échoue.
+
 **ESM3** (génératif), **ESM-C** (embeddings), **Boltz-2** (structure de
 complexes, affinité de liaison), **MatterGen** (cristaux, sortie `.cif`). Les
 plus éloignés du parc actuel, et ceux dont les sorties se vérifient le mieux :
 une structure prédite se compare à une structure connue.
 
-### Embeddings et similarité — `image-embed`
+### Embeddings et similarité — `image-embed` FAITE — 2026-08-24
+
+> **DINOv3 ConvNeXt-S, et DINOv2 ViT-B/14 à côté pour la licence.** La licence
+> DINOv3 n'a pas de clause non commerciale mais impose des restrictions d'usage
+> et la redistribution aux mêmes termes : `restricted`. Le titulaire n'est PAS
+> départagé, et le manifeste le dit. **L'index reste à faire, et il sert
+> maintenant quatre capacités** — `face-embed`, `image-embed`, `protein-embed`,
+> `geo-embed`.
+
 **DINOv3** (image → vecteur), ~~**ArcFace** (visage → identité)~~, **ESM-C**
 (protéine → vecteur). Une capacité qui ne rend ni texte ni fichier mais un
 **vecteur** : elle appelle un index, donc une brique que le parc n'a pas.
@@ -131,7 +200,15 @@ espacement. Sortie chiffrée avec unité, donc un contrat qui doit porter une
 **V-JEPA 2 / 2.1**, **MotionLLM**. Se distingue de `video-to-text` : décrire ce
 qui s'est passé contre anticiper ce qui va se passer.
 
-### Alignement audio — `audio-align`
+### Alignement audio — `audio-align` — FAITE LE 2026-08-24
+
+> **Qwen3-ForcedAligner 0.6B en 8 bits, apache-2.0.** Le backlog avait raison de
+> la dire la moins coûteuse, et pour une raison plus forte que celle écrite : son
+> code d'inférence était **déjà installé** dans le venv `mlx-audio`. Zéro
+> dépendance ajoutée. Le mode de panne à connaître est silencieux — un alignement
+> qui s'effondre rend des horodatages plausibles —, d'où la sonde `span_seconds`
+> au contrat.
+
 **Qwen3 ForcedAligner** : texte + audio → horodatages au mot. Complète
 `speech-to-text`, dont le contrat ne porte pas d'alignement fin. Petit modèle,
 même famille que le TTS titulaire : la piste la moins coûteuse de cette section.

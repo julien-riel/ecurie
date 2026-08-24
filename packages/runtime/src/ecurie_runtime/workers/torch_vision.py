@@ -45,21 +45,25 @@ def import_pil() -> Any:
     return Image
 
 
-def resolve_image(valeur: Any, job_dir: Path) -> Path:
+def resolve_image(valeur: Any, job_dir: Path, champ: str = "image") -> Path:
     """Le chemin de l'image, relatif au dossier du job quand il l'est.
 
     Le superviseur copie l'entrée dans le dossier du job et transmet un chemin
     relatif — c'est ce qui rend le job rejouable ailleurs. Un chemin absolu reste
     accepté : le banc d'essai en passe.
+
+    `champ` nomme l'entrée fautive, comme chez `uniface_base` et pour la même
+    raison : l'empreinte visuelle en reçoit deux (`image` et `compare_to`), et un
+    message qui parlerait toujours d'`image` enverrait corriger le mauvais champ.
     """
     brut = str(valeur or "").strip()
     if not brut:
-        raise WorkerError("aucune image en entrée : le champ `image` est vide")
+        raise WorkerError(f"aucune image en entrée : le champ `{champ}` est vide")
     chemin = Path(brut)
     if not chemin.is_absolute():
         chemin = job_dir / chemin
     if not chemin.is_file():
-        raise WorkerError(f"image introuvable : {chemin}")
+        raise WorkerError(f"{champ} introuvable : {chemin}")
     if chemin.suffix.lower() not in IMAGES:
         raise WorkerError(
             f"format non géré : {chemin.suffix or '(sans extension)'} — "

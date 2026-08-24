@@ -30,14 +30,19 @@ def resolve_variant_refs(registry: Registry, records: list[LocationRecord]) -> N
     for model in registry.models.values():
         for variant in model.variants:
             ref = f"{model.id}@{variant.id}"
-            src = variant.source
-            if src.kind == "huggingface" and src.repo:
-                hf_repos.setdefault(src.repo, []).append(ref)
-                if src.revision:
-                    épinglées.add((src.repo, src.revision))
-            elif src.kind == "local" and src.path:
-                clé = str(Path(src.path).expanduser().resolve())
-                local_paths.setdefault(clé, []).append(ref)
+            # Toutes les sources, pas seulement les poids : le tokenizer publié
+            # dans un autre dépôt occupe du disque, et un dépôt qu'aucun variant
+            # ne réclame tombe au poste « jamais utilisé » du plan de
+            # récupération — c'est-à-dire à la corbeille, alors qu'il est requis
+            # au chargement.
+            for src in variant.sources:
+                if src.kind == "huggingface" and src.repo:
+                    hf_repos.setdefault(src.repo, []).append(ref)
+                    if src.revision:
+                        épinglées.add((src.repo, src.revision))
+                elif src.kind == "local" and src.path:
+                    clé = str(Path(src.path).expanduser().resolve())
+                    local_paths.setdefault(clé, []).append(ref)
 
     # Ordre stable : deux scans du même parc doivent produire la même étiquette,
     # sans quoi la télémétrie et le plan de récupération changeraient d'avis d'un

@@ -1,0 +1,86 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "pointcloud-to-cad",
+  "title": "Nuage de points vers programme CAO",
+  "description": "Une géométrie mesurée vers le **programme** qui la reconstruit : quelques lignes de CadQuery — esquisses, extrusions, perçages — plutôt qu'un maillage. C'est ce qui la sépare d'`image-to-mesh`, qui rend une surface figée : une pièce décrite par son programme se modifie encore, un maillage ne se modifie plus. Ce qu'elle ne fait pas : elle ne mesure rien, elle ne retrouve pas les cotes d'origine (la géométrie est ramenée dans un cube de côté 2 avant d'entrer, et le programme sort à l'échelle apprise, pas à celle de la pièce), elle ne rend ni tolérances, ni matière, ni arbre de construction nommé, et elle n'a jamais vu l'objet réel — seulement 256 points tirés de sa surface. Le champ `geometrie` accepte aussi bien un nuage qu'un maillage : d'un maillage on échantillonne la surface, ce qui rend le chaînage depuis `image-to-mesh` direct — c'est le seul chaînage du parc où une capacité reprend la sortie d'une autre pour en dire davantage. **Exécuter le programme est une décision de sécurité, et elle se prend ici.** Le code vient d'un modèle de langue : il peut appeler autre chose que CadQuery, boucler, ou remplir la mémoire (l'amont le dit lui-même de son démonstrateur — « may be unsafe and cause memory leaks »). `executer_le_code` vaut donc **faux** par défaut, et le contrat rend alors le programme seul, ce qui est déjà tout ce que la capacité promet ; l'activer produit en plus un STEP et un maillage de contrôle, dans un interpréteur séparé, sans environnement hérité et borné en durée. Ce qui est contenu est dit exactement, et ce qui ne l'est pas aussi : sur cette machine, le noyau refuse toute borne mémoire, et le réseau n'est pas coupé — le job le remonte en avertissement plutôt que de laisser croire à une barrière qui n'existe pas. Un programme qui ne s'exécute pas reste une sortie utile : le champ `erreur` dit pourquoi, et `code` est toujours là pour être relu.",
+  "input": {
+    "type": "object",
+    "required": [
+      "geometrie"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "geometrie": {
+        "type": "string",
+        "contentMediaType": "model/*",
+        "x-ui": "file",
+        "description": "Nuage de points ou maillage — .ply, .stl, .obj, .off ou .glb. D'un nuage, les points sont pris tels quels ; d'un maillage, ils sont tirés de la surface. La géométrie est ensuite centrée sur ses bornes et ramenée dans un cube de côté 2 : c'est le cadrage que ces modèles ont appris, et il efface l'échelle d'origine."
+      },
+      "n_points": {
+        "type": "integer",
+        "minimum": 64,
+        "maximum": 512,
+        "default": 256,
+        "x-ui": "slider",
+        "description": "Nombre de points soumis au modèle, choisis par échantillonnage du plus lointain. 256 est la valeur d'entraînement ; toute autre est hors distribution et dégrade le programme sans qu'aucune erreur ne le signale. C'est aussi le paramètre qui pilote le coût, chaque point occupant une position du contexte."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 42,
+        "description": "Graine de l'échantillonnage de surface, quand l'entrée est un maillage. Sans elle, deux exécutions sur le même fichier ne voient pas les mêmes points et ne rendent pas le même programme. Elle n'a aucun effet sur un nuage de points, dont rien n'est tiré au sort."
+      },
+      "max_new_tokens": {
+        "type": "integer",
+        "minimum": 128,
+        "maximum": 2048,
+        "default": 768,
+        "x-ui": "slider",
+        "description": "Longueur maximale du programme, en jetons. Mesuré sur des pièces simples : 53 à 262 jetons suffisent. Un plafond atteint est le signe d'une génération qui part en boucle, pas d'une pièce compliquée — les métriques du job le disent."
+      },
+      "executer_le_code": {
+        "type": "boolean",
+        "default": false,
+        "description": "Exécuter le programme engendré pour en tirer un STEP et un maillage de contrôle. Faux par défaut : ce code n'a été relu par personne. Activé, il part dans un interpréteur séparé, sans variables d'environnement héritées, avec un dossier de travail limité à celui du job, un délai d'horloge, une borne de temps processeur et une borne de taille de fichier. Ni le réseau ni la mémoire ne sont bornés — le noyau de cette machine refuse les limites mémoire, et le job le dit à chaque exécution. Cela ne rend donc pas l'exécution sûre : cela la rend surveillée."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": [
+      "code",
+      "execution"
+    ],
+    "properties": {
+      "code": {
+        "type": "string",
+        "contentMediaType": "text/x-python",
+        "description": "Chemin du programme CadQuery, relatif au dossier du job. Produit sans rien exécuter : c'est la seule sortie que cette capacité garantit, et c'est là qu'est sa valeur — quelques lignes qu'on relit, qu'on corrige et qu'on rejoue ailleurs."
+      },
+      "execution": {
+        "type": "string",
+        "enum": [
+          "non-demandee",
+          "ok",
+          "erreur",
+          "delai-depasse"
+        ],
+        "description": "Ce qu'il est advenu du programme. `non-demandee` est l'état normal quand `executer_le_code` est faux — ce n'est pas un échec. Un échec d'exécution est une valeur lisible et non une exception : le code reste utile même quand il ne compile pas."
+      },
+      "step": {
+        "type": "string",
+        "contentMediaType": "model/step",
+        "description": "Chemin du solide exact au format d'échange CAO, relatif au dossier du job, quand l'exécution a réussi. Aucun visualiseur du parc ne rend le STEP : il se télécharge et s'ouvre dans un modeleur. C'est le `mesh` ci-dessous qui sert à regarder."
+      },
+      "mesh": {
+        "type": "string",
+        "contentMediaType": "model/gltf-binary",
+        "description": "Chemin du maillage de contrôle tessellé depuis le solide, relatif au dossier du job, quand l'exécution a réussi. Il n'est pas la sortie de la capacité — c'est le seul moyen de voir d'un coup d'œil si le programme décrit bien la pièce soumise, ce qu'une lecture du code ne dit pas."
+      },
+      "erreur": {
+        "type": "string",
+        "description": "Ce qui a empêché le programme de s'exécuter, quand `execution` n'est pas `ok`. Le modèle annonce lui-même environ 0,4 % de code invalide sur son propre banc, hors dérive de version de CadQuery."
+      }
+    }
+  }
+}

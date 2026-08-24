@@ -47,6 +47,97 @@
       "max_faces": 5
     }
   },
+  "cad-recode@bf16": {
+    "capability": "pointcloud-to-cad",
+    "merged": {
+      "executer_le_code": false,
+      "max_new_tokens": 768,
+      "n_points": 256,
+      "seed": 42
+    },
+    "variant_defaults": {
+      "max_new_tokens": 768,
+      "n_points": 256,
+      "seed": 42
+    }
+  },
+  "chronos-2@cpu": {
+    "capability": "time-series-forecast",
+    "merged": {
+      "colonne_horodatage": "timestamp",
+      "colonne_serie": "item_id",
+      "colonne_valeur": "target",
+      "contexte": 8192,
+      "freq": "",
+      "graphique": true,
+      "horizon": 24,
+      "quantiles": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        0.9
+      ]
+    },
+    "variant_defaults": {
+      "contexte": 8192,
+      "graphique": true,
+      "horizon": 24,
+      "quantiles": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        0.9
+      ]
+    }
+  },
+  "chronos-2@mps": {
+    "capability": "time-series-forecast",
+    "merged": {
+      "colonne_horodatage": "timestamp",
+      "colonne_serie": "item_id",
+      "colonne_valeur": "target",
+      "contexte": 8192,
+      "freq": "",
+      "graphique": true,
+      "horizon": 24,
+      "quantiles": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        0.9
+      ]
+    },
+    "variant_defaults": {
+      "contexte": 8192,
+      "graphique": true,
+      "horizon": 24,
+      "quantiles": [
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        0.9
+      ]
+    }
+  },
+  "da3-large-1-1-multivue@fp32": {
+    "capability": "multiview-to-3d",
+    "merged": {
+      "conf_thresh_percentile": 40,
+      "max_points": 1000000,
+      "process_res": 504,
+      "seed": 0
+    },
+    "variant_defaults": {
+      "conf_thresh_percentile": 40,
+      "max_points": 1000000,
+      "process_res": 504,
+      "seed": 0
+    }
+  },
   "da3-large@fp32": {
     "capability": "depth-estimation",
     "merged": {
@@ -69,6 +160,28 @@
       "sample_rate": 48000,
       "segment_seconds": 15,
       "strength": 1.0
+    }
+  },
+  "dinov2@vit-base": {
+    "capability": "image-embed",
+    "merged": {
+      "max_side": 252,
+      "normalize": true
+    },
+    "variant_defaults": {
+      "max_side": 252,
+      "normalize": true
+    }
+  },
+  "dinov3@convnext-small": {
+    "capability": "image-embed",
+    "merged": {
+      "max_side": 256,
+      "normalize": true
+    },
+    "variant_defaults": {
+      "max_side": 256,
+      "normalize": true
     }
   },
   "edgeface@s-gamma-05": {
@@ -94,6 +207,17 @@
     "variant_defaults": {
       "confidence_threshold": 0.5,
       "max_faces": 10,
+      "normalize": true
+    }
+  },
+  "esm2-650m@t33-650m": {
+    "capability": "protein-embed",
+    "merged": {
+      "max_length": 1024,
+      "normalize": true
+    },
+    "variant_defaults": {
+      "max_length": 1024,
       "normalize": true
     }
   },
@@ -549,6 +673,44 @@
       "max_faces": 10
     }
   },
+  "prithvi-eo-2-300m@300m-tl": {
+    "capability": "geo-embed",
+    "merged": {
+      "band_indices": [
+        1,
+        2,
+        3,
+        8,
+        11,
+        12
+      ],
+      "normalize": true,
+      "tile_size": 512
+    },
+    "variant_defaults": {
+      "normalize": true,
+      "tile_size": 512
+    }
+  },
+  "prithvi-sen1floods11@300m-tl": {
+    "capability": "geo-segment",
+    "merged": {
+      "band_indices": [
+        1,
+        2,
+        3,
+        8,
+        11,
+        12
+      ],
+      "overlap": 0,
+      "tile_size": 576
+    },
+    "variant_defaults": {
+      "overlap": 0,
+      "tile_size": 576
+    }
+  },
   "qwen2-audio-7b@4bit": {
     "capability": "audio-to-text",
     "merged": {
@@ -599,6 +761,32 @@
     "variant_defaults": {
       "preserve_formatting": true,
       "register": "neutre"
+    }
+  },
+  "qwen3-forced-aligner@8bit": {
+    "capability": "audio-align",
+    "merged": {
+      "language": "french",
+      "max_seconds": 300,
+      "subtitle_format": "none"
+    },
+    "variant_defaults": {
+      "language": "french",
+      "max_seconds": 300,
+      "subtitle_format": "none"
+    }
+  },
+  "qwen3-forced-aligner@bf16": {
+    "capability": "audio-align",
+    "merged": {
+      "language": "french",
+      "max_seconds": 300,
+      "subtitle_format": "none"
+    },
+    "variant_defaults": {
+      "language": "french",
+      "max_seconds": 300,
+      "subtitle_format": "none"
     }
   },
   "qwen3-tts-1.7b@8bit-mlx": {
@@ -995,6 +1183,17 @@
     "variant_defaults": {
       "max_side": 2048,
       "scale": 2
+    }
+  },
+  "smolvla-libero@bf16": {
+    "capability": "robot-action",
+    "merged": {
+      "seed": 0,
+      "steps": 10
+    },
+    "variant_defaults": {
+      "seed": 0,
+      "steps": 10
     }
   },
   "swin2sr@classique-x2": {

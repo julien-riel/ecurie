@@ -1,0 +1,147 @@
+# Quand chaque mot est prononcé — Qwen3-ForcedAligner, portage MLX.
+#
+# CE QUI A DÉCIDÉ, dans l'ordre où les candidats sont tombés.
+#
+# L'état de l'art de l'alignement forcé multilingue est `MMS-300m-1130-forced-
+# aligner`, et il est en cc-by-nc-4.0 — vérifié à l'API sur le dépôt ET sur son
+# socle `facebook/mms-300m`, les deux étant non commerciaux. `torchaudio.pipelines
+# .MMS_FA` sert les mêmes poids sous la même réserve. Le score de veille écarte
+# `restricted` d'office quand un apache-2.0 existe : celui-ci existe.
+#
+# WhisperX aligne, mais après avoir re-transcrit — ce n'est pas le contrat, qui
+# est d'aligner le texte qu'on donne, et il tire torch, ctranslate2 et
+# pyannote-audio dans un environnement neuf. Montreal Forced Aligner est en MIT,
+# mais ses liaisons Kaldi ne sont pas sur PyPI (`kalpy` ne figure pas dans son
+# `requires_dist`) et il demande un dictionnaire de prononciation par langue.
+#
+# Restait le dépôt amont `Qwen/Qwen3-ForcedAligner-0.6B` et ses portages. Celui
+# retenu est le portage MLX 8 bits, pour une raison qui n'est pas la qualité mais
+# le coût d'intégration : le code d'inférence est **déjà livré** par la
+# distribution mlx-audio (`stt/models/qwen3_asr/qwen3_forced_aligner.py`, listé
+# dans le RECORD de la roue), l'environnement `mlx-audio` existe, porte huit
+# capacités déjà profilées, et n'a PAS UNE dépendance à ajouter pour celle-ci.
+# Le chemin transformers/torch de `Qwen/Qwen3-ForcedAligner-0.6B-hf` demanderait
+# un env de plus pour refaire ce que MLX fait déjà.
+#
+# UN PIÈGE À NE PAS DÉPINGLER SANS RELIRE. `config.json` annonce `model_type:
+# qwen3_asr` à la racine, et c'est bien le module ASR que `MODEL_REMAPPING` de
+# mlx-audio désigne. Ce n'est pas une erreur : `qwen3_asr.Model` est une classe
+# d'aiguillage qui lit `thinker_config.model_type == qwen3_forced_aligner` et
+# instancie l'aligneur. Aucune version ne garantit cette indirection, et le
+# chargement se fait avec `strict=False` : si l'amont la retire, `load_model`
+# rendrait un modèle ASR sur des poids d'aligneur, en silence. La parité des
+# clés a été vérifiée sur CETTE révision — 1104 chemins de paramètres contre
+# 1104 clés au fichier, différence symétrique vide, aucun écart de forme — et
+# l'adaptateur refuse de servir un objet qui n'expose pas la surface d'un
+# aligneur. Refaire ce diff avant de changer la révision.
+#
+# `post_load_hook` appelle `AutoTokenizer.from_pretrained(trust_remote_code=True)`.
+# Le dépôt 8 bits ne contient aucun fichier `.py` — siblings vérifiés à l'API —
+# donc rien ne s'exécute, mais cette innocuité tient entièrement à la révision
+# épinglée. C'est un second argument pour relire l'arbre du dépôt avant de la
+# changer.
+id: qwen3-forced-aligner
+name: Qwen3-ForcedAligner 0.6B (portage MLX)
+capability: audio-align
+family: qwen3
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Premier modèle de la capacité, donc aucune comparaison A/B possible pour
+  l'instant : le second variant déclaré ici — le bf16 du même portage — est ce
+  qui permettra de chiffrer ce que la quantification 8 bits coûte en précision
+  d'horodatage. Il n'est pas téléchargé.
+
+  Le plafond de 300 s du contrat vient de la carte Qwen (« timestamp prediction
+  for arbitrary units within up to 5 minutes of speech »). Le plafond DUR, lui,
+  est d'architecture et se calcule : `classify_num` 5000 × `timestamp_segment_time`
+  80 ms = 400,0 s exactement, au-delà de quoi le réseau ne peut littéralement pas
+  émettre la valeur. `max_position_embeddings` vaut 8192, ce qui laisse 2144 mots
+  à 300 s : non contraignant.
+
+links:
+  homepage: https://huggingface.co/Qwen/Qwen3-ForcedAligner-0.6B
+  code: https://github.com/Blaizzy/mlx-audio
+
+variants:
+  - id: 8bit
+    quantization: 8bit
+    tier: hot
+    runtime: mlx-audio
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3-ForcedAligner-0.6B-8bit
+      revision: "0e1a68e91d815300c7c9754b2a7639378b23db15"   # 2026-08-24
+      # `merges.txt` est nommé à part : `*.json` prend vocab.json, mais le
+      # tokenizer BPE ne se construit pas sans la table de fusions, et le dépôt
+      # ne publie pas de `tokenizer.json` qui la porterait. Aucun `*.py` : le
+      # code d'inférence vient de mlx-audio, pas des poids.
+      allow_patterns: ["*.json", "*.safetensors", "merges.txt"]
+    defaults:
+      language: french
+      max_seconds: 300
+      subtitle_format: none
+    caveats:
+      - "LA RÉPÉTITION LITTÉRALE FAIT DÉCROCHER L'ALIGNEUR, et c'est la limite à connaître avant toutes les autres. MESURÉ sur `assets/parole-tts.wav`, dont le texte répète une phrase mot pour mot : les huit premiers mots sont placés à 10,56 s sur un fichier où la parole commence à 1,28 s, et les onze derniers sont tassés sur 19,84 s. Un procès-verbal, une litanie ou un refrain rencontreront ce cas. `span_seconds` est la sonde qui le rend visible."
+      - "Le texte fourni fait loi, y compris quand il est faux : rien dans la sortie ne dit qu'il divergeait de l'enregistrement. Cette capacité ne vérifie pas ce qu'on lui donne, et ne le peut pas."
+      - "Un signe isolé du texte source — « ; », « — », « % », « : » entre deux espaces — n'a aucune unité à lui et disparaît des sorties : le modèle ne lui donne pas d'horodatage. MESURÉ sur la charge type, où « tiendrait ; elle » ressort en « tiendrait elle » dans les sous-titres. La liste des mots, elle, reste exacte : c'est un jeton sans instant, pas un mot perdu."
+      - "Une phrase plus longue que deux lignes de sous-titre se coupe en son milieu, et la fin de phrase ne rattrape pas la coupure : la charge type produit une réplique « erreur. » de 0,48 s. Un sous-titre est un regroupement, donc une interprétation ; `subtitle_format: none` reste le défaut et la liste des mots la sortie exacte."
+      - "Japonais et coréen REFUSÉS dans cet environnement : leur découpage en mots passe par `nagisa` et `soynlp`, qui n'y sont pas installés. Les neuf autres langues annoncées passent sans rien ajouter, le cantonais et le chinois compris."
+      - "Les noms de langue sont des NOMS anglais en minuscules — `french`, `chinese` —, pas des codes ISO. Un `fr` retomberait sans erreur sur le découpage par espaces ; le worker signale toute valeur hors de la liste annoncée."
+      - "Le coût cesse d'être linéaire au-delà d'une minute, à cause d'une boucle Python : `__call__` insère les traits audio un par un par un `for` suivi d'un `mx.stack`. MESURÉ hors charge type, sur la même parole répétée jusqu'à 300 s — un cas dégénéré pour l'alignement, mais pas pour le coût : 60 s → 428 ms / 2,521 Gio ; 120 s → 849 ms / 2,739 Gio ; 180 s → 1 415 ms / 3,261 Gio ; 300 s → 2 880 ms / 4,071 Gio. Le facteur temps réel remonte de 0,0071 à 0,0096 sur cet intervalle."
+      - "Neuvième locataire de l'environnement `mlx-audio`. Les modèles tiennent largement ensemble sous le budget ; c'est la bibliothèque partagée, pas la mémoire, qui est le point commun fragile."
+    # Copie committée du relevé qui fait autorité :
+    # registry/measurements/qwen3-forced-aligner@8bit/mac17-4-24-gio.json.
+    #
+    # La pente est ajustée sur [3,6 ; 32,0] s, et elle EXTRAPOLE au-delà : à
+    # 300 s elle annonce 6,05 Go quand la mesure directe en donne 4,37 (voir le
+    # caveat sur la boucle Python), parce que le coût cesse d'être linéaire passé
+    # la minute. L'écart est de 38 %, et il va dans la direction prudente : le
+    # contrôle d'admission réserve trop plutôt que trop peu, et `expected_peak`
+    # signale de lui-même qu'on est hors intervalle mesuré.
+    #
+    # Élargir la charge type jusqu'à 300 s corrigerait l'écart, et n'a pas été
+    # fait : il faudrait un enregistrement de cinq minutes versionné dans le
+    # dépôt pour gagner 1,7 Go de réservation sur un budget de 17,76 Gio.
+    #
+    # Trois mesures successives ont donné 2,457 / 2,457 / 2,393 Go et un R² de
+    # 0,9999 deux fois sur trois : le relevé bas est tombé pendant qu'un autre
+    # job occupait la machine. La dispersion du pic MLX est donc de l'ordre de
+    # 3 %, ce qui vaut d'être su avant de conclure d'un écart entre deux variants.
+    profile:
+      disk_bytes: 1276473392
+      peak_unified_memory_bytes: 2457226300
+      peak_scaling:
+        parameter: "max_seconds"
+        base_bytes: 2027528907
+        bytes_per_unit: 13396164.0
+        measured_range: [3.6, 32.0]
+        r_squared: 0.9999
+      warmup_ms: 619
+      latency_ms_p50: 291
+      rtf: 0.0075
+      throughput: "1 sortie / 0.3 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"
+
+  - id: bf16
+    quantization: bf16
+    tier: absent
+    runtime: mlx-audio
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3-ForcedAligner-0.6B-bf16
+      revision: "53c8c0e46733eec430e4b53dd6471d0e5dee45f8"   # 2026-08-24
+      allow_patterns: ["*.json", "*.safetensors", "merges.txt"]
+    defaults:
+      language: french
+      max_seconds: 300
+      subtitle_format: none
+    caveats:
+      - "NON TÉLÉCHARGÉ, DONC NON MESURÉ. 1 840 060 363 octets sous ces `allow_patterns`, recalculés blob par blob à l'API. Il n'a pas de bloc `profile:` et n'en aura pas avant d'être passé au banc."
+      - "Sa raison d'être est la comparaison : chiffrer ce que le 8 bits coûte en précision d'horodatage. Cette question n'a de sens que parce que le 8 bits a une qualité mesurée à laquelle la comparer."
+      - "Les mêmes réserves que le 8 bits s'appliquent : répétition littérale, langues sans découpeur, noms de langue anglais."

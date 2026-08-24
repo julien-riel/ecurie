@@ -1,0 +1,123 @@
+{
+  "ref": "prithvi-eo-2-300m@300m-tl",
+  "model": "prithvi-eo-2-300m",
+  "variant": "300m-tl",
+  "capability": "geo-embed",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / rasterio 1.5.1 / terratorch 1.2.11 / torch 2.13.0 / torchgeo 0.9.0",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/geo-embed.json",
+    "version": 1,
+    "cases": [
+      "tuile-192",
+      "tuile-384",
+      "tuile-768"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 1326661492,
+    "peak_unified_memory_bytes": 3282206720,
+    "peak_scaling": {
+      "parameter": "tile_size",
+      "base_bytes": 3282206720,
+      "bytes_per_unit": 0.0,
+      "measured_range": [
+        192.0,
+        768.0
+      ],
+      "r_squared": 1.0
+    },
+    "warmup_ms": 4744,
+    "latency_ms_p50": 656,
+    "throughput": "1 sortie / 0.7 s"
+  },
+  "cases": [
+    {
+      "id": "tuile-192",
+      "ok": true,
+      "duration_ms": 819,
+      "metrics": {
+        "duration_ms": 819,
+        "pooling": "mean",
+        "tiles": 16,
+        "tile_size": 192,
+        "width": 768,
+        "height": 768,
+        "band_indices": [
+          1,
+          2,
+          3,
+          8,
+          11,
+          12
+        ],
+        "dimensions": 1024,
+        "scene_vector_norm": 1.0,
+        "mps_current_allocated_bytes": 1218761216,
+        "mps_driver_allocated_bytes": 2209021952,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 3282206720
+      },
+      "error": null
+    },
+    {
+      "id": "tuile-384",
+      "ok": true,
+      "duration_ms": 576,
+      "metrics": {
+        "duration_ms": 576,
+        "pooling": "mean",
+        "tiles": 4,
+        "tile_size": 384,
+        "width": 768,
+        "height": 768,
+        "band_indices": [
+          1,
+          2,
+          3,
+          8,
+          11,
+          12
+        ],
+        "dimensions": 1024,
+        "scene_vector_norm": 1.0,
+        "mps_current_allocated_bytes": 1218761216,
+        "mps_driver_allocated_bytes": 2213216256,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 3282206720
+      },
+      "error": null
+    },
+    {
+      "id": "tuile-768",
+      "ok": true,
+      "duration_ms": 656,
+      "metrics": {
+        "duration_ms": 656,
+        "pooling": "mean",
+        "tiles": 1,
+        "tile_size": 768,
+        "width": 768,
+        "height": 768,
+        "band_indices": [
+          1,
+          2,
+          3,
+          8,
+          11,
+          12
+        ],
+        "dimensions": 1024,
+        "scene_vector_norm": 1.0,
+        "mps_current_allocated_bytes": 1218761216,
+        "mps_driver_allocated_bytes": 2223702016,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 3282206720
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

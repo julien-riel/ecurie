@@ -24,10 +24,10 @@ from ecurie_store.db import StateDB
 from ecurie_store.figures import fmt_bytes
 from ecurie_store.pull import (
     PullError,
-    plan_pull,
+    plan_pulls,
     resolve_revision,
     revision_patch,
-    run_pull,
+    run_pulls,
 )
 from rich.console import Console
 from rich.table import Table
@@ -625,22 +625,29 @@ def pull_command(
         return
 
     try:
-        plan = plan_pull(config, variant, ref=résolu)
+        plans = plan_pulls(config, variant, ref=résolu)
     except PullError as exc:
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1) from exc
 
-    table = Table(title=f"{résolu} — {plan.repo}@{plan.revision[:12]}", pad_edge=False,
-                  show_header=False)
-    table.add_column(style="bold")
-    table.add_column(justify="right")
-    table.add_row("Poids du variant", fmt_bytes(plan.selected_bytes))
-    if plan.excluded_bytes:
-        table.add_row("Écarté par allow_patterns", fmt_bytes(plan.excluded_bytes))
-    table.add_row("Déjà sur le disque", fmt_bytes(plan.presence.bytes_on_disk))
-    table.add_row("Reste à télécharger", fmt_bytes(plan.download_bytes))
-    console.print(table)
-    console.print(plan.guard.message)
+    for plan in plans:
+        # Le rôle est ce qui distingue les lignes quand un variant tire plusieurs
+        # dépôts : sans lui, deux tableaux se suivraient sans qu'on sache
+        # pourquoi il y en a deux.
+        titre = f"{résolu} — {plan.repo}@{plan.revision[:12]}"
+        if plan.role:
+            titre += f"  [{plan.role}]"
+        table = Table(title=titre, pad_edge=False, show_header=False)
+        table.add_column(style="bold")
+        table.add_column(justify="right")
+        table.add_row("Poids du variant" if not plan.role else f"Dépôt « {plan.role} »",
+                      fmt_bytes(plan.selected_bytes))
+        if plan.excluded_bytes:
+            table.add_row("Écarté par allow_patterns", fmt_bytes(plan.excluded_bytes))
+        table.add_row("Déjà sur le disque", fmt_bytes(plan.presence.bytes_on_disk))
+        table.add_row("Reste à télécharger", fmt_bytes(plan.download_bytes))
+        console.print(table)
+        console.print(plan.guard.message)
 
     if dry_run:
         console.print("[yellow]à blanc — rien n'a été téléchargé[/yellow]")
@@ -648,11 +655,11 @@ def pull_command(
 
     try:
         with console.status(f"téléchargement de {résolu}…"):
-            résultat = run_pull(
+            résultats = run_pulls(
                 config,
                 variant,
                 ref=résolu,
-                plan=plan,
+                plans=plans,
                 force=force,
                 ignore_disk_guard=ignore_disk_guard,
             )
@@ -660,10 +667,12 @@ def pull_command(
         console.print(f"[red]{exc}[/red]")
         raise typer.Exit(code=1) from exc
 
-    console.print(résultat.note)
-    if résultat.downloaded:
+    for résultat in résultats:
+        console.print(résultat.note)
+    écrits = sum(r.bytes_downloaded for r in résultats)
+    if any(r.downloaded for r in résultats):
         console.print(
-            f"{fmt_bytes(résultat.bytes_downloaded)} écrits — {résultat.path}\n"
+            f"{fmt_bytes(écrits)} écrits — {résultats[0].path}\n"
             f"Mesurer le profil : [bold]ecurie bench {résolu}[/bold]"
         )
 

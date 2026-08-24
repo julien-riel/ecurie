@@ -1,0 +1,44 @@
+{
+  "capability": "geo-segment",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Une seule scène satellite, trois tailles de tuile : `tile_size` est le seul paramètre qui pilote le coût, et il le pilote au carré — c'est la surface soumise au réseau à chaque passage. Les trois valeurs sont les seuls multiples de 192 utiles sur une scène de 768 pixels, et le multiple de 192 n'est pas un choix : le module pyramidal du décodeur agrège vers une grille de 6 × 6 sur une carte réduite d'un facteur 64, et Metal refuse une division non entière — 512, la taille native des chips que le dépôt d'amont publie en exemple, échoue. À 384 la scène fait quatre tuiles jointives, à 576 quatre tuiles qui se recouvrent, à 768 une seule : le tuilage et le recollement sont donc éprouvés en même temps que le coût, et les trois cas doivent rendre la même couverture. La scène est calculée — quatre signatures spectrales, des parcelles, un cours d'eau et un lobe de crue analytiques — donc sans licence ni provenance à suivre, et sa fraction d'eau est connue par géométrie avant tout passage du modèle : 0,3277. Les chips Sen1Floods11 du dépôt d'amont ne sont délibérément pas employés ; le projet qui les publie n'a aucun fichier de licence. Les cas ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "scaling_parameter": "tile_size",
+  "cases": [
+    {
+      "id": "tuile-384",
+      "input": {
+        "raster": "assets/geo-scene-crue-768.tif",
+        "band_indices": [1, 2, 3, 8, 11, 12],
+        "tile_size": 384,
+        "overlap": 0
+      },
+      "source": {
+        "recipe": "geo",
+        "outil": "uv run --project runtimes/terratorch python tools/bench_assets.py geo",
+        "cote": 768,
+        "bandes": 13,
+        "graine": 20260824,
+        "fraction_eau_geometrique": 0.3277,
+        "sha256": "b31dad48e262501ba511622394eafa3bd007a2bf4ed0592a6c517519736a47ad"
+      }
+    },
+    {
+      "id": "tuile-576",
+      "input": {
+        "raster": "assets/geo-scene-crue-768.tif",
+        "band_indices": [1, 2, 3, 8, 11, 12],
+        "tile_size": 576,
+        "overlap": 0
+      }
+    },
+    {
+      "id": "tuile-768",
+      "input": {
+        "raster": "assets/geo-scene-crue-768.tif",
+        "band_indices": [1, 2, 3, 8, 11, 12],
+        "tile_size": 768,
+        "overlap": 0
+      }
+    }
+  ]
+}

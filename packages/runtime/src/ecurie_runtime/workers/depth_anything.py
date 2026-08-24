@@ -78,6 +78,7 @@ class DepthAnythingWorker(Worker):
         self._device = "cpu"
         self._defaults: dict[str, Any] = {}
         self._options: dict[str, Any] = {}
+        self._peak_driver: int = 0
 
     def load(self, variant: dict[str, Any]) -> dict[str, Any]:
         chemin = Path(str(variant.get("weights_path") or ""))
@@ -137,6 +138,10 @@ class DepthAnythingWorker(Worker):
                 f"estimation impossible : {type(exc).__name__}: {exc}"
             ) from exc
         calcul = time.monotonic() - début
+        # Relevé **ici**, et non seulement à la fin : c'est le seul moment où les
+        # tampons du réseau sont encore alloués. Les post-traitements qui suivent
+        # rendent la mémoire, et le pilote redescend avant qu'on ait rien lu.
+        self._mps_counters()
 
         profondeur = np.asarray(prédiction.depth)[0]
         près, loin = float(profondeur.min()), float(profondeur.max())
@@ -186,7 +191,41 @@ class DepthAnythingWorker(Worker):
             self._torch.mps.empty_cache()
 
     def peak_memory_bytes(self) -> int | None:
-        return peak_rss_bytes()
+        """Le pic vu du pilote Metal, et non le RSS du processus.
+
+        **Corrigé le 24 août 2026, et le profil committé avant cette date était
+        faux d'un facteur 3,4.** Ce worker tourne sur MPS, et `ru_maxrss`
+        n'impute pas les tampons Metal au processus : mesuré sur une
+        reconstruction à trente-deux vues, le RSS restait figé à 3,75 Go pendant
+        que le pilote en réservait 12,78. `diffusers_mps.py` documente ce piège
+        depuis le v0.3 — celui-ci est tombé dedans quand même, et cela se lisait
+        dans son profil : une pente de pic nulle avec un R² de 1,0, c'est-à-dire
+        une consommation qui ne bouge pas quand l'entrée triple.
+
+        Le chiffre du contrôle d'admission en dépend, donc le sous-déclarer est
+        exactement l'OOM que tout ceci existe pour empêcher.
+        """
+        self._mps_counters()
+        return max(self._peak_driver, peak_rss_bytes() or 0) or None
+
+    def _mps_counters(self) -> dict[str, int]:
+        """Relevé instantané, qui nourrit au passage le maximum retenu.
+
+        `driver_allocated_memory()` redescend aussi vite qu'il monte : le
+        maximum se tient à chaque relevé, il ne se lit pas une fois à la fin.
+        """
+        mps = getattr(self._torch, "mps", None) if self._torch is not None else None
+        if mps is None:
+            return {}
+        try:
+            compteurs = {
+                "mps_current_allocated_bytes": int(mps.current_allocated_memory()),
+                "mps_driver_allocated_bytes": int(mps.driver_allocated_memory()),
+            }
+        except (AttributeError, RuntimeError):
+            return {}
+        self._peak_driver = max(self._peak_driver, compteurs["mps_driver_allocated_bytes"])
+        return compteurs
 
     # --- détails -------------------------------------------------------------
 

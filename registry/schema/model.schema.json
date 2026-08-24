@@ -27,7 +27,11 @@
         "image-inpaint", "image-detect", "image-segment",
         "audio-to-text", "speaker-diarization", "voice-clone",
         "face-detect", "face-landmark", "face-parse",
-        "face-embed", "face-headpose", "face-gaze"
+        "face-embed", "face-headpose", "face-gaze",
+        "time-series-forecast", "pointcloud-to-cad",
+        "geo-segment", "geo-embed", "multiview-to-3d",
+        "robot-action", "protein-embed",
+        "image-embed", "audio-align"
       ]
     },
     "family": { "type": "string" },
@@ -68,6 +72,28 @@
     }
   },
   "$defs": {
+    "source": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string", "enum": ["huggingface", "ollama", "url", "local"] },
+        "repo": { "type": "string" },
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,40}$",
+          "description": "Toujours un SHA de commit. 'main' est refusé en CI : une révision flottante rend le profil mesuré caduc sans préavis."
+        },
+        "allow_patterns": { "type": "array", "items": { "type": "string" } },
+        "url": { "type": "string", "format": "uri" },
+        "path": { "type": "string" },
+        "role": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Pour une source d'extra_sources : ce que ce dépôt apporte — tokenizer, vision_encoder. C'est la clé sous laquelle le worker retrouve son chemin dans extra_paths. Sans rôle, il recevrait deux chemins sans savoir lequel est lequel."
+        }
+      }
+    },
     "variant": {
       "type": "object",
       "required": ["id", "source", "runtime"],
@@ -88,26 +114,18 @@
           "description": "hot = disque interne. cold = volume externe, lien symbolique en place. absent = non téléchargé."
         },
         "source": {
-          "type": "object",
-          "required": ["kind"],
-          "additionalProperties": false,
-          "properties": {
-            "kind": { "type": "string", "enum": ["huggingface", "ollama", "url", "local"] },
-            "repo": { "type": "string" },
-            "revision": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{7,40}$",
-              "description": "Toujours un SHA de commit. 'main' est refusé en CI : une révision flottante rend le profil mesuré caduc sans préavis."
-            },
-            "allow_patterns": { "type": "array", "items": { "type": "string" } },
-            "url": { "type": "string", "format": "uri" },
-            "path": { "type": "string" }
-          }
+          "$ref": "#/$defs/source",
+          "description": "Le dépôt des poids. Un variant qui a besoin de plus d'un dépôt déclare les autres dans extra_sources."
+        },
+        "extra_sources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/source" },
+          "description": "Dépôts supplémentaires que le variant ne peut pas servir sans — un tokenizer publié à part, un encodeur visuel dans un autre dépôt. Chacun porte un `role`, sous lequel le worker retrouvera son chemin dans extra_paths. `ecurie pull` les télécharge tous ; la comptabilité disque les rattache tous au même variant. La licence déclarée reste celle du modèle : quand les dépôts divergent, c'est aux caveats de le dire."
         },
         "runtime": {
           "type": "string",
           "description": "Adaptateur responsable. Doit exister dans packages/runtime/adapters/.",
-          "enum": ["mlx-lm", "mlx-audio", "mlx-vlm", "diffusers-mps", "torch-vision", "depth-anything", "mflux", "rtmlib", "uniface", "comfy", "ollama", "llama-cpp", "custom"]
+          "enum": ["mlx-lm", "mlx-audio", "mlx-vlm", "diffusers-mps", "torch-vision", "depth-anything", "mflux", "rtmlib", "uniface", "chronos", "terratorch", "esm-torch", "cad-recode", "lerobot", "comfy", "ollama", "llama-cpp", "custom"]
         },
         "runtime_env": {
           "type": "string",

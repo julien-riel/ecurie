@@ -1,0 +1,91 @@
+{
+  "ref": "qwen3-forced-aligner@8bit",
+  "model": "qwen3-forced-aligner",
+  "variant": "8bit",
+  "capability": "audio-align",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/audio-align.json",
+    "version": 1,
+    "cases": [
+      "une-phrase-4s",
+      "trois-phrases-18s",
+      "six-phrases-32s"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 1276473392,
+    "peak_unified_memory_bytes": 2457226300,
+    "peak_scaling": {
+      "parameter": "max_seconds",
+      "base_bytes": 2027528907,
+      "bytes_per_unit": 13396164.0,
+      "measured_range": [
+        3.6,
+        32.0
+      ],
+      "r_squared": 0.9999
+    },
+    "warmup_ms": 619,
+    "latency_ms_p50": 291,
+    "rtf": 0.0075,
+    "throughput": "1 sortie / 0.3 s"
+  },
+  "cases": [
+    {
+      "id": "une-phrase-4s",
+      "ok": true,
+      "duration_ms": 445,
+      "metrics": {
+        "duration_ms": 445,
+        "units": 10,
+        "span_seconds": 3.28,
+        "rtf": 0.02197,
+        "infer_ms": 79,
+        "avertissements": [
+          "enregistrement tronqué à 3.6 s sur 32.3 s : tout mot du texte prononcé après cette borne n'a plus d'audio où se poser."
+        ],
+        "peak_memory_bytes": 2076819276
+      },
+      "error": null
+    },
+    {
+      "id": "trois-phrases-18s",
+      "ok": true,
+      "duration_ms": 192,
+      "metrics": {
+        "duration_ms": 192,
+        "units": 41,
+        "span_seconds": 17.28,
+        "rtf": 0.0075,
+        "infer_ms": 131,
+        "avertissements": [
+          "enregistrement tronqué à 17.5 s sur 32.3 s : tout mot du texte prononcé après cette borne n'a plus d'audio où se poser."
+        ],
+        "peak_memory_bytes": 2259877456
+      },
+      "error": null
+    },
+    {
+      "id": "six-phrases-32s",
+      "ok": true,
+      "duration_ms": 291,
+      "metrics": {
+        "duration_ms": 291,
+        "units": 76,
+        "span_seconds": 31.76,
+        "rtf": 0.007,
+        "infer_ms": 224,
+        "avertissements": [
+          "enregistrement tronqué à 32 s sur 32.3 s : tout mot du texte prononcé après cette borne n'a plus d'audio où se poser."
+        ],
+        "peak_memory_bytes": 2457226300
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

@@ -56,7 +56,7 @@ from typing import Any
 from ecurie_core.config import Config, ecurie_home, resolve_heavy_threshold
 from ecurie_core.models import Model, Variant
 from ecurie_core.registry import Registry
-from ecurie_store.weights import WeightsLocation, resolve_weights
+from ecurie_store.weights import WeightsLocation, resolve_extra_weights, resolve_weights
 
 from ecurie_runtime.admission import Admission, Policy, plan_admission
 from ecurie_runtime.budget import Budget, detect_budget
@@ -158,12 +158,21 @@ def document_fingerprint(document: dict[str, Any]) -> str:
     ).hexdigest()[:16]
 
 
-def variant_document(model: Model, variant: Variant, weights: WeightsLocation) -> dict[str, Any]:
+def variant_document(
+    model: Model,
+    variant: Variant,
+    weights: WeightsLocation,
+    extra_paths: dict[str, Path] | None = None,
+) -> dict[str, Any]:
     """Le manifeste résolu transmis au worker : tout ce qu'il lui faut, et rien de plus.
 
     Le worker ne lit pas le registre, ne connaît pas le cache, ne choisit pas sa
     révision. Il reçoit un chemin local déjà vérifié — c'est ce qui garantit que
     la révision exécutée est celle qui sera écrite au manifeste du job.
+
+    `extra_paths` porte les dépôts secondaires, par rôle. Il est toujours présent,
+    vide pour l'immense majorité des variants : un adaptateur qui en a besoin le
+    lit sans avoir à tester si la clé existe.
     """
     return {
         "ref": f"{model.id}@{variant.id}",
@@ -173,6 +182,7 @@ def variant_document(model: Model, variant: Variant, weights: WeightsLocation) -
         "runtime": variant.runtime,
         "quantization": variant.quantization,
         "weights_path": str(weights.path),
+        "extra_paths": {rôle: str(chemin) for rôle, chemin in (extra_paths or {}).items()},
         "repo": variant.source.repo,
         "revision": variant.source.revision,
         "defaults": variant.defaults or {},
@@ -508,8 +518,9 @@ class Supervisor:
         """
         ref = f"{model.id}@{variant.id}"
         weights = resolve_weights(self.config, variant, ref=ref)
+        extra = resolve_extra_weights(self.config, variant, ref=ref)
         spec = self._spec_factory(self.repo_root, variant, ref, model.capability)
-        document = variant_document(model, variant, weights)
+        document = variant_document(model, variant, weights, extra)
 
         if measure:
             # Le banc d'essai ne prend pas de tour : il ne réutilise jamais un

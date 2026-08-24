@@ -1,0 +1,46 @@
+{
+  "capability": "robot-action",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Une seule vue calculée, un seul état, et trois cas qui séparent ce que le banc peut vraiment mesurer d'une capacité dont personne ici n'exécute la sortie. `pas-2` et `pas-10` opposent deux valeurs du seul paramètre qui pilote le coût ; `consigne-autre` reprend exactement les réglages de `pas-10` en ne changeant que la consigne. Si ces deux-là rendaient la même empreinte `action_sha256`, le canal de langue serait mort et le modèle n'écouterait pas — c'est le seul contrôle sémantique faisable sans robot, et il ne coûte qu'un troisième passage. Mesuré sur le titulaire, il discrimine largement : écart maximal de 1,73 entre les deux consignes, écart moyen de 0,086 sur des composantes dont l'écart-type d'entraînement va de 0,034 à 0,44. Rejouer la charge doit rendre les trois mêmes empreintes, ce qui vérifie la reproductibilité par la même colonne : deux des quatre contrôles possibles sans robot tiennent dans un seul champ de métrique. **Ce que cette charge ne montre pas, et c'est mesuré :** ses durées ne donnent pas la pente du coût. Le premier cas exécuté paie une allocation unique — relevé, 310 ms pour `pas-2` qui passe en premier contre 186 ms pour `pas-10` —, ce qui inverse l'ordre attendu et masque les 74 ms d'écart réels. La pente en `steps` se lit sur un worker déjà chaud, hors banc, et elle est nette : 111 ms à 1 pas, 122 à 2, 149 à 5, 198 à 10, 290 à 20. L'ordre des cas est néanmoins délibéré : le pic retenu par le banc est un maximum courant, qui ne peut que croître d'un cas au suivant, et placer la plus petite valeur du paramètre en tête évite qu'une dérive du RSS ne se lise comme une pente qu'elle n'est pas. Il n'y a d'ailleurs aucune pente de pic : le pilote Metal rend le même nombre à l'octet de 1 à 20 pas, et le profil l'inscrit comme tel. Une seule caméra dans les trois cas, alors que le titulaire en déclare trois : le nombre de vues est l'autre levier de coût — 208 ms à une caméra, 306 à deux, 387 à trois — et le faire varier en même temps que `steps` rendrait les deux illisibles. L'état est la médiane publiée des états d'entraînement, arrondie à quatre décimales : un vecteur de zéros aurait été hors distribution sur sa quatrième composante, que les statistiques placent autour de 2,96 radians, et le banc aurait mesuré le coût d'une pose que le modèle n'a jamais vue. La scène est calculée par lancer de rayons, donc sans licence ni provenance à suivre, et contient les deux objets que les deux consignes désignent. Les cas ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "scaling_parameter": "steps",
+  "cases": [
+    {
+      "id": "pas-2",
+      "input": {
+        "image": "assets/atelier-table-512.png",
+        "instruction": "pick up the red cube",
+        "state": [-0.0434, 0.0188, 0.7684, 2.9633, -0.2376, -0.1354, 0.0264, -0.0273],
+        "steps": 2,
+        "seed": 0
+      },
+      "source": {
+        "recipe": "atelier_robot",
+        "outil": "uv run --project runtimes/lerobot python tools/bench_assets.py atelier_robot",
+        "cote": 512,
+        "sha256": "652dd4b555c4759e88e5060efa9ca7607e1adbfeca6cf098140475062995b145",
+        "etat": "observation.state.q50 du checkpoint, arrondi à quatre décimales",
+        "objets": ["cube rouge à gauche", "balle bleue à droite"]
+      }
+    },
+    {
+      "id": "pas-10",
+      "input": {
+        "image": "assets/atelier-table-512.png",
+        "instruction": "pick up the red cube",
+        "state": [-0.0434, 0.0188, 0.7684, 2.9633, -0.2376, -0.1354, 0.0264, -0.0273],
+        "steps": 10,
+        "seed": 0
+      }
+    },
+    {
+      "id": "consigne-autre",
+      "input": {
+        "image": "assets/atelier-table-512.png",
+        "instruction": "push the blue ball to the left",
+        "state": [-0.0434, 0.0188, 0.7684, 2.9633, -0.2376, -0.1354, 0.0264, -0.0273],
+        "steps": 10,
+        "seed": 0
+      }
+    }
+  ]
+}

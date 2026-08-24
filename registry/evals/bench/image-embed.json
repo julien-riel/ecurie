@@ -1,0 +1,42 @@
+{
+  "capability": "image-embed",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Une seule scène, trois définitions soumises au réseau : `max_side` est le seul paramètre qui pilote le coût d'une empreinte visuelle. Il ne le pilote pas au carré, contrairement au détourage — mesuré sur ConvNeXt-S, le pic fait une marche entre 256 et 512 puis un plateau jusqu'à 1024, l'allocateur Metal gardant son tas. Les trois points sont là pour que le banc le constate et jette la pente lui-même plutôt que de committer une droite qui mentirait. `compare_to` n'est pas exercé ici, pour la raison de `face-embed` : une seconde image doublerait le passage dans le réseau et mêlerait deux coûts dans une même mesure. La scène est calculée, pas photographiée, et sa recette est celle du cas `bref-128` d'`image-to-text` — le même fichier sert les deux charges. Les cas ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "scaling_parameter": "max_side",
+  "cases": [
+    {
+      "id": "cote-256",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "max_side": 256,
+        "normalize": true
+      },
+      "source": {
+        "recipe": "scene",
+        "taille": 768,
+        "fond": "atelier",
+        "objets": [
+          { "forme": "cube", "x": 0.28, "y": 0.6, "echelle": 0.34 },
+          { "forme": "sphere", "x": 0.55, "y": 0.66, "echelle": 0.28 },
+          { "forme": "cone", "x": 0.78, "y": 0.62, "echelle": 0.3 }
+        ]
+      }
+    },
+    {
+      "id": "cote-512",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "max_side": 512,
+        "normalize": true
+      }
+    },
+    {
+      "id": "cote-1024",
+      "input": {
+        "image": "assets/scene-atelier.png",
+        "max_side": 1024,
+        "normalize": true
+      }
+    }
+  ]
+}

@@ -27,9 +27,11 @@ from ecurie_store.pull import (
     is_pinned,
     list_repo_files,
     plan_pull,
+    plan_pulls,
     resolve_revision,
     revision_patch,
     run_pull,
+    run_pulls,
     select_files,
     variant_presence,
 )
@@ -523,3 +525,123 @@ def test_le_patch_a_committer_porte_le_depot_et_le_sha_complet():
     assert "- id: 8bit-mlx" in patch
     assert f'revision: "{REV}"' in patch
     assert REPO_TTS in patch
+
+
+# --- un variant, plusieurs dépôts ----------------------------------------------------------
+
+
+REPO_TOK = "Qwen/Qwen2-1.5B"
+REV_TOK = "b" * 40
+ARBRE_TOK = {"tokenizer.json": 700, "tokenizer_config.json": 60, "vocab.json": 240}
+
+
+def _variant_a_deux_depots(**kw) -> Variant:
+    """Le cas de CAD-Recode : 3 Go de poids sans le moindre tokenizer.
+
+    Le dépôt des poids ne publie que `config.json` et `model.safetensors` ; le
+    tokenizer est celui d'un autre modèle, sous une autre licence. Sans
+    `extra_sources`, le manifeste ne pouvait pas le dire, et le variant se
+    chargeait jusqu'à mourir sur un fichier absent.
+    """
+    return _variant(
+        repo=REPO_TTS,
+        revision=REV,
+        extra_sources=[
+            {
+                "kind": "huggingface",
+                "repo": REPO_TOK,
+                "revision": REV_TOK,
+                "role": "tokenizer",
+            }
+        ],
+        **kw,
+    )
+
+
+def test_les_sources_rendent_les_depots_dans_l_ordre_les_poids_d_abord():
+    variant = _variant_a_deux_depots()
+
+    assert [s.repo for s in variant.sources] == [REPO_TTS, REPO_TOK]
+    assert variant.sources[1].role == "tokenizer"
+
+
+def test_un_variant_ordinaire_n_a_qu_une_source():
+    """Le champ ne change rien pour les cinquante-quatre modèles déjà au parc."""
+    assert [s.repo for s in _variant().sources] == [REPO_TTS]
+
+
+def test_planifier_un_variant_a_deux_depots_donne_deux_plans_chiffres(tmp_path):
+    config = _config(tmp_path)
+    plans = plan_pulls(
+        config,
+        _variant_a_deux_depots(),
+        ref=REF,
+        api=_api_par_depot({REPO_TTS: ARBRE_JOUET, REPO_TOK: ARBRE_TOK}),
+        disk_usage=_disque(1000 * GO, 500 * GO),
+    )
+
+    assert [p.repo for p in plans] == [REPO_TTS, REPO_TOK]
+    # Le rôle n'est porté que par la source secondaire : c'est ce qui distingue
+    # les deux tableaux à l'écran, et ce qui dit pourquoi un second
+    # téléchargement part.
+    assert [p.role for p in plans] == [None, "tokenizer"]
+    assert plans[0].selected_bytes == sum(ARBRE_JOUET.values())
+    assert plans[1].selected_bytes == sum(ARBRE_TOK.values())
+
+
+def test_le_second_depot_manquant_ne_passe_pas_pour_un_variant_complet(tmp_path):
+    """Le pire état d'un variant : présent pour le contrôle d'admission, et incapable
+    de charger. Les poids sont là, le tokenizer ne l'est pas."""
+    config = _config(tmp_path)
+    hub = tmp_path / "hf-hub"
+    _pose_instantane(hub, REPO_TTS, REV, ARBRE_JOUET)
+    variant = _variant_a_deux_depots()
+
+    poids = variant_presence(config, variant, ref=REF, expected=list(ARBRE_JOUET))
+    tokenizer = variant_presence(
+        config, variant, ref=REF, expected=list(ARBRE_TOK), source=variant.sources[1]
+    )
+
+    assert poids.complete
+    assert not tokenizer.present
+    assert "ecurie pull" in (tokenizer.reason or "")
+
+
+def test_telecharger_ramene_les_deux_depots_en_un_seul_appel(tmp_path):
+    config = _config(tmp_path)
+    hub = tmp_path / "hf-hub"
+    variant = _variant_a_deux_depots()
+    arbres = {REPO_TTS: ARBRE_JOUET, REPO_TOK: ARBRE_TOK}
+
+    def faux_download(*, repo_id, revision, **kwargs):
+        return str(_pose_instantane(hub, repo_id, revision, arbres[repo_id]))
+
+    résultats = run_pulls(
+        config,
+        variant,
+        ref=REF,
+        api=_api_par_depot(arbres),
+        download=faux_download,
+        disk_usage=_disque(1000 * GO, 500 * GO),
+    )
+
+    assert [r.plan.repo for r in résultats] == [REPO_TTS, REPO_TOK]
+    assert all(r.downloaded for r in résultats)
+    assert sum(r.bytes_downloaded for r in résultats) == sum(ARBRE_JOUET.values()) + sum(
+        ARBRE_TOK.values()
+    )
+
+
+def _api_par_depot(arbres: dict[str, dict[str, int]]):
+    """Une API qui répond selon le dépôt interrogé — deux inventaires, pas un."""
+
+    class ParDepot:
+        def list_repo_tree(self, repo, *, revision, recursive):
+            return FauxAPI(arbre=arbres[repo]).list_repo_tree(
+                repo, revision=revision, recursive=recursive
+            )
+
+        def model_info(self, repo, *, revision):
+            return FauxAPI(arbre=arbres[repo]).model_info(repo, revision=revision)
+
+    return ParDepot()

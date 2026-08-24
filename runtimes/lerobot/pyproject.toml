@@ -1,0 +1,100 @@
+# Environnement isolé du runtime `lerobot` (CONCEPTION.md §5.3).
+#
+# Seizième famille du parc, et la seule dont la sortie soit une **action** : ni
+# un média, ni un texte, ni un vecteur — sept nombres qu'un contrôleur de robot
+# exécuterait. Il sert `robot-action`, et rien d'autre.
+#
+# **Pourquoi il est isolé, et pourquoi la question ne se pose même pas.** Cinq
+# env du parc portent déjà PyTorch, et aucun ne peut accueillir celui-ci :
+# `lerobot` 0.6.1 borne lui-même `torch>=2.7,<2.12` **et** `transformers>=5.4,<5.6`.
+# Ce sont deux plafonds, pas deux planchers, et c'est ce qui change tout — un
+# plancher se satisfait en montant, un plafond force à redescendre.
+#
+#   torch-vision     déclare `torch>=2.6,<2.14` et `transformers>=4.41.2` sans
+#                    borne haute, et héberge BiRefNet, Swin2SR, SAM 2, DINOv2 et
+#                    DINOv3, tous mesurés et profilés. Y entrer imposerait
+#                    transformers < 5.6 à cinq modèles qui marchent, dont un —
+#                    BiRefNet — charge son code d'inférence par
+#                    `trust_remote_code`, donc dont les besoins sont décidés en
+#                    amont sans préavis. Remettre en jeu cinq profils pour une
+#                    capacité de plus est exactement l'arbitrage que l'isolation
+#                    existe pour ne plus avoir à faire (ARCHITECTURE.md §0,
+#                    piège 2).
+#   esm-torch        exige `transformers>=5.15` : incompatible de front avec le
+#                    `<5.6` de lerobot. Aucune résolution commune n'existe.
+#   terratorch       épingle `torchgeo==0.9.0` et tire lightning, rasterio et
+#                    geopandas — cent douze paquets dont aucun ne sert ici.
+#   depth-anything   impose `numpy<2`, quand lerobot résout numpy 2.
+#   cad-recode       exige `transformers<5`, l'autre côté du plafond.
+#
+#     ecurie env sync lerobot
+#
+# **Ce que la résolution donne, mesuré et non annoncé.** 56 paquets exactement,
+# `uv pip compile --python-version 3.12 --python-platform aarch64-apple-darwin` :
+# torch 2.11.0, torchvision 0.26.0, transformers 5.5.4, tokenizers 0.22.2,
+# numpy 2.2.6, accelerate 1.14.0. **Zéro** occurrence de nvidia, cuda, triton,
+# flash-attn, xformers ou mmcv — comptées, pas supposées.
+#
+# **Une seule dépendance sans roue, et il vaut mieux le savoir avant.**
+# `docopt==0.6.2`, tirée par `num2words`, que l'extra `smolvla` déplie. C'est un
+# sdist Python pur de 2014, sans extension à compiler : `uv sync` le construit en
+# quelques millisecondes et rien ne demande de compilateur. Mais un env
+# reconstruit avec `--no-build` par prudence échouerait là, et sur elle seule.
+#
+# **L'adhérence à `lerobot` est forte et récente, et la borne haute est un
+# minimum.** Le format des fichiers de processeurs a déjà changé au moins une
+# fois — le fil nº 12 de `smolvla_base` porte précisément sur « New smolVLA
+# pipeline, Could not find 'policy_preprocessor.json' ». Les poids retenus
+# publient ce fichier ; une pile qui changerait de format le rendrait illisible
+# sans qu'aucun octet du dépôt ne bouge. L'épingle `<0.7` protège de la
+# prochaine, pas de celle d'après.
+#
+# **Deux dépendances de lerobot qui ne servent à rien ici et qu'on garde
+# quand même.** `cmake` et `setuptools` sont déclarées en dépendances de
+# **runtime**, pas de build : elles s'installent donc, et les retirer voudrait
+# dire dévier de la déclaration de l'amont. Bagage inutile pour de l'inférence,
+# sans conséquence mesurée.
+#
+# Le `.venv` n'est pas versionné, ce fichier l'est.
+
+[project]
+name = "ecurie-runtime-lerobot"
+version = "0.4.0"
+description = "Écurie — env isolé : politique vision-langage-action (SmolVLA) sur PyTorch/MPS"
+# Aligné sur le socle 3.12 d'Écurie : le worker exécute
+# `ecurie_runtime.workers.base`, écrit pour cette version. lerobot 0.6.1 exige
+# lui aussi >=3.12, les deux coïncident.
+requires-python = ">=3.12"
+
+dependencies = [
+    # L'extra `smolvla` est ce qui fait exister la politique : sans lui, le
+    # registre de lerobot ne connaît pas `smolvla` et `make_policy` échoue sur un
+    # type inconnu. Il se déplie en transformers, num2words et accelerate.
+    "lerobot[smolvla]>=0.6.1,<0.7",
+    # Redites alors que lerobot les tire déjà, et pour deux raisons distinctes.
+    # Les bornes d'abord : elles sont celles de l'amont, et les écrire ici les
+    # rend lisibles au moment où l'on se demande pourquoi cet env existe. Puis
+    # l'usage : l'adaptateur importe torch directement — il construit ses
+    # tenseurs de batch, fixe son bruit de flow-matching et relève les compteurs
+    # MPS lui-même.
+    "torch>=2.7,<2.12",
+    "torchvision",
+    # Le plafond `<5.6` est celui de lerobot, et il est éliminatoire : c'est lui
+    # qui interdit de loger cette capacité dans un env torch existant. Résolu à
+    # 5.5.4, dernière de la branche 5.5.
+    "transformers>=5.4,<5.6",
+    # L'adaptateur ouvre l'image et la met à la taille attendue avant de la
+    # remettre au préprocesseur de lerobot ; c'est lui, et pas la bibliothèque,
+    # qui décide de ce que le modèle verra.
+    "pillow>=10",
+    # Le tronçon d'actions sort en tableau, les bornes q01/q99 se comparent
+    # élément par élément : numpy est importé directement par l'adaptateur.
+    "numpy>=2,<3",
+    # Les statistiques de normalisation sont lues à part des poids, pour rendre
+    # les bornes du domaine dans la sortie du job. safetensors arrive de toute
+    # façon par transformers ; la redite dit que l'adaptateur s'en sert.
+    "safetensors>=0.8",
+]
+
+[tool.uv]
+package = false

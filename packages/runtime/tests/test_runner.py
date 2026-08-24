@@ -256,3 +256,164 @@ def test_le_second_job_retrouve_le_modele_chaud(parc, supervisor_factory):
         assert second.duration_ms < premier.duration_ms, "le warmup ne doit pas être repayé"
     finally:
         superviseur.unload_all(force=True)
+
+
+# --- un champ qui porte plusieurs fichiers -----------------------------------
+
+
+def _contrat_multi_vues():
+    """Un contrat jouet dont l'entrée est une **liste** de fichiers.
+
+    Écrit ici plutôt que copié du registre : ce qu'on éprouve est la mécanique
+    du champ à cardinalité variable, pas le contrat de telle capacité — et un
+    test qui suivrait `multiview-to-3d` casserait à chaque retouche du contrat.
+    """
+    from ecurie_core.capabilities import CapabilityContract
+
+    return CapabilityContract(
+        id="multi-jouet",
+        document={
+            "id": "multi-jouet",
+            "title": "Jouet multi-vues",
+            "input": {
+                "type": "object",
+                "required": ["images"],
+                "additionalProperties": False,
+                "properties": {
+                    "images": {
+                        "type": "array",
+                        "minItems": 2,
+                        "items": {"type": "string", "contentMediaType": "image/*"},
+                    },
+                    "resolution": {"type": "integer", "default": 512},
+                },
+            },
+            "output": {
+                "type": "object",
+                "required": ["scene"],
+                "properties": {
+                    "scene": {"type": "string", "contentMediaType": "model/gltf-binary"},
+                    "previews": {
+                        "type": "array",
+                        "items": {"type": "string", "contentMediaType": "image/png"},
+                    },
+                },
+            },
+        },
+    )
+
+
+def test_un_champ_tableau_de_fichiers_est_reconnu_des_deux_cotes():
+    """Le type de média d'un tableau est porté par `items`, pas par le champ.
+
+    Le chercher au premier niveau seulement rendait la liste invisible de
+    `input_media_types` comme de `output_media_types` — donc du superviseur, du
+    banc d'essai et de l'UI, tous les trois d'un coup.
+    """
+    contrat = _contrat_multi_vues()
+
+    assert contrat.input_media_types()["images"] == "image/*"
+    assert contrat.output_media_types()["previews"] == "image/png"
+    assert contrat.list_fields() == {"images"}
+
+
+def test_les_fichiers_d_une_liste_sont_copies_dans_l_ordre_recu(tmp_path):
+    from ecurie_runtime.runner import stage_inputs
+
+    contrat = _contrat_multi_vues()
+    sources = []
+    for nom in ("gauche.png", "droite.png"):
+        chemin = tmp_path / "vues" / nom
+        chemin.parent.mkdir(exist_ok=True)
+        chemin.write_bytes(nom.encode())
+        sources.append(str(chemin))
+    job = tmp_path / "job"
+    job.mkdir()
+    résolu = resolve_input(
+        contrat,
+        _variant_jouet(),
+        {"images": json.dumps(sources)},
+    )
+
+    stage_inputs(contrat, résolu, job)
+
+    assert résolu.values["images"] == ["inputs/000-gauche.png", "inputs/001-droite.png"]
+    assert (job / "inputs" / "000-gauche.png").read_bytes() == b"gauche.png"
+    assert (job / "inputs" / "001-droite.png").read_bytes() == b"droite.png"
+
+
+def test_deux_vues_du_meme_nom_ne_s_ecrasent_pas(tmp_path):
+    """Deux dossiers, deux `image.png` : sans le rang, la seconde copie
+    remplacerait la première et la reconstruction porterait deux fois la même vue."""
+    from ecurie_runtime.runner import stage_inputs
+
+    contrat = _contrat_multi_vues()
+    sources = []
+    for dossier in ("a", "b"):
+        chemin = tmp_path / dossier / "image.png"
+        chemin.parent.mkdir(parents=True)
+        chemin.write_bytes(dossier.encode())
+        sources.append(str(chemin))
+    job = tmp_path / "job"
+    job.mkdir()
+    résolu = resolve_input(contrat, _variant_jouet(), {"images": json.dumps(sources)})
+
+    stage_inputs(contrat, résolu, job)
+
+    assert (job / "inputs" / "000-image.png").read_bytes() == b"a"
+    assert (job / "inputs" / "001-image.png").read_bytes() == b"b"
+
+
+def test_l_empreinte_d_une_liste_depend_de_l_ordre(tmp_path):
+    """L'ordre des vues change la reconstruction : deux jobs aux mêmes fichiers
+    dans un autre ordre ne sont pas le même job, et le manifeste doit le dire."""
+    from ecurie_runtime.runner import stage_inputs
+
+    contrat = _contrat_multi_vues()
+    chemins = []
+    for nom in ("un.png", "deux.png"):
+        chemin = tmp_path / nom
+        chemin.write_bytes(nom.encode())
+        chemins.append(str(chemin))
+
+    empreintes = []
+    for rang, ordre in enumerate(([0, 1], [1, 0])):
+        job = tmp_path / f"job{rang}"
+        job.mkdir()
+        résolu = resolve_input(
+            contrat, _variant_jouet(), {"images": json.dumps([chemins[i] for i in ordre])}
+        )
+        stage_inputs(contrat, résolu, job)
+        empreintes.append(résolu.files["images"])
+
+    assert empreintes[0] != empreintes[1]
+
+
+def test_un_fichier_manquant_dans_une_liste_nomme_son_rang(tmp_path):
+    from ecurie_runtime.runner import stage_inputs
+
+    contrat = _contrat_multi_vues()
+    présent = tmp_path / "la.png"
+    présent.write_bytes(b"la")
+    job = tmp_path / "job"
+    job.mkdir()
+    résolu = resolve_input(
+        contrat,
+        _variant_jouet(),
+        {"images": json.dumps([str(présent), str(tmp_path / "absente.png")])},
+    )
+
+    with pytest.raises(InputError, match=r"images\[1\]"):
+        stage_inputs(contrat, résolu, job)
+
+
+def _variant_jouet():
+    from ecurie_core.models import Variant
+
+    return Variant.model_validate(
+        {
+            "id": "v",
+            "runtime": "depth-anything",
+            "source": {"kind": "local", "path": "/dev/null"},
+        }
+    )

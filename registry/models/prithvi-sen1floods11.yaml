@@ -1,0 +1,114 @@
+# Prithvi-EO-2.0 300M TL, tête Sen1Floods11 — la première capacité du parc dont
+# l'entrée n'est pas une image.
+#
+# Un ViT-L de 300 millions de paramètres pré-entraîné par IBM et la NASA sur
+# 4,2 millions de scènes HLS, surmonté d'un décodeur UperNet appris sur
+# Sen1Floods11. Six bandes en entrée, deux classes en sortie : eau de crue, ou
+# non. La portée thématique est étroite et le manifeste ne prétend pas le
+# contraire — cette capacité accueillera des modèles mono-thématiques successifs,
+# chacun avec sa légende, et `classes` existe pour que l'UI le dise.
+#
+# CE QUI A DÉCIDÉ, dans l'ordre où les faits se sont présentés.
+#
+# **Les six canaux, mesurés au poids et non lus sur une fiche.**
+# `patch_embed.proj.weight` a la forme (1024, 6, 1, 16, 16) : six canaux d'entrée
+# en dur. Une image RGB est refusée par la convolution elle-même, ce qui règle la
+# question du doublon avec `image-segment` sans avoir à en débattre.
+#
+# **La licence, ensuite.** apache-2.0 sur les poids comme sur le code de
+# terratorch, et le dépôt n'est pas sous formulaire. Le concurrent le plus
+# sérieux pour cette capacité, `timm/vit_large_patch16_dinov3.sat493m`, est en
+# `license: other` — la licence DINOv3 — et n'encode que trois canaux : il rate à
+# la fois la licence et la raison d'être de la famille.
+#
+# **Ce que l'amont fait mal, et que l'adaptateur reprend.** Trois comportements,
+# tous reproduits sur cette machine, ont décidé de la forme de l'adaptateur
+# autant que de celle du contrat : `config.yaml` porte `backbone_pretrained:
+# true` et irait chercher 1,33 Go sur le réseau si on le construisait tel quel ;
+# les 381 clés du point de contrôle sont préfixées `model.`, et chargées telles
+# quelles avec `strict=False` elles donnent un modèle qui tourne en produisant du
+# bruit, sans lever la moindre exception ; enfin Metal refuse la taille native
+# des chips. Voir les caveats et l'en-tête de `workers/prithvi_segment.py`.
+#
+# **TerraMind 1.0 est reporté, pas rejeté.** `ibm-esa-geospatial/TerraMind-1.0-base`
+# et sa tête `TerraMind-base-Flood` sont apache-2.0, non gated, et plus
+# téléchargés. Rien ici ne les a exécutés : les proposer serait exactement
+# l'hypothèse non mesurée que le §5.2 interdit. Chemin court pour le second tour,
+# la tête ne pesant que 673 Mo.
+id: prithvi-sen1floods11
+name: Prithvi-EO-2.0 300M TL — Sen1Floods11
+capability: geo-segment
+family: prithvi
+vendor: IBM et NASA (Szwarcman et al.)
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Encodeur ViT-L 300M — profondeur 24, largeur 1024, patches de 16 — de même
+  architecture que `prithvi-eo-2-300m`, qui sert `geo-embed`, mais **pas des
+  mêmes octets** : celui-ci a été adapté à la détection d'eau, et ses vecteurs ne
+  sont donc pas ceux de l'autre. Deux dépôts plutôt qu'un, et 1,33 Go de disque
+  en plus, pour que chaque capacité serve les poids que son amont publie pour
+  elle. C'est le contraire du partage que le §5.2 encourage, et c'est assumé :
+  ici les octets partagés donneraient un espace vectoriel qui dit « ceci
+  ressemble à une crue » là où l'on veut « ceci ressemble à ce terrain ».
+
+  Le modèle est « TL », c'est-à-dire conditionné par la date et le lieu de la
+  prise de vue, et l'adaptateur ne lui passe ni l'un ni l'autre. C'est une
+  décision, pas un oubli : voir les caveats, l'écart a été mesuré.
+
+  Les `allow_patterns` nomment trois fichiers plutôt que d'ouvrir en `*` : le
+  dépôt sert aussi trois chips d'exemple, 6,7 Mo d'imagerie Sen1Floods11 dont le
+  projet amont ne publie aucun fichier de licence. Le parc ne les ramène pas, et
+  la charge type du banc n'en emploie aucun.
+
+links:
+  homepage: https://huggingface.co/ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11
+  code: https://github.com/IBM/terratorch
+  paper: https://arxiv.org/abs/2412.02732
+
+variants:
+  - id: 300m-tl
+    quantization: fp32
+    tier: hot
+    runtime: terratorch
+    source:
+      kind: huggingface
+      repo: ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11
+      revision: "918b9f140bb1783716664a2421ea3253d806017d"   # 2026-08-24
+      allow_patterns: ["*.pt", "config.json", "config.yaml"]
+    options:
+      # La légende appartient au manifeste et non à l'adaptateur : ce modèle a
+      # deux classes, le prochain de cette capacité en aura d'autres, et une
+      # table d'espèces thématiques codée dans un worker aurait vieilli au
+      # deuxième. Les noms viennent de la carte du modèle ; l'ordre est celui
+      # des valeurs de la carte de classes.
+      class_names: ["hors eau", "eau de crue"]
+      # La classe dont `coverage` compte les pixels. Déclarée plutôt que
+      # supposée, faute de quoi un modèle qui numéroterait ses classes dans
+      # l'autre sens rendrait une couverture complémentaire sans que rien ne le
+      # signale.
+      class_of_interest: 1
+    defaults:
+      tile_size: 576
+      overlap: 0
+    caveats:
+      - "Deux classes et rien d'autre : la tête fait (2, 256, 1, 1), donc `0` hors eau et `1` eau ou crue. Ce n'est pas une segmentation géospatiale générale, et aucun réglage n'en fera apparaître une troisième classe."
+      - "Metal refuse la taille native des chips. Le module pyramidal du décodeur agrège vers 6 × 6 sur une carte réduite d'un facteur 64 ; MPS exige une division entière et lève « Adaptive pool MPS: input sizes must be divisible by output sizes » à 224, 256, 480 et 512. 384, 576, 768 et 960 passent. `PYTORCH_ENABLE_MPS_FALLBACK=1` n'y change rien : l'erreur vient du noyau Metal, pas du dispatch. L'adaptateur rembourre au multiple de 192 puis recadre, et le dit en avertissement quand la demande l'y a obligé."
+      - "Le point de contrôle porte 381 clés, toutes préfixées `model.`. Chargé sans dépouiller le préfixe et avec `strict=False`, il rend 368 poids manquants, 381 inattendus, et un réseau qui tourne en produisant du bruit sans lever d'exception. L'adaptateur exige 0 manquant et 0 inattendu, et refuse le chargement sinon : c'est le seul contrôle qui prouve que les poids sont arrivés."
+      - "`config.yaml` porte `backbone_pretrained: true` : construit tel quel, le modèle irait chercher 1,33 Go de backbone sur le réseau avant de poser le fine-tune par-dessus. L'adaptateur construit par `EncoderDecoderFactory` avec `backbone_pretrained=False` et charge le point de contrôle à la main ; le chemin a été vérifié avec `HF_HUB_OFFLINE=1`, construction en 4,4 s."
+      - "Modèle conditionné par la date et le lieu — le « TL » du nom —, que l'adaptateur ne renseigne pas. L'écart mesuré en amont sur les chips d'exemple est de 0,0003 de couverture avec ou sans coordonnées. Le contrat n'a donc pas de champ de localisation, et c'est une décision et non un oubli ; un modèle de la même capacité pour qui l'écart serait sensible obligerait à en ajouter un."
+      - "Le pic n'est pas celui de Metal seul, et c'est la charge type qui l'a montré. Aux tuiles de 384 et 576, le pilote Metal réserve 2,06 Gio quand le processus en tient 3,28 — les treize bandes du raster, les logits accumulés sur la scène entière et le masque vivent côté Python. À 768 Metal passe devant avec 3,07 Gio. Le profil retient le plus grand des deux relevés à chaque cas ; ne mesurer que le pilote aurait sous-estimé le coût d'un tiers sur deux cas sur trois."
+      - "Le pic ne suit pas la taille de tuile : 3,28 Gio à 384, 3,28 à 576, 3,07 puis 3,07 côté Metal à 768 — un plateau imposé par le plancher Python, puis une reprise. Le banc a ajusté une pente à R² = 0,75 et l'a jetée ; le profil garde le pire cas mesuré."
+      - "La latence ne suit pas non plus : 927 ms à 384 (quatre tuiles jointives), 1 592 à 576 (quatre tuiles qui se recouvrent), 817 à 768 (une seule tuile). C'est le nombre de tuiles multiplié par leur surface qui décide, pas la taille seule — et sur une scène qui tient en une tuile, la plus grande tuile est la plus rapide."
+      - "Le repli processeur existe et n'est pas servi. Le CPU sait faire tourner ces poids sans aucune contrainte de taille, mais un variant qui y retomberait en silence ferait mesurer deux chemins sous un seul profil. L'adaptateur refuse plutôt que de replier."
+    profile:
+      disk_bytes: 1276850242
+      peak_unified_memory_bytes: 3295444992
+      warmup_ms: 5316
+      latency_ms_p50: 927
+      throughput: "1 sortie / 1.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / rasterio 1.5.1 / terratorch 1.2.11 / torch 2.13.0 / torchgeo 0.9.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

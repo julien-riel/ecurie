@@ -1,0 +1,127 @@
+# Empreinte de séquence protéique — ESM-2 650M, servi par `transformers` sur MPS.
+#
+# CE QUI A DÉCIDÉ DU MODÈLE. Quatre candidats ont été instruits pour cette
+# capacité ; trois sont tombés sur la pile et non sur la qualité. ESM-C 300M/600M
+# est le successeur annoncé, mais `transformers/models/esmc/` est absent de la
+# ROUE PUBLIÉE 5.15.1 — le commit de portage est daté du 20 août 2026, la release
+# du 19 : trente-quatre heures trop tard. Épingler un `git+…@main` pour l'avoir
+# plus tôt ferait reposer une capacité du parc sur un état qui n'a passé aucune
+# release. `Synthyra/ESMplusplus_small` livre un chargeur de noyaux complet avec
+# ses poids (`fastplms/kernels.lock`, `fastplms/registry.py`), chargé par
+# `trust_remote_code` : un worker du parc n'a pas le droit de sortir sur le
+# réseau au premier appel. Restent les trois tailles d'ESM-2 ; 650M est la plus
+# grande qui tienne largement dans le budget, et la seule dont la sortie ait été
+# mesurée ici contre des paires connues.
+#
+# CE QUI A DÉCIDÉ DU CHEMIN D'EXÉCUTION, ET QUI N'ÉTAIT PAS DÉDUCTIBLE.
+# `AutoModel.from_pretrained` initialise AU HASARD un `pooler.dense` que ce
+# checkpoint ne contient pas. Mesuré sur cette machine : deux chargements des
+# mêmes octets rendent des `pooler_output` à −0,038 de cosinus l'un de l'autre,
+# écart absolu maximum 0,82. Un adaptateur qui aurait servi `cls` par ce chemin
+# aurait rendu des vecteurs tirés au sort, changeant à chaque démarrage de
+# processus, sans que rien dans la sortie ne le signale. `add_pooling_layer=False`
+# n'est donc pas une propreté, c'est la condition pour que ce manifeste dise vrai.
+#
+# CE QUI A DÉCIDÉ DE `status: candidate`. La capacité n'a pas d'épreuve de
+# qualité. Ce qu'on sait, on l'a mesuré sur cinq paires connues — voir les
+# caveats — et ce sont des rangs, pas un score. Le parc ne tranchera entre les
+# trois tailles d'ESM-2 et ESM-C que sur un golden set, quand il en aura un.
+#
+# LA LICENCE EST MIT, ET ELLE L'EST DES DEUX CÔTÉS : `license: mit` dans les
+# métadonnées du dépôt, et le code d'inférence est celui de `transformers`
+# (Apache 2.0), pas un `trust_remote_code` livré avec les poids. Rien à
+# redistribuer, rien à joindre, aucun formulaire. C'est le contraire du chemin
+# `dinov3`, et c'est pourquoi `LICENSE` n'a pas à figurer dans les
+# `allow_patterns` : il n'y a pas de texte à transporter avec les octets.
+id: esm2-650m
+name: ESM-2 650M (empreinte de séquence)
+capability: protein-embed
+family: esm2
+vendor: Meta AI / FAIR (Lin et al.)
+license: mit
+license_class: permissive
+status: candidate
+
+notes: >
+  Un encodeur, pas un moteur de recherche et pas un prédicteur de structure. Ce
+  manifeste rend un vecteur par job et un cosinus entre deux séquences ;
+  « retrouver toutes les protéines qui ressemblent à celle-ci » demande l'index
+  que le backlog désigne lui-même comme la brique manquante, et « à quoi
+  ressemble-t-elle » demande un repliement, qui est une autre capacité et un
+  autre chantier.
+
+  Les `allow_patterns` nomment cinq fichiers plutôt que d'ouvrir en `*` : le
+  dépôt sert aussi `pytorch_model.bin`, les mêmes poids dans un second format.
+  Sans ce filtre, le disque doublerait pour rien.
+
+  ESM-2 publie trois tailles au même sha épinglé de leur dépôt respectif —
+  35M (480 dimensions), 150M (640) et celle-ci (1280). Les trois sont MIT et
+  toutes tiennent au budget ; le 35M a servi à roder le chemin d'adaptateur
+  avant de toucher au 650M, il charge en un dixième de seconde.
+
+links:
+  homepage: https://huggingface.co/facebook/esm2_t33_650M_UR50D
+  code: https://github.com/facebookresearch/esm
+  paper: https://www.science.org/doi/10.1126/science.ade2574
+
+variants:
+  - id: t33-650m
+    quantization: fp32
+    tier: hot
+    runtime: esm-torch
+    source:
+      kind: huggingface
+      repo: facebook/esm2_t33_650M_UR50D
+      revision: "08e4846e537177426273712802403f7ba8261b6c"   # 2026-08-24
+      allow_patterns:
+        - "config.json"
+        - "model.safetensors"
+        - "vocab.txt"
+        - "tokenizer_config.json"
+        - "special_tokens_map.json"
+    options:
+      # L'agrégation est un choix d'espace vectoriel, pas un réglage, et le
+      # chiffre qui le montre a été relevé sur le chemin livré : la paire
+      # ubiquitine / lysozyme rend 0,6649 en `mean` et 0,9615 en `cls`. Le même
+      # couple de protéines, deux chargements du même fichier de poids, et une
+      # échelle qui n'a plus rien à voir — le `<cls>` d'ESM-2 rapproche tout de
+      # 1 et n'ordonne plus grand-chose. Sa place est donc dans le variant, et
+      # non dans le contrat où l'UI la présenterait comme une préférence et où
+      # deux jobs deviendraient incomparables sans que rien ne le dise.
+      #
+      # Depuis `add_pooling_layer=False`, `cls` est bit-à-bit identique d'un
+      # chargement à l'autre (vérifié) — c'est exactement la propriété que le
+      # pooler tiré au sort détruisait.
+      #
+      # `mean` exclut `<cls>` et `<eos>` de la moyenne. L'effet est petit et
+      # mesuré : sur les trois paires de la charge type, les laisser entrer
+      # déplace les cosinus de 0,6649 à 0,6819, de 0,5834 à 0,6006 et de 0,7783
+      # à 0,7823 — au plus +0,0172, et l'ordre des paires est préservé. Petit
+      # parce que ce contrat encode UNE séquence par appel et ne rembourre donc
+      # jamais ; le jour où quelqu'un batchera, le `<pad>` reprendra toute sa
+      # place dans la moyenne et ce masque toute sa taille.
+      pooling: mean
+    defaults:
+      max_length: 1024
+      normalize: true
+    caveats:
+      - "L'ÉCHELLE DES COSINUS EST TROMPEUSE, ET C'EST LE PREMIER RISQUE DE LECTURE. Mesuré ici : ubiquitine humaine / ubiquitine de levure 0,9968 ; ubiquitine / lysozyme 0,6649 ; ubiquitine / GFP 0,5834 ; lysozyme / GFP 0,7783 ; ubiquitine / sa propre séquence mélangée 0,5773. Deux protéines sans le moindre rapport sont donc PLUS proches qu'une protéine et son propre bruit. Aucun seuil absolu n'existe."
+      - "`add_pooling_layer=False` est obligatoire : sans lui, transformers initialise au hasard un `pooler.dense` absent du checkpoint. Mesuré, deux chargements rendent des `pooler_output` à −0,038 de cosinus. L'adaptateur refuse de servir si le mot-clé cesse d'être honoré."
+      - "Une lettre hors de l'alphabet du modèle n'est pas encodée en résidu inconnu : `EsmTokenizer` regroupe les caractères qu'il ignore, et `MJQ`, `MJJQ`, `MJJJQ` rendent tous les trois les mêmes cinq jetons. La séquence raccourcit sans rien dire — l'adaptateur refuse plutôt qu'il n'encode."
+      - "Une séquence d'ADN s'encode sans erreur : A, C, G et T sont quatre acides aminés valides. Mesuré, un fragment de 75 bases rend un vecteur de norme 1 à 0,531 de cosinus de l'ubiquitine, soit la plage exacte de deux protéines sans rapport. Le worker le signale en avertissement ; rien ne peut l'écarter avec certitude."
+      - "Le tokenizer ne tronque JAMAIS de lui-même : `model_max_length` vaut 10^30. C'est `max_length` qui borne, et lui seul. Tronquer coûte peu au vecteur — sur une chimère de 1402 résidus, en couper 380 rend un cosinus de 0,9996 avec le vecteur complet — et beaucoup au temps."
+      - "Entraîné à 1024 résidus ; les positions étant rotatives, rien ne casse au-delà (2048 vérifié, sortie finie, magnitude stable) mais la qualité de l'extrapolation n'est mesurable par aucune épreuve du parc. Le contrat plafonne à 2048 pour cette raison, pas pour éviter un plantage."
+      - "Le pic est PLAT : 3 330 752 512 octets de pilote Metal après chargement, 3 347 824 640 après une passe à 76 résidus, 3 347 841 024 après une passe à 2048. Seize kibioctets d'écart entre les deux extrêmes — c'est la latence qui suit la longueur, pas la mémoire, et le profil ne porte donc aucun `peak_scaling`."
+      - "fp32 uniquement sur le Hub (`torch_dtype: float32`, aucun autre poids publié). Un `.to(torch.float16)` diviserait la résidence par deux mais changerait les vecteurs : ce serait un variant distinct avec son propre profil, jamais un drapeau. À 3,35 Go sur 17,76 Gio de budget, rien ne l'exige."
+      - "MPS et CPU s'accordent : cosinus de 0,9999997 à 1,0000002 sur les trois séquences de la charge type, écart absolu maximum 1,25e-06 sur un vecteur normalisé. Et MPS est le plus rapide — 0,288 s contre 0,643 s pour ces trois séquences, un processus par périphérique. L'adaptateur refuse donc de servir sans MPS au lieu de se replier en silence : le profil ci-dessous est celui du chemin Metal, et un repli aurait été plus lent tout en le rendant faux."
+      - "Un résident qui a déjà servi plusieurs jobs s'établit 8,4 Mo AU-DESSUS du pic du banc : 3 356 246 016 octets contre 3 347 841 024, soit 0,25 % de plus. C'est l'allocateur Metal qui garde un tas un peu plus large, pas une fuite — six jobs successifs alternant 76 et 238 résidus rendent tous les six ce même chiffre, à l'octet. Le profil retient la mesure du banc, prise à froid comme le veut le §8 ; l'écart est à connaître de qui calcule au plus juste."
+      - "Le pic est stable à l'octet d'un passage à l'autre, les durées non : deux passages du banc le même jour ont rendu 3 347 841 024 octets exactement, pour 1634 puis 1582 ms de warmup et 142 puis 135 ms de latence médiane. Le profil retient le second. Le premier cas de la charge paie en plus la compilation des shaders Metal — 135 ms pour 76 résidus contre 95 pour 129."
+    profile:
+      disk_bytes: 2609507429
+      peak_unified_memory_bytes: 3347841024
+      warmup_ms: 1582
+      latency_ms_p50: 135
+      throughput: "1 sortie / 0.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0 / transformers 5.15.1"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

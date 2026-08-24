@@ -1,0 +1,132 @@
+# Reconstruction spatiale multi-vues — Depth Anything 3 Large, révision 1.1.
+#
+# CE QUI A DÉCIDÉ DU DÉPÔT, ET C'EST LA LICENCE. Le parc servait déjà DA3-LARGE
+# pour `depth-estimation`, mais ses poids sont en CC-BY-NC-4.0 : usage
+# professionnel fermé. `depth-anything/DA3-LARGE-1.1` est la même architecture
+# sous **apache-2.0**, et c'est ce qui permet à cette capacité d'entrer sans
+# traîner la restriction derrière elle. Relu sur les deux fichiers locaux plutôt
+# que supposé : 637 tenseurs de part et d'autre, aucun manquant, aucun en trop,
+# aucune forme ni aucun dtype divergents, même longueur d'en-tête (76 784 o),
+# `config.json` byte-identique, et `model.safetensors` de taille exacte égale
+# (1 643 843 860 o) — mais de sha256 différents (eaf2ae06… pour 1.0, 739905c4…
+# pour 1.1). Ce n'est donc pas une republication sous une autre licence : c'est
+# un réentraînement, et il faut le dire ainsi.
+#
+# CE QU'ON ÉCHANGE EN PASSANT À 1.1 — ET DEUX MESURES SE CONTREDISENT. Sur la
+# charge type de ce dépôt (les quatre vues du cas `vues-4`, vérité terrain
+# connue par construction), 1.1 est MEILLEUR que 1.0 des deux côtés : 0,086 %
+# d'erreur de pose moyenne contre 0,223 %, focale à −2,99 % contre −3,89 %. Le
+# dossier d'instruction, sur sa propre scène de synthèse, avait relevé
+# exactement l'inverse sur la pose (1,90 % pour 1.1 contre 1,12 % pour 1.0). Les
+# deux mesures sont vraies sur leur scène et aucune ne classe ces modèles : ce
+# qu'elles disent ensemble, c'est qu'ils sont proches et qu'une scène de
+# synthèse ne les départage pas. Ce qui décide reste la licence.
+#
+# CE QUI A DÉCIDÉ DE LA TAILLE. DA3-BASE (541 Mo) et DA3-SMALL (137 Mo) sont
+# apache-2.0 eux aussi et portent bien `cam_enc` et `cam_dec` dans leur
+# config.json — ils peuvent donc servir cette capacité, et DA3-SMALL est douze
+# fois plus léger. Ni l'un ni l'autre n'a été mesuré ici. Ce sont les portes de
+# sortie si le pic devenait gênant.
+#
+# DEUX FAMILLES PERMISSIVES ONT ÉTÉ EXAMINÉES ET REJETÉES SUR PIÈCE.
+# DA3METRIC-LARGE et DA3MONO-LARGE sont apache-2.0 et le premier promet du
+# métrique — ce qui répondrait à la seule vraie limite de cette capacité. Leur
+# config.json ne contient que `net` et `head` : aucune tête de caméra, donc
+# aucune pose, donc rien pour ici. C'est aussi pourquoi ils pèsent 300 Mo de
+# moins. Le parc n'a à ce jour aucun chemin permissif vers une reconstruction
+# métrique.
+#
+# AUCUN ENVIRONNEMENT NEUF. Ce variant tourne dans `runtimes/depth-anything`,
+# construit en août pour `depth-estimation`, sans une dépendance de plus : la
+# chaîne complète — chargement, inférence multi-vues, export GLB — a été
+# exécutée dedans avant d'écrire une ligne de ce fichier. Voir la réserve
+# d'entretien dans les caveats : elle porte sur l'env, pas sur ce modèle.
+id: da3-large-1-1-multivue
+name: Depth Anything 3 Large 1.1 (multi-vues)
+capability: multiview-to-3d
+family: depth-anything-3
+vendor: ByteDance Seed
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  411 millions de paramètres, 1,64 Go sur le disque. Reçoit de deux à
+  trente-deux photos d'une même scène et rend, en une seule passe, une pose de
+  caméra et une carte de profondeur par vue **dans un repère commun**, plus le
+  nuage de points que ces vues décrivent ensemble.
+
+  C'est la consistance inter-vues qui est neuve au parc. `depth-estimation`
+  rend une carte par image sans rien qui relie deux images ; `image-to-mesh`
+  rend un objet fermé sans caméra ni repère. Ici les vues se répondent.
+
+  L'échelle est **relative**, jamais métrique. Mesuré sur ces poids :
+  `is_metric` vaut un dictionnaire vide et `scale_factor` vaut `None`. Les
+  proportions et les angles sont exploitables ; les longueurs ne le sont pas.
+
+links:
+  homepage: https://huggingface.co/depth-anything/DA3-LARGE-1.1
+  code: https://github.com/ByteDance-Seed/Depth-Anything-3
+
+variants:
+  - id: fp32
+    quantization: fp32
+    tier: hot
+    runtime: depth-anything
+    source:
+      kind: huggingface
+      repo: depth-anything/DA3-LARGE-1.1
+      revision: "0e109ae307c5982f319a67cf6f9f99ccdc0ec97c"   # 2026-08-24
+      # Deux fichiers, nommés plutôt que filtrés au glob : le dépôt n'en publie
+      # pas d'autre qui serve, et le sha256 de `model.safetensors` a été vérifié
+      # contre l'oid LFS annoncé par l'API — 739905c423cf0d6ccaf9e61a8401d82ba1ac32d7f4d3ee6dca8f92b377633f64.
+      allow_patterns: ["config.json", "model.safetensors"]
+    defaults:
+      process_res: 504
+      conf_thresh_percentile: 40
+      max_points: 1000000
+      seed: 0
+    caveats:
+      - "L'ÉCHELLE EST RELATIVE, JAMAIS MÉTRIQUE. Mesuré : `prediction.is_metric` vaut `{}` et `scale_factor` vaut `None`. Deux lots de photos de la même pièce ne donnent pas la même unité, et le contrat sort `is_metric: false` à chaque job pour que la question soit posée plutôt qu'oubliée. Le parc n'a aucun recours permissif : les seuls DA3 métriques sans licence NC n'ont pas de tête de caméra."
+      - "LE PIC DÉPEND DU NOMBRE DE VUES PAR UN ESCALIER, PAS PAR UNE PENTE. Relevé au banc à `process_res` 504 : 6,55 Go à 4 vues, 10,30 à 16, 11,77 à 32 — et dans des processus séparés, 9,62 Go à 8 comme à 12 vues, c'est-à-dire un palier franc. L'allocateur MPS réserve par blocs. Le profil garde donc le pire cas, qui est celui du `maxItems: 32` du contrat et occupe 61,7 % du budget de cette machine ; extrapoler au-delà de trente-deux vues n'a aucun appui. La durée, elle, croît plus vite que le nombre de vues : 2,0 s à 4, 10,5 s à 16, 29,2 s à 32."
+      - "LE CACHE MPS CUMULE D'UN JOB À L'AUTRE SI ON NE LE VIDE PAS, et le pic cesse alors de décrire le job pour décrire son historique. Mesuré : la séquence 4 puis 8 puis 16 vues dans un même worker rend 6,55 / 10,67 / 12,77 Go, quand les mêmes N mesurés séparément coûtent 6,55 / 9,62 / 10,30. L'adaptateur appelle `torch.mps.empty_cache()` avant chaque inférence ; le retirer fausserait le banc et l'admission ensemble."
+      - "LA RECONSTRUCTION EST DÉTERMINISTE, L'ÉCRITURE DU NUAGE NE L'EST PAS SANS GRAINE. Deux passes sur les mêmes vues rendent des profondeurs, confiances, extrinsèques et intrinsèques bit à bit identiques. Mais l'export d'amont ramène le nuage sous `max_points` par un `np.random.choice` sur le générateur global de numpy : sans graine, deux jobs identiques ne rendent pas le même fichier dès que le plafond mord — et il mord dès seize vues aux réglages par défaut. L'adaptateur pose `seed` puis rend l'état du générateur, et le contrat déclare `seed` en disant qu'il ne pilote que ce tirage-là. Vérifié de bout en bout : trois jobs à six vues, dont deux séparés par un déchargement du worker, rendent un `scene.glb` de sha256 identique (cdcc4cc88f70daa4bd0c89ec3eaa021791679658f1a980a5f864fec545471be1)."
+      - "L'APERÇU DE L'EXPORT D'AMONT NE MONTRE PAS CE QUE CETTE CAPACITÉ APPORTE, ET L'ADAPTATEUR NE S'EN SERT PAS. Vérifié : le `scene.jpg` qu'écrit `inference(export_dir=…)` est octet pour octet `depth_vis/0000.jpg` — même sha256, 109 032 octets — c'est-à-dire la première vue et sa profondeur, rien de plus. Une reconstruction juste sur la vue 0 et fausse sur les trente et une autres aurait le même aperçu. L'adaptateur appelle `export_to_glb` directement et compose le sien : une vignette par vue, puis le plan des centres de caméra."
+      - "LE MÊME APPEL D'AMONT DÉPOSE UN SOUS-DOSSIER `depth_vis/` QUE LE CONTRAT NE DÉCLARE PAS — un JPEG par vue, invisible de `job.files`, jamais nettoyé. L'adaptateur passe `export_depth_vis=False` et relève la liste des entrées du dossier du job avant et après : tout fichier apparu hors des trois sorties déclarées est remonté en avertissement plutôt que laissé là."
+      - "LE NUAGE EST GROS, ET C'EST CE QUE CHAQUE JOB ARCHIVE. Mesuré : 609 638 points et 9,76 Mo de GLB pour quatre vues aux réglages par défaut ; 6,41 Mo pour un job à six vues plafonné à 400 000 points ; le plafond par défaut d'un million en donne une quinzaine. `max_points` descend jusqu'à 50 000 pour qui veut un fichier léger, au prix de la densité. À seize vues et plus, le plafond par défaut mord déjà — le job le dit en avertissement."
+      - "LES POSES SONT JUSTES SUR UNE SCÈNE DE SYNTHÈSE, ET CE N'EST PAS UNE PROMESSE SUR DES PHOTOS. Mesuré sur la charge type — un arc de 70°, sol texturé, vérité terrain connue par construction : à quatre vues, 0,086 % d'erreur de pose moyenne rapportée à l'étendue de la scène et 0,145 % au pire ; à six vues, 0,20 % et 0,36 %. La focale est le point faible et l'écart ne se referme pas avec le nombre de vues : 524,3 px estimées contre 540,4 vraies à quatre vues (−2,99 %), 519,4 px à six (−3,89 %). Aucun flou de bougé, aucun bruit de capteur, aucune exposition qui change d'une vue à l'autre : c'est une borne haute, pas un résultat sur des photographies."
+      - "LE CHARGEMENT LIE DEUX COPIES D'OpenMP — celle de torch et celle de pycolmap — et la bibliothèque avorte le processus plutôt que de continuer. Reproduit : un simple `from depth_anything_3.api import DepthAnything3` sans `KMP_DUPLICATE_LIB_OK` tue le worker sur `OMP: Error #15`. Le drapeau est posé avant tout import lourd, comme dans l'adaptateur voisin."
+      - "RÉSERVE D'ENTRETIEN SUR L'ENVIRONNEMENT, PAS SUR CE MODÈLE, ET PLUS ÉTROITE QU'ANNONCÉ. `depth-anything-3` 0.1.1 déclare `Requires-Python: >=3.9,<=3.13`, ce qui exclut littéralement le 3.13.9 du venv. Éprouvé plutôt que redouté : uv 0.11.17 installe le paquet, aussi bien depuis le lock qu'en refaisant la résolution complète depuis `runtimes/depth-anything/pyproject.toml` ; pip 26.2.1 le REFUSE (« Ignored the following versions that require a different python version »). `ecurie env sync` passe par uv, donc rien ne casse aujourd'hui. Ce qui casserait : une reconstruction à la main avec pip, ou le jour où uv lirait cette borne comme `packaging`. Détail et porte de sortie dans l'en-tête du pyproject de l'env."
+      - "DEUX VUES SONT LA CONFIGURATION LA PLUS FRAGILE, et le contrat les autorise quand même : la pose relative n'y repose que sur une paire, sans redondance pour la contredire. L'adaptateur le remonte en avertissement à chaque job à deux vues."
+    profile:
+      # Mesuré par `ecurie bench`, l'autorité étant
+      # registry/measurements/da3-large-1-1-multivue@fp32/mac17-4-24-gio.json.
+      # Le pic est le plus grand de deux relevés — pilote Metal et RSS du
+      # worker — parce qu'aucun des deux ne voit l'autre et qu'ils occupent la
+      # même mémoire unifiée. Le relevé du pilote est pris juste après
+      # l'inférence : vérifié contre une sonde à 20 ms pendant le calcul, les
+      # deux s'accordent à 0,02 Go près, et le fil de mesure n'a donc pas lieu
+      # d'être.
+      #
+      # Le pire cas du banc est celui du `maxItems` du contrat : mesurer
+      # jusqu'à seize vues aurait sous-déclaré de 1,5 Go les jobs que la
+      # capacité accepte. Les trois cas ont rendu 6 551 437 312, 10 298 982 400
+      # et 11 766 988 800 octets — c'est le dernier qui est inscrit, et il
+      # occupe 61,7 % du budget de 19 069 665 280 octets de cette machine.
+      #
+      # PAS DE `peak_scaling`, ET CE N'EST PAS FAUTE DE PARAMÈTRE. Le coût est
+      # piloté par le **nombre d'éléments** de `images`, que ni
+      # `bench.fit_peak_scaling` ni `Profile.expected_peak` ne savent lire : les
+      # deux cherchent une valeur numérique sous le nom du paramètre dans
+      # l'entrée. Déclarer `view_count` aurait été accepté sans rien produire,
+      # en silence. L'admission réserve donc 11,77 Go même pour un job à deux
+      # vues qui en coûte moitié moins : c'est le côté prudent de l'erreur, et
+      # c'est un manque d'outillage, pas une propriété du modèle.
+      disk_bytes: 1643845073
+      peak_unified_memory_bytes: 11766988800
+      warmup_ms: 2083
+      latency_ms_p50: 10469
+      throughput: "1 sortie / 13.8 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / numpy 1.26.4 / torch 2.13.0 / trimesh 5.0.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

@@ -1,0 +1,76 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "audio-align",
+  "title": "Alignement d'un texte sur sa parole",
+  "description": "Reçoit un enregistrement ET le texte de ce qui y est dit, et rend l'instant où chaque mot est prononcé. Elle ne transcrit rien : le texte lui est donné, et un mot qui n'y figure pas n'apparaîtra dans aucune sortie. C'est ce qui la sépare de `speech-to-text`, qui produit les mots sans dire où ils sont, et de `speaker-diarization`, qui dit qui parle sans dire quoi. Enchaîner les deux est l'usage attendu : transcrire, corriger le texte à la main, puis l'aligner.",
+  "input": {
+    "type": "object",
+    "required": ["audio", "text"],
+    "additionalProperties": false,
+    "properties": {
+      "audio": {
+        "type": "string",
+        "contentMediaType": "audio/*",
+        "x-ui": "file",
+        "description": "Enregistrement de la parole à horodater."
+      },
+      "text": {
+        "type": "string",
+        "minLength": 1,
+        "x-ui": "textarea",
+        "description": "Le texte tel qu'il est prononcé, dans l'ordre. Il fait loi : le modèle ne l'amende pas, ne saute pas un mot qu'on lui donne et n'en ajoute pas un qu'on a oublié. Un texte qui diverge de l'enregistrement produit un alignement qui a l'air valide."
+      },
+      "language": {
+        "type": "string",
+        "x-ui": "select",
+        "x-options-from": "runtime.languages",
+        "default": "french",
+        "description": "Langue du texte, qui décide du découpage en mots — un idéogramme est une unité, une suite de lettres séparées par des espaces en est une autre. C'est un NOM de langue, pas un code ISO : « french », pas « fr ». La liste est celle que le modèle chargé annonce ; une valeur hors liste retombe sur le découpage par espaces, ce que le worker signale."
+      },
+      "max_seconds": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 300,
+        "default": 300,
+        "description": "Fenêtre écoutée, en secondes. Au-delà, l'enregistrement est ignoré et le job le signale. Ce n'est pas un confort : un aligneur forcé tient tout — jetons audio et jetons de texte — dans une seule passe avant, sans boucle de décodage et sans découpage en tranches, et c'est cette longueur qui décide du pic mémoire."
+      },
+      "subtitle_format": {
+        "type": "string",
+        "enum": ["none", "srt", "vtt"],
+        "default": "none",
+        "description": "Rendre en plus un fichier de sous-titres regroupant les mots en répliques. `none` n'écrit que la liste des mots, qui est la sortie exacte ; un sous-titre est un regroupement, donc une interprétation."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["words", "units", "span_seconds"],
+    "properties": {
+      "words": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin de la liste des unités horodatées — texte, début et fin en secondes —, relatif au dossier du job. Le texte de chaque unité est celui qui a été fourni, ponctuation comprise, et non la forme nettoyée que le modèle manipule."
+      },
+      "units": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre d'unités alignées. Un mot pour les langues à espaces, un idéogramme pour le chinois : c'est pourquoi ce champ ne s'appelle pas « mots »."
+      },
+      "span_seconds": {
+        "type": "number",
+        "minimum": 0,
+        "description": "Fin de la dernière unité moins début de la première. C'est la sonde de cette capacité, et elle existe parce que l'alignement forcé échoue en silence : sur un texte qui diverge de l'enregistrement, ou dont une phrase revient à l'identique, le modèle colle sur la mauvaise occurrence et tasse le reste sur un instant. Un empan très inférieur à `duration_seconds` se lit d'un coup d'œil, là où trois cents horodatages ne se relisent pas."
+      },
+      "duration_seconds": {
+        "type": "number",
+        "minimum": 0,
+        "description": "Durée réellement écoutée, après application de `max_seconds`."
+      },
+      "subtitles": {
+        "type": "string",
+        "contentMediaType": "text/plain",
+        "description": "Chemin du fichier de sous-titres, relatif au dossier du job. Absent quand `subtitle_format` vaut `none`."
+      }
+    }
+  }
+}

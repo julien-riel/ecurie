@@ -277,29 +277,66 @@ def validate_input(contract: CapabilityContract, valeurs: dict[str, Any]) -> lis
 
 
 def stage_inputs(contract: CapabilityContract, résolu: ResolvedInput, job_dir: Path) -> None:
-    """Copie les fichiers d'entrée dans le dossier du job et note leur empreinte."""
-    champs_fichiers = {
-        nom
-        for nom, champ in contract.input_properties.items()
-        if champ.get("x-ui") == "file" or "contentMediaType" in champ
-    }
+    """Copie les fichiers d'entrée dans le dossier du job et note leur empreinte.
+
+    Un champ peut porter **un** fichier ou **une liste** de fichiers — une
+    reconstruction multi-vues reçoit N photos, et N n'est pas connu à l'écriture
+    du contrat. Les deux formes suivent le même chemin : copie dans `inputs/`,
+    empreinte, et remplacement de la valeur par un chemin relatif au dossier du
+    job, sans quoi le job ne se rejoue nulle part ailleurs.
+    """
+    champs_fichiers = set(contract.input_media_types()) & set(contract.input_properties)
     if not champs_fichiers:
         return
+    listes = contract.list_fields()
     destination = job_dir / INPUTS_DIR
     for nom in sorted(champs_fichiers):
         valeur = résolu.values.get(nom)
+        if nom in listes:
+            if not isinstance(valeur, list) or not valeur:
+                continue
+            chemins, empreintes = [], []
+            for rang, brut in enumerate(valeur):
+                if not isinstance(brut, str) or not brut:
+                    raise InputError(f"{nom}[{rang}] : chemin de fichier attendu")
+                relatif, empreinte = _copier(nom, brut, destination, rang=rang)
+                chemins.append(relatif)
+                empreintes.append(empreinte)
+            résolu.values[nom] = chemins
+            # Une seule empreinte pour la liste entière, dans l'ordre reçu :
+            # l'ordre des vues change la reconstruction, donc deux jobs aux
+            # mêmes fichiers dans un autre ordre ne sont pas le même job.
+            résolu.files[nom] = _sha256_de(":".join(empreintes).encode())
+            continue
         if not isinstance(valeur, str) or not valeur:
             continue
-        source = Path(valeur).expanduser()
-        if not source.is_file():
-            raise InputError(f"{nom} : fichier introuvable — {source}")
-        destination.mkdir(parents=True, exist_ok=True)
-        cible = destination / source.name
-        shutil.copy2(source, cible)
-        résolu.files[nom] = _sha256(cible)
-        # Le worker reçoit un chemin relatif au dossier du job : le même job
-        # rejoué ailleurs retrouve son entrée sans dépendre du disque d'origine.
-        résolu.values[nom] = f"{INPUTS_DIR}/{source.name}"
+        relatif, empreinte = _copier(nom, valeur, destination)
+        résolu.files[nom] = empreinte
+        résolu.values[nom] = relatif
+
+
+def _copier(nom: str, brut: str, destination: Path, *, rang: int | None = None) -> tuple[str, str]:
+    """Un fichier d'entrée dans `inputs/`, rendu (chemin relatif, empreinte).
+
+    Le rang préfixe le nom quand le champ porte une liste : deux vues peuvent
+    s'appeler `image.png` dans deux dossiers différents, et la seconde copie
+    écraserait la première sans que rien ne le signale.
+    """
+    source = Path(brut).expanduser()
+    if not source.is_file():
+        étiquette = nom if rang is None else f"{nom}[{rang}]"
+        raise InputError(f"{étiquette} : fichier introuvable — {source}")
+    destination.mkdir(parents=True, exist_ok=True)
+    nom_cible = source.name if rang is None else f"{rang:03d}-{source.name}"
+    cible = destination / nom_cible
+    shutil.copy2(source, cible)
+    # Le worker reçoit un chemin relatif au dossier du job : le même job rejoué
+    # ailleurs retrouve son entrée sans dépendre du disque d'origine.
+    return f"{INPUTS_DIR}/{nom_cible}", _sha256(cible)
+
+
+def _sha256_de(données: bytes) -> str:
+    return hashlib.sha256(données).hexdigest()
 
 
 def _sha256(path: Path) -> str:

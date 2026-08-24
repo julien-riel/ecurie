@@ -1,0 +1,88 @@
+{
+  "ref": "dinov2@vit-base",
+  "model": "dinov2",
+  "variant": "vit-base",
+  "capability": "image-embed",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / timm 1.0.28 / torch 2.13.0 / transformers 5.15.1",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/image-embed.json",
+    "version": 1,
+    "cases": [
+      "cote-256",
+      "cote-512",
+      "cote-1024"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 346344785,
+    "peak_unified_memory_bytes": 1527463936,
+    "warmup_ms": 1562,
+    "latency_ms_p50": 134,
+    "throughput": "1 sortie / 0.3 s"
+  },
+  "cases": [
+    {
+      "id": "cote-256",
+      "ok": true,
+      "duration_ms": 117,
+      "metrics": {
+        "duration_ms": 117,
+        "pooling": "cls",
+        "model_width": 252,
+        "model_height": 252,
+        "requested_max_side": 256,
+        "dimensions": 768,
+        "vector_norm": 1.0,
+        "mps_current_allocated_bytes": 346328064,
+        "mps_driver_allocated_bytes": 386613248,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 1025458176
+      },
+      "error": null
+    },
+    {
+      "id": "cote-512",
+      "ok": true,
+      "duration_ms": 134,
+      "metrics": {
+        "duration_ms": 134,
+        "pooling": "cls",
+        "model_width": 518,
+        "model_height": 518,
+        "requested_max_side": 512,
+        "dimensions": 768,
+        "vector_norm": 1.0,
+        "mps_current_allocated_bytes": 346328064,
+        "mps_driver_allocated_bytes": 1527463936,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 1527463936
+      },
+      "error": null
+    },
+    {
+      "id": "cote-1024",
+      "ok": true,
+      "duration_ms": 683,
+      "metrics": {
+        "duration_ms": 683,
+        "pooling": "cls",
+        "model_width": 1022,
+        "model_height": 1022,
+        "requested_max_side": 1024,
+        "dimensions": 768,
+        "vector_norm": 1.0,
+        "mps_current_allocated_bytes": 346328064,
+        "mps_driver_allocated_bytes": 1527447552,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 1527463936
+      },
+      "error": null
+    }
+  ],
+  "warnings": [
+    "pente du pic mal ajustée (R² = 0.57) sur max_side : la relation n'a pas l'air linéaire, le profil garde le pire cas mesuré"
+  ]
+}

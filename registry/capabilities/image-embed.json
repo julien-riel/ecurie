@@ -1,0 +1,60 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "image-embed",
+  "title": "Empreinte visuelle d'image",
+  "description": "Une image entière vers un vecteur, tel que deux prises de la même pièce donnent deux vecteurs proches. Aucun redressement, aucune détection en amont : c'est ce qui la sépare de `face-embed`, qui aligne sur cinq points d'ancrage avant d'encoder — une pièce mécanique n'a pas cinq points d'ancrage. Elle ne cherche rien : elle rend un vecteur par job, et le cosinus entre deux images quand on lui en donne deux ; une recherche par similarité demanderait un index, que le parc n'a pas. Comme `face-embed`, elle ne se compare qu'à elle-même : deux modèles de cette capacité produisent des vecteurs qui n'appartiennent pas au même espace, et la confrontation A/B porte sur les rangs, jamais sur les valeurs. Le prétraitement fait partie du contrat et non de l'adaptateur : l'image est composée sur **fond blanc opaque** avant d'être encodée. Sans cette règle écrite ici, un PNG à canal alpha se lit de deux façons — les assets du dépôt ont des canaux RGB nuls sous leur alpha, si bien qu'un `convert(\"RGB\")` naïf sert la silhouette sur fond noir et change les rangs d'une comparaison.",
+  "input": {
+    "type": "object",
+    "required": ["image"],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image à encoder, entière : ce qui est au bord compte autant que ce qui est au centre, et rien n'est recadré."
+      },
+      "compare_to": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Seconde image, facultative. Fournie, le job rend aussi le cosinus entre les deux vecteurs. C'est la seule façon de vérifier cette capacité sans index : un vecteur de 768 nombres ne se relit pas, un cosinus se lit."
+      },
+      "max_side": {
+        "type": "integer",
+        "minimum": 128,
+        "maximum": 2048,
+        "default": 256,
+        "x-ui": "slider",
+        "description": "Plus grand côté de l'image soumise au réseau, proportions conservées, chaque côté ramené au pas du modèle. C'est le seul paramètre qui pilote le coût. Le défaut est bas délibérément : ces encodeurs sont pré-entraînés autour de 224 pixels, et monter la définition coûte de la mémoire sans qu'aucune mesure du parc ne montre un gain en retour."
+      },
+      "normalize": {
+        "type": "boolean",
+        "default": true,
+        "description": "Ramener le vecteur à la norme 1. C'est ce qui rend le produit scalaire égal au cosinus, donc directement comparable ; le désactiver n'a d'intérêt que pour un index qui normalise lui-même."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["embedding", "dimensions"],
+    "properties": {
+      "embedding": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin du document produit, relatif au dossier du job : le vecteur, et ce qui permet de savoir à quel espace il appartient — le modèle, l'implémentation qui l'a chargé, la stratégie d'agrégation des jetons, la couleur du fond composé et la définition réellement soumise. Sans ces lignes, une suite de nombres ne se relit pas, et rien n'empêche de calculer un cosinus entre deux espaces étrangers."
+      },
+      "dimensions": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Longueur du vecteur. Une même longueur chez deux modèles ne rend pas leurs vecteurs comparables."
+      },
+      "similarity": {
+        "type": "number",
+        "minimum": -1.0,
+        "maximum": 1.0,
+        "description": "Cosinus entre le vecteur de `image` et celui de `compare_to`, quand la seconde image est fournie. Il n'y a pas de seuil : ce qui sépare « la même pièce » de « une pièce qui lui ressemble » dépend du modèle, de la définition soumise et de ce qu'on accepte de confondre, et cette capacité ne décide pas à la place de qui l'appelle."
+      }
+    }
+  }
+}

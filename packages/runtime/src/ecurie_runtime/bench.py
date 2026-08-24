@@ -24,9 +24,9 @@ from typing import Any
 
 from ecurie_core.capabilities import CapabilityContract
 from ecurie_core.machine import describe_machine, hardware_of, machine_slug
-from ecurie_core.models import Model, Variant
+from ecurie_core.models import Model, Variant, echelle_de
 from ecurie_store.db import LocationRecord
-from ecurie_store.weights import resolve_weights, variant_disk_bytes
+from ecurie_store.weights import resolve_source, variant_disk_bytes
 
 from ecurie_runtime import __version__ as HARNESS_VERSION
 from ecurie_runtime.runner import ResolvedInput, resolve_input
@@ -262,20 +262,32 @@ def _resolve_case(
     Les chemins de fichiers de la charge sont relatifs à son propre dossier, pas
     au répertoire courant : une mesure doit donner le même résultat qu'on la
     lance depuis la racine du dépôt ou d'ailleurs.
+
+    Un champ peut porter une **liste** de fichiers : chacun se résout de la même
+    façon, et la liste repart en JSON parce que c'est ainsi que le terminal
+    transmet une valeur composée. Sans ce cas, une charge multi-vues partait
+    telle quelle et le worker recevait des chemins relatifs à un dossier qu'il
+    n'a jamais vu.
     """
-    fichiers = {
-        nom
-        for nom, champ in contract.input_properties.items()
-        if champ.get("x-ui") == "file" or "contentMediaType" in champ
-    }
+    fichiers = set(contract.input_media_types()) & set(contract.input_properties)
+    listes = contract.list_fields()
+
+    def absolu(brut: str) -> str:
+        chemin = Path(brut)
+        return str(chemin if chemin.is_absolute() else (base_dir / chemin).resolve())
+
     assignations: dict[str, str] = {}
     for clé, valeur in cas.input.items():
-        if clé in fichiers and isinstance(valeur, str) and base_dir is not None:
-            chemin = Path(valeur)
-            absolu = chemin if chemin.is_absolute() else (base_dir / chemin).resolve()
-            assignations[clé] = str(absolu)
-        else:
-            assignations[clé] = valeur if isinstance(valeur, str) else json.dumps(valeur)
+        if base_dir is not None and clé in fichiers:
+            if clé in listes and isinstance(valeur, list):
+                assignations[clé] = json.dumps(
+                    [absolu(v) if isinstance(v, str) else v for v in valeur]
+                )
+                continue
+            if isinstance(valeur, str):
+                assignations[clé] = absolu(valeur)
+                continue
+        assignations[clé] = valeur if isinstance(valeur, str) else json.dumps(valeur)
     return resolve_input(contract, variant, assignations)
 
 
@@ -313,15 +325,29 @@ def _disk_bytes(
     déclareraient 595 Mo chacun pour 600 Mo réellement partagés : le contrôle
     d'admission refuserait des jobs qui passent, et la comptabilité disque
     compterait le parc dix fois.
+
+    **Les dépôts secondaires comptent aussi**, et l'oubli s'est vu tout de suite :
+    `smolvla-libero` déclarait 906 Mo pour 2,94 Go réellement occupés, sa dorsale
+    visuelle vivant dans un autre dépôt. Un `disk_bytes` qui ne compte qu'une
+    moitié annonce un modèle deux fois moins cher qu'il n'est, et c'est ce
+    chiffre que lit qui décide de faire de la place.
     """
-    try:
-        weights = resolve_weights(supervisor.config, variant, ref=ref)
-    except Exception:  # noqa: BLE001 — poids introuvables : l'état observé, à défaut
+    total = 0
+    résolus = 0
+    for source in variant.sources:
+        try:
+            weights = resolve_source(supervisor.config, source, ref=ref)
+        except Exception:  # noqa: BLE001 — dépôt introuvable : on n'en compte rien
+            continue
+        résolus += 1
+        total += _tree_bytes(weights.path, source.allow_patterns)
+    if total:
+        return total
+    # Aucun octet mesurable — poids absents, ou instantané vide. L'état observé
+    # est alors la meilleure réponse disponible, même s'il compte trop large.
+    if résolus == 0 or not records:
         return variant_disk_bytes(records, ref) if records else 0
-    mesuré = _tree_bytes(weights.path, variant.source.allow_patterns)
-    if mesuré:
-        return mesuré
-    return variant_disk_bytes(records, ref) if records else 0
+    return variant_disk_bytes(records, ref)
 
 
 def _tree_bytes(path: Path, allow_patterns: list[str] | None = None) -> int:
@@ -380,6 +406,13 @@ def fit_peak_scaling(
 
     Moindres carrés sur les points de la charge, et le R² est rendu avec : une
     droite ajustée sur une relation qui n'en est pas une vaut moins que rien.
+
+    Le paramètre peut désigner un champ **à cardinalité variable**, et c'est
+    alors sa longueur qui compte. `multiview-to-3d` l'a demandé le 24 août 2026 :
+    son coût suit le nombre de photos soumises, qui n'est pas un nombre saisi
+    mais la taille d'une liste. Sans cela, la charge n'avait aucun paramètre
+    déclarable et l'admission réservait le pire cas — 11,77 Go — pour un job à
+    deux vues qui en coûte 4,43.
     """
     nom = workload.scaling_parameter
     if not nom:
@@ -388,10 +421,10 @@ def fit_peak_scaling(
     for cas, résultat in zip(workload.cases, cases, strict=False):
         if not résultat.ok:
             continue
-        valeur = cas.input.get(nom)
+        valeur = echelle_de(cas.input.get(nom))
         pic = résultat.metrics.get("peak_memory_bytes")
-        if isinstance(valeur, (int, float)) and not isinstance(valeur, bool) and pic:
-            points.append((float(valeur), float(pic)))
+        if valeur is not None and pic:
+            points.append((valeur, float(pic)))
     if len(points) < 2 or len({x for x, _ in points}) < 2:
         return None
 

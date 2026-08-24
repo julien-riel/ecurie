@@ -62,18 +62,32 @@ variants:
       - "Profondeur relative, sans échelle métrique. `near` et `far` sont indispensables pour interpréter le PNG 16 bits — sans eux, l'image ne dit qu'un ordre."
       - "La sortie est rendue à la résolution de traitement (504 par défaut), pas à celle de l'image d'entrée : remettre une carte de profondeur à l'échelle par interpolation inventerait des distances qui n'ont pas été estimées."
       - "Le chargement lie deux copies du runtime OpenMP — celle de torch et celle de pycolmap. Le worker pose `KMP_DUPLICATE_LIB_OK` avant tout import lourd, faute de quoi la bibliothèque avorte le processus. Les deux paquets sont nécessaires au chemin d'inférence et aucun ne se recompile."
+      - "LE PIC DE CE VARIANT A ÉTÉ SOUS-DÉCLARÉ DE 2,79 Go JUSQU'AU 24 AOÛT 2026, et la faute était dans l'instrument : l'adaptateur mesurait par `peak_rss_bytes()` sur un modèle qui tourne sur MPS, où `ru_maxrss` ne voit pas les tampons Metal. Tout profil de cette famille pris avant cette date est à jeter, pas à corriger d'un facteur."
+      - "Une révision 1.1 de ces poids existe sous licence apache-2.0 (`depth-anything/DA3-LARGE-1.1`, employée par `da3-large-1-1-multivue`) et lèverait la restriction non commerciale. Basculer ce variant dessus impose de REMESURER : les poids sont réellement différents à architecture identique, et mesuré côte à côte sur une même scène de synthèse, 1.1 est un peu MOINS juste que 1.0 sur la pose."
     profile:
+      # REMESURÉ LE 24 AOÛT 2026, ET LE PROFIL PRÉCÉDENT ÉTAIT FAUX PAR DÉFAUT.
+      # Il annonçait 3 757 539 328 octets de pic ; la mesure corrigée en donne
+      # 6 546 423 808, soit 2,79 Go de plus — 43 % du vrai chiffre manquaient au
+      # contrôle d'admission. La cause est dans l'instrument, pas dans le
+      # modèle : `peak_memory_bytes()` rendait `peak_rss_bytes()` alors que ce
+      # worker tourne sur MPS, et `ru_maxrss` n'impute pas les tampons Metal au
+      # processus. Cela se lisait dans le bloc `peak_scaling` supprimé
+      # ci-dessous — `bytes_per_unit: 0.0` avec `r_squared: 1.0` sur une plage
+      # de `process_res` de 256 à 1008, c'est-à-dire une consommation qui ne
+      # bougeait pas quand l'entrée quadruplait. Ce n'était pas une belle
+      # mesure, c'était un instrument aveugle.
+      #
+      # La pente est maintenant réelle, mais elle reste inajustable : 3,76 Go à
+      # 256 comme à 504 (le RSS domine, le pilote est en dessous), puis 6,55 Go
+      # à 1008. C'est une marche, pas une droite — R² sous 0,9, donc le banc
+      # jette l'ajustement et le profil garde le pire cas mesuré. Un job à
+      # `process_res` 2048, que le contrat autorise encore, n'a jamais été
+      # mesuré et coûtera davantage.
       disk_bytes: 1643845073
-      peak_unified_memory_bytes: 3757539328
-      peak_scaling:
-        parameter: "process_res"
-        base_bytes: 3757539328
-        bytes_per_unit: 0.0
-        measured_range: [256.0, 1008.0]
-        r_squared: 1.0
-      warmup_ms: 3647
-      latency_ms_p50: 718
-      throughput: "1 sortie / 1.2 s"
+      peak_unified_memory_bytes: 6546423808
+      warmup_ms: 2818
+      latency_ms_p50: 502
+      throughput: "1 sortie / 1.1 s"
       measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0"
       measured_at: "2026-08-24"
       harness_version: "0.3.0"

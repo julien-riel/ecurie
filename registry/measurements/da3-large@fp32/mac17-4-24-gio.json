@@ -18,64 +18,56 @@
   },
   "profile": {
     "disk_bytes": 1643845073,
-    "peak_unified_memory_bytes": 3757539328,
-    "peak_scaling": {
-      "parameter": "process_res",
-      "base_bytes": 3757539328,
-      "bytes_per_unit": 0.0,
-      "measured_range": [
-        256.0,
-        1008.0
-      ],
-      "r_squared": 1.0
-    },
-    "warmup_ms": 3647,
-    "latency_ms_p50": 718,
-    "throughput": "1 sortie / 1.2 s"
+    "peak_unified_memory_bytes": 6546423808,
+    "warmup_ms": 2818,
+    "latency_ms_p50": 502,
+    "throughput": "1 sortie / 1.1 s"
   },
   "cases": [
     {
       "id": "res-256",
       "ok": true,
-      "duration_ms": 718,
+      "duration_ms": 347,
       "metrics": {
-        "duration_ms": 718,
+        "duration_ms": 347,
         "process_res": 256,
         "device": "mps",
-        "infer_ms": 699,
+        "infer_ms": 331,
         "depth_range": 0.452917,
-        "peak_memory_bytes": 3757539328
+        "peak_memory_bytes": 3757588480
       },
       "error": null
     },
     {
       "id": "res-504",
       "ok": true,
-      "duration_ms": 516,
+      "duration_ms": 502,
       "metrics": {
-        "duration_ms": 516,
+        "duration_ms": 502,
         "process_res": 504,
         "device": "mps",
-        "infer_ms": 482,
+        "infer_ms": 464,
         "depth_range": 0.765229,
-        "peak_memory_bytes": 3757539328
+        "peak_memory_bytes": 3757588480
       },
       "error": null
     },
     {
       "id": "res-1008",
       "ok": true,
-      "duration_ms": 2330,
+      "duration_ms": 2341,
       "metrics": {
-        "duration_ms": 2330,
+        "duration_ms": 2341,
         "process_res": 1008,
         "device": "mps",
-        "infer_ms": 2219,
+        "infer_ms": 2227,
         "depth_range": 0.695394,
-        "peak_memory_bytes": 3757539328
+        "peak_memory_bytes": 6546423808
       },
       "error": null
     }
   ],
-  "warnings": []
+  "warnings": [
+    "pente du pic mal ajustée (R² = 0.90) sur process_res : la relation n'a pas l'air linéaire, le profil garde le pire cas mesuré"
+  ]
 }
