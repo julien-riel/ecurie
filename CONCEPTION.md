@@ -478,9 +478,12 @@ la file d'écoute du worker — c'est le comportement voulu, et le seul possible
 sans donner à un processus autorité sur les jobs de l'autre.
 
 Politique du §7 de l'architecture encodée en config : `max_heavy_resident = 1`
-(lourd = peak > `heavy_threshold_bytes`, **8 Gio** depuis le recalibrage du
-20 août 2026 — à 6 Go, les quatre profils du parc réel sont lourds et la règle ne
-discrimine plus rien), les légers restent chauds. Un variant **sans profil mesuré**
+(lourd = peak > `heavy_threshold_bytes`, **8 Gio** sur la machine de référence
+depuis le recalibrage du 20 août 2026 — à 6 Go, les quatre profils du parc réel
+sont lourds et la règle ne discrimine plus rien), les légers restent chauds. Ces
+8 Gio sont **45 % du budget** et non une constante : le défaut vaut `"auto"`, et
+`resolve_heavy_threshold` les recalcule sur chaque machine, faute de quoi un Mac
+de 16 Go retomberait dans le travers reproché aux 6 Go. Un variant **sans profil mesuré**
 n'est exécutable qu'en mode mesure : parc déchargé entièrement, échantillonnage RSS,
 le résultat écrit le premier profil. C'est ce qui rend la règle « jamais de profil
 estimé » vivable au premier lancement.

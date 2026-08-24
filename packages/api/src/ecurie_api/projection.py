@@ -10,7 +10,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from ecurie_core.capabilities import CapabilityContract
-from ecurie_core.config import Config
+from ecurie_core.config import Config, resolve_heavy_threshold
 from ecurie_core.issues import Issue
 from ecurie_core.models import Model, Variant
 from ecurie_core.registry import Registry
@@ -31,7 +31,9 @@ def issues_out(issues: list[Issue]) -> list[IssueOut]:
     return [IssueOut(severity=i.severity, file=i.file, message=i.message) for i in issues]
 
 
-def variant_out(root: Path, config: Config, model: Model, variant: Variant) -> VariantOut:
+def variant_out(
+    root: Path, config: Config, budget_bytes: int, model: Model, variant: Variant
+) -> VariantOut:
     ref = f"{model.id}@{variant.id}"
     état = inspect_variant(root, config, model, variant, ref)
     profil = variant.profile
@@ -54,12 +56,13 @@ def variant_out(root: Path, config: Config, model: Model, variant: Variant) -> V
         heavy=(
             None
             if profil is None
-            else profil.peak_unified_memory_bytes > config.heavy_threshold_bytes
+            else profil.peak_unified_memory_bytes
+            > resolve_heavy_threshold(config, budget_bytes)
         ),
     )
 
 
-def model_out(root: Path, config: Config, model: Model) -> ModelOut:
+def model_out(root: Path, config: Config, budget_bytes: int, model: Model) -> ModelOut:
     return ModelOut(
         id=model.id,
         name=model.name,
@@ -72,7 +75,7 @@ def model_out(root: Path, config: Config, model: Model) -> ModelOut:
         incumbent=model.incumbent,
         notes=model.notes,
         links=LinksOut(**model.links.model_dump()) if model.links else None,
-        variants=[variant_out(root, config, model, v) for v in model.variants],
+        variants=[variant_out(root, config, budget_bytes, model, v) for v in model.variants],
     )
 
 

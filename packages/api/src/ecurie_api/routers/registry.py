@@ -35,7 +35,7 @@ def capabilities(state: StateDep) -> CapabilitiesResponse:
     registry = state.registry()
     par_capacité: dict[str, list] = {}
     for model in registry.models.values():
-        projeté = model_out(state.root, state.config, model)
+        projeté = model_out(state.root, state.config, state.budget.bytes, model)
         par_capacité.setdefault(model.capability, []).append(projeté)
 
     return CapabilitiesResponse(
@@ -72,6 +72,6 @@ def models(
     ]
     ordonnés = sorted(retenus, key=lambda m: m.id)
     return ModelsResponse(
-        models=[model_out(state.root, state.config, m) for m in ordonnés],
+        models=[model_out(state.root, state.config, state.budget.bytes, m) for m in ordonnés],
         issues=issues_out(registry.issues),
     )

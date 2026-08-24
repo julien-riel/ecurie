@@ -314,6 +314,13 @@ TTS rend l'outil désagréable.
 > 17,76 disponibles) et seules l'image et la musique se disputent la place. Recalibré
 > le 20 août 2026, dans `Config.heavy_threshold_bytes` et
 > `admission.DEFAULT_HEAVY_THRESHOLD`.
+>
+> **Et 8 Gio est une part, pas une constante.** Ces 8 Gio valent 45 % des 17,76 que
+> Metal annonce sur la machine de référence. Sur un Mac de 16 Go, dont le budget
+> tombe à ~11,8 Gio, un seuil resté à 8 Gio commettrait exactement la faute
+> reprochée aux 6 Go : tout devient lourd, plus rien ne cohabite. Le défaut est
+> donc `"auto"` — `resolve_heavy_threshold` tire les octets du budget détecté —
+> et un nombre explicite dans `~/.ecurie/config.toml` le remplace.
 
 Mesure du profil, par le banc d'essai :
 - MLX : `mx.get_peak_memory()` après reset, valeur exacte.

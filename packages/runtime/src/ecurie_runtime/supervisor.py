@@ -53,7 +53,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from ecurie_core.config import Config, ecurie_home
+from ecurie_core.config import Config, ecurie_home, resolve_heavy_threshold
 from ecurie_core.models import Model, Variant
 from ecurie_core.registry import Registry
 from ecurie_store.weights import WeightsLocation, resolve_weights
@@ -328,7 +328,7 @@ class Supervisor:
         return Policy(
             budget_bytes=self.budget.bytes,
             max_heavy_resident=self.config.max_heavy_resident,
-            heavy_threshold_bytes=self.config.heavy_threshold_bytes,
+            heavy_threshold_bytes=resolve_heavy_threshold(self.config, self.budget.bytes),
         )
 
     def residents(self) -> list[ResidentEntry]:

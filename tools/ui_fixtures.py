@@ -58,7 +58,7 @@ def capture(root: Path) -> dict:
     par_capacité: dict[str, list] = {}
     modèles = []
     for model in sorted(registre.models.values(), key=lambda m: m.id):
-        projeté = model_out(root, config, model)
+        projeté = model_out(root, config, BUDGET_FIGE, model)
         par_capacité.setdefault(model.capability, []).append(projeté)
         modèles.append(projeté)
 
