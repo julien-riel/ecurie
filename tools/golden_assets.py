@@ -463,6 +463,105 @@ def _fond(nom: str, taille: int) -> Image.Image:
     return Image.fromarray(couleurs, mode="RGB")
 
 
+class Onde:
+    """Un signal audio qui sait s'écrire, pour que `produire` n'ait rien à savoir.
+
+    Les recettes rendaient jusqu'ici des `Image.Image`, dont `produire` appelle
+    `.save(chemin)`. Un mélange musical n'est pas une image ; lui donner la même
+    méthode évite d'aiguiller sur le type au moment d'écrire, et garde l'écriture
+    du WAV — seize bits, entrelacé — à un seul endroit.
+
+    `wave` est en bibliothèque standard : cette recette n'ajoute aucune
+    dépendance à un outil qui doit pouvoir tourner partout.
+    """
+
+    def __init__(self, canaux: np.ndarray, frequence: int) -> None:
+        self.canaux = canaux  # (canaux, échantillons), flottants dans [-1, 1]
+        self.frequence = frequence
+
+    def save(self, chemin: Path | str) -> None:
+        import wave
+
+        entrelacé = np.clip(self.canaux.T, -1.0, 1.0)
+        entiers = (entrelacé * 32767.0).astype("<i2")
+        with wave.open(str(chemin), "wb") as sortie:
+            sortie.setnchannels(self.canaux.shape[0])
+            sortie.setsampwidth(2)
+            sortie.setframerate(self.frequence)
+            sortie.writeframes(entiers.tobytes())
+
+
+def rendre_musique(source: dict) -> Onde:
+    """Un mélange à quatre pistes, calculé — ni enregistrement, ni licence à suivre.
+
+    La séparation de sources se mesure sur de la musique : c'est ce que HTDemucs
+    a appris, et une voix seule le lui fait rendre n'importe quoi. Faute de
+    morceau libre qu'on pourrait committer, on en fabrique un dont on connaît
+    exactement les quatre pistes — basse, batterie, harmonie, voix — puisque
+    c'est nous qui les additionnons.
+
+    Ce n'est pas de la musique agréable, et ça n'a pas à l'être : la charge type
+    mesure un **coût**, pas une qualité (voir le README du dossier). Ce qu'elle
+    doit avoir, ce sont les traits que le réseau cherche — une fondamentale
+    grave tenue, des transitoires percussifs brefs, un accord soutenu, une voix
+    modulée dans le médium.
+    """
+    fréquence = int(source.get("frequence", 44_100))
+    secondes = float(source.get("secondes", 12.0))
+    tempo = float(source.get("tempo", 100.0))
+    graine = int(source.get("graine", 1))
+
+    rng = np.random.default_rng(graine)
+    t = np.arange(int(secondes * fréquence)) / fréquence
+
+    # Basse : fondamentale grave tenue, deux notes alternées à la mesure.
+    mesure = 240.0 / tempo  # quatre temps
+    note = np.where((t % (2 * mesure)) < mesure, 55.0, 73.42)  # la1, ré2
+    basse = 0.32 * np.sin(2 * np.pi * np.cumsum(note) / fréquence)
+
+    # Harmonie : triade tenue, plus une quinte une octave au-dessus.
+    harmonie = 0.10 * sum(
+        np.sin(2 * np.pi * f * t) for f in (220.0, 277.18, 329.63, 659.25)
+    )
+
+    # Batterie : transitoires brefs. Une grosse caisse tombe sur le temps, une
+    # caisse claire sur les contretemps — du bruit filtré par une enveloppe
+    # exponentielle, ce qui suffit à en faire des attaques franches.
+    batterie = np.zeros_like(t)
+    temps = 60.0 / tempo
+    for index in range(int(secondes / temps) + 1):
+        départ = int(index * temps * fréquence)
+        if départ >= len(t):
+            break
+        grave = index % 2 == 0
+        durée = int((0.09 if grave else 0.05) * fréquence)
+        durée = min(durée, len(t) - départ)
+        enveloppe = np.exp(-np.arange(durée) / (fréquence * (0.02 if grave else 0.012)))
+        if grave:
+            corps = np.sin(2 * np.pi * 58.0 * np.arange(durée) / fréquence)
+        else:
+            corps = rng.standard_normal(durée)
+        batterie[départ : départ + durée] += 0.45 * enveloppe * corps
+
+    # Voix : porteuse dans le médium, vibrato et enveloppe de phrasé — de quoi
+    # occuper la bande où le réseau cherche un chant, sans prétendre en être un.
+    vibrato = 1.0 + 0.015 * np.sin(2 * np.pi * 5.2 * t)
+    phrasé = 0.5 * (1 + np.sin(2 * np.pi * 0.25 * t - np.pi / 2)) ** 2
+    voix = 0.22 * phrasé * sum(
+        amplitude * np.sin(2 * np.pi * 233.08 * rang * vibrato * t)
+        for rang, amplitude in ((1, 1.0), (2, 0.35), (3, 0.18))
+    )
+
+    mélange = basse + harmonie + batterie + voix
+    crête = float(np.abs(mélange).max()) or 1.0
+    mélange = (mélange / crête * 0.89).astype(np.float32)
+    # Stéréo par un très léger décalage : un mixage réellement mono ferait de la
+    # stéréo du modèle une information constante, et le pipeline duplique déjà.
+    décalage = int(0.0007 * fréquence)
+    droite = np.concatenate([np.zeros(décalage, dtype=np.float32), mélange[:-décalage]])
+    return Onde(np.stack([mélange, droite]), fréquence)
+
+
 def rendre_scene(source: dict) -> tuple[Image.Image, Image.Image]:
     """Compose des solides sur un fond opaque, et rend l'alpha exact avec.
 
@@ -556,6 +655,9 @@ def fichiers_du_cas(dossier: Path, cas: dict, source: dict) -> dict[str, Image.I
 
     if recette == "solide":
         return {entrée: rendre_solide(str(source["forme"]))}
+
+    if recette == "musique":
+        return {entrée: rendre_musique(source)}
 
     if recette == "scene":
         image, masque = rendre_scene(source)
