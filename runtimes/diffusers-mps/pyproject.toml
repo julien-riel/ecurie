@@ -34,7 +34,14 @@ dependencies = [
     "diffusers>=0.39.0,<0.40",
     # `pip install diffusers` n'installe ni torch ni transformers : les encodeurs de
     # texte des pipelines viennent de transformers, qu'il faut donc déclarer soi-même.
-    "transformers>=4.41.2",
+    #
+    # Le cap <5 est un constat, pas une prudence. Le dépôt LTX-Video du parc publie
+    # son encodeur T5 avec un `spiece.model` SentencePiece et **sans**
+    # `tokenizer.json` ; transformers 5 ne sait plus construire un tokenizer depuis
+    # ce seul fichier, tente de le lire comme un vocabulaire tiktoken et échoue sur
+    # « Error parsing line b'\\x0e' ». La 4.x le charge. À rouvrir le jour où le
+    # dépôt publiera un tokenizer rapide, ou si le parc change de dépôt LTX.
+    "transformers>=4.41.2,<5",
     # Requis dès qu'on touche à `low_cpu_mem_usage` ou au placement des modules.
     "accelerate>=0.31.0",
     # Contrainte réelle de diffusers 0.39. Le worker charge avec `use_safetensors=True` :
@@ -45,6 +52,23 @@ dependencies = [
     "huggingface-hub>=0.34.0,<2.0",
     # Écriture du PNG de sortie.
     "pillow>=11,<13",
+    # Écriture du mp4 des deux capacités vidéo. C'est ce que `export_to_video` de
+    # diffusers utilise, et diffusers ne le déclare pas : il ne l'importe qu'au
+    # moment d'écrire, si bien qu'un job vidéo échouait après avoir payé toute la
+    # génération. La roue `imageio-ffmpeg` embarque son binaire ffmpeg — rien à
+    # installer sur la machine, et rien qui dépende d'un Homebrew à jour.
+    "imageio>=2.34,<3",
+    "imageio-ffmpeg>=0.5,<1",
+    # L'encodeur de texte de LTX-Video est un T5, et son vocabulaire est un
+    # `spiece.model` SentencePiece. Sans ce paquet, `transformers` ne reconnaît
+    # pas le format, tente de le lire comme un vocabulaire tiktoken, et échoue
+    # sur un octet quelconque du binaire — au chargement du pipeline, pas à
+    # l'import, donc invisible tant qu'aucun job vidéo n'a été lancé.
+    "sentencepiece>=0.2,<1",
+    # Le repli que `transformers` tente avant d'y renoncer : le déclarer évite
+    # que le diagnostic s'arrête sur « tiktoken is required » au lieu de dire ce
+    # qui manque vraiment.
+    "tiktoken>=0.7,<1",
 ]
 
 # Rien à construire : cet env n'est qu'une liste de dépendances, pas un paquet.
