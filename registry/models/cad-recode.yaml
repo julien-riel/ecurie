@@ -1,0 +1,127 @@
+# Nuage de points vers programme CAO — CAD-Recode v1.5.
+#
+# ATTENTION — USAGE DE RECHERCHE NON COMMERCIALE UNIQUEMENT, ET LA RESTRICTION
+# ATTEINT AUSSI LE CODE.
+#
+# Les poids sont sous **CC BY-NC 4.0**, et le `LICENSE.md` du dépôt amont
+# github.com/filaPro/cad-recode est le même Attribution-NonCommercial 4.0
+# International (19 346 octets, relu le 24 août 2026). Ce n'est donc pas
+# seulement le modèle qui est non commercial : les ~114 lignes de la classe
+# `CADRecode` et de son `FourierPointEncoder`, sans lesquelles ces poids ne se
+# chargent pas, le sont aussi. **Aucune de ces lignes n'est dans ce dépôt.**
+# `runtimes/cad-recode/README.md` donne la commande qui les remet en place sous
+# `runtimes/cad-recode/vendor/`, qui n'est pas versionné — c'est le chemin déjà
+# emprunté par `runtimes/hunyuan3d/`.
+#
+# Le précédent du parc est `arcface.yaml` : inscrit comme référence, pas comme
+# titulaire. Ici il n'y a même pas d'alternative permissive à désigner — toute la
+# famille CAO est logée à la même enseigne (cad-recode v1, cadrille et
+# cadrille-rl en CC-BY-NC-4.0, Text2CAD en CC-BY-NC-SA-4.0, donc contaminante).
+# Le score de veille écarte `research-only` d'office, et c'est bien ainsi : cette
+# capacité entre au parc pour être essayée, pas pour servir un travail
+# professionnel.
+#
+# CE QUI A DÉCIDÉ DE LA VERSION. v1.5 plutôt que v1, sur les trois bancs du
+# CHANGELOG amont : DeepCAD IoU 92,0 contre 87,6 ; Fusion360 87,8 contre 83,1 ;
+# CC3D 74,2 contre 64,3 ; taux de code invalide 0,37 % contre 0,5 %. Et surtout
+# le contrat d'entrée diffère — v1 attend six dimensions par point (position et
+# normale), v1.5 seulement trois. Un adaptateur ne peut pas servir les deux.
+#
+# CE QUI A DÉCIDÉ DE LA BORNE `transformers<5`, ET C'EST LE FAIT LE PLUS
+# IMPORTANT DE CE MANIFESTE. Avec transformers 5.x — ce qu'une résolution libre
+# installe aujourd'hui — le modèle ne plante pas : il **ment**. Le détail mesuré
+# est dans `runtimes/cad-recode/pyproject.toml`, à côté de la borne. Ne pas la
+# relever sans avoir relancé un vrai job et lu le programme produit.
+#
+# CE QUI A DÉCIDÉ DU SECOND DÉPÔT. Le dépôt des poids ne publie que cinq fichiers
+# et **aucun tokenizer**. Il faut celui de `Qwen/Qwen2-1.5B`, apache-2.0, sur
+# lequel ces poids ont été entraînés. C'est le premier emploi d'`extra_sources`
+# au parc : `ecurie pull` ramène les deux dépôts, la comptabilité disque les
+# rattache tous les deux, et l'adaptateur retrouve le tokenizer sous
+# `variant["extra_paths"]["tokenizer"]`. Sans ce champ, la seule issue honnête
+# aurait été de vendorer 11,5 Mo de tokenizer hors de toute révision épinglée.
+id: cad-recode
+name: CAD-Recode v1.5 (nuage de points vers CadQuery)
+capability: pointcloud-to-cad
+family: cad-recode
+vendor: Université du Luxembourg (Rukhovich et al.)
+license: cc-by-nc-4.0
+license_class: research-only
+status: candidate
+
+notes: >
+  Un Qwen2-1.5B dont l'entrée a été détournée : les 256 premières positions du
+  contexte ne portent pas des jetons mais les points du nuage, encodés en séries
+  de Fourier par une seule couche linéaire ajoutée. Le corps du modèle de langue
+  est inchangé, et c'est pourquoi il écrit du Python correct — il n'a jamais
+  appris autre chose.
+
+  Le programme sort à l'échelle apprise, pas à celle de la pièce : la géométrie
+  est ramenée dans un cube de côté 2 avant d'entrer, et le modèle a été entraîné
+  sur des coordonnées entières de -100 à +100. Cette capacité reconstruit une
+  **forme**, elle ne relève pas des cotes.
+
+links:
+  homepage: https://huggingface.co/filapro/cad-recode-v1.5
+  code: https://github.com/filaPro/cad-recode
+  paper: https://arxiv.org/abs/2412.14042
+
+variants:
+  - id: bf16
+    quantization: bf16
+    tier: hot
+    runtime: cad-recode
+    source:
+      kind: huggingface
+      repo: filapro/cad-recode-v1.5
+      revision: "765e8cc315a1a77bd8c69ccd0b403bad20ce35e8"   # 2026-08-24
+      # Cinq fichiers au dépôt, trois retenus : le README et le .gitattributes
+      # n'apportent rien à l'exécution. Il n'y a **aucun .py** parmi eux — la
+      # classe que `architectures` désigne n'existe nulle part, voir les caveats.
+      allow_patterns: ["model.safetensors", "config.json", "generation_config.json"]
+    extra_sources:
+      # Le tokenizer, qui n'est pas dans le dépôt des poids. Licence différente
+      # de celle du modèle — apache-2.0 contre cc-by-nc-4.0 —, ce que le champ
+      # `license` ne sait pas dire et que ce commentaire dit à sa place : c'est
+      # le modèle qui contraint l'usage, pas ces 11,5 Mo de vocabulaire.
+      - kind: huggingface
+        repo: Qwen/Qwen2-1.5B
+        revision: "8a16abf2848eda07cc5253dec660bf1ce007ad7a"   # 2026-08-24
+        allow_patterns:
+          ["tokenizer.json", "tokenizer_config.json", "vocab.json", "merges.txt"]
+        role: tokenizer
+    defaults:
+      n_points: 256
+      seed: 42
+      max_new_tokens: 768
+    caveats:
+      - "USAGE DE RECHERCHE NON COMMERCIALE UNIQUEMENT — la licence CC BY-NC 4.0 couvre les poids ET le code d'inférence amont. Voir l'en-tête du manifeste."
+      - "Le code d'inférence n'est pas dans ce dépôt et `ecurie env sync cad-recode` ne le pose pas : il faut l'étape décrite dans runtimes/cad-recode/README.md, sans quoi le worker refuse de charger en affichant la commande."
+      - "`transformers>=5` casse la capacité EN SILENCE : le chargement échoue sur `all_tied_weights_keys`, et une fois rustiné la génération rend du Python plausible et faux. La borne `<5` de l'env est la condition de fonctionnement."
+      - "Le programme est rendu à l'échelle du modèle, pas à celle de la pièce : l'entrée est centrée et ramenée dans un cube de côté 2, et les coordonnées produites vivent entre -100 et +100. Aucune cote d'origine n'est retrouvée."
+      - "`n_points` autre que 256 est hors distribution : 256 est la valeur d'entraînement, et le contrat laisse descendre à 64 pour mesurer le coût, pas pour améliorer la sortie."
+      - "Exécuter le programme est facultatif et faux par défaut. Le garde-fou du démonstrateur amont est un `multiprocessing.Process` forké, qui hérite du système de fichiers et du réseau du parent : il traite les blocages, pas la sécurité. L'adaptateur emploie un interpréteur séparé `-I`, environnement vidé, dossier de travail limité au job, délai d'horloge de 20 s, RLIMIT_CPU à 15 s et RLIMIT_FSIZE à 512 Mio. Il ne coupe PAS le réseau et ne borne PAS la mémoire : mesuré sur cette machine, macOS refuse RLIMIT_AS, RLIMIT_DATA et RLIMIT_RSS quelle que soit la valeur demandée, alors que leur limite dure vaut l'infini. Le job le remonte en avertissement à chaque exécution, parce qu'un garde-fou dont on croit à tort qu'il tient est pire que pas de garde-fou."
+      - "Le premier `import cadquery` de la machine prend 85,6 s (mesuré ici ; 2,97 s de CPU seulement — c'est la validation de ~300 Mio de code natif non signé, pas de la compilation de bytecode). Les suivants prennent 1,1 s. L'adaptateur le préchauffe au chargement dans un processus jetable : l'attente tombe donc dans le warmup et non dans la latence du premier job, et les ~300 Mio de code natif n'entrent pas au RSS du worker, qui n'a lui-même jamais besoin de cadquery."
+      - "Dialecte CadQuery : le modèle a été entraîné contre cadquery au commit e99a15df avec ocp 7.7.2 ; l'env sert 2.8.0 avec ocp 7.9.3.1.1. Les constructions rencontrées passent, les plus rares ne sont pas éprouvées, et l'amont annonce lui-même 0,37 % de code invalide sur DeepCAD hors dérive de version."
+      - "LA FORME EST JUSTE, LES COTES NE LE SONT PAS, et le cube le cache. Mesuré sur la pièce en L de la charge type : les six sommets du profil reviennent exacts à 0,0033 près une fois recadrés — c'est l'arrondi entier du modèle — pendant que le volume vaut 1 671 600 mm³ contre 360 000 au solide d'origine. Le cube, lui, rend un volume exact au dernier chiffre : ses 200 mm coïncident par hasard avec la pleine échelle du modèle. Comparer des volumes sur cette capacité mène donc à la conclusion inverse de la vérité une fois sur deux."
+      - "Le pic dépend de `n_points` par une marche, pas par une pente : mesuré dans quatre processus séparés, 3,30 Gio à 64 points, 3,32 à 128, 4,42 à 256 et 4,54 à 512 — un gigaoctet gagné entre 128 et 256, puis un plateau. Un ajustement linéaire y donne R² = 0,77, sous le seuil de 0,9 : la charge type n'a donc pas de `scaling_parameter` et le profil garde le pire cas. Un job à 512 points dépasse ce pic de 0,12 Gio."
+      - "UNE PIÈCE À PLUSIEURS OPÉRATIONS PERD SES DÉTAILS, ET LA CHARGE TYPE NE LE MONTRE PAS. Ses trois pièces sont des constructions à une seule opération et reviennent justes. Éprouvé hors banc sur une équerre à quatre opérations — semelle percée de deux trous ⌀20, plus un montant, en STL : la silhouette en L et l'épaisseur reviennent exactes aux proportions près, mais les deux perçages cylindriques sont remplacés par deux encoches ouvertes dans le profil extrudé, et le solide n'a plus aucun trou traversant. Distance de Chamfer ×1000 mesurée entre le nuage soumis et la pièce reconstruite : 0,951, au-dessus du pire des trois bancs annoncés par l'amont (CC3D, 0,765). Le job réussit, le solide est étanche, et rien ne signale la perte."
+    profile:
+      # Mesuré par `ecurie bench`, l'autorité étant
+      # registry/measurements/cad-recode@bf16/mac17-4-24-gio.json. Le pic est le
+      # plus grand de trois relevés — RSS du worker, pilote Metal, et pic RSS du
+      # sous-processus qui exécute le programme —, les trois occupant la même
+      # mémoire unifiée. Les trois cas de la charge ont rendu le même pic à
+      # l'octet, ce qui dit que ce sont les poids qui le font, pas la pièce.
+      #
+      # Deux passages du banc : pic et disque identiques à l'octet, warmup 3770
+      # puis 3002 ms, latence 4045 puis 4001. Le profil retient le second, celui
+      # du code livré. C'est le pic qui est stable ici, pas les durées.
+      disk_bytes: 3087787687
+      peak_unified_memory_bytes: 4415291392
+      warmup_ms: 3002
+      latency_ms_p50: 4001
+      throughput: "1 sortie / 4.4 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / numpy 2.5.2 / torch 2.13.0 / transformers 4.57.6 / trimesh 5.0.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

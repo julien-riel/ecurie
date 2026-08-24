@@ -1,0 +1,78 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "geo-embed",
+  "title": "Empreinte de tuile satellite",
+  "description": "Une tuile de scène satellite vers un vecteur, tel que deux passages du même terrain donnent deux vecteurs proches. Trois choses la séparent d'`image-embed`, et aucune n'est un détail de format. **L'entrée n'est pas une image** : c'est un raster multi-bandes dont le modèle lit six canaux, dont trois que l'œil ne voit pas — une parcelle irriguée et une parcelle sèche se ressemblent en rouge-vert-bleu et se séparent dans le proche infrarouge. **Rien n'est redimensionné** : `image-embed` ramène l'image à `max_side` parce que le contenu d'une photo ne dépend pas de sa définition, alors qu'un pixel satellite mesure une surface au sol — trente mètres pour ces poids — et rééchantillonner reviendrait à changer ce que le modèle croit regarder. La scène est donc découpée en tuiles à sa définition native. **Il en sort donc plusieurs vecteurs**, un par tuile, là où `image-embed` en rend un par fichier : c'est ce que compte `count`, absent de l'autre contrat. Comme les autres empreintes du parc, elle ne se compare qu'à elle-même — deux modèles de cette capacité rendent des vecteurs qui n'appartiennent pas au même espace, et la confrontation A/B porte sur les rangs, jamais sur les valeurs. Elle ne cherche rien : il n'y a pas d'index dans le parc, seulement un vecteur par job et le cosinus entre deux scènes quand on en donne deux. Et elle ne classe rien : un vecteur ne dit pas ce qu'il y a sur le terrain, il dit seulement de quelles autres tuiles celle-ci est proche.",
+  "input": {
+    "type": "object",
+    "required": ["raster"],
+    "additionalProperties": false,
+    "properties": {
+      "raster": {
+        "type": "string",
+        "contentMediaType": "image/tiff",
+        "x-ui": "file",
+        "description": "Scène à encoder, en GeoTIFF multi-bandes. Réflectances attendues à l'échelle des produits Sentinel-2 et HLS, c'est-à-dire des entiers valant dix mille fois la réflectance. Le géoréférencement n'est pas nécessaire ici : l'encodeur ne rend aucune coordonnée, et un raster nu s'encode aussi bien."
+      },
+      "band_indices": {
+        "type": "array",
+        "minItems": 6,
+        "maxItems": 6,
+        "default": [1, 2, 3, 8, 11, 12],
+        "items": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Numéro de bande, compté à partir de zéro."
+        },
+        "description": "Les six bandes à extraire, dans l'ordre attendu par le modèle : bleu, vert, rouge, proche infrarouge, moyen infrarouge 1, moyen infrarouge 2. Le nombre n'est pas négociable — la première convolution du réseau a six canaux en dur. Le défaut convient à un Sentinel-2 niveau 1C livré avec ses treize bandes ; un raster réduit aux six bandes utiles se lit avec [0, 1, 2, 3, 4, 5]. Deux vecteurs calculés sur des sélections de bandes différentes ne sont pas comparables, et rien dans les nombres ne le montrerait : c'est pourquoi le document de sortie inscrit la sélection employée."
+      },
+      "compare_to": {
+        "type": "string",
+        "contentMediaType": "image/tiff",
+        "x-ui": "file",
+        "description": "Seconde scène, facultative. Fournie, le job rend aussi le cosinus entre les deux empreintes de scène. C'est la seule façon de vérifier cette capacité sans index : mille vingt-quatre nombres ne se relisent pas, un cosinus se lit."
+      },
+      "tile_size": {
+        "type": "integer",
+        "minimum": 64,
+        "maximum": 1024,
+        "multipleOf": 16,
+        "default": 512,
+        "x-ui": "slider",
+        "description": "Côté, en pixels de la scène, des tuiles soumises au réseau. Ce n'est pas une définition de sortie mais un découpage : la scène n'est jamais mise à l'échelle, seulement coupée, et une tuile plus grande couvre plus de terrain sous un seul vecteur. Le pas de 16 est celui des patches du transformeur. Il pilote le coût deux fois — au carré par tuile, et par le nombre de tuiles —, et ces deux effets vont en sens contraire, ce qui rend ce paramètre le plus intéressant de la charge type. À la différence de `geo-segment`, aucun multiple de 192 n'est exigé ici : la contrainte de Metal vient du décodeur, que cette capacité n'emploie pas, et 192, 224, 256, 384, 512, 576, 768 et 1024 ont tous été mesurés sur l'encodeur seul, sans un octet de mémoire supplémentaire au-delà de ce que pèsent les poids."
+      },
+      "normalize": {
+        "type": "boolean",
+        "default": true,
+        "description": "Ramener chaque vecteur à la norme 1. C'est ce qui rend le produit scalaire égal au cosinus, donc directement comparable ; le désactiver n'a d'intérêt que pour un index qui normalise lui-même. Ici le réglage fait une chose de plus qu'ailleurs, et il faut le savoir : chaque tuile étant normalisée **avant** la moyenne qui forme l'empreinte de scène, il change la pondération des tuiles entre elles. Mesuré sur deux scènes de 768 pixels découpées en quatre, l'écart sur le cosinus est de 0,0001 — petit, mais réel, et c'est pourquoi le document de sortie inscrit le réglage employé."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["embeddings", "count", "dimensions"],
+    "properties": {
+      "embeddings": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin du document produit, relatif au dossier du job : un vecteur par tuile avec la fenêtre de pixels dont il vient, l'empreinte de scène qui les agrège, et ce qui permet de savoir à quel espace ces nombres appartiennent — le modèle, la révision des poids, la stratégie d'agrégation des jetons, les bandes retenues et le découpage employé. Sans ces lignes, rien n'empêche de calculer un cosinus entre deux espaces étrangers."
+      },
+      "count": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de tuiles encodées. Il vaut 1 sur une scène plus petite qu'une tuile, et c'est le champ qui rappelle qu'ici un fichier ne donne pas un vecteur."
+      },
+      "dimensions": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Longueur d'un vecteur. Une même longueur chez deux modèles ne rend pas leurs vecteurs comparables."
+      },
+      "similarity": {
+        "type": "number",
+        "minimum": -1.0,
+        "maximum": 1.0,
+        "description": "Cosinus entre l'empreinte de scène de `raster` et celle de `compare_to`, quand la seconde scène est fournie. Il n'y a pas de seuil : ce qui sépare « le même terrain » de « un terrain qui lui ressemble » dépend du modèle, de la saison et de ce qu'on accepte de confondre, et cette capacité ne décide pas à la place de qui l'appelle."
+      }
+    }
+  }
+}

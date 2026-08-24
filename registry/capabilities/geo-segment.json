@@ -1,0 +1,96 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "geo-segment",
+  "title": "Segmentation d'imagerie satellite multi-bandes",
+  "description": "Découpe une classe thématique — l'eau de crue, une cicatrice de feu, une culture — dans une scène satellite, et rend une carte de classes qui garde le géoréférencement de l'entrée. Ce n'est pas `image-segment`, et l'écart n'est pas cosmétique : l'entrée n'est pas une image mais un raster à plusieurs dizaines de bandes dont le modèle en lit six, trois d'entre elles étant invisibles à l'œil — proche infrarouge et deux moyens infrarouges. L'eau se distingue de l'ombre d'un nuage dans ces bandes-là, et pas dans le rouge-vert-bleu ; une orthophoto RGB passée à SAM serait `image-segment` sous un autre nom. Deux autres choses la séparent : l'utilisateur ne désigne rien — ni clic, ni boîte, ni mot, la classe appartient aux poids —, et la sortie porte un système de coordonnées, donc se superpose à une carte. Ce qu'elle ne fait pas : elle ne rééchantillonne pas la scène, parce qu'un modèle satellite est entraîné à une taille de pixel au sol donnée et qu'un pixel de trente mètres n'est pas un pixel de dix ; elle ne compose pas de mosaïque et ne reprojette rien ; elle ne nomme pas les classes elle-même, c'est la légende du modèle qui les nomme, et un modèle à deux classes n'en trouvera jamais une troisième. À la résolution de ces capteurs — dix à trente mètres au sol — aucune personne n'est distinguable, ce qui n'est pas le cas de toute imagerie aérienne.",
+  "input": {
+    "type": "object",
+    "required": ["raster"],
+    "additionalProperties": false,
+    "properties": {
+      "raster": {
+        "type": "string",
+        "contentMediaType": "image/tiff",
+        "x-ui": "file",
+        "description": "Scène à segmenter, en GeoTIFF multi-bandes. Les réflectances sont attendues à l'échelle des produits Sentinel-2 et HLS, c'est-à-dire des entiers valant dix mille fois la réflectance ; un raster déjà ramené entre 0 et 1 sera lu dix mille fois trop sombre, et le job le dit plutôt que de le corriger dans le dos. Le géoréférencement est facultatif : sans lui la segmentation a toujours lieu, la sortie n'a simplement plus de coordonnées à porter."
+      },
+      "band_indices": {
+        "type": "array",
+        "minItems": 6,
+        "maxItems": 6,
+        "default": [1, 2, 3, 8, 11, 12],
+        "items": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Numéro de bande, compté à partir de zéro."
+        },
+        "description": "Les six bandes à extraire du raster, dans l'ordre attendu par le modèle : bleu, vert, rouge, proche infrarouge, moyen infrarouge 1, moyen infrarouge 2. Six et pas cinq ni sept — la première convolution du réseau a six canaux d'entrée en dur, ce n'est pas une préférence. Le défaut convient à un produit Sentinel-2 niveau 1C livré avec ses treize bandes dans l'ordre B1…B12 : il désigne alors B2, B3, B4, B8A, B11 et B12. Un raster qui ne porterait que les six bandes utiles se lit avec [0, 1, 2, 3, 4, 5]. C'est le seul champ dont une erreur ne se voit pas dans le résultat — un masque calculé sur les mauvaises bandes a toutes les apparences d'un masque."
+      },
+      "tile_size": {
+        "type": "integer",
+        "minimum": 384,
+        "maximum": 960,
+        "multipleOf": 192,
+        "default": 576,
+        "x-ui": "slider",
+        "description": "Côté, en pixels, des tuiles réellement soumises au réseau ; une scène plus grande est découpée, une scène plus petite est rembourrée puis recadrée. C'est le seul paramètre qui pilote le coût, et au carré. Le pas de 192 n'est pas un arrondi de confort : le module pyramidal du décodeur agrège vers une grille de 6 × 6 sur une carte réduite d'un facteur 64, et Metal refuse une division non entière — 512, la taille native des chips de plusieurs jeux de données, échoue par « Adaptive pool MPS: input sizes must be divisible by output sizes ». Le plafond de 960 est une prudence de mesure et non une limite du réseau : 1152 tourne, mais réserve un gibioctet de plus que le pire cas des profils, et un contrôle d'admission qui s'appuie sur eux le laisserait passer en sous-estimant son coût."
+      },
+      "overlap": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 384,
+        "multipleOf": 32,
+        "default": 0,
+        "description": "Recouvrement entre tuiles voisines, en pixels. Sans lui, une frontière de tuile est un endroit où le modèle n'a rien vu d'un côté ; les logits des tuiles voisines sont accumulés avant la décision, ce qui atténue déjà la couture, et le recouvrement la fait disparaître. Il ne sert qu'à partir d'une scène plus grande qu'une tuile, et il coûte : à 192 de recouvrement sur une tuile de 576, il y a deux fois plus de tuiles à calculer. Il doit rester strictement sous `tile_size`, sinon deux tuiles voisines ne progressent plus — une contrainte croisée que ce vocabulaire de schéma ne sait pas écrire, et que le modèle refuse donc au moment du job."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["mask_geotiff", "mask", "classes", "coverage"],
+    "properties": {
+      "mask_geotiff": {
+        "type": "string",
+        "contentMediaType": "image/tiff",
+        "description": "Chemin de la carte de classes, relatif au dossier du job : un entier par pixel, aux dimensions exactes de l'entrée, avec son système de coordonnées et sa transformation affine recopiés. C'est ce fichier qui distingue cette capacité de `image-segment` — un PNG se regarde, celui-ci se superpose à une carte et se mesure en hectares."
+      },
+      "mask": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de la même carte en PNG, relatif au dossier du job : une teinte par classe. Le GeoTIFF ne s'affiche nulle part dans l'UI, et une carte de classes qu'on ne peut pas regarder est une carte qu'on ne relit pas."
+      },
+      "overlay": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de la surimpression, relatif au dossier du job : la classe teintée par-dessus une composition en couleurs naturelles des trois bandes visibles, chacune étirée sur ses centiles. Un masque seul ne dit pas s'il est décalé ; c'est la superposition qui le montre."
+      },
+      "classes": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin de la légende, relatif au dossier du job : pour chaque valeur de la carte, le nom que le modèle lui donne et le nombre de pixels qu'elle occupe. Sans ce document, un raster d'entiers ne se relit pas — et deux modèles de cette capacité ne numérotent pas forcément leurs classes dans le même ordre."
+      },
+      "coverage": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "description": "Part de la scène occupée par la classe thématique, entre 0 et 1. C'est le seul nombre lisible que ce job produise, et le premier à regarder : une couverture nulle ou proche de 1 sur une scène ordinaire trahit presque toujours des bandes mal désignées."
+      },
+      "crs": {
+        "type": "string",
+        "description": "Système de coordonnées de la scène, tel qu'il a été lu — par exemple « EPSG:4326 ». Absent quand l'entrée n'en portait aucun, ce qui est dit plutôt que remplacé par une valeur par défaut."
+      },
+      "bounds": {
+        "type": "object",
+        "required": ["left", "bottom", "right", "top"],
+        "additionalProperties": false,
+        "properties": {
+          "left": { "type": "number" },
+          "bottom": { "type": "number" },
+          "right": { "type": "number" },
+          "top": { "type": "number" }
+        },
+        "description": "Emprise de la scène dans les unités du système de coordonnées. Absente en même temps que `crs` : une emprise sans repère ne situe rien."
+      }
+    }
+  }
+}

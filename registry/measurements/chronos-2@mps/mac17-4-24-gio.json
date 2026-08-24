@@ -1,0 +1,105 @@
+{
+  "ref": "chronos-2@mps",
+  "model": "chronos-2",
+  "variant": "mps",
+  "capability": "time-series-forecast",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / chronos-forecasting 2.3.1 / pandas 3.0.5 / torch 2.13.0",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/time-series-forecast.json",
+    "version": 1,
+    "cases": [
+      "ctx-512",
+      "ctx-2048",
+      "ctx-8192"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 477931539,
+    "peak_unified_memory_bytes": 1014087680,
+    "peak_scaling": {
+      "parameter": "contexte",
+      "base_bytes": 997840213,
+      "bytes_per_unit": 2051.0,
+      "measured_range": [
+        512.0,
+        8192.0
+      ],
+      "r_squared": 0.9149
+    },
+    "warmup_ms": 1485,
+    "latency_ms_p50": 219,
+    "throughput": "1 sortie / 0.2 s"
+  },
+  "cases": [
+    {
+      "id": "ctx-512",
+      "ok": true,
+      "duration_ms": 219,
+      "metrics": {
+        "duration_ms": 219,
+        "device": "mps",
+        "horizon": 168,
+        "contexte_utilise": 512,
+        "n_series": 1,
+        "quantiles": 5,
+        "freq": "h",
+        "trous_combles": 0,
+        "nan_en_sortie": 0,
+        "colonnes_ecartees": [
+          "target_name",
+          "predictions"
+        ],
+        "peak_memory_bytes": 996671488
+      },
+      "error": null
+    },
+    {
+      "id": "ctx-2048",
+      "ok": true,
+      "duration_ms": 108,
+      "metrics": {
+        "duration_ms": 108,
+        "device": "mps",
+        "horizon": 168,
+        "contexte_utilise": 2048,
+        "n_series": 1,
+        "quantiles": 5,
+        "freq": "h",
+        "trous_combles": 0,
+        "nan_en_sortie": 0,
+        "colonnes_ecartees": [
+          "target_name",
+          "predictions"
+        ],
+        "peak_memory_bytes": 1004814336
+      },
+      "error": null
+    },
+    {
+      "id": "ctx-8192",
+      "ok": true,
+      "duration_ms": 240,
+      "metrics": {
+        "duration_ms": 240,
+        "device": "mps",
+        "horizon": 168,
+        "contexte_utilise": 8192,
+        "n_series": 1,
+        "quantiles": 5,
+        "freq": "h",
+        "trous_combles": 0,
+        "nan_en_sortie": 0,
+        "colonnes_ecartees": [
+          "target_name",
+          "predictions"
+        ],
+        "peak_memory_bytes": 1014087680
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

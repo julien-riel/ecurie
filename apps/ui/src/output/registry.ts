@@ -6,10 +6,12 @@
  * `undefined` — et **extensible sans toucher au reste** : ajouter un type de
  * média est une ligne.
  *
- * Elle compte six lignes là où `CONCEPTION.md §7` en énumère cinq. La sixième
+ * Elle compte sept lignes là où `CONCEPTION.md §7` en énumère cinq. La sixième
  * est `application/json`, que trois contrats produisent, dont `tool-use.calls`
  * qui est une sortie **requise**. L'oubli de la conception se serait vu au
- * premier appel d'outil, sous la forme d'un fichier tombé sur le repli.
+ * premier appel d'outil, sous la forme d'un fichier tombé sur le repli. La
+ * septième est `model/*`, arrivée avec le STEP de `pointcloud-to-cad` : une
+ * géométrie d'échange qu'aucun navigateur ne lit et qu'on sait pourtant nommer.
  *
  * L'ordre de résolution va du plus précis au plus général : un type exact avant
  * une famille, une famille avant le repli. Sans cela, `image/*` capturerait
@@ -18,6 +20,7 @@
 
 import type { ComponentType } from "react";
 import { AudioViewer } from "./viewers/AudioViewer";
+import { GeometryViewer } from "./viewers/GeometryViewer";
 import { ImageViewer } from "./viewers/ImageViewer";
 import { InlineViewer } from "./viewers/InlineViewer";
 import { JsonViewer } from "./viewers/JsonViewer";
@@ -55,6 +58,10 @@ export const VIEWERS: readonly ViewerEntry[] = [
   { id: "image", accepts: (t) => matches(t, "image/*"), Component: ImageViewer },
   { id: "video", accepts: (t) => matches(t, "video/*"), Component: VideoViewer },
   { id: "mesh", accepts: (t) => matches(t, "model/gltf-binary"), Component: MeshViewer },
+  // Après `mesh`, et l'ordre fait le sens : un GLB se regardera un jour, un STEP
+  // jamais ici. Cette ligne dit « je sais ce que c'est, et cela s'ouvre
+  // ailleurs », là où le repli dirait « je ne sais pas ».
+  { id: "geometrie", accepts: (t) => matches(t, "model/*"), Component: GeometryViewer },
   { id: "json", accepts: (t) => matches(t, "application/json"), Component: JsonViewer },
   { id: "text", accepts: (t) => matches(t, "text/*"), Component: TextViewer },
 ];

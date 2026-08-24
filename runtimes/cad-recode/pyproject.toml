@@ -1,0 +1,94 @@
+# Environnement isolé du runtime `cad-recode` (CONCEPTION.md §5.3).
+#
+# Quinzième famille du parc, et la seule dont la sortie est **un programme** : le
+# parc rend des maillages, celle-ci rend le code CadQuery qui les construit.
+#
+# **LA BORNE `transformers<5` N'EST PAS UNE PRUDENCE, C'EST LA CONDITION DE
+# FONCTIONNEMENT.** Elle est écrite ici en toutes lettres parce que la prochaine
+# mise à jour de dépendances la relèvera sans y penser, et que l'échec est
+# silencieux — pas d'exception, du code CadQuery plausible et faux. Mesuré sur
+# les vrais poids, avec transformers 5.15.1 (ce qu'un `uv add transformers` sans
+# borne installe aujourd'hui) :
+#
+#   1. `CADRecode.from_pretrained` lève `AttributeError: 'CADRecode' object has
+#      no attribute 'all_tied_weights_keys'` — l'`__init__` amont appelle
+#      `PreTrainedModel.__init__` sans jamais `post_init()` ;
+#   2. rustiné par un `self.post_init()`, `generate()` rend
+#      `import cadquery as cq\nw0r<|im_start|>import cadquery…` en boucle jusqu'au
+#      plafond de jetons, parce que transformers ≥5 calcule
+#      `position_ids = attention_mask.cumsum(-1) - 1` sur un masque qui porte des
+#      **-1** (c'est ainsi que l'amont marque les positions du nuage de points) :
+#      les positions valent -2, -3, … -257 au préremplissage ;
+#   3. rustiné une seconde fois par `position_ids=None`, la sortie reste fausse.
+#      Une troisième divergence subsiste, non caractérisée.
+#
+# Le corps LM seul reste sain en 5.15.1 sur du texte pur : ni les poids ni le
+# chargement ne sont en cause, seulement le chemin d'injection du nuage. Aucun
+# des trois correctifs ne se voit dans une sortie qui a l'air d'un programme.
+#
+# **Pourquoi un env neuf et pas un env torch existant.** Quatre env portent déjà
+# PyTorch — `torch-vision`, `depth-anything`, `mflux`, `chronos` — et aucun ne
+# peut accueillir celui-ci sans qu'un modèle déjà profilé y perde quelque chose :
+#
+#   torch-vision     ne borne pas `transformers`, et y sert DINOv3 mesuré sous
+#                    transformers 5.15.1. Poser `<5` ici rétrograderait un modèle
+#                    profilé pour en admettre un autre.
+#   chronos          plafonne `transformers<6` pour son amont, et n'a ni trimesh
+#                    ni cadquery — dont la seule pile de visualisation pèse
+#                    plus que tout l'env de chronos.
+#   depth-anything   impose `numpy<2`.
+#
+# C'est l'arbitrage que l'isolation existe pour ne plus avoir à faire
+# (ARCHITECTURE.md §0, piège 2).
+#
+#     ecurie env sync cad-recode
+#
+# **`env sync` ne suffit pas ici.** Le code d'inférence amont (la classe
+# `CADRecode` et son `FourierPointEncoder`) est sous **CC BY-NC 4.0** et n'existe
+# que dans une cellule de `demo.ipynb` : il n'est publié sur aucun index, et
+# aucune de ses lignes ne peut entrer dans ce dépôt. Voir `README.md` à côté, qui
+# donne la commande — c'est le même chemin que `runtimes/hunyuan3d/`.
+#
+# **Le prix de cadquery est connu et assumé.** 2.8.0 tire cadquery-ocp 7.9.3.1.1,
+# cadquery-ocp-proxy, vtk 9.6.2, trame, numba, llvmlite, casadi, nlopt — une pile
+# de visualisation entière pour ce qui se réduit ici à « exécuter du code et
+# écrire un STEP ». Mesuré : 1,9 Gio de venv. Il n'y a pas d'échappatoire —
+# build123d, qui éviterait vtk, n'exécute pas le dialecte
+# `cq.Workplane(...).sketch().segment(...).finalize().extrude(...)` que ces poids
+# ont appris à écrire. La bibliothèque a été choisie à l'entraînement, pas par
+# nous.
+#
+# **Piège de résolution propre à torch sur macOS**, vérifié : les roues arm64 de
+# torch ≥2.12 sont taguées `macosx_14_0`, et `uv pip compile --python-platform
+# macos` (cible par défaut macosx_13_0) redescend **silencieusement** à 2.11.0.
+# Le lock doit être fait sur la machine — ce que fait `uv sync` — ou avec
+# `--python-platform aarch64-apple-darwin`.
+
+[project]
+name = "ecurie-runtime-cad-recode"
+version = "0.4.0"
+description = "Écurie — env isolé : nuage de points vers programme CadQuery, sur PyTorch MPS"
+# Aligné sur le socle 3.12 d'Écurie : le worker exécute
+# `ecurie_runtime.workers.base`, écrit pour cette version.
+requires-python = ">=3.12"
+
+dependencies = [
+    # Même borne basse que les autres env torch du parc. La borne haute est celle
+    # du parc entier ; la version installée et mesurée ici est 2.13.0.
+    "torch>=2.6,<2.14",
+    # LA BORNE QUI DÉCIDE — voir l'en-tête. Mesuré et testé à 4.57.6.
+    # Ne pas relever sans avoir relancé un vrai job et LU le code produit :
+    # transformers ≥5 ne plante pas, il ment.
+    "transformers>=4.47,<5",
+    "numpy>=1.26,<3",
+    # Lit le nuage de points et écrit le maillage de contrôle. Le `seed=` explicite
+    # de `sample_surface` est obligatoire depuis 5.0.0 — `np.random.seed()`, que
+    # le demo.ipynb et le Space amont emploient, n'a plus aucun effet.
+    "trimesh>=4.5,<6",
+    # Exécute le programme engendré et exporte le STEP. C'est la bibliothèque
+    # dont le modèle a appris le dialecte : elle n'est pas interchangeable.
+    "cadquery>=2.8,<3",
+]
+
+[tool.uv]
+package = false

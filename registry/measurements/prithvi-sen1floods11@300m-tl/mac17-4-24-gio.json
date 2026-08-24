@@ -1,0 +1,124 @@
+{
+  "ref": "prithvi-sen1floods11@300m-tl",
+  "model": "prithvi-sen1floods11",
+  "variant": "300m-tl",
+  "capability": "geo-segment",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / rasterio 1.5.1 / terratorch 1.2.11 / torch 2.13.0 / torchgeo 0.9.0",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/geo-segment.json",
+    "version": 1,
+    "cases": [
+      "tuile-384",
+      "tuile-576",
+      "tuile-768"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 1276850242,
+    "peak_unified_memory_bytes": 3295444992,
+    "warmup_ms": 5316,
+    "latency_ms_p50": 927,
+    "throughput": "1 sortie / 1.1 s"
+  },
+  "cases": [
+    {
+      "id": "tuile-384",
+      "ok": true,
+      "duration_ms": 927,
+      "metrics": {
+        "duration_ms": 927,
+        "coverage": 0.330066,
+        "tiles": 4,
+        "tile_size": 384,
+        "overlap": 0,
+        "width": 768,
+        "height": 768,
+        "band_indices": [
+          1,
+          2,
+          3,
+          8,
+          11,
+          12
+        ],
+        "class_pixels": [
+          395143,
+          194681
+        ],
+        "mps_current_allocated_bytes": 1276713984,
+        "mps_driver_allocated_bytes": 2211151872,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 3279060992
+      },
+      "error": null
+    },
+    {
+      "id": "tuile-576",
+      "ok": true,
+      "duration_ms": 1592,
+      "metrics": {
+        "duration_ms": 1592,
+        "coverage": 0.330797,
+        "tiles": 4,
+        "tile_size": 576,
+        "overlap": 0,
+        "width": 768,
+        "height": 768,
+        "band_indices": [
+          1,
+          2,
+          3,
+          8,
+          11,
+          12
+        ],
+        "class_pixels": [
+          394712,
+          195112
+        ],
+        "mps_current_allocated_bytes": 1276713984,
+        "mps_driver_allocated_bytes": 2211184640,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 3279060992
+      },
+      "error": null
+    },
+    {
+      "id": "tuile-768",
+      "ok": true,
+      "duration_ms": 817,
+      "metrics": {
+        "duration_ms": 817,
+        "coverage": 0.330053,
+        "tiles": 1,
+        "tile_size": 768,
+        "overlap": 0,
+        "width": 768,
+        "height": 768,
+        "band_indices": [
+          1,
+          2,
+          3,
+          8,
+          11,
+          12
+        ],
+        "class_pixels": [
+          395151,
+          194673
+        ],
+        "mps_current_allocated_bytes": 1276713984,
+        "mps_driver_allocated_bytes": 3295444992,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 3295444992
+      },
+      "error": null
+    }
+  ],
+  "warnings": [
+    "pente du pic mal ajustée (R² = 0.75) sur tile_size : la relation n'a pas l'air linéaire, le profil garde le pire cas mesuré"
+  ]
+}

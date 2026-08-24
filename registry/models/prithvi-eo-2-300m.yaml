@@ -1,0 +1,102 @@
+# Prithvi-EO-2.0 300M TL — l'encodeur seul, pour l'empreinte de tuile satellite.
+#
+# Les mêmes 300 millions de paramètres que `prithvi-sen1floods11`, mais avant le
+# fine-tune : le ViT-L pré-entraîné par IBM et la NASA sur 4,2 millions de scènes
+# HLS, sans tête de décodage. Il ne classe rien, il place une tuile dans un
+# espace de 1024 dimensions.
+#
+# CE QUI A DÉCIDÉ DU DÉPÔT, et pourquoi ce n'est pas celui du voisin. Le fine-tune
+# Sen1Floods11 porte lui aussi un encodeur, et le réemployer aurait épargné
+# 1,33 Go de disque. Ses poids ne sont pas les mêmes : ils ont été adaptés à la
+# détection d'eau, et l'espace vectoriel qui en sort dit « ceci ressemble à une
+# crue » là où celui-ci dit « ceci ressemble à ce terrain ». Deux espaces, deux
+# dépôts. Le manifeste voisin porte la remarque symétrique.
+#
+# CE QUI A DÉCIDÉ DE LA TAILLE. 300M plutôt que 600M : le budget mémoire tiendrait
+# très largement — le 300M ne réserve que deux gibioctets sur les dix-sept
+# praticables — mais rien de mesuré ne justifie de doubler les poids, et le parc
+# n'a pas de golden set géospatial pour trancher. C'est aussi ce qui explique
+# `status: candidate`.
+#
+# CE QUI N'A PAS ÉTÉ TRANCHÉ. `timm/vit_large_patch16_dinov3.sat493m` est le seul
+# concurrent ouvert de ce tour, et il perd deux fois : l'API du Hub le donne en
+# `license: other` — la licence DINOv3, donc `restricted` là où Prithvi est
+# apache-2.0 — et il n'encode que trois canaux, ce qui rate la raison d'être de
+# la famille. TerraMind 1.0 base, apache-2.0 et plus téléchargé, reste le
+# candidat sérieux du second tour ; personne ici ne l'a exécuté, et le proposer
+# sans mesure est exactement ce que le §5.2 interdit.
+id: prithvi-eo-2-300m
+name: Prithvi-EO-2.0 300M TL (encodeur)
+capability: geo-embed
+family: prithvi
+vendor: IBM et NASA (Szwarcman et al.)
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Encodeur ViT-L — profondeur 24, largeur 1024, patches de 16, six canaux
+  d'entrée en dur — servi par `terratorch`, qui sait le construire sans sa tête
+  de reconstruction. La sortie du dernier niveau a la forme (1, N + 1, 1024) : le
+  jeton de tête existe réellement, et l'agrégation est donc un choix entre deux
+  espaces vectoriels et non un réglage. Sa place est dans `options` du variant,
+  comme pour `dinov3` et pour la même raison — un contrat qui l'exposerait
+  laisserait l'UI la présenter comme une préférence, et deux jobs de la même
+  scène rendraient des vecteurs incomparables sans que rien ne le signale.
+
+  Aucune contrainte de taille sur ce chemin : 224, 256, 384, 512 et 576 passent
+  tous sur Metal. Le multiple de 192 qu'exige `prithvi-sen1floods11` vient de son
+  décodeur, que cette capacité n'emploie pas.
+
+  Les `allow_patterns` nomment deux fichiers : le dépôt sert aussi quatre chips
+  HLS d'exemple et deux captures d'écran, 14 Mo dont rien ici n'a besoin.
+
+links:
+  homepage: https://huggingface.co/ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL
+  code: https://github.com/IBM/terratorch
+  paper: https://arxiv.org/abs/2412.02732
+
+variants:
+  - id: 300m-tl
+    quantization: fp32
+    tier: hot
+    runtime: terratorch
+    source:
+      kind: huggingface
+      repo: ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL
+      revision: "63adbd39c271da4c42f447e69b1a7c91a338cdc9"   # 2026-08-24
+      allow_patterns: ["*.pt", "config.json"]
+    options:
+      # Moyenne des jetons de patch, jeton de tête exclu. Il est exclu et non
+      # moyenné avec les autres : un CLS mêlé aux patches donne un vecteur qui
+      # n'appartient à aucun des deux espaces, et rien dans les nombres ne le
+      # montrerait. L'adaptateur refuse une valeur qu'il ne sait pas honorer au
+      # chargement, pas au premier job.
+      pooling: mean
+    defaults:
+      tile_size: 512
+      normalize: true
+    caveats:
+      - "Le point de contrôle porte 402 clés, dont 296 préfixées `encoder.` et 106 qui appartiennent au décodeur de reconstruction de l'auto-encodeur masqué — l'empreinte n'en a que faire, et l'adaptateur dit combien il en écarte. Chargées sans dépouiller le préfixe, elles laissent 296 poids manquants et 402 inattendus, et un encodeur intégralement à ses valeurs d'initialisation : il rend des vecteurs de la bonne longueur, dont les cosinus sont plausibles, sans lever la moindre exception. L'adaptateur exige 0 manquant et 0 inattendu."
+      - "La table de positions du point de contrôle est celle de quatre dates : 785 jetons, quand un réseau bâti pour une seule date en attend 197. Construit sans lire `num_frames` dans le `config.json`, le chargement échoue par incompatibilité de forme — c'est le seul piège de ce dépôt qui échoue franchement plutôt qu'en silence. L'adaptateur lit le nombre de dates chez l'amont, et l'interpolation de terratorch ramène ensuite la table à l'unique date soumise."
+      - "La normalisation vient du `config.json` de ce dépôt, et non de la table du jeu de données que sert le fine-tune voisin : 1087 contre 1413 de moyenne sur le bleu, parce que ce ne sont pas les mêmes images. L'emprunter au voisin donnerait un encodeur qui tourne sur des entrées décalées, sans que rien n'échoue."
+      - "Modèle conditionné par la date et le lieu — le « TL » du nom —, que l'adaptateur ne renseigne pas : les vecteurs décrivent donc le contenu de la tuile et non sa position sur Terre. Le contrat n'a pas de champ de localisation, et le document de sortie le dit."
+      - "Vecteurs de 1024 nombres, comptés sur la sortie et non lus sur une fiche. Une même longueur chez deux modèles ne rend pas leurs vecteurs comparables : c'est pourquoi le document nomme le dépôt, la révision, l'agrégation, les bandes retenues et le découpage employé."
+      - "Le pic ne dépend pas de la taille de tuile, et c'est mesuré et non supposé : 3,06 Gio à 192, 384 et 768, à l'octet près sur les trois cas. Le pilote Metal ne varie que de 2,209 à 2,224 Gio pour une surface de tuile seize fois plus grande — les activations de l'encodeur ne pèsent rien à côté de ses 1,33 Go de poids en fp32. C'est le processus qui décide, et le profil garde donc une pente nulle sur l'intervalle mesuré. Hors de cet intervalle, il retombe sur le pire cas."
+      - "La latence, elle, ne suit pas la taille de tuile non plus : 819 ms pour seize tuiles de 192, 576 pour quatre de 384, 656 pour une seule de 768. Les trois cas encodent le même nombre de patches ; ce qui varie est la portée de l'attention et le nombre d'allers-retours vers Metal, et les deux jouent en sens contraire."
+      - "Une empreinte n'est pas une classification. Deux tuiles proches dans cet espace se ressemblent au capteur ; rien ne dit qu'elles portent la même chose au sol, et aucune valeur de cosinus ne vaut décision."
+    profile:
+      disk_bytes: 1326661492
+      peak_unified_memory_bytes: 3282206720
+      peak_scaling:
+        parameter: "tile_size"
+        base_bytes: 3282206720
+        bytes_per_unit: 0.0
+        measured_range: [192.0, 768.0]
+        r_squared: 1.0
+      warmup_ms: 4744
+      latency_ms_p50: 656
+      throughput: "1 sortie / 0.7 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / rasterio 1.5.1 / terratorch 1.2.11 / torch 2.13.0 / torchgeo 0.9.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

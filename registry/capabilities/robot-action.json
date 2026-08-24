@@ -1,0 +1,133 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "robot-action",
+  "title": "Image et consigne vers commandes de robot",
+  "description": "Une vue de caméra, une consigne en langue naturelle et l'état articulaire courant vers un **tronçon de commandes** : plusieurs dizaines de pas à exécuter à la suite, chacun portant les degrés de liberté d'un effecteur et sa pince. C'est la seule capacité du parc dont la sortie soit une **action**, et l'écart avec toutes les autres n'est pas de forme mais de conséquence : un texte faux se relit, une image ratée se jette, sept nombres faux poussent un bras contre une table.\n\n**Ces nombres n'ont de sens que pour une incarnation précise, et le contrat le fait porter à la sortie plutôt qu'à l'entrée.** L'incarnation — quel robot, quel contrôleur, quelle convention — n'est pas un paramètre d'appel : elle est figée à l'entraînement, et c'est elle qui décide du nombre de degrés de liberté, de la dimension de l'état attendu et de ce que les nombres veulent dire. La choisir dans un formulaire serait promettre un choix que le modèle refuserait. Le contrat impose donc `embodiment`, `space` et `units` en sorties **obligatoires** : un tronçon ne circule jamais sans le nom du robot pour lequel il a été calculé, ni sans dire s'il s'agit d'un déplacement d'effecteur ou d'angles absolus. Confondre les deux, c'est écraser un robot ; et un tableau de sept flottants ne dit pas lequel il est.\n\n**Ce que cette capacité ne fait pas.** Elle ne pilote rien : elle rend des nombres, elle n'ouvre aucun port, ne parle à aucun contrôleur et ne referme aucune boucle. Elle ne planifie pas non plus — un tronçon est une réaction à une observation, pas une séquence vérifiée jusqu'au but ; l'usage prévu en amont est de le recalculer plusieurs fois par seconde sur des observations fraîches, ce que le parc ne fait pas et ne peut pas faire. Elle ne connaît pas les limites articulaires du robot qui recevra ces nombres, ni les obstacles autour, ni les personnes. Elle ne vérifie pas non plus que l'objet nommé par la consigne est dans l'image : une consigne qui désigne ce qui n'est pas là produit un tronçon parfaitement bien formé.\n\n**Et sans robot, la sortie n'est vérifiable que par sa forme.** Aucun modèle de cette capacité n'est jugeable sur le geste dans ce parc : il n'y a ni bras, ni simulateur. Quatre contrôles restent réels, et ce sont les seuls — la **forme** (le tronçon a-t-il les dimensions déclarées), le **domaine** (chaque nombre tombe-t-il dans les bornes que le modèle publie pour ses propres actions d'entraînement), la **reproductibilité** (deux appels de même graine rendent-ils le même tronçon) et la **sensibilité à la consigne** (deux consignes différentes sur la même image doivent donner deux tronçons différents ; si elles donnent le même, le canal de langue est mort et le modèle n'écoute pas). Aucun des quatre ne dit si le geste est le bon. C'est écrit ici plutôt que découvert plus tard : cette capacité entre au parc pour être mesurée et essayée, pas pour commander quoi que ce soit.",
+  "input": {
+    "type": "object",
+    "required": ["image", "instruction", "state"],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Vue principale de la scène, telle que la caméra du robot la voit. Toute taille est acceptée : elle est ramenée à la définition d'entrée du modèle en conservant les proportions, le reste étant bourré de noir — un format très allongé perd donc en surface utile ce que les bandes occupent. Une image qui ne ressemble pas à ce que le modèle a vu à l'entraînement — autre simulateur, autre point de vue, pas de bras dans le champ — ne produit aucune erreur : elle produit un tronçon bien formé et hors distribution."
+      },
+      "image2": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Deuxième vue, quand le modèle en déclare une. Les vues ne sont pas interchangeables : la première est celle que le modèle attend en premier, et permuter deux caméras change le résultat sans qu'aucun message ne le signale. Une vue de plus coûte un passage d'encodeur visuel de plus — mesuré, environ un tiers de temps en plus par caméra ajoutée."
+      },
+      "image3": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Troisième vue, même règle. Un modèle qui n'en déclare que deux ignore celle-ci, et le job le dit en avertissement plutôt que de la faire disparaître en silence."
+      },
+      "instruction": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512,
+        "x-ui": "textarea",
+        "description": "La consigne, **en anglais**, à l'impératif et sur un seul geste : « pick up the red cube », « push the blue ball to the left ». Ces modèles n'ont vu que de l'anglais, et l'échec est muet — mesuré sur le titulaire, une consigne en français rend un tronçon bien formé, dans les bornes, et différent de la consigne anglaise équivalente. Rien dans la sortie ne dit qu'elle n'a pas été comprise. Une consigne longue est tronquée à quelques dizaines de jetons par le modèle, ce qui coupe la fin d'une phrase composée sans avertir : deux gestes enchaînés dans une même consigne n'en donnent qu'un."
+      },
+      "state": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 64,
+        "items": {
+          "type": "number",
+          "description": "Une composante de l'état, dans l'ordre et les unités de l'incarnation."
+        },
+        "description": "L'état courant du robot — position et orientation de l'effecteur, ouverture de la pince, ou angles articulaires selon l'incarnation. Sa **dimension** appartient au modèle et non au contrat : chaque incarnation a la sienne, et c'est le job qui refuse une dimension qui n'est pas celle attendue, en disant laquelle il attendait. Ce champ n'est pas décoratif — c'est lui qui dit au modèle où le bras se trouve, et un état plausible mais faux produit un tronçon plausible et faux. Mesuré sur le titulaire : le même couple image-consigne avec un état de zéros plutôt qu'une pose de repos réaliste déplace la sortie de 1,76 au maximum et de 0,081 en moyenne, sur des composantes dont l'écart-type d'entraînement va de 0,034 à 0,44."
+      },
+      "steps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 20,
+        "default": 10,
+        "x-ui": "slider",
+        "description": "Nombre de pas de raffinement du tronçon. C'est le seul paramètre qui pilote le coût, et il pilote la **durée** seule : mesuré sur le titulaire, 111 ms à 1 pas, 122 à 2, 149 à 5, 198 à 10, 290 à 20 — pendant que la mémoire ne bouge pas d'un octet. La sortie converge : au-delà de cinq pas les tronçons se ressemblent, et un pas unique donne déjà la bonne direction. Un modèle qui ne raffine pas par étapes — un décodeur autorégressif, par exemple — ignore ce réglage et le job le dit en avertissement, plutôt que de laisser croire à un levier qui n'existe pas."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 0,
+        "x-ui": "hidden",
+        "description": "Graine du bruit initial. Elle est ce qui sépare cette capacité d'un générateur : mesuré sur le titulaire, deux appels identiques sans bruit fixé rendent des tronçons **différents**, avec un écart maximal de 0,96 — de quoi accuser le modèle d'une instabilité qui n'est que du hasard non tenu. Avec une graine, les deux appels sont identiques bit à bit. La sortie `deterministic` dit si elle a réellement été honorée : un modèle qui tirerait au sort ailleurs que dans ce bruit-là rendrait `faux`, et il faudrait le croire."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": [
+      "actions",
+      "first_action",
+      "dof",
+      "horizon",
+      "space",
+      "units",
+      "embodiment",
+      "domain_ok",
+      "deterministic"
+    ],
+    "properties": {
+      "actions": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin du tronçon complet, relatif au dossier du job : un tableau de `horizon` pas, chacun de `dof` nombres, dans l'ordre d'exécution. Le fichier porte aussi l'incarnation, la convention, les unités, les bornes du domaine et la consigne qui l'a produit — un tronçon rangé seul dans un dossier, six mois plus tard, ne se relit pas, et le relire de travers est ce qui casse un bras. Un fichier plutôt qu'un tableau dans la réponse : plusieurs centaines de nombres n'ont aucune lisibilité dans un formulaire, et c'est un fichier qu'on rejoue ailleurs."
+      },
+      "first_action": {
+        "type": "array",
+        "items": {
+          "type": "number",
+          "description": "Une composante du premier pas du tronçon."
+        },
+        "description": "Le premier pas, en clair : les `dof` nombres qu'un contrôleur exécuterait à l'instant même. C'est la seule ligne du tronçon qu'on regarde vraiment, et la rendre entière — pince comprise — est délibéré : c'est ainsi qu'un contrôleur la reçoit, et en retirer un élément produirait un vecteur qu'aucune convention n'accepte."
+      },
+      "gripper": {
+        "type": "number",
+        "description": "La commande de pince du premier pas, quand l'incarnation en déclare une. Répétée hors du tableau à dessein, et pour une raison mesurée : sur le titulaire, cette composante prend ses valeurs aux bornes ±1 exactement, avec un écart-type de 0,999, quand les six autres tiennent dans ±0,94 avec des écarts-types de 0,034 à 0,44. C'est une commande quasi binaire au milieu de déplacements continus. Qui moyenne, interpole ou met à l'échelle un tronçon entier sans la voir passer transforme une pince ouverte-fermée en une pince à moitié fermée."
+      },
+      "dof": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Nombre de composantes par pas, tel que le modèle le déclare. Sept pour un bras à effecteur unique avec pince, quatorze pour un bimanuel. Il se lit sur les poids, jamais sur le robot qu'on a sous la main : un tronçon de dimension 7 envoyé à un contrôleur qui en attend 14 n'est pas une erreur d'arrondi."
+      },
+      "horizon": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Nombre de pas du tronçon. Ce n'est pas une durée : la cadence à laquelle ces pas doivent être exécutés appartient au robot et n'est pas dans la sortie. C'est aussi le nombre de pas que le modèle prévoit **sans revoir la scène** — les derniers reposent sur une observation d'autant plus périmée."
+      },
+      "space": {
+        "type": "string",
+        "enum": ["cartesian-delta", "joint-delta", "joint-absolute"],
+        "description": "Ce que les nombres commandent. `cartesian-delta` : un déplacement de l'effecteur dans l'espace de travail, à ajouter à la pose courante. `joint-delta` : une variation d'angle par articulation. `joint-absolute` : des angles articulaires visés, à atteindre et non à ajouter. Trois valeurs et non deux : les politiques de bras d'atelier publiées à côté de celles du titulaire commandent en variations articulaires, et un contrat qui ne saurait pas l'écrire les obligerait à mentir. Prendre l'un pour l'autre est la faute qui casse du matériel — un `joint-absolute` interprété comme un delta déplace le bras de sa position vers sa position plus elle-même."
+      },
+      "units": {
+        "type": "string",
+        "enum": ["controller-normalized", "m+rad", "deg"],
+        "description": "Les unités des nombres. `m+rad` : mètres pour les translations, radians pour les rotations — des grandeurs physiques. `deg` : degrés. `controller-normalized` : ni l'un ni l'autre, ce sont des consignes à l'échelle du contrôleur, dont les bornes sont celles de ce contrôleur-là et n'ont aucune signification métrique. La distinction n'est pas académique : lire des consignes de contrôleur comme des mètres donne un déplacement d'un mètre là où le modèle en demandait quelques centimètres."
+      },
+      "embodiment": {
+        "type": "string",
+        "description": "Le robot et le contrôleur pour lesquels ce tronçon a été calculé, tels que le modèle les déclare. Ce n'est pas une étiquette d'affichage : c'est la seule chose qui empêche de prendre ces nombres pour des ordres universels. Deux modèles de cette capacité rendent des sorties de même forme, également plausibles, et destinées à deux machines différentes."
+      },
+      "domain_ok": {
+        "type": "boolean",
+        "description": "Vrai si **tous** les nombres du tronçon tombent dans l'enveloppe des actions que le modèle a vues à l'entraînement, telle qu'il la publie. C'est le seul contrôle de fond disponible sans robot, et il ne dit pas que le geste est bon : il dit que le modèle n'a pas produit de nombre qu'il n'aurait jamais eu à produire. Un tronçon hors enveloppe est le signe d'une entrée hors distribution — mauvaise dimension d'état, image d'un autre monde, consigne dans une autre langue —, pas d'une panne. Un modèle qui ne publierait pas ses statistiques rend `faux` et le dit en avertissement, faute de pouvoir répondre."
+      },
+      "out_of_domain": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Combien des `horizon` × `dof` nombres sortent de l'enveloppe, et de combien : c'est ce chiffre qui distingue un dépassement de quelques centièmes sur la pince — qui arrive à ce modèle et n'est rien — d'un tronçon massivement hors bornes, qui est un signal. `domain_ok` seul ferait passer les deux pour la même chose."
+      },
+      "deterministic": {
+        "type": "boolean",
+        "description": "Vrai si le bruit initial a réellement été fixé par la graine, et donc si un second appel identique rendra le même tronçon. Faux dit que la sortie ne se rejoue pas : ce n'est pas une erreur, c'est une propriété du modèle, et elle change ce qu'on a le droit de conclure d'une comparaison entre deux tronçons."
+      }
+    }
+  }
+}

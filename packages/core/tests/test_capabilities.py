@@ -21,6 +21,7 @@ from ecurie_core.registry import load_registry
 from manifest_helpers import make_manifest, minimal_capability
 
 CAPACITÉS_DU_DÉPÔT = [
+    "audio-align",
     "audio-denoise",
     "audio-separation",
     "audio-to-text",
@@ -32,7 +33,10 @@ CAPACITÉS_DU_DÉPÔT = [
     "face-headpose",
     "face-landmark",
     "face-parse",
+    "geo-embed",
+    "geo-segment",
     "image-detect",
+    "image-embed",
     "image-inpaint",
     "image-matting",
     "image-segment",
@@ -41,6 +45,10 @@ CAPACITÉS_DU_DÉPÔT = [
     "image-to-text",
     "image-to-video",
     "image-upscale",
+    "multiview-to-3d",
+    "pointcloud-to-cad",
+    "protein-embed",
+    "robot-action",
     "speaker-diarization",
     "speech-to-text",
     "text-generation",
@@ -48,6 +56,7 @@ CAPACITÉS_DU_DÉPÔT = [
     "text-to-music",
     "text-to-speech",
     "text-to-video",
+    "time-series-forecast",
     "tool-use",
     "translation",
     "video-to-motion",
@@ -158,7 +167,20 @@ def test_chaque_sortie_typee_annonce_un_chemin_de_fichier(repo_root):
     # 56 depuis que la famille visage en apporte douze : chacune de ses six
     # capacités rend son relevé JSON, et cinq d'entre elles un aperçu annoté —
     # une liste de coordonnées ou une carte d'indices ne se relit pas autrement.
-    assert len(typées) == 56
+    #
+    # **75 depuis le lot du 24 août 2026**, et les dix-neuf de plus disent une
+    # chose des capacités de mesure : elles produisent toutes un document — un
+    # vecteur, un éventail de quantiles, une pose de caméra, un programme CAO —
+    # et la plupart y ajoutent un aperçu, parce que les nombres seuls ne se
+    # relisent pas. `multiview-to-3d` en apporte trois à elle seule, et son
+    # aperçu n'est pas décoratif : c'est la seule façon de voir qu'une caméra
+    # est mal placée.
+    #
+    # Ce total est la seule assertion du dépôt qui compte sur TOUTES les
+    # capacités à la fois. Il casse à chaque contrat ajouté, et c'est voulu :
+    # une sortie typée est un fichier de plus dans le dossier d'un job, donc une
+    # promesse de plus faite à qui le relira.
+    assert len(typées) == 75
     mal_décrites = {
         ref
         for ref, champ in typées.items()

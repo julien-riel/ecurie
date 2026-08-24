@@ -1,0 +1,73 @@
+{
+  "capability": "pointcloud-to-cad",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Trois pièces, trois familles de construction du dialecte CadQuery : un cube (la construction la plus courte), un cylindre percé (une esquisse à deux cercles dont le second est soustractif), une pièce en L (un profil polygonal à six segments). Aucun `scaling_parameter` : le pic est dominé par les 3,09 Go de poids, et la durée par le nombre de jetons produits — qui dépend de la pièce et n'est connu qu'après coup, donc n'est pas un paramètre d'entrée. `n_points`, seul candidat, vaut 256 partout : c'est la valeur d'entraînement, et la faire varier mesurerait une dégradation hors distribution plutôt qu'un coût. Les trois cas portent `executer_le_code: true` alors que le contrat le laisse faux par défaut, et c'est délibéré : l'exécution part dans un sous-processus dont la mémoire compte dans le budget de la machine, et le contrôle d'admission réserve pour le pire moment, pas pour le moment courant. Les nuages sont figés à 256 points — les points soumis au modèle sont dans le fichier, pas tirés au job — ce qui rend la mesure indépendante du tirage de `sample_surface` ; le revers est que cette charge n'exerce ni l'échantillonnage de surface ni la lecture d'une scène GLB. Les trois solides sont calculés par CadQuery, donc sans licence ni provenance à suivre. Chaque cas porte les `etendues_mm` du solide d'origine, et **pas** son volume : mesuré ici, le programme rendu décrit la bonne forme mais **pas** les bonnes cotes — le cadrage dans un cube de côté 2 efface l'échelle, et le modèle réécrit à la sienne. Sur la pièce en L, les six sommets du profil reviennent justes à 0,0033 près une fois recadrés (l'arrondi entier du modèle) pendant que le volume vaut 1 671 600 mm³ contre 360 000 au solide d'origine. Le cube donne un volume exact par pure coïncidence, ses 200 mm coïncidant avec la pleine échelle du modèle. Un volume inscrit ici aurait donc été une vérité terrain fausse ; ce sont les rapports d'étendues qui se comparent. Les cas ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "cases": [
+    {
+      "id": "cube",
+      "input": {
+        "geometrie": "assets/nuage-cube.ply",
+        "n_points": 256,
+        "seed": 42,
+        "max_new_tokens": 768,
+        "executer_le_code": true
+      },
+      "source": {
+        "recipe": "nuages",
+        "outil": "uv run --project runtimes/cad-recode python tools/bench_assets.py nuages",
+        "points": 256,
+        "graine": 42,
+        "sha256": "8b5109e42736dd94ef1dfc8b5956abea746f3a7bf46c6e882773c22c735172fb",
+        "etendues_mm": [
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "id": "cylindre-perce",
+      "input": {
+        "geometrie": "assets/nuage-cylindre-perce.ply",
+        "n_points": 256,
+        "seed": 42,
+        "max_new_tokens": 768,
+        "executer_le_code": true
+      },
+      "source": {
+        "recipe": "nuages",
+        "outil": "uv run --project runtimes/cad-recode python tools/bench_assets.py nuages",
+        "points": 256,
+        "graine": 42,
+        "sha256": "9c5787d3fd39150e715f5cf89d9a4f48ef2ed29f6bdc1bc0d4dd8244bb06fb1b",
+        "etendues_mm": [
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "id": "piece-en-l",
+      "input": {
+        "geometrie": "assets/nuage-piece-en-l.ply",
+        "n_points": 256,
+        "seed": 42,
+        "max_new_tokens": 768,
+        "executer_le_code": true
+      },
+      "source": {
+        "recipe": "nuages",
+        "outil": "uv run --project runtimes/cad-recode python tools/bench_assets.py nuages",
+        "points": 256,
+        "graine": 42,
+        "sha256": "d51e72e7eb3578fa322b01638e17e51720ff1ac179077c4d327c382d7dca4018",
+        "etendues_mm": [
+          120,
+          100,
+          50
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "time-series-forecast",
+  "title": "Prévision de série temporelle",
+  "description": "Prolonge une ou plusieurs séries observées sur un horizon demandé, et rend non pas une trajectoire mais un éventail de quantiles : la médiane dit ce qui est attendu, l'écart entre les quantiles bas et hauts dit ce que le modèle ne sait pas. La prévision est zéro-shot — rien n'est entraîné sur les données fournies, et rien n'en est conservé. Ce que cette capacité ne fait pas : elle n'explique aucune cause, elle ne détecte pas les anomalies, et elle ne comble pas les trous d'un relevé pour vous — un horodatage manquant est traité comme une valeur inconnue, jamais comme un pas qui n'aurait pas existé.",
+  "input": {
+    "type": "object",
+    "required": ["serie"],
+    "additionalProperties": false,
+    "properties": {
+      "serie": {
+        "type": "string",
+        "contentMediaType": "text/csv",
+        "x-ui": "file",
+        "description": "CSV en format long : une ligne par (série, horodatage), avec une colonne d'identifiant, une colonne d'horodatage et une colonne de valeur. Les noms de ces trois colonnes se règlent plus bas. Le séparateur est la virgule et le séparateur décimal le point — un CSV français au point-virgule sera refusé, en nommant ce qui manque."
+      },
+      "colonne_serie": {
+        "type": "string",
+        "default": "item_id",
+        "description": "Colonne qui distingue les séries. Un fichier qui n'en porte qu'une la nomme quand même : c'est elle qui dit que les lignes appartiennent à la même histoire."
+      },
+      "colonne_horodatage": {
+        "type": "string",
+        "default": "timestamp",
+        "description": "Colonne des dates ou dates-heures. Toute forme que pandas sait lire convient ; le format ISO 8601 ne se discute pas."
+      },
+      "colonne_valeur": {
+        "type": "string",
+        "default": "target",
+        "description": "Colonne de la grandeur à prolonger. Elle doit être numérique : une colonne de texte est refusée avant tout calcul plutôt que lue comme des zéros."
+      },
+      "horizon": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1024,
+        "default": 24,
+        "description": "Nombre de pas à prévoir, dans le pas de temps de la série. Le plafond n'est pas prudentiel : 1024 est ce que le modèle produit en un seul passage (64 tuiles de 16 pas), et le pas suivant le fait boucler — mesuré, 1024 pas coûtent 47 ms et 1025 en coûtent 215."
+      },
+      "contexte": {
+        "type": "integer",
+        "minimum": 64,
+        "maximum": 8192,
+        "default": 8192,
+        "description": "Nombre de pas passés que le modèle regarde, comptés depuis la fin de la série. C'est le paramètre qui pilote le coût : de 512 à 8192 pas, la latence est multipliée par quatre. Une série plus courte que ce nombre est prise en entier ; la sortie dit ce qui a réellement servi."
+      },
+      "quantiles": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 21,
+        "items": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 0.99
+        },
+        "default": [0.1, 0.25, 0.5, 0.75, 0.9],
+        "description": "Niveaux de l'éventail, entre 0,01 et 0,99. Les bornes ne sont pas décoratives : hors de cette plage le modèle rabat la valeur sur son niveau extrême, et un intervalle annoncé à 99,9 % ne vaudrait alors que 99 %. Les niveaux réellement produits sont rendus en sortie."
+      },
+      "freq": {
+        "type": "string",
+        "default": "",
+        "description": "Pas de temps, en alias pandas (« h », « D », « 15min »). Vide, il est déduit de l'écart le plus fréquent entre deux horodatages. À ne renseigner que pour lever une ambiguïté — un calendrier ouvré, un pas mensuel. Ce champ ne referme pas un trou : les horodatages manquants restent des valeurs inconnues, quel que soit ce qu'on écrit ici."
+      },
+      "covariables_futures": {
+        "type": "string",
+        "contentMediaType": "text/csv",
+        "x-ui": "file",
+        "description": "CSV facultatif portant, pour les pas à venir, des grandeurs connues d'avance — température prévue, jour férié, promotion programmée. Mêmes colonnes d'identifiant et d'horodatage que la série, plus une colonne par covariable, et il doit couvrir exactement l'horizon demandé. Chaque covariable doit **aussi** figurer dans le CSV de la série, avec ses valeurs passées : c'est sur la fenêtre de contexte que le modèle apprend son lien avec la grandeur à prévoir, et une colonne qui n'existerait qu'au futur ne lui dirait rien."
+      },
+      "graphique": {
+        "type": "boolean",
+        "default": true,
+        "description": "Tracer l'éventail au-dessus de la fin de l'historique. Le CSV se lit en texte brut : sur cent soixante-huit lignes, une prévision aberrante ne se voit pas, et c'est ce tracé qui la montre."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["previsions", "previsions_json", "quantiles", "horizon"],
+    "additionalProperties": false,
+    "properties": {
+      "previsions": {
+        "type": "string",
+        "contentMediaType": "text/csv",
+        "description": "Chemin du CSV produit, relatif au dossier du job. Format long, une ligne par (série, pas), les colonnes d'identifiant et d'horodatage reprenant les noms d'entrée, puis une colonne par niveau de `quantiles`, nommée par ce niveau. Aucune autre colonne : ce que la bibliothèque ajoute et que le contrat ne décrit pas est écarté."
+      },
+      "previsions_json": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin du même éventail en JSON, relatif au dossier du job : une entrée par série, ses horodatages et un tableau par niveau. Le document nomme le modèle qui l'a écrit et le contexte qu'il a vu, sans quoi rien ne dit d'où viennent ces nombres."
+      },
+      "graphique": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin du tracé, relatif au dossier du job : la fin de l'historique, la médiane, et l'éventail entre les niveaux extrêmes demandés. C'est le seul moyen de voir une prévision fausse d'un coup d'œil."
+      },
+      "quantiles": {
+        "type": "array",
+        "items": { "type": "number" },
+        "description": "Niveaux réellement produits, après écrêtage sur la plage du modèle et suppression des doublons. Ils peuvent différer de ceux demandés, et c'est cette liste-là qui nomme les colonnes du CSV."
+      },
+      "horizon": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "Nombre de pas prévus."
+      },
+      "freq": {
+        "type": "string",
+        "description": "Pas de temps retenu, déduit ou imposé. Le relire est la façon la plus rapide de repérer une série dont les horodatages ne disent pas ce qu'on croyait."
+      },
+      "n_series": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de séries prolongées."
+      },
+      "contexte_utilise": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Pas passés réellement soumis au modèle, trous compris. Inférieur au `contexte` demandé quand la série est plus courte."
+      }
+    }
+  }
+}

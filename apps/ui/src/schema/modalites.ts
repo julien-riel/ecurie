@@ -66,6 +66,8 @@ interface Champ {
   type?: string;
   contentMediaType?: string;
   "x-ui"?: string;
+  /** Le schéma des éléments, quand le champ est un tableau. */
+  items?: Champ;
 }
 
 function champs(capability: Pick<Capability, "input">): Record<string, Champ> {
@@ -81,6 +83,12 @@ function requis(capability: Pick<Capability, "input">): readonly string[] {
 function modaliteDuChamp(champ: Champ | undefined): Modalite | null {
   if (!champ) return null;
   if (champ.contentMediaType) return modaliteDuMedia(champ.contentMediaType);
+  // Un champ **tableau** de fichiers porte son type sur `items`, parce que c'est
+  // chaque élément qui est un fichier — le tableau, lui, n'en est pas un.
+  // `multiview-to-3d` reçoit N photos d'une même scène, et sans ce cas elle
+  // n'annonçait aucune modalité d'entrée : invisible du filtre, et une glyphe
+  // qui disait « texte vers nuage ».
+  if (champ.type === "array" && champ.items) return modaliteDuChamp(champ.items);
   // Un champ fichier sans type déclaré n'annonce aucune restriction : il ne dit
   // rien de sa modalité, et deviner « image » parce que c'est le cas fréquent
   // ferait mentir un filtre.

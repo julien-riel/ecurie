@@ -28,6 +28,23 @@
 # import casserait ici et pas ailleurs —, assumé contre l'impossibilité pure et
 # simple d'installer le paquet tel qu'il se déclare.
 #
+# **UNE MINE SOUS LA REPRODUCTIBILITÉ, DÉSAMORCÉE POUR AUJOURD'HUI SEULEMENT.**
+# `depth-anything-3` 0.1.1 déclare `Requires-Python: >=3.9,<=3.13`, et cette
+# borne haute exclut littéralement le 3.13.9 du venv : `Version("3.13.9") in
+# SpecifierSet("<=3.13")` est **False** avec `packaging`. Mesuré le 24 août 2026,
+# les deux résolveurs ne lisent pas cette borne de la même façon :
+#
+#     uv 0.11.17   installe, aussi bien depuis le lock que par une résolution
+#                  complète refaite à partir de ce fichier (142 paquets, 0,3 s)
+#     pip 26.2.1   REFUSE — « Ignored the following versions that require a
+#                  different python version: 0.1.1 Requires-Python >=3.9,<=3.13 »
+#
+# `ecurie env sync` passe par uv, donc rien ne casse ici. Ce qui casse est
+# ailleurs : quiconque reconstruit cet env avec pip, ou le jour où uv alignerait
+# sa lecture sur celle de `packaging`. La sortie serait alors de descendre le
+# venv en 3.12 — où `open3d` a des roues, ce qui ne coûterait rien puisqu'il est
+# écarté de toute façon.
+#
 # Le `.venv` n'est pas versionné, ce fichier l'est. Pour le reconstruire :
 #
 #     ecurie env sync depth-anything

@@ -1,0 +1,43 @@
+{
+  "capability": "geo-embed",
+  "version": 1,
+  "description": "Charge type du banc d'essai. La même scène satellite que `geo-segment`, découpée trois fois : 192, 384 et 768 divisent exactement le côté de 768, si bien que les trois cas voient le **même nombre total de patches** — 2 304 — répartis en seize tuiles, quatre tuiles, puis une seule. Ce qui varie est donc la portée de l'attention et la surface tenue en mémoire à chaque passage, et rien d'autre : ni le nombre de pixels lus, ni la quantité d'information encodée. Aucune contrainte de multiple de 192 ici, contrairement à `geo-segment` : elle vient du décodeur, que cette capacité n'emploie pas, et l'encodeur seul accepte tout multiple de 16. `compare_to` n'est pas exercé, pour la raison d'`image-embed` : une seconde scène doublerait le passage dans le réseau et mêlerait deux coûts dans une même mesure. La scène est calculée, sans licence ni provenance à suivre, et sa recette est committée. Les cas ne changent jamais.",
+  "scaling_parameter": "tile_size",
+  "cases": [
+    {
+      "id": "tuile-192",
+      "input": {
+        "raster": "assets/geo-scene-crue-768.tif",
+        "band_indices": [1, 2, 3, 8, 11, 12],
+        "tile_size": 192,
+        "normalize": true
+      },
+      "source": {
+        "recipe": "geo",
+        "outil": "uv run --project runtimes/terratorch python tools/bench_assets.py geo",
+        "cote": 768,
+        "bandes": 13,
+        "graine": 20260824,
+        "sha256": "b31dad48e262501ba511622394eafa3bd007a2bf4ed0592a6c517519736a47ad"
+      }
+    },
+    {
+      "id": "tuile-384",
+      "input": {
+        "raster": "assets/geo-scene-crue-768.tif",
+        "band_indices": [1, 2, 3, 8, 11, 12],
+        "tile_size": 384,
+        "normalize": true
+      }
+    },
+    {
+      "id": "tuile-768",
+      "input": {
+        "raster": "assets/geo-scene-crue-768.tif",
+        "band_indices": [1, 2, 3, 8, 11, 12],
+        "tile_size": 768,
+        "normalize": true
+      }
+    }
+  ]
+}

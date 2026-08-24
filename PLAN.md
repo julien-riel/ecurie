@@ -17,16 +17,79 @@
 | v0.4 — Utilisable au quotidien | **en cours** | 4.1 : `ecurie serve` sert le parc **et lance ses jobs** — un POST, un flux SSE, un wav téléchargeable, éprouvés sur le vrai parc. 4.3 : les contrats engendrent leur formulaire — 25 aujourd'hui —, sans un formulaire écrit à la main, et un champ fichier se remplit au chemin, au sélecteur ou à la caméra. 4.4 : l'Atelier lance, suit et montre — du clic au wav qu'on écoute, éprouvé contre un vrai serveur. 4.5 : le Parc met la comptabilité disque à l'écran — trois chiffres, duplications, plan de GC à blanc, tiering —, et la coquille gagne sa navigation. 4.6 : le superviseur vit dans le processus de l'API, et `residents.json` n'est plus qu'un miroir |
 | v0.5 → v0.7 | à faire | — |
 
-Le parc réel compte **vingt capacités exécutables** sur vingt-cinq déclarées, et
-**chacune des vingt-cinq a au moins un modèle** — vingt-six manifestes,
-vingt-sept variants. Huit environnements de runtime, quatre paquets Python et un front,
-**845 tests Python et 404 tests de front**, plus cinq essais sur le vrai parc et
-huit contre un vrai serveur, exclus par défaut.
+Le parc réel compte **quarante et une capacités déclarées**, toutes pourvues d'au
+moins un modèle — soixante-quatre manifestes. Seize environnements de runtime,
+quarante-six adaptateurs, quatre paquets Python et un front,
+**1 293 tests Python et 497 tests de front**, plus les essais sur le vrai parc et
+contre un vrai serveur, exclus par défaut.
 
 Deux choses ont été faites en marge du jalon, et elles n'attendaient personne :
 le **recalibrage du seuil de lourdeur** (voir les points de contrôle), et la
 **rédaction des golden sets** de la tâche 5.1, qui est du travail de fond dont le
 v0.5 dépend entièrement.
+
+### Neuf capacités qui ne produisent pas de contenu — le 24 août 2026
+
+Ajoutées d'un coup, dans l'ordre de priorité de la file de veille :
+`time-series-forecast`, `pointcloud-to-cad`, `geo-segment`, `geo-embed`,
+`multiview-to-3d`, `robot-action`, `protein-embed`, plus les deux pistes les moins
+coûteuses du §C — `audio-align` et `image-embed`. Le parc passe de trente-deux à
+**quarante et une capacités**, avec cinq runtimes de plus, dix manifestes tous
+mesurés, neuf charges types et 13,6 Go de poids. Détail au rapport
+(`registry/veille/2026-08-24-mesure/`) ; ce qui touche le plan est ailleurs.
+
+**Ces neuf capacités ne se ressemblent pas, et c'est le point.** Une série de
+nombres, un texte à horodater, une image, une scène satellite à six bandes, une
+séquence protéique, un nuage de points, N photos, un état de robot. Ce qui les
+rassemble est ce qu'elles rendent : une mesure, une prévision, une géométrie, un
+programme, une action. Le parc savait produire du contenu ; il sait maintenant
+transformer des données.
+
+Ce que l'exercice a appris, et qui ne se lisait dans aucun plan :
+
+1. **Trois manques du socle ont été révélés le même jour, et aucun n'était
+   prévisible.** Un variant peut avoir besoin de deux dépôts (`extra_sources`,
+   réclamé par deux capacités indépendantes), un contrat peut avoir besoin de N
+   fichiers (les champs à cardinalité variable, ignorés par trois lectures
+   distinctes), et un `peak_scaling` peut suivre une longueur de liste plutôt
+   qu'un nombre saisi. Le v0.3 avait appris la même leçon avec `runtime_env` et
+   le profil paramétré : **le modèle de données s'étend par l'usage, jamais par
+   anticipation**, et chaque extension est venue d'une capacité qui ne pouvait
+   pas entrer sans elle.
+2. **Un profil du parc était faux, et il l'était depuis le début.**
+   `da3-large@fp32` mesurait son pic au RSS alors qu'il tourne sur Metal :
+   3,76 Go déclarés contre 6,55 réels, soit 42,6 % de sous-déclaration sur le
+   chiffre même dont dépend le contrôle d'admission. Le symptôme était lisible
+   dans le manifeste — une pente nulle avec un R² de 1,0, c'est-à-dire une
+   consommation qui ne bouge pas quand l'entrée quadruple. Personne ne l'avait
+   lu ainsi. Il faudrait une garde : un `bytes_per_unit` à zéro avec un R² parfait
+   est un instrument aveugle, pas une belle mesure.
+3. **Le mode de panne de ces capacités est la réussite silencieuse.** Aucun des
+   neuf adaptateurs n'a levé d'exception sur son piège principal : un pooler
+   initialisé au hasard, un préfixe de clés non dépouillé, un calcul de positions
+   qui produit du charabia, un alignement effondré, un quantile étiqueté faux.
+   Tous rendaient un résultat plausible. Le §8 dit que le banc mesure un coût, et
+   le 22 août on lui a ajouté qu'il ne regarde pas la forme ; il faut maintenant
+   dire que **sur ces capacités, la seule garde est un job réel dont on a lu la
+   sortie** — d'où les sondes que plusieurs adaptateurs portent désormais
+   eux-mêmes.
+4. **Deux capacités sur neuf n'ont coûté aucun environnement.** `audio-align`
+   tourne sur le venv `mlx-audio` sans une dépendance de plus — son code
+   d'inférence y était déjà livré —, et `image-embed` n'a demandé qu'un plancher
+   relevé sur un paquet déjà installé au-dessus. La question posée le 22 août
+   devant une capacité vide vaut aussi devant un runtime neuf : lequel des
+   environnements déjà là sait déjà le faire ?
+5. **Une licence a décidé d'une architecture, et c'est une première.** CAD-Recode
+   est sous CC BY-NC 4.0, code compris : aucune de ses lignes n'est entrée dans
+   ce dépôt, et le patron de `hunyuan3d` — code amont copié à la main, non
+   versionné, README signalé par `ecurie env list` — a servi une seconde fois
+   pour un motif juridique et non technique.
+6. **Une capacité peut entrer sans usage vérifiable, et le dire.** `robot-action`
+   rend sept nombres que rien dans le parc n'exécute. Cinq contrôles restent
+   possibles sans robot — forme, domaine, reproductibilité, pente de coût,
+   sensibilité à la consigne — et aucun n'est sémantique. Le contrat porte donc
+   l'incarnation en sortie **obligatoire** : sept flottants sans elle ne veulent
+   rien dire, et c'est la seule barrière entre une mesure et un ordre.
 
 ### Le registre au complet, et trois façons de remplir un champ fichier — le 22 août 2026
 
@@ -762,6 +825,23 @@ pas de sens tant que 7.0 n'a pas rendu un maillage ou tranché pour un autre
 modèle.
 
 ### Quatre chantiers qu'aucune tâche ne porte
+
+> **Mis à jour le 24 août 2026.** Le tableau ci-dessous est celui du 22 : trois
+> de ses cinq lignes sont soldées depuis (les adaptateurs de `audio-denoise` et
+> `audio-separation` sont écrits, `image-to-mesh` est mesuré). S'y ajoute un
+> chantier que le lot des capacités de mesure a ouvert et qui n'appartient à
+> aucune tâche : **l'index de similarité**. Quatre capacités le réclament
+> maintenant — `face-embed`, `image-embed`, `protein-embed`, `geo-embed` —,
+> chacune rendant un vecteur par job et un cosinus entre deux entrées. « Retrouver
+> tout ce qui ressemble à ceci » est ce pour quoi ces modèles existent, et c'est
+> la seule chose que le parc ne sait pas en faire.
+>
+> Un second chantier s'ajoute, plus petit et plus urgent : **une garde sur les
+> profils aveugles**. `da3-large` a porté pendant quatre jours un pic
+> sous-déclaré de 42,6 %, et cela se lisait — `bytes_per_unit: 0.0` avec
+> `r_squared: 1.0`. Le validateur du registre sait déjà dire qu'un manifeste a
+> divergé de sa mesure ; il devrait aussi savoir dire qu'une pente parfaitement
+> plate sur une plage qui quadruple est un instrument, pas un résultat.
 
 **Cinq capacités sur vingt-cinq ne sont pas exécutables**, et chacune bute sur
 autre chose :

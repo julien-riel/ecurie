@@ -30,13 +30,28 @@ sets de `registry/evals/golden/`, au v0.5.
 | `text-generation` | court-128, moyen-512, long-1536 | trois plafonds de jetons, température nulle partout — une charge qui échantillonnerait ne serait pas reproductible |
 | `face-detect` | res-320, res-640, res-1280 | une scène à quatre visages, trois définitions d'entrée — `input_size` pilote le coût au carré, et à 320 les plus petits visages sortent du champ du réseau, ce qui est précisément ce que ce paramètre gouverne |
 | `face-landmark`, `face-parse`, `face-embed`, `face-headpose`, `face-gaze` | visages-1, visages-2, visages-4 | la même scène, trois plafonds — ces cinq capacités ne cherchent pas les visages, elles traitent ceux qu'un détecteur leur désigne, et c'est le nombre de passages qui fait la durée |
+| `time-series-forecast` | ctx-512, ctx-2048, ctx-8192 | une seule série horaire, trois fenêtres emboîtées — c'est le **contexte** qui pilote le coût, pas l'horizon, ce qui n'allait pas de soi |
+| `audio-align` | une-phrase-4s, trois-phrases-18s, six-phrases-32s | le même enregistrement, trois durées écoutées. Le modèle reçoit 13,0 jetons audio par seconde contre 3,7 par mot : la durée l'emporte, et c'est le seul des deux à être un paramètre du contrat, donc le seul que l'admission puisse lire avant de lancer |
+| `image-embed` | cote-256, cote-512, cote-1024 | une seule scène, trois définitions — `max_side` pilote le coût, mais par une **marche puis un plateau** et non par une pente : le banc ajuste un R² de 0,57, jette la droite, et le profil garde le pire cas |
+| `geo-segment` | tuile-384, tuile-576, tuile-768 | une scène à six bandes, trois tailles de tuile. Les cotes ne sont pas rondes et ce n'est pas un choix : MPS refuse `adaptive_avg_pool2d` non divisible, et le PPM d'UperNet impose un **multiple de 192** — la taille native des chips, 512, ne passe donc pas |
+| `geo-embed` | tuile-192, tuile-384, tuile-768 | la même scène, trois tuiles — l'encodeur seul, sans tête de segmentation, et son pic ne bouge pas d'un octet entre les trois |
+| `protein-embed` | ubiquitine-76, lysozyme-129, gfp-238 | trois protéines réelles de longueur croissante. **La seule charge du registre sans un octet sous `assets/`** : l'entrée de cette capacité est du texte saisi, pas un fichier. Aucun `scaling_parameter` — mesuré, le pic est plat à seize kibioctets près de 76 à 2048 résidus ; c'est la latence qui suit la longueur |
+| `pointcloud-to-cad` | cube, cylindre-perce, piece-en-l | trois familles de construction du dialecte CadQuery. Aucun `scaling_parameter` : le pic dépend bien de `n_points`, mais par une marche (R² = 0,771), et la durée est dominée par le nombre de jetons produits — qui n'est pas un paramètre d'entrée |
 
 Les images de `assets/` sont produites par une recette déterministe (silhouette
 et dégradé calculés, pas de photo) : elles n'ont ni licence ni provenance à
 suivre, et se refabriquent à l'identique si besoin.
 
-**La recette est maintenant committée** — `tools/golden_assets.py`, et les cas
-qui en viennent portent un bloc `source` qui dit comment les refaire. Les six
+**Les recettes sont maintenant committées** — `tools/golden_assets.py` pour les
+images, les pages et le son ; et depuis le 24 août 2026, un module par famille
+sous `tools/assets/`, appelé par `tools/bench_assets.py <famille>`. Les capacités
+de mesure n'entrent pas dans les cinq recettes du premier script : une série
+horaire, un nuage de points, une scène satellite à six bandes et un
+enregistrement de parole ne se fabriquent pas comme une page ou un solide. Chaque
+module déclare l'environnement dont il a besoin, parce qu'il n'y en a pas un qui
+les serve tous — rasterio pour le GeoTIFF, rien du tout pour le PLY.
+
+Les cas qui en viennent portent un bloc `source` qui dit comment les refaire. Les six
 premières images de ce dossier, elles, n'en ont pas : leur recette n'a jamais été
 versionnée, et ce sont des données orphelines qu'on ne sait plus expliquer. On ne
 recommence pas. Elles sont en **RGBA avec un

@@ -1,0 +1,89 @@
+{
+  "ref": "da3-large-1-1-multivue@fp32",
+  "model": "da3-large-1-1-multivue",
+  "variant": "fp32",
+  "capability": "multiview-to-3d",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / numpy 1.26.4 / torch 2.13.0 / trimesh 5.0.0",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/multiview-to-3d.json",
+    "version": 1,
+    "cases": [
+      "vues-4",
+      "vues-16",
+      "vues-32"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 1643845073,
+    "peak_unified_memory_bytes": 11766988800,
+    "warmup_ms": 2083,
+    "latency_ms_p50": 10469,
+    "throughput": "1 sortie / 13.8 s"
+  },
+  "cases": [
+    {
+      "id": "vues-4",
+      "ok": true,
+      "duration_ms": 2036,
+      "metrics": {
+        "duration_ms": 2036,
+        "device": "mps",
+        "view_count": 4,
+        "process_res": 504,
+        "point_count": 609638,
+        "max_points": 1000000,
+        "infer_ms": 1840,
+        "focal_length_px": 524.255,
+        "peak_memory_bytes": 6551437312,
+        "job_peak_memory_bytes": 6551437312
+      },
+      "error": null
+    },
+    {
+      "id": "vues-16",
+      "ok": true,
+      "duration_ms": 10469,
+      "metrics": {
+        "duration_ms": 10469,
+        "device": "mps",
+        "view_count": 16,
+        "process_res": 504,
+        "point_count": 1000000,
+        "max_points": 1000000,
+        "infer_ms": 9808,
+        "focal_length_px": 518.828,
+        "peak_memory_bytes": 10298982400,
+        "job_peak_memory_bytes": 10298982400,
+        "warnings": [
+          "nuage tronqué à 1000000 points : l'export en tire autant au sort parmi ceux qui passent le seuil de confiance, et `seed` décide lesquels. Relever `max_points` pour garder tout ce que le modèle a vu"
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "vues-32",
+      "ok": true,
+      "duration_ms": 28908,
+      "metrics": {
+        "duration_ms": 28908,
+        "device": "mps",
+        "view_count": 32,
+        "process_res": 504,
+        "point_count": 1000000,
+        "max_points": 1000000,
+        "infer_ms": 27775,
+        "focal_length_px": 522.3,
+        "peak_memory_bytes": 11766988800,
+        "job_peak_memory_bytes": 11766988800,
+        "warnings": [
+          "nuage tronqué à 1000000 points : l'export en tire autant au sort parmi ceux qui passent le seuil de confiance, et `seed` décide lesquels. Relever `max_points` pour garder tout ce que le modèle a vu"
+        ]
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

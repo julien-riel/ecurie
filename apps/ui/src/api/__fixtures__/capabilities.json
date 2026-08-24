@@ -3,6 +3,115 @@
     {
       "composite": false,
       "defaults": {
+        "language": "french",
+        "max_seconds": 300,
+        "subtitle_format": "none"
+      },
+      "description": "Reçoit un enregistrement ET le texte de ce qui y est dit, et rend l'instant où chaque mot est prononcé. Elle ne transcrit rien : le texte lui est donné, et un mot qui n'y figure pas n'apparaîtra dans aucune sortie. C'est ce qui la sépare de `speech-to-text`, qui produit les mots sans dire où ils sont, et de `speaker-diarization`, qui dit qui parle sans dire quoi. Enchaîner les deux est l'usage attendu : transcrire, corriger le texte à la main, puis l'aligner.",
+      "human_subject": null,
+      "id": "audio-align",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "audio": {
+            "contentMediaType": "audio/*",
+            "description": "Enregistrement de la parole à horodater.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "language": {
+            "default": "french",
+            "description": "Langue du texte, qui décide du découpage en mots — un idéogramme est une unité, une suite de lettres séparées par des espaces en est une autre. C'est un NOM de langue, pas un code ISO : « french », pas « fr ». La liste est celle que le modèle chargé annonce ; une valeur hors liste retombe sur le découpage par espaces, ce que le worker signale.",
+            "type": "string",
+            "x-options-from": "runtime.languages",
+            "x-ui": "select"
+          },
+          "max_seconds": {
+            "default": 300,
+            "description": "Fenêtre écoutée, en secondes. Au-delà, l'enregistrement est ignoré et le job le signale. Ce n'est pas un confort : un aligneur forcé tient tout — jetons audio et jetons de texte — dans une seule passe avant, sans boucle de décodage et sans découpage en tranches, et c'est cette longueur qui décide du pic mémoire.",
+            "maximum": 300,
+            "minimum": 1,
+            "type": "number"
+          },
+          "subtitle_format": {
+            "default": "none",
+            "description": "Rendre en plus un fichier de sous-titres regroupant les mots en répliques. `none` n'écrit que la liste des mots, qui est la sortie exacte ; un sous-titre est un regroupement, donc une interprétation.",
+            "enum": [
+              "none",
+              "srt",
+              "vtt"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "description": "Le texte tel qu'il est prononcé, dans l'ordre. Il fait loi : le modèle ne l'amende pas, ne saute pas un mot qu'on lui donne et n'en ajoute pas un qu'on a oublié. Un texte qui diverge de l'enregistrement produit un alignement qui a l'air valide.",
+            "minLength": 1,
+            "type": "string",
+            "x-ui": "textarea"
+          }
+        },
+        "required": [
+          "audio",
+          "text"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "qwen3-forced-aligner"
+      ],
+      "output": {
+        "properties": {
+          "duration_seconds": {
+            "description": "Durée réellement écoutée, après application de `max_seconds`.",
+            "minimum": 0,
+            "type": "number"
+          },
+          "span_seconds": {
+            "description": "Fin de la dernière unité moins début de la première. C'est la sonde de cette capacité, et elle existe parce que l'alignement forcé échoue en silence : sur un texte qui diverge de l'enregistrement, ou dont une phrase revient à l'identique, le modèle colle sur la mauvaise occurrence et tasse le reste sur un instant. Un empan très inférieur à `duration_seconds` se lit d'un coup d'œil, là où trois cents horodatages ne se relisent pas.",
+            "minimum": 0,
+            "type": "number"
+          },
+          "subtitles": {
+            "contentMediaType": "text/plain",
+            "description": "Chemin du fichier de sous-titres, relatif au dossier du job. Absent quand `subtitle_format` vaut `none`.",
+            "type": "string"
+          },
+          "units": {
+            "description": "Nombre d'unités alignées. Un mot pour les langues à espaces, un idéogramme pour le chinois : c'est pourquoi ce champ ne s'appelle pas « mots ».",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "words": {
+            "contentMediaType": "application/json",
+            "description": "Chemin de la liste des unités horodatées — texte, début et fin en secondes —, relatif au dossier du job. Le texte de chaque unité est celui qui a été fourni, ponctuation comprise, et non la forme nettoyée que le modèle manipule.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "words",
+          "units",
+          "span_seconds"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "subtitles": "text/plain",
+        "words": "application/json"
+      },
+      "ready_variants": [
+        "qwen3-forced-aligner@8bit"
+      ],
+      "required": [
+        "audio",
+        "text"
+      ],
+      "steps": [],
+      "title": "Alignement d'un texte sur sa parole"
+    },
+    {
+      "composite": false,
+      "defaults": {
         "sample_rate": 48000,
         "segment_seconds": 15,
         "strength": 1.0
@@ -1070,6 +1179,277 @@
     {
       "composite": false,
       "defaults": {
+        "band_indices": [
+          1,
+          2,
+          3,
+          8,
+          11,
+          12
+        ],
+        "normalize": true,
+        "tile_size": 512
+      },
+      "description": "Une tuile de scène satellite vers un vecteur, tel que deux passages du même terrain donnent deux vecteurs proches. Trois choses la séparent d'`image-embed`, et aucune n'est un détail de format. **L'entrée n'est pas une image** : c'est un raster multi-bandes dont le modèle lit six canaux, dont trois que l'œil ne voit pas — une parcelle irriguée et une parcelle sèche se ressemblent en rouge-vert-bleu et se séparent dans le proche infrarouge. **Rien n'est redimensionné** : `image-embed` ramène l'image à `max_side` parce que le contenu d'une photo ne dépend pas de sa définition, alors qu'un pixel satellite mesure une surface au sol — trente mètres pour ces poids — et rééchantillonner reviendrait à changer ce que le modèle croit regarder. La scène est donc découpée en tuiles à sa définition native. **Il en sort donc plusieurs vecteurs**, un par tuile, là où `image-embed` en rend un par fichier : c'est ce que compte `count`, absent de l'autre contrat. Comme les autres empreintes du parc, elle ne se compare qu'à elle-même — deux modèles de cette capacité rendent des vecteurs qui n'appartiennent pas au même espace, et la confrontation A/B porte sur les rangs, jamais sur les valeurs. Elle ne cherche rien : il n'y a pas d'index dans le parc, seulement un vecteur par job et le cosinus entre deux scènes quand on en donne deux. Et elle ne classe rien : un vecteur ne dit pas ce qu'il y a sur le terrain, il dit seulement de quelles autres tuiles celle-ci est proche.",
+      "human_subject": null,
+      "id": "geo-embed",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "band_indices": {
+            "default": [
+              1,
+              2,
+              3,
+              8,
+              11,
+              12
+            ],
+            "description": "Les six bandes à extraire, dans l'ordre attendu par le modèle : bleu, vert, rouge, proche infrarouge, moyen infrarouge 1, moyen infrarouge 2. Le nombre n'est pas négociable — la première convolution du réseau a six canaux en dur. Le défaut convient à un Sentinel-2 niveau 1C livré avec ses treize bandes ; un raster réduit aux six bandes utiles se lit avec [0, 1, 2, 3, 4, 5]. Deux vecteurs calculés sur des sélections de bandes différentes ne sont pas comparables, et rien dans les nombres ne le montrerait : c'est pourquoi le document de sortie inscrit la sélection employée.",
+            "items": {
+              "description": "Numéro de bande, compté à partir de zéro.",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 6,
+            "minItems": 6,
+            "type": "array"
+          },
+          "compare_to": {
+            "contentMediaType": "image/tiff",
+            "description": "Seconde scène, facultative. Fournie, le job rend aussi le cosinus entre les deux empreintes de scène. C'est la seule façon de vérifier cette capacité sans index : mille vingt-quatre nombres ne se relisent pas, un cosinus se lit.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "normalize": {
+            "default": true,
+            "description": "Ramener chaque vecteur à la norme 1. C'est ce qui rend le produit scalaire égal au cosinus, donc directement comparable ; le désactiver n'a d'intérêt que pour un index qui normalise lui-même. Ici le réglage fait une chose de plus qu'ailleurs, et il faut le savoir : chaque tuile étant normalisée **avant** la moyenne qui forme l'empreinte de scène, il change la pondération des tuiles entre elles. Mesuré sur deux scènes de 768 pixels découpées en quatre, l'écart sur le cosinus est de 0,0001 — petit, mais réel, et c'est pourquoi le document de sortie inscrit le réglage employé.",
+            "type": "boolean"
+          },
+          "raster": {
+            "contentMediaType": "image/tiff",
+            "description": "Scène à encoder, en GeoTIFF multi-bandes. Réflectances attendues à l'échelle des produits Sentinel-2 et HLS, c'est-à-dire des entiers valant dix mille fois la réflectance. Le géoréférencement n'est pas nécessaire ici : l'encodeur ne rend aucune coordonnée, et un raster nu s'encode aussi bien.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "tile_size": {
+            "default": 512,
+            "description": "Côté, en pixels de la scène, des tuiles soumises au réseau. Ce n'est pas une définition de sortie mais un découpage : la scène n'est jamais mise à l'échelle, seulement coupée, et une tuile plus grande couvre plus de terrain sous un seul vecteur. Le pas de 16 est celui des patches du transformeur. Il pilote le coût deux fois — au carré par tuile, et par le nombre de tuiles —, et ces deux effets vont en sens contraire, ce qui rend ce paramètre le plus intéressant de la charge type. À la différence de `geo-segment`, aucun multiple de 192 n'est exigé ici : la contrainte de Metal vient du décodeur, que cette capacité n'emploie pas, et 192, 224, 256, 384, 512, 576, 768 et 1024 ont tous été mesurés sur l'encodeur seul, sans un octet de mémoire supplémentaire au-delà de ce que pèsent les poids.",
+            "maximum": 1024,
+            "minimum": 64,
+            "multipleOf": 16,
+            "type": "integer",
+            "x-ui": "slider"
+          }
+        },
+        "required": [
+          "raster"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "prithvi-eo-2-300m"
+      ],
+      "output": {
+        "properties": {
+          "count": {
+            "description": "Nombre de tuiles encodées. Il vaut 1 sur une scène plus petite qu'une tuile, et c'est le champ qui rappelle qu'ici un fichier ne donne pas un vecteur.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "dimensions": {
+            "description": "Longueur d'un vecteur. Une même longueur chez deux modèles ne rend pas leurs vecteurs comparables.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "embeddings": {
+            "contentMediaType": "application/json",
+            "description": "Chemin du document produit, relatif au dossier du job : un vecteur par tuile avec la fenêtre de pixels dont il vient, l'empreinte de scène qui les agrège, et ce qui permet de savoir à quel espace ces nombres appartiennent — le modèle, la révision des poids, la stratégie d'agrégation des jetons, les bandes retenues et le découpage employé. Sans ces lignes, rien n'empêche de calculer un cosinus entre deux espaces étrangers.",
+            "type": "string"
+          },
+          "similarity": {
+            "description": "Cosinus entre l'empreinte de scène de `raster` et celle de `compare_to`, quand la seconde scène est fournie. Il n'y a pas de seuil : ce qui sépare « le même terrain » de « un terrain qui lui ressemble » dépend du modèle, de la saison et de ce qu'on accepte de confondre, et cette capacité ne décide pas à la place de qui l'appelle.",
+            "maximum": 1.0,
+            "minimum": -1.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "embeddings",
+          "count",
+          "dimensions"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "embeddings": "application/json"
+      },
+      "ready_variants": [
+        "prithvi-eo-2-300m@300m-tl"
+      ],
+      "required": [
+        "raster"
+      ],
+      "steps": [],
+      "title": "Empreinte de tuile satellite"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "band_indices": [
+          1,
+          2,
+          3,
+          8,
+          11,
+          12
+        ],
+        "overlap": 0,
+        "tile_size": 576
+      },
+      "description": "Découpe une classe thématique — l'eau de crue, une cicatrice de feu, une culture — dans une scène satellite, et rend une carte de classes qui garde le géoréférencement de l'entrée. Ce n'est pas `image-segment`, et l'écart n'est pas cosmétique : l'entrée n'est pas une image mais un raster à plusieurs dizaines de bandes dont le modèle en lit six, trois d'entre elles étant invisibles à l'œil — proche infrarouge et deux moyens infrarouges. L'eau se distingue de l'ombre d'un nuage dans ces bandes-là, et pas dans le rouge-vert-bleu ; une orthophoto RGB passée à SAM serait `image-segment` sous un autre nom. Deux autres choses la séparent : l'utilisateur ne désigne rien — ni clic, ni boîte, ni mot, la classe appartient aux poids —, et la sortie porte un système de coordonnées, donc se superpose à une carte. Ce qu'elle ne fait pas : elle ne rééchantillonne pas la scène, parce qu'un modèle satellite est entraîné à une taille de pixel au sol donnée et qu'un pixel de trente mètres n'est pas un pixel de dix ; elle ne compose pas de mosaïque et ne reprojette rien ; elle ne nomme pas les classes elle-même, c'est la légende du modèle qui les nomme, et un modèle à deux classes n'en trouvera jamais une troisième. À la résolution de ces capteurs — dix à trente mètres au sol — aucune personne n'est distinguable, ce qui n'est pas le cas de toute imagerie aérienne.",
+      "human_subject": null,
+      "id": "geo-segment",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "band_indices": {
+            "default": [
+              1,
+              2,
+              3,
+              8,
+              11,
+              12
+            ],
+            "description": "Les six bandes à extraire du raster, dans l'ordre attendu par le modèle : bleu, vert, rouge, proche infrarouge, moyen infrarouge 1, moyen infrarouge 2. Six et pas cinq ni sept — la première convolution du réseau a six canaux d'entrée en dur, ce n'est pas une préférence. Le défaut convient à un produit Sentinel-2 niveau 1C livré avec ses treize bandes dans l'ordre B1…B12 : il désigne alors B2, B3, B4, B8A, B11 et B12. Un raster qui ne porterait que les six bandes utiles se lit avec [0, 1, 2, 3, 4, 5]. C'est le seul champ dont une erreur ne se voit pas dans le résultat — un masque calculé sur les mauvaises bandes a toutes les apparences d'un masque.",
+            "items": {
+              "description": "Numéro de bande, compté à partir de zéro.",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 6,
+            "minItems": 6,
+            "type": "array"
+          },
+          "overlap": {
+            "default": 0,
+            "description": "Recouvrement entre tuiles voisines, en pixels. Sans lui, une frontière de tuile est un endroit où le modèle n'a rien vu d'un côté ; les logits des tuiles voisines sont accumulés avant la décision, ce qui atténue déjà la couture, et le recouvrement la fait disparaître. Il ne sert qu'à partir d'une scène plus grande qu'une tuile, et il coûte : à 192 de recouvrement sur une tuile de 576, il y a deux fois plus de tuiles à calculer. Il doit rester strictement sous `tile_size`, sinon deux tuiles voisines ne progressent plus — une contrainte croisée que ce vocabulaire de schéma ne sait pas écrire, et que le modèle refuse donc au moment du job.",
+            "maximum": 384,
+            "minimum": 0,
+            "multipleOf": 32,
+            "type": "integer"
+          },
+          "raster": {
+            "contentMediaType": "image/tiff",
+            "description": "Scène à segmenter, en GeoTIFF multi-bandes. Les réflectances sont attendues à l'échelle des produits Sentinel-2 et HLS, c'est-à-dire des entiers valant dix mille fois la réflectance ; un raster déjà ramené entre 0 et 1 sera lu dix mille fois trop sombre, et le job le dit plutôt que de le corriger dans le dos. Le géoréférencement est facultatif : sans lui la segmentation a toujours lieu, la sortie n'a simplement plus de coordonnées à porter.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "tile_size": {
+            "default": 576,
+            "description": "Côté, en pixels, des tuiles réellement soumises au réseau ; une scène plus grande est découpée, une scène plus petite est rembourrée puis recadrée. C'est le seul paramètre qui pilote le coût, et au carré. Le pas de 192 n'est pas un arrondi de confort : le module pyramidal du décodeur agrège vers une grille de 6 × 6 sur une carte réduite d'un facteur 64, et Metal refuse une division non entière — 512, la taille native des chips de plusieurs jeux de données, échoue par « Adaptive pool MPS: input sizes must be divisible by output sizes ». Le plafond de 960 est une prudence de mesure et non une limite du réseau : 1152 tourne, mais réserve un gibioctet de plus que le pire cas des profils, et un contrôle d'admission qui s'appuie sur eux le laisserait passer en sous-estimant son coût.",
+            "maximum": 960,
+            "minimum": 384,
+            "multipleOf": 192,
+            "type": "integer",
+            "x-ui": "slider"
+          }
+        },
+        "required": [
+          "raster"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "prithvi-sen1floods11"
+      ],
+      "output": {
+        "properties": {
+          "bounds": {
+            "additionalProperties": false,
+            "description": "Emprise de la scène dans les unités du système de coordonnées. Absente en même temps que `crs` : une emprise sans repère ne situe rien.",
+            "properties": {
+              "bottom": {
+                "type": "number"
+              },
+              "left": {
+                "type": "number"
+              },
+              "right": {
+                "type": "number"
+              },
+              "top": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "left",
+              "bottom",
+              "right",
+              "top"
+            ],
+            "type": "object"
+          },
+          "classes": {
+            "contentMediaType": "application/json",
+            "description": "Chemin de la légende, relatif au dossier du job : pour chaque valeur de la carte, le nom que le modèle lui donne et le nombre de pixels qu'elle occupe. Sans ce document, un raster d'entiers ne se relit pas — et deux modèles de cette capacité ne numérotent pas forcément leurs classes dans le même ordre.",
+            "type": "string"
+          },
+          "coverage": {
+            "description": "Part de la scène occupée par la classe thématique, entre 0 et 1. C'est le seul nombre lisible que ce job produise, et le premier à regarder : une couverture nulle ou proche de 1 sur une scène ordinaire trahit presque toujours des bandes mal désignées.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "crs": {
+            "description": "Système de coordonnées de la scène, tel qu'il a été lu — par exemple « EPSG:4326 ». Absent quand l'entrée n'en portait aucun, ce qui est dit plutôt que remplacé par une valeur par défaut.",
+            "type": "string"
+          },
+          "mask": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de la même carte en PNG, relatif au dossier du job : une teinte par classe. Le GeoTIFF ne s'affiche nulle part dans l'UI, et une carte de classes qu'on ne peut pas regarder est une carte qu'on ne relit pas.",
+            "type": "string"
+          },
+          "mask_geotiff": {
+            "contentMediaType": "image/tiff",
+            "description": "Chemin de la carte de classes, relatif au dossier du job : un entier par pixel, aux dimensions exactes de l'entrée, avec son système de coordonnées et sa transformation affine recopiés. C'est ce fichier qui distingue cette capacité de `image-segment` — un PNG se regarde, celui-ci se superpose à une carte et se mesure en hectares.",
+            "type": "string"
+          },
+          "overlay": {
+            "contentMediaType": "image/png",
+            "description": "Chemin de la surimpression, relatif au dossier du job : la classe teintée par-dessus une composition en couleurs naturelles des trois bandes visibles, chacune étirée sur ses centiles. Un masque seul ne dit pas s'il est décalé ; c'est la superposition qui le montre.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mask_geotiff",
+          "mask",
+          "classes",
+          "coverage"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "classes": "application/json",
+        "mask": "image/png",
+        "mask_geotiff": "image/tiff",
+        "overlay": "image/png"
+      },
+      "ready_variants": [
+        "prithvi-sen1floods11@300m-tl"
+      ],
+      "required": [
+        "raster"
+      ],
+      "steps": [],
+      "title": "Segmentation d'imagerie satellite multi-bandes"
+    },
+    {
+      "composite": false,
+      "defaults": {
         "max_objects": 50,
         "max_tokens": 1024,
         "temperature": 0.0
@@ -1168,6 +1548,92 @@
       ],
       "steps": [],
       "title": "Détection et ancrage d'objets"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "max_side": 256,
+        "normalize": true
+      },
+      "description": "Une image entière vers un vecteur, tel que deux prises de la même pièce donnent deux vecteurs proches. Aucun redressement, aucune détection en amont : c'est ce qui la sépare de `face-embed`, qui aligne sur cinq points d'ancrage avant d'encoder — une pièce mécanique n'a pas cinq points d'ancrage. Elle ne cherche rien : elle rend un vecteur par job, et le cosinus entre deux images quand on lui en donne deux ; une recherche par similarité demanderait un index, que le parc n'a pas. Comme `face-embed`, elle ne se compare qu'à elle-même : deux modèles de cette capacité produisent des vecteurs qui n'appartiennent pas au même espace, et la confrontation A/B porte sur les rangs, jamais sur les valeurs. Le prétraitement fait partie du contrat et non de l'adaptateur : l'image est composée sur **fond blanc opaque** avant d'être encodée. Sans cette règle écrite ici, un PNG à canal alpha se lit de deux façons — les assets du dépôt ont des canaux RGB nuls sous leur alpha, si bien qu'un `convert(\"RGB\")` naïf sert la silhouette sur fond noir et change les rangs d'une comparaison.",
+      "human_subject": null,
+      "id": "image-embed",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "compare_to": {
+            "contentMediaType": "image/*",
+            "description": "Seconde image, facultative. Fournie, le job rend aussi le cosinus entre les deux vecteurs. C'est la seule façon de vérifier cette capacité sans index : un vecteur de 768 nombres ne se relit pas, un cosinus se lit.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Image à encoder, entière : ce qui est au bord compte autant que ce qui est au centre, et rien n'est recadré.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "max_side": {
+            "default": 256,
+            "description": "Plus grand côté de l'image soumise au réseau, proportions conservées, chaque côté ramené au pas du modèle. C'est le seul paramètre qui pilote le coût. Le défaut est bas délibérément : ces encodeurs sont pré-entraînés autour de 224 pixels, et monter la définition coûte de la mémoire sans qu'aucune mesure du parc ne montre un gain en retour.",
+            "maximum": 2048,
+            "minimum": 128,
+            "type": "integer",
+            "x-ui": "slider"
+          },
+          "normalize": {
+            "default": true,
+            "description": "Ramener le vecteur à la norme 1. C'est ce qui rend le produit scalaire égal au cosinus, donc directement comparable ; le désactiver n'a d'intérêt que pour un index qui normalise lui-même.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "dinov2",
+        "dinov3"
+      ],
+      "output": {
+        "properties": {
+          "dimensions": {
+            "description": "Longueur du vecteur. Une même longueur chez deux modèles ne rend pas leurs vecteurs comparables.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "embedding": {
+            "contentMediaType": "application/json",
+            "description": "Chemin du document produit, relatif au dossier du job : le vecteur, et ce qui permet de savoir à quel espace il appartient — le modèle, l'implémentation qui l'a chargé, la stratégie d'agrégation des jetons, la couleur du fond composé et la définition réellement soumise. Sans ces lignes, une suite de nombres ne se relit pas, et rien n'empêche de calculer un cosinus entre deux espaces étrangers.",
+            "type": "string"
+          },
+          "similarity": {
+            "description": "Cosinus entre le vecteur de `image` et celui de `compare_to`, quand la seconde image est fournie. Il n'y a pas de seuil : ce qui sépare « la même pièce » de « une pièce qui lui ressemble » dépend du modèle, de la définition soumise et de ce qu'on accepte de confondre, et cette capacité ne décide pas à la place de qui l'appelle.",
+            "maximum": 1.0,
+            "minimum": -1.0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "embedding",
+          "dimensions"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "embedding": "application/json"
+      },
+      "ready_variants": [
+        "dinov2@vit-base",
+        "dinov3@convnext-small"
+      ],
+      "required": [
+        "image"
+      ],
+      "steps": [],
+      "title": "Empreinte visuelle d'image"
     },
     {
       "composite": false,
@@ -2035,6 +2501,498 @@
     {
       "composite": false,
       "defaults": {
+        "conf_thresh_percentile": 40,
+        "max_points": 1000000,
+        "process_res": 504,
+        "seed": 0
+      },
+      "description": "Plusieurs photos d'une même scène vers **un seul repère** : une pose de caméra par vue, plus le nuage de points que ces vues décrivent ensemble. Ce qui est neuf ici est la **consistance inter-vues**, et rien d'autre — c'est ce qui la sépare de ses deux voisines, entre lesquelles il faut savoir choisir. `depth-estimation` prend UNE image et rend une carte de distances plus une caméra dans un repère propre à cette image : deux appels sur deux photos ne disent pas où était le photographe entre les deux, parce que rien ne relie leurs deux repères. `image-to-mesh` prend UNE image aussi et rend une surface fermée, sans aucune caméra : on obtient un objet, jamais un lieu. Ici l'entrée est une **liste** de photos, et c'est la seule capacité du parc dont un champ en accepte plusieurs. Ce qu'elle ne fait pas : elle ne mesure rien — l'échelle est **relative**, jamais métrique, et `is_metric` sort toujours à faux ; deux lots de photos de la même pièce ne donnent pas la même unité, et aucune distance rendue n'est en mètres. Elle ne rend pas non plus de surface : un nuage de points n'est pas un maillage, il n'a ni faces ni intérieur, et un `image-to-mesh` reste nécessaire pour obtenir un objet fermé. Elle ne recale pas des photos prises à des moments différents d'une scène qui a bougé, et elle ne demande ni ne lit aucune donnée EXIF : les focales sont estimées depuis les pixels, pas relevées sur l'appareil. L'ordre des vues compte enfin : la première fixe les axes dans lesquels tout le reste est rendu, et le même lot dans un autre ordre est un autre job.",
+      "human_subject": null,
+      "id": "multiview-to-3d",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "conf_thresh_percentile": {
+            "default": 40,
+            "description": "Part des pixels les moins sûrs écartée du nuage, en centiles. À 40, les quatre dixièmes les moins confiants ne sont pas reprojetés — ce sont les bords d'objets, le ciel et les surfaces uniformes, c'est-à-dire là où la profondeur est le plus souvent fausse. Monter ce nombre donne un nuage plus propre et plus creux ; le descendre à zéro garde tout, bruit compris.",
+            "maximum": 90,
+            "minimum": 0,
+            "type": "number",
+            "x-ui": "slider"
+          },
+          "images": {
+            "description": "Les vues de la scène, dans l'ordre où elles doivent être traitées. Deux au minimum — une vue seule ne porte aucune information inter-vues, et c'est `depth-estimation` qu'il faut alors. Trente-deux au maximum, parce que c'est le dernier nombre dont le pic mémoire a été mesuré sur cette machine (11,8 Go) ; au-delà, rien ne dit ce que coûte un job. La première vue fixe le repère de sortie : réordonner le même lot change le résultat, et l'empreinte du job le sait.",
+            "items": {
+              "contentMediaType": "image/*",
+              "description": "Une photographie de la scène. Les vues doivent se recouvrir : deux images sans zone commune n'ont rien à apparier.",
+              "type": "string",
+              "x-ui": "file"
+            },
+            "maxItems": 32,
+            "minItems": 2,
+            "type": "array"
+          },
+          "max_points": {
+            "default": 1000000,
+            "description": "Plafond du nombre de points du nuage. Au-delà, l'export en tire au sort autant qu'il en faut parmi ceux qui ont passé le seuil de confiance — c'est le seul tirage au sort de cette capacité, et `seed` décide lesquels. Compter environ 16 octets par point dans le fichier produit : un million de points font une quinzaine de mégaoctets.",
+            "maximum": 2000000,
+            "minimum": 50000,
+            "type": "integer",
+            "x-ui": "slider"
+          },
+          "process_res": {
+            "default": 504,
+            "description": "Côté de la grille sur laquelle le modèle raisonne. Le coût suit la surface **et** le nombre de vues : doubler ce nombre quadruple le travail de chacune. Les cartes de profondeur et les matrices intrinsèques sont rendues à cette résolution, pas à celle des images d'entrée. Un multiple de 14 — l'encodeur travaille par patchs de 14 pixels et arrondit sinon.",
+            "maximum": 1024,
+            "minimum": 256,
+            "type": "integer",
+            "x-ui": "slider"
+          },
+          "seed": {
+            "default": 0,
+            "description": "Graine du tirage qui ramène le nuage sous `max_points`. **Elle n'a aucun effet sur la reconstruction elle-même** : mesuré sur ces poids, deux passes sur les mêmes vues rendent des profondeurs, des confiances et des poses bit à bit identiques. Elle ne décide que de quels points survivent au plafond, et n'a donc aucun effet tant que le nuage tient dessous.",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "images"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "da3-large-1-1-multivue"
+      ],
+      "output": {
+        "additionalProperties": false,
+        "properties": {
+          "cameras": {
+            "contentMediaType": "application/json",
+            "description": "Chemin du JSON des poses, relatif au dossier du job. Une entrée par vue : matrice extrinsèque 3×4 **world-to-camera**, matrice intrinsèque 3×3, centre optique déjà calculé, focale. La convention w2c est écrite dans le fichier parce que s'en tromper est silencieux : le centre d'une caméra est -Rᵀt et non t, et prendre t donne un arc plausible et faux.",
+            "type": "string"
+          },
+          "is_metric": {
+            "description": "Toujours faux avec les modèles du parc. L'échelle de la reconstruction est arbitraire : les proportions et les angles sont exploitables, les longueurs ne le sont pas. Ce champ existe pour que la question soit posée à chaque job plutôt que dans une note qu'on ne relit pas.",
+            "type": "boolean"
+          },
+          "point_cloud": {
+            "contentMediaType": "model/gltf-binary",
+            "description": "Chemin du nuage de points coloré, relatif au dossier du job. Le fichier porte aussi un tronc de pyramide par caméra, ce qui rend la disposition des prises de vue visible dans n'importe quel visualiseur glTF. Ce n'est pas un maillage : ni faces, ni surface, ni intérieur.",
+            "type": "string"
+          },
+          "point_count": {
+            "description": "Nombre de points du nuage écrit, compté en relisant le fichier plutôt qu'au moment de l'écrire. Égal à `max_points` quand le plafond a mordu.",
+            "type": "integer"
+          },
+          "preview": {
+            "contentMediaType": "image/jpeg",
+            "description": "Chemin de l'aperçu composé, relatif au dossier du job. Une vignette par vue — la photo au-dessus de sa profondeur, encadrées de la couleur que la caméra porte dans le nuage — puis le **plan** : la scène vue de dessus et les centres de caméra reliés dans l'ordre reçu. C'est le seul endroit où une pose fausse se voit sans ouvrir le nuage ; un aperçu qui ne montrerait qu'une vue laisserait passer une reconstruction juste sur la première et fausse sur toutes les autres.",
+            "type": "string"
+          },
+          "view_count": {
+            "description": "Nombre de vues effectivement reconstruites. C'est aussi le paramètre qui pilote le coût du job.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "point_cloud",
+          "preview",
+          "cameras",
+          "view_count",
+          "point_count",
+          "is_metric"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "cameras": "application/json",
+        "point_cloud": "model/gltf-binary",
+        "preview": "image/jpeg"
+      },
+      "ready_variants": [
+        "da3-large-1-1-multivue@fp32"
+      ],
+      "required": [
+        "images"
+      ],
+      "steps": [],
+      "title": "Reconstruction spatiale multi-vues"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "executer_le_code": false,
+        "max_new_tokens": 768,
+        "n_points": 256,
+        "seed": 42
+      },
+      "description": "Une géométrie mesurée vers le **programme** qui la reconstruit : quelques lignes de CadQuery — esquisses, extrusions, perçages — plutôt qu'un maillage. C'est ce qui la sépare d'`image-to-mesh`, qui rend une surface figée : une pièce décrite par son programme se modifie encore, un maillage ne se modifie plus. Ce qu'elle ne fait pas : elle ne mesure rien, elle ne retrouve pas les cotes d'origine (la géométrie est ramenée dans un cube de côté 2 avant d'entrer, et le programme sort à l'échelle apprise, pas à celle de la pièce), elle ne rend ni tolérances, ni matière, ni arbre de construction nommé, et elle n'a jamais vu l'objet réel — seulement 256 points tirés de sa surface. Le champ `geometrie` accepte aussi bien un nuage qu'un maillage : d'un maillage on échantillonne la surface, ce qui rend le chaînage depuis `image-to-mesh` direct — c'est le seul chaînage du parc où une capacité reprend la sortie d'une autre pour en dire davantage. **Exécuter le programme est une décision de sécurité, et elle se prend ici.** Le code vient d'un modèle de langue : il peut appeler autre chose que CadQuery, boucler, ou remplir la mémoire (l'amont le dit lui-même de son démonstrateur — « may be unsafe and cause memory leaks »). `executer_le_code` vaut donc **faux** par défaut, et le contrat rend alors le programme seul, ce qui est déjà tout ce que la capacité promet ; l'activer produit en plus un STEP et un maillage de contrôle, dans un interpréteur séparé, sans environnement hérité et borné en durée. Ce qui est contenu est dit exactement, et ce qui ne l'est pas aussi : sur cette machine, le noyau refuse toute borne mémoire, et le réseau n'est pas coupé — le job le remonte en avertissement plutôt que de laisser croire à une barrière qui n'existe pas. Un programme qui ne s'exécute pas reste une sortie utile : le champ `erreur` dit pourquoi, et `code` est toujours là pour être relu.",
+      "human_subject": null,
+      "id": "pointcloud-to-cad",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "executer_le_code": {
+            "default": false,
+            "description": "Exécuter le programme engendré pour en tirer un STEP et un maillage de contrôle. Faux par défaut : ce code n'a été relu par personne. Activé, il part dans un interpréteur séparé, sans variables d'environnement héritées, avec un dossier de travail limité à celui du job, un délai d'horloge, une borne de temps processeur et une borne de taille de fichier. Ni le réseau ni la mémoire ne sont bornés — le noyau de cette machine refuse les limites mémoire, et le job le dit à chaque exécution. Cela ne rend donc pas l'exécution sûre : cela la rend surveillée.",
+            "type": "boolean"
+          },
+          "geometrie": {
+            "contentMediaType": "model/*",
+            "description": "Nuage de points ou maillage — .ply, .stl, .obj, .off ou .glb. D'un nuage, les points sont pris tels quels ; d'un maillage, ils sont tirés de la surface. La géométrie est ensuite centrée sur ses bornes et ramenée dans un cube de côté 2 : c'est le cadrage que ces modèles ont appris, et il efface l'échelle d'origine.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "max_new_tokens": {
+            "default": 768,
+            "description": "Longueur maximale du programme, en jetons. Mesuré sur des pièces simples : 53 à 262 jetons suffisent. Un plafond atteint est le signe d'une génération qui part en boucle, pas d'une pièce compliquée — les métriques du job le disent.",
+            "maximum": 2048,
+            "minimum": 128,
+            "type": "integer",
+            "x-ui": "slider"
+          },
+          "n_points": {
+            "default": 256,
+            "description": "Nombre de points soumis au modèle, choisis par échantillonnage du plus lointain. 256 est la valeur d'entraînement ; toute autre est hors distribution et dégrade le programme sans qu'aucune erreur ne le signale. C'est aussi le paramètre qui pilote le coût, chaque point occupant une position du contexte.",
+            "maximum": 512,
+            "minimum": 64,
+            "type": "integer",
+            "x-ui": "slider"
+          },
+          "seed": {
+            "default": 42,
+            "description": "Graine de l'échantillonnage de surface, quand l'entrée est un maillage. Sans elle, deux exécutions sur le même fichier ne voient pas les mêmes points et ne rendent pas le même programme. Elle n'a aucun effet sur un nuage de points, dont rien n'est tiré au sort.",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "geometrie"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "cad-recode"
+      ],
+      "output": {
+        "properties": {
+          "code": {
+            "contentMediaType": "text/x-python",
+            "description": "Chemin du programme CadQuery, relatif au dossier du job. Produit sans rien exécuter : c'est la seule sortie que cette capacité garantit, et c'est là qu'est sa valeur — quelques lignes qu'on relit, qu'on corrige et qu'on rejoue ailleurs.",
+            "type": "string"
+          },
+          "erreur": {
+            "description": "Ce qui a empêché le programme de s'exécuter, quand `execution` n'est pas `ok`. Le modèle annonce lui-même environ 0,4 % de code invalide sur son propre banc, hors dérive de version de CadQuery.",
+            "type": "string"
+          },
+          "execution": {
+            "description": "Ce qu'il est advenu du programme. `non-demandee` est l'état normal quand `executer_le_code` est faux — ce n'est pas un échec. Un échec d'exécution est une valeur lisible et non une exception : le code reste utile même quand il ne compile pas.",
+            "enum": [
+              "non-demandee",
+              "ok",
+              "erreur",
+              "delai-depasse"
+            ],
+            "type": "string"
+          },
+          "mesh": {
+            "contentMediaType": "model/gltf-binary",
+            "description": "Chemin du maillage de contrôle tessellé depuis le solide, relatif au dossier du job, quand l'exécution a réussi. Il n'est pas la sortie de la capacité — c'est le seul moyen de voir d'un coup d'œil si le programme décrit bien la pièce soumise, ce qu'une lecture du code ne dit pas.",
+            "type": "string"
+          },
+          "step": {
+            "contentMediaType": "model/step",
+            "description": "Chemin du solide exact au format d'échange CAO, relatif au dossier du job, quand l'exécution a réussi. Aucun visualiseur du parc ne rend le STEP : il se télécharge et s'ouvre dans un modeleur. C'est le `mesh` ci-dessous qui sert à regarder.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "execution"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "code": "text/x-python",
+        "mesh": "model/gltf-binary",
+        "step": "model/step"
+      },
+      "ready_variants": [
+        "cad-recode@bf16"
+      ],
+      "required": [
+        "geometrie"
+      ],
+      "steps": [],
+      "title": "Nuage de points vers programme CAO"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "max_length": 1024,
+        "normalize": true
+      },
+      "description": "Encode une séquence d'acides aminés en un vecteur, tel que deux protéines de famille ou de fonction proches donnent deux vecteurs proches. Ce qui sort est une coordonnée, pas une annotation : ni structure, ni repliement, ni fonction prédite, ni site actif — et rien de ce qu'elle rend ne se lit sans un point de comparaison. Elle ne cherche rien non plus : un vecteur par job, et le cosinus entre deux séquences quand on lui en donne deux ; « retrouver toutes les protéines qui ressemblent à celle-ci » demande un index que le parc n'a pas. L'ÉCHELLE DES COSINUS EST LE PIÈGE DE LECTURE, ET IL EST MESURÉ. Sur ESM-2 650M, moyenne des résidus, MPS, fp32 : ubiquitine humaine contre ubiquitine de levure — trois substitutions — 0,9968 ; ubiquitine contre lysozyme 0,6649 ; ubiquitine contre GFP 0,5834 ; lysozyme contre GFP 0,7783 ; ubiquitine contre sa propre séquence mélangée, même composition et plus aucune protéine, 0,5773. Deux protéines étrangères l'une à l'autre sont donc PLUS proches (0,778) qu'une protéine et son propre bruit (0,577). Il n'existe aucun seuil : qui lira 0,78 et en conclura une parenté aura tort, et cette capacité ne décide pas à la place de qui l'appelle. Comme `face-embed`, elle ne se compare qu'à elle-même — deux modèles rendent des vecteurs qui n'appartiennent pas au même espace, et la confrontation A/B porte sur les rangs, jamais sur les valeurs. Elle ne porte pas sur une personne : une séquence sauvage d'ubiquitine ou de lysozyme est un fait de la nature, et `human_subject` est absent pour cela. La réserve tient en une phrase, et elle appartient à qui soumet l'entrée : une séquence VARIANTE issue du séquençage d'un individu peut le désigner, et rien ici ne le détecte.",
+      "human_subject": null,
+      "id": "protein-embed",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "compare_to": {
+            "description": "Seconde séquence, facultative. Fournie, le job rend aussi le cosinus entre les deux vecteurs. C'est la seule façon de vérifier cette capacité sans index : un vecteur de 1280 nombres ne se relit pas, un cosinus se lit.",
+            "maxLength": 2048,
+            "minLength": 1,
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "max_length": {
+            "default": 1024,
+            "description": "Résidus soumis au réseau au plus, troncature explicite au-delà et rapportée dans `truncated`. C'est le seul paramètre qui borne le coût, et c'est surtout la seule protection réelle : le tokenizer d'ESM déclare un `model_max_length` de 10^30 et ne tronque jamais de lui-même, si bien qu'une séquence de cent mille résidus partirait telle quelle. Le pic mémoire, lui, n'en dépend pas — c'est la latence qui suit la longueur.",
+            "maximum": 2048,
+            "minimum": 16,
+            "type": "integer",
+            "x-ui": "slider"
+          },
+          "normalize": {
+            "default": true,
+            "description": "Ramener le vecteur à la norme 1. C'est ce qui rend le produit scalaire égal au cosinus, donc directement comparable ; le désactiver n'a d'intérêt que pour un index qui normalise lui-même. Le `similarity` rendu ne change pas : un cosinus est invariant d'échelle.",
+            "type": "boolean"
+          },
+          "sequence": {
+            "description": "Séquence en code à une lettre, ou un enregistrement FASTA dont les lignes d'en-tête sont retirées. L'alphabet est celui du modèle et pas un de plus : les vingt acides aminés standards, plus X (résidu inconnu), B, Z, U et O. Une lettre en dehors est refusée plutôt qu'encodée en jeton inconnu, ce qui rendrait un vecteur que rien ne signalerait comme faux. Le plafond de 2048 caractères compte l'en-tête FASTA s'il y en a un ; c'est `max_length` qui borne les résidus soumis au réseau.",
+            "maxLength": 2048,
+            "minLength": 1,
+            "type": "string",
+            "x-ui": "textarea"
+          }
+        },
+        "required": [
+          "sequence"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "esm2-650m"
+      ],
+      "output": {
+        "properties": {
+          "dimensions": {
+            "description": "Longueur du vecteur. Une même longueur chez deux modèles ne rend pas leurs vecteurs comparables.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "embedding": {
+            "contentMediaType": "application/json",
+            "description": "Chemin du document produit, relatif au dossier du job : le vecteur, et ce qui permet de savoir à quel espace il appartient — le modèle, sa révision épinglée, l'agrégation des résidus, la normalisation et la longueur réellement encodée. Ces lignes ne sont pas de la courtoisie : quatre largeurs circulent dans cette famille (480, 640 et 1280 chez ESM-2, 960, 1152 et 2560 chez ESM-C), deux modèles peuvent partager la même, et un cosinus entre deux espaces étrangers est un nombre plausible qui ne veut rien dire.",
+            "type": "string"
+          },
+          "length": {
+            "description": "Résidus réellement encodés, jetons spéciaux exclus. Il diffère de la longueur soumise dès que la séquence a été tronquée, et c'est là qu'on le lit.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "similarity": {
+            "description": "Cosinus entre le vecteur de `sequence` et celui de `compare_to`, quand la seconde séquence est fournie. Aucun seuil universel : voir les cinq mesures de la description, où deux protéines sans rapport dépassent une protéine comparée à son propre mélange.",
+            "maximum": 1.0,
+            "minimum": -1.0,
+            "type": "number"
+          },
+          "truncated": {
+            "description": "Vrai si la séquence dépassait `max_length`. L'enjeu est faible sur le vecteur — mesuré sur une chimère de 1402 résidus, en tronquer 380 rend un vecteur à 0,9996 de cosinus du vecteur complet — et fort sur le journal : un vecteur qui n'encode pas ce qu'on croit doit le dire.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "embedding",
+          "dimensions",
+          "length"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "embedding": "application/json"
+      },
+      "ready_variants": [
+        "esm2-650m@t33-650m"
+      ],
+      "required": [
+        "sequence"
+      ],
+      "steps": [],
+      "title": "Empreinte de séquence protéique"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "seed": 0,
+        "steps": 10
+      },
+      "description": "Une vue de caméra, une consigne en langue naturelle et l'état articulaire courant vers un **tronçon de commandes** : plusieurs dizaines de pas à exécuter à la suite, chacun portant les degrés de liberté d'un effecteur et sa pince. C'est la seule capacité du parc dont la sortie soit une **action**, et l'écart avec toutes les autres n'est pas de forme mais de conséquence : un texte faux se relit, une image ratée se jette, sept nombres faux poussent un bras contre une table.\n\n**Ces nombres n'ont de sens que pour une incarnation précise, et le contrat le fait porter à la sortie plutôt qu'à l'entrée.** L'incarnation — quel robot, quel contrôleur, quelle convention — n'est pas un paramètre d'appel : elle est figée à l'entraînement, et c'est elle qui décide du nombre de degrés de liberté, de la dimension de l'état attendu et de ce que les nombres veulent dire. La choisir dans un formulaire serait promettre un choix que le modèle refuserait. Le contrat impose donc `embodiment`, `space` et `units` en sorties **obligatoires** : un tronçon ne circule jamais sans le nom du robot pour lequel il a été calculé, ni sans dire s'il s'agit d'un déplacement d'effecteur ou d'angles absolus. Confondre les deux, c'est écraser un robot ; et un tableau de sept flottants ne dit pas lequel il est.\n\n**Ce que cette capacité ne fait pas.** Elle ne pilote rien : elle rend des nombres, elle n'ouvre aucun port, ne parle à aucun contrôleur et ne referme aucune boucle. Elle ne planifie pas non plus — un tronçon est une réaction à une observation, pas une séquence vérifiée jusqu'au but ; l'usage prévu en amont est de le recalculer plusieurs fois par seconde sur des observations fraîches, ce que le parc ne fait pas et ne peut pas faire. Elle ne connaît pas les limites articulaires du robot qui recevra ces nombres, ni les obstacles autour, ni les personnes. Elle ne vérifie pas non plus que l'objet nommé par la consigne est dans l'image : une consigne qui désigne ce qui n'est pas là produit un tronçon parfaitement bien formé.\n\n**Et sans robot, la sortie n'est vérifiable que par sa forme.** Aucun modèle de cette capacité n'est jugeable sur le geste dans ce parc : il n'y a ni bras, ni simulateur. Quatre contrôles restent réels, et ce sont les seuls — la **forme** (le tronçon a-t-il les dimensions déclarées), le **domaine** (chaque nombre tombe-t-il dans les bornes que le modèle publie pour ses propres actions d'entraînement), la **reproductibilité** (deux appels de même graine rendent-ils le même tronçon) et la **sensibilité à la consigne** (deux consignes différentes sur la même image doivent donner deux tronçons différents ; si elles donnent le même, le canal de langue est mort et le modèle n'écoute pas). Aucun des quatre ne dit si le geste est le bon. C'est écrit ici plutôt que découvert plus tard : cette capacité entre au parc pour être mesurée et essayée, pas pour commander quoi que ce soit.",
+      "human_subject": null,
+      "id": "robot-action",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "image": {
+            "contentMediaType": "image/*",
+            "description": "Vue principale de la scène, telle que la caméra du robot la voit. Toute taille est acceptée : elle est ramenée à la définition d'entrée du modèle en conservant les proportions, le reste étant bourré de noir — un format très allongé perd donc en surface utile ce que les bandes occupent. Une image qui ne ressemble pas à ce que le modèle a vu à l'entraînement — autre simulateur, autre point de vue, pas de bras dans le champ — ne produit aucune erreur : elle produit un tronçon bien formé et hors distribution.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "image2": {
+            "contentMediaType": "image/*",
+            "description": "Deuxième vue, quand le modèle en déclare une. Les vues ne sont pas interchangeables : la première est celle que le modèle attend en premier, et permuter deux caméras change le résultat sans qu'aucun message ne le signale. Une vue de plus coûte un passage d'encodeur visuel de plus — mesuré, environ un tiers de temps en plus par caméra ajoutée.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "image3": {
+            "contentMediaType": "image/*",
+            "description": "Troisième vue, même règle. Un modèle qui n'en déclare que deux ignore celle-ci, et le job le dit en avertissement plutôt que de la faire disparaître en silence.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "instruction": {
+            "description": "La consigne, **en anglais**, à l'impératif et sur un seul geste : « pick up the red cube », « push the blue ball to the left ». Ces modèles n'ont vu que de l'anglais, et l'échec est muet — mesuré sur le titulaire, une consigne en français rend un tronçon bien formé, dans les bornes, et différent de la consigne anglaise équivalente. Rien dans la sortie ne dit qu'elle n'a pas été comprise. Une consigne longue est tronquée à quelques dizaines de jetons par le modèle, ce qui coupe la fin d'une phrase composée sans avertir : deux gestes enchaînés dans une même consigne n'en donnent qu'un.",
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string",
+            "x-ui": "textarea"
+          },
+          "seed": {
+            "default": 0,
+            "description": "Graine du bruit initial. Elle est ce qui sépare cette capacité d'un générateur : mesuré sur le titulaire, deux appels identiques sans bruit fixé rendent des tronçons **différents**, avec un écart maximal de 0,96 — de quoi accuser le modèle d'une instabilité qui n'est que du hasard non tenu. Avec une graine, les deux appels sont identiques bit à bit. La sortie `deterministic` dit si elle a réellement été honorée : un modèle qui tirerait au sort ailleurs que dans ce bruit-là rendrait `faux`, et il faudrait le croire.",
+            "minimum": 0,
+            "type": "integer",
+            "x-ui": "hidden"
+          },
+          "state": {
+            "description": "L'état courant du robot — position et orientation de l'effecteur, ouverture de la pince, ou angles articulaires selon l'incarnation. Sa **dimension** appartient au modèle et non au contrat : chaque incarnation a la sienne, et c'est le job qui refuse une dimension qui n'est pas celle attendue, en disant laquelle il attendait. Ce champ n'est pas décoratif — c'est lui qui dit au modèle où le bras se trouve, et un état plausible mais faux produit un tronçon plausible et faux. Mesuré sur le titulaire : le même couple image-consigne avec un état de zéros plutôt qu'une pose de repos réaliste déplace la sortie de 1,76 au maximum et de 0,081 en moyenne, sur des composantes dont l'écart-type d'entraînement va de 0,034 à 0,44.",
+            "items": {
+              "description": "Une composante de l'état, dans l'ordre et les unités de l'incarnation.",
+              "type": "number"
+            },
+            "maxItems": 64,
+            "minItems": 1,
+            "type": "array"
+          },
+          "steps": {
+            "default": 10,
+            "description": "Nombre de pas de raffinement du tronçon. C'est le seul paramètre qui pilote le coût, et il pilote la **durée** seule : mesuré sur le titulaire, 111 ms à 1 pas, 122 à 2, 149 à 5, 198 à 10, 290 à 20 — pendant que la mémoire ne bouge pas d'un octet. La sortie converge : au-delà de cinq pas les tronçons se ressemblent, et un pas unique donne déjà la bonne direction. Un modèle qui ne raffine pas par étapes — un décodeur autorégressif, par exemple — ignore ce réglage et le job le dit en avertissement, plutôt que de laisser croire à un levier qui n'existe pas.",
+            "maximum": 20,
+            "minimum": 1,
+            "type": "integer",
+            "x-ui": "slider"
+          }
+        },
+        "required": [
+          "image",
+          "instruction",
+          "state"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "smolvla-libero"
+      ],
+      "output": {
+        "properties": {
+          "actions": {
+            "contentMediaType": "application/json",
+            "description": "Chemin du tronçon complet, relatif au dossier du job : un tableau de `horizon` pas, chacun de `dof` nombres, dans l'ordre d'exécution. Le fichier porte aussi l'incarnation, la convention, les unités, les bornes du domaine et la consigne qui l'a produit — un tronçon rangé seul dans un dossier, six mois plus tard, ne se relit pas, et le relire de travers est ce qui casse un bras. Un fichier plutôt qu'un tableau dans la réponse : plusieurs centaines de nombres n'ont aucune lisibilité dans un formulaire, et c'est un fichier qu'on rejoue ailleurs.",
+            "type": "string"
+          },
+          "deterministic": {
+            "description": "Vrai si le bruit initial a réellement été fixé par la graine, et donc si un second appel identique rendra le même tronçon. Faux dit que la sortie ne se rejoue pas : ce n'est pas une erreur, c'est une propriété du modèle, et elle change ce qu'on a le droit de conclure d'une comparaison entre deux tronçons.",
+            "type": "boolean"
+          },
+          "dof": {
+            "description": "Nombre de composantes par pas, tel que le modèle le déclare. Sept pour un bras à effecteur unique avec pince, quatorze pour un bimanuel. Il se lit sur les poids, jamais sur le robot qu'on a sous la main : un tronçon de dimension 7 envoyé à un contrôleur qui en attend 14 n'est pas une erreur d'arrondi.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "domain_ok": {
+            "description": "Vrai si **tous** les nombres du tronçon tombent dans l'enveloppe des actions que le modèle a vues à l'entraînement, telle qu'il la publie. C'est le seul contrôle de fond disponible sans robot, et il ne dit pas que le geste est bon : il dit que le modèle n'a pas produit de nombre qu'il n'aurait jamais eu à produire. Un tronçon hors enveloppe est le signe d'une entrée hors distribution — mauvaise dimension d'état, image d'un autre monde, consigne dans une autre langue —, pas d'une panne. Un modèle qui ne publierait pas ses statistiques rend `faux` et le dit en avertissement, faute de pouvoir répondre.",
+            "type": "boolean"
+          },
+          "embodiment": {
+            "description": "Le robot et le contrôleur pour lesquels ce tronçon a été calculé, tels que le modèle les déclare. Ce n'est pas une étiquette d'affichage : c'est la seule chose qui empêche de prendre ces nombres pour des ordres universels. Deux modèles de cette capacité rendent des sorties de même forme, également plausibles, et destinées à deux machines différentes.",
+            "type": "string"
+          },
+          "first_action": {
+            "description": "Le premier pas, en clair : les `dof` nombres qu'un contrôleur exécuterait à l'instant même. C'est la seule ligne du tronçon qu'on regarde vraiment, et la rendre entière — pince comprise — est délibéré : c'est ainsi qu'un contrôleur la reçoit, et en retirer un élément produirait un vecteur qu'aucune convention n'accepte.",
+            "items": {
+              "description": "Une composante du premier pas du tronçon.",
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "gripper": {
+            "description": "La commande de pince du premier pas, quand l'incarnation en déclare une. Répétée hors du tableau à dessein, et pour une raison mesurée : sur le titulaire, cette composante prend ses valeurs aux bornes ±1 exactement, avec un écart-type de 0,999, quand les six autres tiennent dans ±0,94 avec des écarts-types de 0,034 à 0,44. C'est une commande quasi binaire au milieu de déplacements continus. Qui moyenne, interpole ou met à l'échelle un tronçon entier sans la voir passer transforme une pince ouverte-fermée en une pince à moitié fermée.",
+            "type": "number"
+          },
+          "horizon": {
+            "description": "Nombre de pas du tronçon. Ce n'est pas une durée : la cadence à laquelle ces pas doivent être exécutés appartient au robot et n'est pas dans la sortie. C'est aussi le nombre de pas que le modèle prévoit **sans revoir la scène** — les derniers reposent sur une observation d'autant plus périmée.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "out_of_domain": {
+            "description": "Combien des `horizon` × `dof` nombres sortent de l'enveloppe, et de combien : c'est ce chiffre qui distingue un dépassement de quelques centièmes sur la pince — qui arrive à ce modèle et n'est rien — d'un tronçon massivement hors bornes, qui est un signal. `domain_ok` seul ferait passer les deux pour la même chose.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "space": {
+            "description": "Ce que les nombres commandent. `cartesian-delta` : un déplacement de l'effecteur dans l'espace de travail, à ajouter à la pose courante. `joint-delta` : une variation d'angle par articulation. `joint-absolute` : des angles articulaires visés, à atteindre et non à ajouter. Trois valeurs et non deux : les politiques de bras d'atelier publiées à côté de celles du titulaire commandent en variations articulaires, et un contrat qui ne saurait pas l'écrire les obligerait à mentir. Prendre l'un pour l'autre est la faute qui casse du matériel — un `joint-absolute` interprété comme un delta déplace le bras de sa position vers sa position plus elle-même.",
+            "enum": [
+              "cartesian-delta",
+              "joint-delta",
+              "joint-absolute"
+            ],
+            "type": "string"
+          },
+          "units": {
+            "description": "Les unités des nombres. `m+rad` : mètres pour les translations, radians pour les rotations — des grandeurs physiques. `deg` : degrés. `controller-normalized` : ni l'un ni l'autre, ce sont des consignes à l'échelle du contrôleur, dont les bornes sont celles de ce contrôleur-là et n'ont aucune signification métrique. La distinction n'est pas académique : lire des consignes de contrôleur comme des mètres donne un déplacement d'un mètre là où le modèle en demandait quelques centimètres.",
+            "enum": [
+              "controller-normalized",
+              "m+rad",
+              "deg"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "actions",
+          "first_action",
+          "dof",
+          "horizon",
+          "space",
+          "units",
+          "embodiment",
+          "domain_ok",
+          "deterministic"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "actions": "application/json"
+      },
+      "ready_variants": [
+        "smolvla-libero@bf16"
+      ],
+      "required": [
+        "image",
+        "instruction",
+        "state"
+      ],
+      "steps": [],
+      "title": "Image et consigne vers commandes de robot"
+    },
+    {
+      "composite": false,
+      "defaults": {
         "max_seconds": 1800,
         "min_segment_seconds": 0.5,
         "num_speakers": 0,
@@ -2719,6 +3677,177 @@
       ],
       "steps": [],
       "title": "Texte vers vidéo"
+    },
+    {
+      "composite": false,
+      "defaults": {
+        "colonne_horodatage": "timestamp",
+        "colonne_serie": "item_id",
+        "colonne_valeur": "target",
+        "contexte": 8192,
+        "freq": "",
+        "graphique": true,
+        "horizon": 24,
+        "quantiles": [
+          0.1,
+          0.25,
+          0.5,
+          0.75,
+          0.9
+        ]
+      },
+      "description": "Prolonge une ou plusieurs séries observées sur un horizon demandé, et rend non pas une trajectoire mais un éventail de quantiles : la médiane dit ce qui est attendu, l'écart entre les quantiles bas et hauts dit ce que le modèle ne sait pas. La prévision est zéro-shot — rien n'est entraîné sur les données fournies, et rien n'en est conservé. Ce que cette capacité ne fait pas : elle n'explique aucune cause, elle ne détecte pas les anomalies, et elle ne comble pas les trous d'un relevé pour vous — un horodatage manquant est traité comme une valeur inconnue, jamais comme un pas qui n'aurait pas existé.",
+      "human_subject": null,
+      "id": "time-series-forecast",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "colonne_horodatage": {
+            "default": "timestamp",
+            "description": "Colonne des dates ou dates-heures. Toute forme que pandas sait lire convient ; le format ISO 8601 ne se discute pas.",
+            "type": "string"
+          },
+          "colonne_serie": {
+            "default": "item_id",
+            "description": "Colonne qui distingue les séries. Un fichier qui n'en porte qu'une la nomme quand même : c'est elle qui dit que les lignes appartiennent à la même histoire.",
+            "type": "string"
+          },
+          "colonne_valeur": {
+            "default": "target",
+            "description": "Colonne de la grandeur à prolonger. Elle doit être numérique : une colonne de texte est refusée avant tout calcul plutôt que lue comme des zéros.",
+            "type": "string"
+          },
+          "contexte": {
+            "default": 8192,
+            "description": "Nombre de pas passés que le modèle regarde, comptés depuis la fin de la série. C'est le paramètre qui pilote le coût : de 512 à 8192 pas, la latence est multipliée par quatre. Une série plus courte que ce nombre est prise en entier ; la sortie dit ce qui a réellement servi.",
+            "maximum": 8192,
+            "minimum": 64,
+            "type": "integer"
+          },
+          "covariables_futures": {
+            "contentMediaType": "text/csv",
+            "description": "CSV facultatif portant, pour les pas à venir, des grandeurs connues d'avance — température prévue, jour férié, promotion programmée. Mêmes colonnes d'identifiant et d'horodatage que la série, plus une colonne par covariable, et il doit couvrir exactement l'horizon demandé. Chaque covariable doit **aussi** figurer dans le CSV de la série, avec ses valeurs passées : c'est sur la fenêtre de contexte que le modèle apprend son lien avec la grandeur à prévoir, et une colonne qui n'existerait qu'au futur ne lui dirait rien.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "freq": {
+            "default": "",
+            "description": "Pas de temps, en alias pandas (« h », « D », « 15min »). Vide, il est déduit de l'écart le plus fréquent entre deux horodatages. À ne renseigner que pour lever une ambiguïté — un calendrier ouvré, un pas mensuel. Ce champ ne referme pas un trou : les horodatages manquants restent des valeurs inconnues, quel que soit ce qu'on écrit ici.",
+            "type": "string"
+          },
+          "graphique": {
+            "default": true,
+            "description": "Tracer l'éventail au-dessus de la fin de l'historique. Le CSV se lit en texte brut : sur cent soixante-huit lignes, une prévision aberrante ne se voit pas, et c'est ce tracé qui la montre.",
+            "type": "boolean"
+          },
+          "horizon": {
+            "default": 24,
+            "description": "Nombre de pas à prévoir, dans le pas de temps de la série. Le plafond n'est pas prudentiel : 1024 est ce que le modèle produit en un seul passage (64 tuiles de 16 pas), et le pas suivant le fait boucler — mesuré, 1024 pas coûtent 47 ms et 1025 en coûtent 215.",
+            "maximum": 1024,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "quantiles": {
+            "default": [
+              0.1,
+              0.25,
+              0.5,
+              0.75,
+              0.9
+            ],
+            "description": "Niveaux de l'éventail, entre 0,01 et 0,99. Les bornes ne sont pas décoratives : hors de cette plage le modèle rabat la valeur sur son niveau extrême, et un intervalle annoncé à 99,9 % ne vaudrait alors que 99 %. Les niveaux réellement produits sont rendus en sortie.",
+            "items": {
+              "maximum": 0.99,
+              "minimum": 0.01,
+              "type": "number"
+            },
+            "maxItems": 21,
+            "minItems": 1,
+            "type": "array"
+          },
+          "serie": {
+            "contentMediaType": "text/csv",
+            "description": "CSV en format long : une ligne par (série, horodatage), avec une colonne d'identifiant, une colonne d'horodatage et une colonne de valeur. Les noms de ces trois colonnes se règlent plus bas. Le séparateur est la virgule et le séparateur décimal le point — un CSV français au point-virgule sera refusé, en nommant ce qui manque.",
+            "type": "string",
+            "x-ui": "file"
+          }
+        },
+        "required": [
+          "serie"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "chronos-2"
+      ],
+      "output": {
+        "additionalProperties": false,
+        "properties": {
+          "contexte_utilise": {
+            "description": "Pas passés réellement soumis au modèle, trous compris. Inférieur au `contexte` demandé quand la série est plus courte.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "freq": {
+            "description": "Pas de temps retenu, déduit ou imposé. Le relire est la façon la plus rapide de repérer une série dont les horodatages ne disent pas ce qu'on croyait.",
+            "type": "string"
+          },
+          "graphique": {
+            "contentMediaType": "image/png",
+            "description": "Chemin du tracé, relatif au dossier du job : la fin de l'historique, la médiane, et l'éventail entre les niveaux extrêmes demandés. C'est le seul moyen de voir une prévision fausse d'un coup d'œil.",
+            "type": "string"
+          },
+          "horizon": {
+            "description": "Nombre de pas prévus.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "n_series": {
+            "description": "Nombre de séries prolongées.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "previsions": {
+            "contentMediaType": "text/csv",
+            "description": "Chemin du CSV produit, relatif au dossier du job. Format long, une ligne par (série, pas), les colonnes d'identifiant et d'horodatage reprenant les noms d'entrée, puis une colonne par niveau de `quantiles`, nommée par ce niveau. Aucune autre colonne : ce que la bibliothèque ajoute et que le contrat ne décrit pas est écarté.",
+            "type": "string"
+          },
+          "previsions_json": {
+            "contentMediaType": "application/json",
+            "description": "Chemin du même éventail en JSON, relatif au dossier du job : une entrée par série, ses horodatages et un tableau par niveau. Le document nomme le modèle qui l'a écrit et le contexte qu'il a vu, sans quoi rien ne dit d'où viennent ces nombres.",
+            "type": "string"
+          },
+          "quantiles": {
+            "description": "Niveaux réellement produits, après écrêtage sur la plage du modèle et suppression des doublons. Ils peuvent différer de ceux demandés, et c'est cette liste-là qui nomme les colonnes du CSV.",
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "previsions",
+          "previsions_json",
+          "quantiles",
+          "horizon"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "graphique": "image/png",
+        "previsions": "text/csv",
+        "previsions_json": "application/json"
+      },
+      "ready_variants": [
+        "chronos-2@cpu",
+        "chronos-2@mps"
+      ],
+      "required": [
+        "serie"
+      ],
+      "steps": [],
+      "title": "Prévision de série temporelle"
     },
     {
       "composite": false,

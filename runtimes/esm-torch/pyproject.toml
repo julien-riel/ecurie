@@ -1,0 +1,76 @@
+# Environnement isolé du runtime `esm-torch` (CONCEPTION.md §5.3).
+#
+# Quatorzième famille du parc, et la première dont l'entrée est du **texte qui
+# n'est pas une langue** : une suite de lettres d'acides aminés vers un vecteur.
+# Il sert `protein-embed`, et rien d'autre.
+#
+# **Pourquoi pas dans `torch-vision`, qui a déjà torch et transformers.** Deux
+# raisons, et la première est celle qui a fait exister la moitié des env du parc.
+#
+#   Le plancher.  `torch-vision` déclare `transformers>=4.41.2` ; ESM-2 ne se
+#                 charge que par une roue qui embarque `transformers/models/esm/`
+#                 avec le contournement MPS de son calcul rotatoire. Y entrer
+#                 imposerait `>=5.15` à un env qui porte **quatre** modèles déjà
+#                 mesurés et profilés — BiRefNet, Swin2SR, SAM 2, DINOv3 — donc
+#                 rejouerait leur résolution pour une capacité de plus. C'est
+#                 exactement l'arbitrage que l'isolation existe pour ne plus
+#                 avoir à faire (ARCHITECTURE.md §0, piège 2).
+#   Le voisinage. BiRefNet charge son code d'inférence par `trust_remote_code` :
+#                 ses dépendances sont décidées en amont, sans préavis, par un
+#                 fichier qu'on ne contrôle pas. Une capacité qui n'a besoin ni
+#                 de Pillow, ni de timm, ni de kornia, ni de torchvision n'a
+#                 aucune raison de les héberger.
+#
+# **Ce que cet env ne contient PAS, et c'est délibéré.** `accelerate` : sans
+# l'extra `[torch]` de transformers il n'est pas tiré, et un `.to("mps")` suffit
+# — vérifié par l'installation réelle. `kernels` : `modeling_esm.py` décore son
+# calcul rotatoire de `@use_kernel_forward_from_hub`, et tout ce chemin est sous
+# `if is_kernels_available()` dans `integrations/hub_kernels.py`. Sans le paquet,
+# les décorateurs sont des identités et rien ne sort sur le réseau ; avec lui,
+# un worker irait chercher un noyau sur le Hub au premier appel. L'adaptateur
+# pose en plus `USE_HUB_KERNELS=NO`, ceinture et bretelles. `tokenizers` arrive
+# par transformers mais ne sert pas : `EsmTokenizer` est un tokenizer lent
+# (`is_fast: False`), le dépôt ne publiant pas de `tokenizer.json`.
+#
+# **Le venv pèse 699 Mio mesurés** ici, torch 2.13.0 et transformers 5.15.1
+# compris — celui de `torch-vision`, mesuré le même jour de la même façon, en
+# pèse 756. Isoler coûte donc moins que l'env qu'on aurait réutilisé, et non le
+# gigaoctet qu'on prête d'ordinaire à l'opération.
+#
+# Le `.venv` n'est pas versionné, ce fichier l'est. Pour le reconstruire :
+#
+#     ecurie env sync esm-torch
+
+[project]
+name = "ecurie-runtime-esm-torch"
+version = "0.4.0"
+description = "Écurie — env isolé : empreinte de séquence protéique, sur PyTorch/MPS"
+# Aligné sur le socle 3.12 d'Écurie : le worker exécute
+# `ecurie_runtime.workers.base`, écrit pour cette version.
+requires-python = ">=3.12"
+
+dependencies = [
+    # Même borne que les quatre autres env torch du parc. Elle n'y protège
+    # d'aucun plancher macOS — les roues cp312 arm64 passent de `macosx_11_0` à
+    # `macosx_14_0` dès 2.12, et cette machine est en 26.5, donc elles
+    # s'installent — elle aligne simplement la dérive sur la branche que le reste
+    # du parc a vérifiée. Résolu à 2.13.0, sans compilation.
+    "torch>=2.6,<2.14",
+    # Le plancher est la contrainte qui a décidé de cet env. `transformers/models/esm/`
+    # est présent dans la roue **publiée** 5.15.1 — vérifié en la listant, pas
+    # seulement dans l'arbre GitHub — avec `openfold_utils/` à côté. Et son
+    # `modeling_esm.py` traite MPS explicitement : le calcul rotatoire bascule sur
+    # `device_type = "cpu"` avant son `maybe_autocast(enabled=False)`, ce qui est
+    # un contournement écrit exprès et non un portage à moitié fait.
+    "transformers>=5.15,<6",
+    # transformers 5.15.1 exige `huggingface-hub<2.0,>=1.5.0`. Écrire un plancher
+    # plus bas serait trompeur : il est mort. Résolu à 1.28.0.
+    "huggingface-hub>=1.5,<2",
+    # L'adaptateur les importe directement — le vecteur sort en liste de nombres,
+    # et les poids sont lus en safetensors.
+    "numpy>=1.26,<3",
+    "safetensors>=0.8",
+]
+
+[tool.uv]
+package = false

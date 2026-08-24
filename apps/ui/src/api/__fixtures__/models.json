@@ -265,6 +265,231 @@
       "vendor": "Yakhyokhuja Valikhujaev, d'après Yu et al."
     },
     {
+      "capability": "pointcloud-to-cad",
+      "family": "cad-recode",
+      "id": "cad-recode",
+      "incumbent": false,
+      "license": "cc-by-nc-4.0",
+      "license_class": "research-only",
+      "links": {
+        "code": "https://github.com/filaPro/cad-recode",
+        "homepage": "https://huggingface.co/filapro/cad-recode-v1.5",
+        "paper": "https://arxiv.org/abs/2412.14042"
+      },
+      "name": "CAD-Recode v1.5 (nuage de points vers CadQuery)",
+      "notes": "Un Qwen2-1.5B dont l'entrée a été détournée : les 256 premières positions du contexte ne portent pas des jetons mais les points du nuage, encodés en séries de Fourier par une seule couche linéaire ajoutée. Le corps du modèle de langue est inchangé, et c'est pourquoi il écrit du Python correct — il n'a jamais appris autre chose.\nLe programme sort à l'échelle apprise, pas à celle de la pièce : la géométrie est ramenée dans un cube de côté 2 avant d'entrer, et le modèle a été entraîné sur des coordonnées entières de -100 à +100. Cette capacité reconstruit une **forme**, elle ne relève pas des cotes.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "USAGE DE RECHERCHE NON COMMERCIALE UNIQUEMENT — la licence CC BY-NC 4.0 couvre les poids ET le code d'inférence amont. Voir l'en-tête du manifeste.",
+            "Le code d'inférence n'est pas dans ce dépôt et `ecurie env sync cad-recode` ne le pose pas : il faut l'étape décrite dans runtimes/cad-recode/README.md, sans quoi le worker refuse de charger en affichant la commande.",
+            "`transformers>=5` casse la capacité EN SILENCE : le chargement échoue sur `all_tied_weights_keys`, et une fois rustiné la génération rend du Python plausible et faux. La borne `<5` de l'env est la condition de fonctionnement.",
+            "Le programme est rendu à l'échelle du modèle, pas à celle de la pièce : l'entrée est centrée et ramenée dans un cube de côté 2, et les coordonnées produites vivent entre -100 et +100. Aucune cote d'origine n'est retrouvée.",
+            "`n_points` autre que 256 est hors distribution : 256 est la valeur d'entraînement, et le contrat laisse descendre à 64 pour mesurer le coût, pas pour améliorer la sortie.",
+            "Exécuter le programme est facultatif et faux par défaut. Le garde-fou du démonstrateur amont est un `multiprocessing.Process` forké, qui hérite du système de fichiers et du réseau du parent : il traite les blocages, pas la sécurité. L'adaptateur emploie un interpréteur séparé `-I`, environnement vidé, dossier de travail limité au job, délai d'horloge de 20 s, RLIMIT_CPU à 15 s et RLIMIT_FSIZE à 512 Mio. Il ne coupe PAS le réseau et ne borne PAS la mémoire : mesuré sur cette machine, macOS refuse RLIMIT_AS, RLIMIT_DATA et RLIMIT_RSS quelle que soit la valeur demandée, alors que leur limite dure vaut l'infini. Le job le remonte en avertissement à chaque exécution, parce qu'un garde-fou dont on croit à tort qu'il tient est pire que pas de garde-fou.",
+            "Le premier `import cadquery` de la machine prend 85,6 s (mesuré ici ; 2,97 s de CPU seulement — c'est la validation de ~300 Mio de code natif non signé, pas de la compilation de bytecode). Les suivants prennent 1,1 s. L'adaptateur le préchauffe au chargement dans un processus jetable : l'attente tombe donc dans le warmup et non dans la latence du premier job, et les ~300 Mio de code natif n'entrent pas au RSS du worker, qui n'a lui-même jamais besoin de cadquery.",
+            "Dialecte CadQuery : le modèle a été entraîné contre cadquery au commit e99a15df avec ocp 7.7.2 ; l'env sert 2.8.0 avec ocp 7.9.3.1.1. Les constructions rencontrées passent, les plus rares ne sont pas éprouvées, et l'amont annonce lui-même 0,37 % de code invalide sur DeepCAD hors dérive de version.",
+            "LA FORME EST JUSTE, LES COTES NE LE SONT PAS, et le cube le cache. Mesuré sur la pièce en L de la charge type : les six sommets du profil reviennent exacts à 0,0033 près une fois recadrés — c'est l'arrondi entier du modèle — pendant que le volume vaut 1 671 600 mm³ contre 360 000 au solide d'origine. Le cube, lui, rend un volume exact au dernier chiffre : ses 200 mm coïncident par hasard avec la pleine échelle du modèle. Comparer des volumes sur cette capacité mène donc à la conclusion inverse de la vérité une fois sur deux.",
+            "Le pic dépend de `n_points` par une marche, pas par une pente : mesuré dans quatre processus séparés, 3,30 Gio à 64 points, 3,32 à 128, 4,42 à 256 et 4,54 à 512 — un gigaoctet gagné entre 128 et 256, puis un plateau. Un ajustement linéaire y donne R² = 0,77, sous le seuil de 0,9 : la charge type n'a donc pas de `scaling_parameter` et le profil garde le pire cas. Un job à 512 points dépasse ce pic de 0,12 Gio.",
+            "UNE PIÈCE À PLUSIEURS OPÉRATIONS PERD SES DÉTAILS, ET LA CHARGE TYPE NE LE MONTRE PAS. Ses trois pièces sont des constructions à une seule opération et reviennent justes. Éprouvé hors banc sur une équerre à quatre opérations — semelle percée de deux trous ⌀20, plus un montant, en STL : la silhouette en L et l'épaisseur reviennent exactes aux proportions près, mais les deux perçages cylindriques sont remplacés par deux encoches ouvertes dans le profil extrudé, et le solide n'a plus aucun trou traversant. Distance de Chamfer ×1000 mesurée entre le nuage soumis et la pièce reconstruite : 0,951, au-dessus du pire des trois bancs annoncés par l'amont (CC3D, 0,765). Le job réussit, le solide est étanche, et rien ne signale la perte."
+          ],
+          "defaults": {
+            "max_new_tokens": 768,
+            "n_points": 256,
+            "seed": 42
+          },
+          "entrypoint": null,
+          "env": "cad-recode",
+          "heavy": false,
+          "id": "bf16",
+          "options": null,
+          "profile": {
+            "disk_bytes": 3087787687,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 4001,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / numpy 2.5.2 / torch 2.13.0 / transformers 4.57.6 / trimesh 5.0.0",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 4415291392,
+            "rtf": null,
+            "throughput": "1 sortie / 4.4 s",
+            "warmup_ms": 3002
+          },
+          "quantization": "bf16",
+          "ready": true,
+          "ref": "cad-recode@bf16",
+          "runtime": "cad-recode",
+          "source": {
+            "allow_patterns": [
+              "model.safetensors",
+              "config.json",
+              "generation_config.json"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "filapro/cad-recode-v1.5",
+            "revision": "765e8cc315a1a77bd8c69ccd0b403bad20ce35e8",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Université du Luxembourg (Rukhovich et al.)"
+    },
+    {
+      "capability": "time-series-forecast",
+      "family": "chronos",
+      "id": "chronos-2",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/amazon-science/chronos-forecasting",
+        "homepage": "https://huggingface.co/amazon/chronos-2",
+        "paper": "https://arxiv.org/abs/2403.07815"
+      },
+      "name": "Chronos-2",
+      "notes": "Encodeur T5 — d_model 768, 12 couches, 12 têtes, fp32 — servi par `chronos-forecasting`, dont `predict_df` est la seule API de la famille à parler DataFrame. C'est elle qui permet au contrat d'accepter un CSV en format long plutôt qu'un tableau de nombres à plat, et d'accepter des covariables connues d'avance.\nDeux plafonds sont lus dans `config.json` et repris tels quels par le contrat. L'horizon s'arrête à 1024 pas parce que c'est ce que le modèle produit en un passage — `max_output_patches` 64 × `output_patch_size` 16 ; au-delà il déroule, et la falaise est nette : 1024 pas coûtent 47 ms, 1025 en coûtent 215. Le contexte s'arrête à 8192, valeur de `context_length`, et c'est lui qui pilote le coût — de 512 à 8192 pas, la latence est multipliée par quatre quand l'horizon, lui, reste plat.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Les niveaux de quantile hors de [0,01 ; 0,99] sont rabattus par la bibliothèque **sous l'étiquette du niveau demandé** — la colonne « 0.001 » contient la valeur de 0,01, vérifié par `allclose`. L'adaptateur écrête donc lui-même avant d'appeler et rend la liste des niveaux réellement produits ; sans cela un intervalle annoncé à 99,8 % en vaudrait 98.",
+            "Un trou dans les horodatages fait échouer `predict_df` par « Could not infer frequency ». Le correctif intuitif — passer `freq` — fait taire l'erreur **et referme le trou en silence** : le modèle lit deux points distants de trois heures comme s'ils se suivaient. L'adaptateur réindexe sur la grille et laisse des valeurs inconnues, que le modèle traite comme telles.",
+            "`predict_df` rend deux colonnes que le contrat ne décrit pas — `target_name` et `predictions`, cette dernière doublon exact de la médiane. Elles sont écartées, et les métriques du job le disent.",
+            "Prévision zéro-shot : rien n'est appris de la série soumise. Une rupture de régime, une promotion ou une panne que le passé ne contient pas ne sont pas prévisibles, et l'éventail de quantiles ne les couvre pas non plus."
+          ],
+          "defaults": {
+            "contexte": 8192,
+            "graphique": true,
+            "horizon": 24,
+            "quantiles": [
+              0.1,
+              0.25,
+              0.5,
+              0.75,
+              0.9
+            ]
+          },
+          "entrypoint": null,
+          "env": "chronos",
+          "heavy": false,
+          "id": "cpu",
+          "options": {
+            "device": "cpu"
+          },
+          "profile": {
+            "disk_bytes": 477931539,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 173,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / chronos-forecasting 2.3.1 / pandas 3.0.5 / torch 2.13.0",
+            "peak_scaling": {
+              "base_bytes": 873857024,
+              "bytes_per_unit": 7085.7,
+              "measured_range": [
+                512.0,
+                8192.0
+              ],
+              "parameter": "contexte",
+              "r_squared": 0.9917
+            },
+            "peak_unified_memory_bytes": 932478976,
+            "rtf": null,
+            "throughput": "1 sortie / 0.4 s",
+            "warmup_ms": 2071
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "chronos-2@cpu",
+          "runtime": "chronos",
+          "source": {
+            "allow_patterns": [
+              "config.json",
+              "model.safetensors"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "amazon/chronos-2",
+            "revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [],
+          "caveats": [
+            "Plus lent que le variant `cpu` sur les contextes longs, et c'est le cas courant : mesuré ici même par le banc. Inscrit pour que l'écart reste vérifiable dans le dépôt plutôt que cité de mémoire — sur un modèle de cette taille, Metal coûte plus en transferts qu'il ne rend en calcul.",
+            "Mêmes limites que le variant `cpu` sur les quantiles, les trous d'horodatage et les colonnes écartées.",
+            "Le pic mémoire de ce variant ne se lit pas au RSS : il compte en plus le maximum de `driver_allocated_memory`, que le RSS ignore."
+          ],
+          "defaults": {
+            "contexte": 8192,
+            "graphique": true,
+            "horizon": 24,
+            "quantiles": [
+              0.1,
+              0.25,
+              0.5,
+              0.75,
+              0.9
+            ]
+          },
+          "entrypoint": null,
+          "env": "chronos",
+          "heavy": false,
+          "id": "mps",
+          "options": {
+            "device": "mps"
+          },
+          "profile": {
+            "disk_bytes": 477931539,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 219,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / chronos-forecasting 2.3.1 / pandas 3.0.5 / torch 2.13.0",
+            "peak_scaling": {
+              "base_bytes": 997840213,
+              "bytes_per_unit": 2051.0,
+              "measured_range": [
+                512.0,
+                8192.0
+              ],
+              "parameter": "contexte",
+              "r_squared": 0.9149
+            },
+            "peak_unified_memory_bytes": 1014087680,
+            "rtf": null,
+            "throughput": "1 sortie / 0.2 s",
+            "warmup_ms": 1485
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "chronos-2@mps",
+          "runtime": "chronos",
+          "source": {
+            "allow_patterns": [
+              "config.json",
+              "model.safetensors"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "amazon/chronos-2",
+            "revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Amazon Science"
+    },
+    {
       "capability": "depth-estimation",
       "family": "depth-anything-3",
       "id": "da3-large",
@@ -286,7 +511,9 @@
             "Licence CC-BY-NC-4.0 : usage professionnel fermé. À trancher avant tout passage en `active`.",
             "Profondeur relative, sans échelle métrique. `near` et `far` sont indispensables pour interpréter le PNG 16 bits — sans eux, l'image ne dit qu'un ordre.",
             "La sortie est rendue à la résolution de traitement (504 par défaut), pas à celle de l'image d'entrée : remettre une carte de profondeur à l'échelle par interpolation inventerait des distances qui n'ont pas été estimées.",
-            "Le chargement lie deux copies du runtime OpenMP — celle de torch et celle de pycolmap. Le worker pose `KMP_DUPLICATE_LIB_OK` avant tout import lourd, faute de quoi la bibliothèque avorte le processus. Les deux paquets sont nécessaires au chemin d'inférence et aucun ne se recompile."
+            "Le chargement lie deux copies du runtime OpenMP — celle de torch et celle de pycolmap. Le worker pose `KMP_DUPLICATE_LIB_OK` avant tout import lourd, faute de quoi la bibliothèque avorte le processus. Les deux paquets sont nécessaires au chemin d'inférence et aucun ne se recompile.",
+            "LE PIC DE CE VARIANT A ÉTÉ SOUS-DÉCLARÉ DE 2,79 Go JUSQU'AU 24 AOÛT 2026, et la faute était dans l'instrument : l'adaptateur mesurait par `peak_rss_bytes()` sur un modèle qui tourne sur MPS, où `ru_maxrss` ne voit pas les tampons Metal. Tout profil de cette famille pris avant cette date est à jeter, pas à corriger d'un facteur.",
+            "Une révision 1.1 de ces poids existe sous licence apache-2.0 (`depth-anything/DA3-LARGE-1.1`, employée par `da3-large-1-1-multivue`) et lèverait la restriction non commerciale. Basculer ce variant dessus impose de REMESURER : les poids sont réellement différents à architecture identique, et mesuré côte à côte sur une même scène de synthèse, 1.1 est un peu MOINS juste que 1.0 sur la pose."
           ],
           "defaults": {
             "colormap": "turbo",
@@ -300,23 +527,14 @@
           "profile": {
             "disk_bytes": 1643845073,
             "harness_version": "0.3.0",
-            "latency_ms_p50": 718,
+            "latency_ms_p50": 502,
             "measured_at": "2026-08-24",
             "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0",
-            "peak_scaling": {
-              "base_bytes": 3757539328,
-              "bytes_per_unit": 0.0,
-              "measured_range": [
-                256.0,
-                1008.0
-              ],
-              "parameter": "process_res",
-              "r_squared": 1.0
-            },
-            "peak_unified_memory_bytes": 3757539328,
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 6546423808,
             "rtf": null,
-            "throughput": "1 sortie / 1.2 s",
-            "warmup_ms": 3647
+            "throughput": "1 sortie / 1.1 s",
+            "warmup_ms": 2818
           },
           "quantization": "fp32",
           "ready": true,
@@ -331,6 +549,81 @@
             "path": null,
             "repo": "depth-anything/DA3-LARGE",
             "revision": "c54c26b16ec04d218e8d584ecf4bce082a9fcc20",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "ByteDance Seed"
+    },
+    {
+      "capability": "multiview-to-3d",
+      "family": "depth-anything-3",
+      "id": "da3-large-1-1-multivue",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/ByteDance-Seed/Depth-Anything-3",
+        "homepage": "https://huggingface.co/depth-anything/DA3-LARGE-1.1",
+        "paper": null
+      },
+      "name": "Depth Anything 3 Large 1.1 (multi-vues)",
+      "notes": "411 millions de paramètres, 1,64 Go sur le disque. Reçoit de deux à trente-deux photos d'une même scène et rend, en une seule passe, une pose de caméra et une carte de profondeur par vue **dans un repère commun**, plus le nuage de points que ces vues décrivent ensemble.\nC'est la consistance inter-vues qui est neuve au parc. `depth-estimation` rend une carte par image sans rien qui relie deux images ; `image-to-mesh` rend un objet fermé sans caméra ni repère. Ici les vues se répondent.\nL'échelle est **relative**, jamais métrique. Mesuré sur ces poids : `is_metric` vaut un dictionnaire vide et `scale_factor` vaut `None`. Les proportions et les angles sont exploitables ; les longueurs ne le sont pas.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "L'ÉCHELLE EST RELATIVE, JAMAIS MÉTRIQUE. Mesuré : `prediction.is_metric` vaut `{}` et `scale_factor` vaut `None`. Deux lots de photos de la même pièce ne donnent pas la même unité, et le contrat sort `is_metric: false` à chaque job pour que la question soit posée plutôt qu'oubliée. Le parc n'a aucun recours permissif : les seuls DA3 métriques sans licence NC n'ont pas de tête de caméra.",
+            "LE PIC DÉPEND DU NOMBRE DE VUES PAR UN ESCALIER, PAS PAR UNE PENTE. Relevé au banc à `process_res` 504 : 6,55 Go à 4 vues, 10,30 à 16, 11,77 à 32 — et dans des processus séparés, 9,62 Go à 8 comme à 12 vues, c'est-à-dire un palier franc. L'allocateur MPS réserve par blocs. Le profil garde donc le pire cas, qui est celui du `maxItems: 32` du contrat et occupe 61,7 % du budget de cette machine ; extrapoler au-delà de trente-deux vues n'a aucun appui. La durée, elle, croît plus vite que le nombre de vues : 2,0 s à 4, 10,5 s à 16, 29,2 s à 32.",
+            "LE CACHE MPS CUMULE D'UN JOB À L'AUTRE SI ON NE LE VIDE PAS, et le pic cesse alors de décrire le job pour décrire son historique. Mesuré : la séquence 4 puis 8 puis 16 vues dans un même worker rend 6,55 / 10,67 / 12,77 Go, quand les mêmes N mesurés séparément coûtent 6,55 / 9,62 / 10,30. L'adaptateur appelle `torch.mps.empty_cache()` avant chaque inférence ; le retirer fausserait le banc et l'admission ensemble.",
+            "LA RECONSTRUCTION EST DÉTERMINISTE, L'ÉCRITURE DU NUAGE NE L'EST PAS SANS GRAINE. Deux passes sur les mêmes vues rendent des profondeurs, confiances, extrinsèques et intrinsèques bit à bit identiques. Mais l'export d'amont ramène le nuage sous `max_points` par un `np.random.choice` sur le générateur global de numpy : sans graine, deux jobs identiques ne rendent pas le même fichier dès que le plafond mord — et il mord dès seize vues aux réglages par défaut. L'adaptateur pose `seed` puis rend l'état du générateur, et le contrat déclare `seed` en disant qu'il ne pilote que ce tirage-là. Vérifié de bout en bout : trois jobs à six vues, dont deux séparés par un déchargement du worker, rendent un `scene.glb` de sha256 identique (cdcc4cc88f70daa4bd0c89ec3eaa021791679658f1a980a5f864fec545471be1).",
+            "L'APERÇU DE L'EXPORT D'AMONT NE MONTRE PAS CE QUE CETTE CAPACITÉ APPORTE, ET L'ADAPTATEUR NE S'EN SERT PAS. Vérifié : le `scene.jpg` qu'écrit `inference(export_dir=…)` est octet pour octet `depth_vis/0000.jpg` — même sha256, 109 032 octets — c'est-à-dire la première vue et sa profondeur, rien de plus. Une reconstruction juste sur la vue 0 et fausse sur les trente et une autres aurait le même aperçu. L'adaptateur appelle `export_to_glb` directement et compose le sien : une vignette par vue, puis le plan des centres de caméra.",
+            "LE MÊME APPEL D'AMONT DÉPOSE UN SOUS-DOSSIER `depth_vis/` QUE LE CONTRAT NE DÉCLARE PAS — un JPEG par vue, invisible de `job.files`, jamais nettoyé. L'adaptateur passe `export_depth_vis=False` et relève la liste des entrées du dossier du job avant et après : tout fichier apparu hors des trois sorties déclarées est remonté en avertissement plutôt que laissé là.",
+            "LE NUAGE EST GROS, ET C'EST CE QUE CHAQUE JOB ARCHIVE. Mesuré : 609 638 points et 9,76 Mo de GLB pour quatre vues aux réglages par défaut ; 6,41 Mo pour un job à six vues plafonné à 400 000 points ; le plafond par défaut d'un million en donne une quinzaine. `max_points` descend jusqu'à 50 000 pour qui veut un fichier léger, au prix de la densité. À seize vues et plus, le plafond par défaut mord déjà — le job le dit en avertissement.",
+            "LES POSES SONT JUSTES SUR UNE SCÈNE DE SYNTHÈSE, ET CE N'EST PAS UNE PROMESSE SUR DES PHOTOS. Mesuré sur la charge type — un arc de 70°, sol texturé, vérité terrain connue par construction : à quatre vues, 0,086 % d'erreur de pose moyenne rapportée à l'étendue de la scène et 0,145 % au pire ; à six vues, 0,20 % et 0,36 %. La focale est le point faible et l'écart ne se referme pas avec le nombre de vues : 524,3 px estimées contre 540,4 vraies à quatre vues (−2,99 %), 519,4 px à six (−3,89 %). Aucun flou de bougé, aucun bruit de capteur, aucune exposition qui change d'une vue à l'autre : c'est une borne haute, pas un résultat sur des photographies.",
+            "LE CHARGEMENT LIE DEUX COPIES D'OpenMP — celle de torch et celle de pycolmap — et la bibliothèque avorte le processus plutôt que de continuer. Reproduit : un simple `from depth_anything_3.api import DepthAnything3` sans `KMP_DUPLICATE_LIB_OK` tue le worker sur `OMP: Error #15`. Le drapeau est posé avant tout import lourd, comme dans l'adaptateur voisin.",
+            "RÉSERVE D'ENTRETIEN SUR L'ENVIRONNEMENT, PAS SUR CE MODÈLE, ET PLUS ÉTROITE QU'ANNONCÉ. `depth-anything-3` 0.1.1 déclare `Requires-Python: >=3.9,<=3.13`, ce qui exclut littéralement le 3.13.9 du venv. Éprouvé plutôt que redouté : uv 0.11.17 installe le paquet, aussi bien depuis le lock qu'en refaisant la résolution complète depuis `runtimes/depth-anything/pyproject.toml` ; pip 26.2.1 le REFUSE (« Ignored the following versions that require a different python version »). `ecurie env sync` passe par uv, donc rien ne casse aujourd'hui. Ce qui casserait : une reconstruction à la main avec pip, ou le jour où uv lirait cette borne comme `packaging`. Détail et porte de sortie dans l'en-tête du pyproject de l'env.",
+            "DEUX VUES SONT LA CONFIGURATION LA PLUS FRAGILE, et le contrat les autorise quand même : la pose relative n'y repose que sur une paire, sans redondance pour la contredire. L'adaptateur le remonte en avertissement à chaque job à deux vues."
+          ],
+          "defaults": {
+            "conf_thresh_percentile": 40,
+            "max_points": 1000000,
+            "process_res": 504,
+            "seed": 0
+          },
+          "entrypoint": null,
+          "env": "depth-anything",
+          "heavy": true,
+          "id": "fp32",
+          "options": null,
+          "profile": {
+            "disk_bytes": 1643845073,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 10469,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / numpy 1.26.4 / torch 2.13.0 / trimesh 5.0.0",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 11766988800,
+            "rtf": null,
+            "throughput": "1 sortie / 13.8 s",
+            "warmup_ms": 2083
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "da3-large-1-1-multivue@fp32",
+          "runtime": "depth-anything",
+          "source": {
+            "allow_patterns": [
+              "config.json",
+              "model.safetensors"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "depth-anything/DA3-LARGE-1.1",
+            "revision": "0e109ae307c5982f319a67cf6f9f99ccdc0ec97c",
             "url": null
           },
           "tier": "hot",
@@ -397,6 +690,146 @@
         }
       ],
       "vendor": "Hendrik Schröter et al. — conversion MLX par aufklarer"
+    },
+    {
+      "capability": "image-embed",
+      "family": "dinov2",
+      "id": "dinov2",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/facebookresearch/dinov2",
+        "homepage": "https://huggingface.co/timm/vit_base_patch14_reg4_dinov2.lvd142m",
+        "paper": "https://arxiv.org/abs/2309.16588"
+      },
+      "name": "DINOv2 ViT-B/14 à registres (empreinte visuelle)",
+      "notes": "Un encodeur, pas un moteur de recherche : un vecteur par job, un cosinus entre deux images. « Retrouver toutes les pièces qui ressemblent » demande un index que le parc n'a pas.\nPoids en patch 14, pré-entraînés à 518 pixels. Le modèle est construit avec `dynamic_img_size=True`, sans quoi toute définition autre que 518 échouerait sur la table de positions : c'est timm qui l'interpole, l'adaptateur ne rééchantillonne rien lui-même.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Patch 14 : toute définition demandée est ramenée au multiple de 14 le plus proche — mesuré au banc, 256 devient 252, 512 devient 518 et 1024 devient 1022. Le document de sortie porte la définition réellement soumise, jamais celle demandée.",
+            "Titulaire non départagé : 2/3 sur l'épreuve des trois solides à 256 et à 512 pixels, contre 3/3 à 256 pour `dinov3@convnext-small`. Une requête sur trois ne classe rien ; ce qui est sûr est le coût — 346,3 Mo de disque et 1,42 Gio de pic contre 197,9 Mo et 1,24 Gio — et la licence.",
+            "`pooling: cls` est mesuré, pas hérité : avec la moyenne des jetons de patch, la requête « cube » tombe du rang 2 au rang 6 à 256 pixels. Changer cette option change l'espace vectoriel, donc invalide tout vecteur déjà produit.",
+            "Pré-entraîné à 518 pixels ; les positions sont interpolées en dessous. Le défaut à 252 tient au coût, pas à une mesure de qualité.",
+            "Le pic ne suit pas la définition : 369 Mio de pilote Metal à 252, 1 457 à 518, 1 457 à 1022. Le banc a ajusté une pente à R² = 0,57 et l'a jetée ; le profil garde le pire cas mesuré."
+          ],
+          "defaults": {
+            "max_side": 252,
+            "normalize": true
+          },
+          "entrypoint": null,
+          "env": "torch-vision",
+          "heavy": false,
+          "id": "vit-base",
+          "options": {
+            "pooling": "cls"
+          },
+          "profile": {
+            "disk_bytes": 346344785,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 134,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / timm 1.0.28 / torch 2.13.0 / transformers 5.15.1",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 1527463936,
+            "rtf": null,
+            "throughput": "1 sortie / 0.3 s",
+            "warmup_ms": 1562
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "dinov2@vit-base",
+          "runtime": "torch-vision",
+          "source": {
+            "allow_patterns": [
+              "config.json",
+              "model.safetensors"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "timm/vit_base_patch14_reg4_dinov2.lvd142m",
+            "revision": "3b06466a5548c52b8b98822e1390987695fcbf82",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Meta AI (Oquab et al., Darcet et al.) — poids servis par le miroir timm"
+    },
+    {
+      "capability": "image-embed",
+      "family": "dinov3",
+      "id": "dinov3",
+      "incumbent": false,
+      "license": "DINOv3 License",
+      "license_class": "restricted",
+      "links": {
+        "code": "https://github.com/facebookresearch/dinov3",
+        "homepage": "https://huggingface.co/timm/convnext_small.dinov3_lvd1689m",
+        "paper": "https://arxiv.org/abs/2508.10104"
+      },
+      "name": "DINOv3 ConvNeXt-Small (empreinte visuelle)",
+      "notes": "Un encodeur, pas un moteur de recherche. Ce manifeste rend un vecteur par job et un cosinus entre deux images ; « retrouver toutes les pièces qui ressemblent » demande un index que le parc n'a pas, et que le backlog désigne lui-même comme la brique manquante.\nLe dépôt timm sert `model.safetensors` ET `pytorch_model.bin`, les mêmes poids dans deux formats. Les `allow_patterns` nomment trois fichiers plutôt que d'ouvrir en `*` : sans ce filtre, 395,8 Mo de disque pour 197,9 utiles.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Licence DINOv3 : redistribution aux mêmes termes avec copie du texte, et usages ITAR, militaires, nucléaires, d'espionnage et d'armement exclus. Meta peut amender le texte avec effet immédiat.",
+            "Titulaire non départagé : sur la seule épreuve disponible — trois requêtes contre huit solides gris calculés, passée sur le chemin livré — ConvNeXt-S rend 3/3 à 256 pixels avec 0,036 de marge sur la requête « cube », puis 2/3 à 512 où le cube passe derrière la sphère. `dinov2@vit-base` rend 2/3 aux deux. Une requête d'écart sur trois n'affirme aucun gain de qualité.",
+            "Poids servis par le miroir timm : l'équivalence numérique avec l'implémentation d'origine est invérifiable ici, ses poids étant derrière un formulaire. Le document de sortie nomme l'implémentation pour cette raison.",
+            "Pré-entraîné à 224 pixels (`input_size: [3,224,224]`, `crop_pct: 1.0`). Le défaut `max_side: 256` s'y tient : monter à 512 multiplie le pic par cinq sans qu'aucune mesure du parc ne montre un gain.",
+            "Le pic ne suit pas la définition : 249 Mio de pilote Metal à 256, 1 273 à 512, 1 273 à 1024 — une marche puis un plateau, l'allocateur gardant son tas. Le banc a ajusté une pente à R² = 0,57 et l'a jetée ; le profil garde le pire cas mesuré.",
+            "Le warmup et la latence dépendent du cache de shaders Metal : deux mesures du même jour ont rendu 2 060 puis 1 400 ms de warmup et 172 puis 98 ms de latence médiane, pour un pic identique à l'octet. Le profil retient la seconde ; c'est le pic qui est stable, pas les durées."
+          ],
+          "defaults": {
+            "max_side": 256,
+            "normalize": true
+          },
+          "entrypoint": null,
+          "env": "torch-vision",
+          "heavy": false,
+          "id": "convnext-small",
+          "options": {
+            "pooling": "mean"
+          },
+          "profile": {
+            "disk_bytes": 197860778,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 98,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / timm 1.0.28 / torch 2.13.0 / transformers 5.15.1",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 1334722560,
+            "rtf": null,
+            "throughput": "1 sortie / 0.1 s",
+            "warmup_ms": 1400
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "dinov3@convnext-small",
+          "runtime": "torch-vision",
+          "source": {
+            "allow_patterns": [
+              "config.json",
+              "model.safetensors",
+              "LICENSE.md"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "timm/convnext_small.dinov3_lvd1689m",
+            "revision": "9a0c319ae4531d36df6ef11fc253fdc4b503628a",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Meta AI (Siméoni et al.) — poids servis par le miroir timm"
     },
     {
       "capability": "face-embed",
@@ -504,6 +937,84 @@
         }
       ],
       "vendor": "Idiap Research Institute"
+    },
+    {
+      "capability": "protein-embed",
+      "family": "esm2",
+      "id": "esm2-650m",
+      "incumbent": false,
+      "license": "mit",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/facebookresearch/esm",
+        "homepage": "https://huggingface.co/facebook/esm2_t33_650M_UR50D",
+        "paper": "https://www.science.org/doi/10.1126/science.ade2574"
+      },
+      "name": "ESM-2 650M (empreinte de séquence)",
+      "notes": "Un encodeur, pas un moteur de recherche et pas un prédicteur de structure. Ce manifeste rend un vecteur par job et un cosinus entre deux séquences ; « retrouver toutes les protéines qui ressemblent à celle-ci » demande l'index que le backlog désigne lui-même comme la brique manquante, et « à quoi ressemble-t-elle » demande un repliement, qui est une autre capacité et un autre chantier.\nLes `allow_patterns` nomment cinq fichiers plutôt que d'ouvrir en `*` : le dépôt sert aussi `pytorch_model.bin`, les mêmes poids dans un second format. Sans ce filtre, le disque doublerait pour rien.\nESM-2 publie trois tailles au même sha épinglé de leur dépôt respectif — 35M (480 dimensions), 150M (640) et celle-ci (1280). Les trois sont MIT et toutes tiennent au budget ; le 35M a servi à roder le chemin d'adaptateur avant de toucher au 650M, il charge en un dixième de seconde.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "L'ÉCHELLE DES COSINUS EST TROMPEUSE, ET C'EST LE PREMIER RISQUE DE LECTURE. Mesuré ici : ubiquitine humaine / ubiquitine de levure 0,9968 ; ubiquitine / lysozyme 0,6649 ; ubiquitine / GFP 0,5834 ; lysozyme / GFP 0,7783 ; ubiquitine / sa propre séquence mélangée 0,5773. Deux protéines sans le moindre rapport sont donc PLUS proches qu'une protéine et son propre bruit. Aucun seuil absolu n'existe.",
+            "`add_pooling_layer=False` est obligatoire : sans lui, transformers initialise au hasard un `pooler.dense` absent du checkpoint. Mesuré, deux chargements rendent des `pooler_output` à −0,038 de cosinus. L'adaptateur refuse de servir si le mot-clé cesse d'être honoré.",
+            "Une lettre hors de l'alphabet du modèle n'est pas encodée en résidu inconnu : `EsmTokenizer` regroupe les caractères qu'il ignore, et `MJQ`, `MJJQ`, `MJJJQ` rendent tous les trois les mêmes cinq jetons. La séquence raccourcit sans rien dire — l'adaptateur refuse plutôt qu'il n'encode.",
+            "Une séquence d'ADN s'encode sans erreur : A, C, G et T sont quatre acides aminés valides. Mesuré, un fragment de 75 bases rend un vecteur de norme 1 à 0,531 de cosinus de l'ubiquitine, soit la plage exacte de deux protéines sans rapport. Le worker le signale en avertissement ; rien ne peut l'écarter avec certitude.",
+            "Le tokenizer ne tronque JAMAIS de lui-même : `model_max_length` vaut 10^30. C'est `max_length` qui borne, et lui seul. Tronquer coûte peu au vecteur — sur une chimère de 1402 résidus, en couper 380 rend un cosinus de 0,9996 avec le vecteur complet — et beaucoup au temps.",
+            "Entraîné à 1024 résidus ; les positions étant rotatives, rien ne casse au-delà (2048 vérifié, sortie finie, magnitude stable) mais la qualité de l'extrapolation n'est mesurable par aucune épreuve du parc. Le contrat plafonne à 2048 pour cette raison, pas pour éviter un plantage.",
+            "Le pic est PLAT : 3 330 752 512 octets de pilote Metal après chargement, 3 347 824 640 après une passe à 76 résidus, 3 347 841 024 après une passe à 2048. Seize kibioctets d'écart entre les deux extrêmes — c'est la latence qui suit la longueur, pas la mémoire, et le profil ne porte donc aucun `peak_scaling`.",
+            "fp32 uniquement sur le Hub (`torch_dtype: float32`, aucun autre poids publié). Un `.to(torch.float16)` diviserait la résidence par deux mais changerait les vecteurs : ce serait un variant distinct avec son propre profil, jamais un drapeau. À 3,35 Go sur 17,76 Gio de budget, rien ne l'exige.",
+            "MPS et CPU s'accordent : cosinus de 0,9999997 à 1,0000002 sur les trois séquences de la charge type, écart absolu maximum 1,25e-06 sur un vecteur normalisé. Et MPS est le plus rapide — 0,288 s contre 0,643 s pour ces trois séquences, un processus par périphérique. L'adaptateur refuse donc de servir sans MPS au lieu de se replier en silence : le profil ci-dessous est celui du chemin Metal, et un repli aurait été plus lent tout en le rendant faux.",
+            "Un résident qui a déjà servi plusieurs jobs s'établit 8,4 Mo AU-DESSUS du pic du banc : 3 356 246 016 octets contre 3 347 841 024, soit 0,25 % de plus. C'est l'allocateur Metal qui garde un tas un peu plus large, pas une fuite — six jobs successifs alternant 76 et 238 résidus rendent tous les six ce même chiffre, à l'octet. Le profil retient la mesure du banc, prise à froid comme le veut le §8 ; l'écart est à connaître de qui calcule au plus juste.",
+            "Le pic est stable à l'octet d'un passage à l'autre, les durées non : deux passages du banc le même jour ont rendu 3 347 841 024 octets exactement, pour 1634 puis 1582 ms de warmup et 142 puis 135 ms de latence médiane. Le profil retient le second. Le premier cas de la charge paie en plus la compilation des shaders Metal — 135 ms pour 76 résidus contre 95 pour 129."
+          ],
+          "defaults": {
+            "max_length": 1024,
+            "normalize": true
+          },
+          "entrypoint": null,
+          "env": "esm-torch",
+          "heavy": false,
+          "id": "t33-650m",
+          "options": {
+            "pooling": "mean"
+          },
+          "profile": {
+            "disk_bytes": 2609507429,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 135,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0 / transformers 5.15.1",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 3347841024,
+            "rtf": null,
+            "throughput": "1 sortie / 0.1 s",
+            "warmup_ms": 1582
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "esm2-650m@t33-650m",
+          "runtime": "esm-torch",
+          "source": {
+            "allow_patterns": [
+              "config.json",
+              "model.safetensors",
+              "vocab.txt",
+              "tokenizer_config.json",
+              "special_tokens_map.json"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "facebook/esm2_t33_650M_UR50D",
+            "revision": "08e4846e537177426273712802403f7ba8261b6c",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Meta AI / FAIR (Lin et al.)"
     },
     {
       "capability": "face-landmark",
@@ -2723,6 +3234,165 @@
       "vendor": "Haibo Jin et al."
     },
     {
+      "capability": "geo-embed",
+      "family": "prithvi",
+      "id": "prithvi-eo-2-300m",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/IBM/terratorch",
+        "homepage": "https://huggingface.co/ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL",
+        "paper": "https://arxiv.org/abs/2412.02732"
+      },
+      "name": "Prithvi-EO-2.0 300M TL (encodeur)",
+      "notes": "Encodeur ViT-L — profondeur 24, largeur 1024, patches de 16, six canaux d'entrée en dur — servi par `terratorch`, qui sait le construire sans sa tête de reconstruction. La sortie du dernier niveau a la forme (1, N + 1, 1024) : le jeton de tête existe réellement, et l'agrégation est donc un choix entre deux espaces vectoriels et non un réglage. Sa place est dans `options` du variant, comme pour `dinov3` et pour la même raison — un contrat qui l'exposerait laisserait l'UI la présenter comme une préférence, et deux jobs de la même scène rendraient des vecteurs incomparables sans que rien ne le signale.\nAucune contrainte de taille sur ce chemin : 224, 256, 384, 512 et 576 passent tous sur Metal. Le multiple de 192 qu'exige `prithvi-sen1floods11` vient de son décodeur, que cette capacité n'emploie pas.\nLes `allow_patterns` nomment deux fichiers : le dépôt sert aussi quatre chips HLS d'exemple et deux captures d'écran, 14 Mo dont rien ici n'a besoin.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Le point de contrôle porte 402 clés, dont 296 préfixées `encoder.` et 106 qui appartiennent au décodeur de reconstruction de l'auto-encodeur masqué — l'empreinte n'en a que faire, et l'adaptateur dit combien il en écarte. Chargées sans dépouiller le préfixe, elles laissent 296 poids manquants et 402 inattendus, et un encodeur intégralement à ses valeurs d'initialisation : il rend des vecteurs de la bonne longueur, dont les cosinus sont plausibles, sans lever la moindre exception. L'adaptateur exige 0 manquant et 0 inattendu.",
+            "La table de positions du point de contrôle est celle de quatre dates : 785 jetons, quand un réseau bâti pour une seule date en attend 197. Construit sans lire `num_frames` dans le `config.json`, le chargement échoue par incompatibilité de forme — c'est le seul piège de ce dépôt qui échoue franchement plutôt qu'en silence. L'adaptateur lit le nombre de dates chez l'amont, et l'interpolation de terratorch ramène ensuite la table à l'unique date soumise.",
+            "La normalisation vient du `config.json` de ce dépôt, et non de la table du jeu de données que sert le fine-tune voisin : 1087 contre 1413 de moyenne sur le bleu, parce que ce ne sont pas les mêmes images. L'emprunter au voisin donnerait un encodeur qui tourne sur des entrées décalées, sans que rien n'échoue.",
+            "Modèle conditionné par la date et le lieu — le « TL » du nom —, que l'adaptateur ne renseigne pas : les vecteurs décrivent donc le contenu de la tuile et non sa position sur Terre. Le contrat n'a pas de champ de localisation, et le document de sortie le dit.",
+            "Vecteurs de 1024 nombres, comptés sur la sortie et non lus sur une fiche. Une même longueur chez deux modèles ne rend pas leurs vecteurs comparables : c'est pourquoi le document nomme le dépôt, la révision, l'agrégation, les bandes retenues et le découpage employé.",
+            "Le pic ne dépend pas de la taille de tuile, et c'est mesuré et non supposé : 3,06 Gio à 192, 384 et 768, à l'octet près sur les trois cas. Le pilote Metal ne varie que de 2,209 à 2,224 Gio pour une surface de tuile seize fois plus grande — les activations de l'encodeur ne pèsent rien à côté de ses 1,33 Go de poids en fp32. C'est le processus qui décide, et le profil garde donc une pente nulle sur l'intervalle mesuré. Hors de cet intervalle, il retombe sur le pire cas.",
+            "La latence, elle, ne suit pas la taille de tuile non plus : 819 ms pour seize tuiles de 192, 576 pour quatre de 384, 656 pour une seule de 768. Les trois cas encodent le même nombre de patches ; ce qui varie est la portée de l'attention et le nombre d'allers-retours vers Metal, et les deux jouent en sens contraire.",
+            "Une empreinte n'est pas une classification. Deux tuiles proches dans cet espace se ressemblent au capteur ; rien ne dit qu'elles portent la même chose au sol, et aucune valeur de cosinus ne vaut décision."
+          ],
+          "defaults": {
+            "normalize": true,
+            "tile_size": 512
+          },
+          "entrypoint": null,
+          "env": "terratorch",
+          "heavy": false,
+          "id": "300m-tl",
+          "options": {
+            "pooling": "mean"
+          },
+          "profile": {
+            "disk_bytes": 1326661492,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 656,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / rasterio 1.5.1 / terratorch 1.2.11 / torch 2.13.0 / torchgeo 0.9.0",
+            "peak_scaling": {
+              "base_bytes": 3282206720,
+              "bytes_per_unit": 0.0,
+              "measured_range": [
+                192.0,
+                768.0
+              ],
+              "parameter": "tile_size",
+              "r_squared": 1.0
+            },
+            "peak_unified_memory_bytes": 3282206720,
+            "rtf": null,
+            "throughput": "1 sortie / 0.7 s",
+            "warmup_ms": 4744
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "prithvi-eo-2-300m@300m-tl",
+          "runtime": "terratorch",
+          "source": {
+            "allow_patterns": [
+              "*.pt",
+              "config.json"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL",
+            "revision": "63adbd39c271da4c42f447e69b1a7c91a338cdc9",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "IBM et NASA (Szwarcman et al.)"
+    },
+    {
+      "capability": "geo-segment",
+      "family": "prithvi",
+      "id": "prithvi-sen1floods11",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/IBM/terratorch",
+        "homepage": "https://huggingface.co/ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11",
+        "paper": "https://arxiv.org/abs/2412.02732"
+      },
+      "name": "Prithvi-EO-2.0 300M TL — Sen1Floods11",
+      "notes": "Encodeur ViT-L 300M — profondeur 24, largeur 1024, patches de 16 — de même architecture que `prithvi-eo-2-300m`, qui sert `geo-embed`, mais **pas des mêmes octets** : celui-ci a été adapté à la détection d'eau, et ses vecteurs ne sont donc pas ceux de l'autre. Deux dépôts plutôt qu'un, et 1,33 Go de disque en plus, pour que chaque capacité serve les poids que son amont publie pour elle. C'est le contraire du partage que le §5.2 encourage, et c'est assumé : ici les octets partagés donneraient un espace vectoriel qui dit « ceci ressemble à une crue » là où l'on veut « ceci ressemble à ce terrain ».\nLe modèle est « TL », c'est-à-dire conditionné par la date et le lieu de la prise de vue, et l'adaptateur ne lui passe ni l'un ni l'autre. C'est une décision, pas un oubli : voir les caveats, l'écart a été mesuré.\nLes `allow_patterns` nomment trois fichiers plutôt que d'ouvrir en `*` : le dépôt sert aussi trois chips d'exemple, 6,7 Mo d'imagerie Sen1Floods11 dont le projet amont ne publie aucun fichier de licence. Le parc ne les ramène pas, et la charge type du banc n'en emploie aucun.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Deux classes et rien d'autre : la tête fait (2, 256, 1, 1), donc `0` hors eau et `1` eau ou crue. Ce n'est pas une segmentation géospatiale générale, et aucun réglage n'en fera apparaître une troisième classe.",
+            "Metal refuse la taille native des chips. Le module pyramidal du décodeur agrège vers 6 × 6 sur une carte réduite d'un facteur 64 ; MPS exige une division entière et lève « Adaptive pool MPS: input sizes must be divisible by output sizes » à 224, 256, 480 et 512. 384, 576, 768 et 960 passent. `PYTORCH_ENABLE_MPS_FALLBACK=1` n'y change rien : l'erreur vient du noyau Metal, pas du dispatch. L'adaptateur rembourre au multiple de 192 puis recadre, et le dit en avertissement quand la demande l'y a obligé.",
+            "Le point de contrôle porte 381 clés, toutes préfixées `model.`. Chargé sans dépouiller le préfixe et avec `strict=False`, il rend 368 poids manquants, 381 inattendus, et un réseau qui tourne en produisant du bruit sans lever d'exception. L'adaptateur exige 0 manquant et 0 inattendu, et refuse le chargement sinon : c'est le seul contrôle qui prouve que les poids sont arrivés.",
+            "`config.yaml` porte `backbone_pretrained: true` : construit tel quel, le modèle irait chercher 1,33 Go de backbone sur le réseau avant de poser le fine-tune par-dessus. L'adaptateur construit par `EncoderDecoderFactory` avec `backbone_pretrained=False` et charge le point de contrôle à la main ; le chemin a été vérifié avec `HF_HUB_OFFLINE=1`, construction en 4,4 s.",
+            "Modèle conditionné par la date et le lieu — le « TL » du nom —, que l'adaptateur ne renseigne pas. L'écart mesuré en amont sur les chips d'exemple est de 0,0003 de couverture avec ou sans coordonnées. Le contrat n'a donc pas de champ de localisation, et c'est une décision et non un oubli ; un modèle de la même capacité pour qui l'écart serait sensible obligerait à en ajouter un.",
+            "Le pic n'est pas celui de Metal seul, et c'est la charge type qui l'a montré. Aux tuiles de 384 et 576, le pilote Metal réserve 2,06 Gio quand le processus en tient 3,28 — les treize bandes du raster, les logits accumulés sur la scène entière et le masque vivent côté Python. À 768 Metal passe devant avec 3,07 Gio. Le profil retient le plus grand des deux relevés à chaque cas ; ne mesurer que le pilote aurait sous-estimé le coût d'un tiers sur deux cas sur trois.",
+            "Le pic ne suit pas la taille de tuile : 3,28 Gio à 384, 3,28 à 576, 3,07 puis 3,07 côté Metal à 768 — un plateau imposé par le plancher Python, puis une reprise. Le banc a ajusté une pente à R² = 0,75 et l'a jetée ; le profil garde le pire cas mesuré.",
+            "La latence ne suit pas non plus : 927 ms à 384 (quatre tuiles jointives), 1 592 à 576 (quatre tuiles qui se recouvrent), 817 à 768 (une seule tuile). C'est le nombre de tuiles multiplié par leur surface qui décide, pas la taille seule — et sur une scène qui tient en une tuile, la plus grande tuile est la plus rapide.",
+            "Le repli processeur existe et n'est pas servi. Le CPU sait faire tourner ces poids sans aucune contrainte de taille, mais un variant qui y retomberait en silence ferait mesurer deux chemins sous un seul profil. L'adaptateur refuse plutôt que de replier."
+          ],
+          "defaults": {
+            "overlap": 0,
+            "tile_size": 576
+          },
+          "entrypoint": null,
+          "env": "terratorch",
+          "heavy": false,
+          "id": "300m-tl",
+          "options": {
+            "class_names": [
+              "hors eau",
+              "eau de crue"
+            ],
+            "class_of_interest": 1
+          },
+          "profile": {
+            "disk_bytes": 1276850242,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 927,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / rasterio 1.5.1 / terratorch 1.2.11 / torch 2.13.0 / torchgeo 0.9.0",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 3295444992,
+            "rtf": null,
+            "throughput": "1 sortie / 1.1 s",
+            "warmup_ms": 5316
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "prithvi-sen1floods11@300m-tl",
+          "runtime": "terratorch",
+          "source": {
+            "allow_patterns": [
+              "*.pt",
+              "config.json",
+              "config.yaml"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL-Sen1Floods11",
+            "revision": "918b9f140bb1783716664a2421ea3253d806017d",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "IBM et NASA (Szwarcman et al.)"
+    },
+    {
       "capability": "audio-to-text",
       "family": "qwen2-audio",
       "id": "qwen2-audio-7b",
@@ -2983,6 +3653,127 @@
           },
           "tier": "hot",
           "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "audio-align",
+      "family": "qwen3",
+      "id": "qwen3-forced-aligner",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/Blaizzy/mlx-audio",
+        "homepage": "https://huggingface.co/Qwen/Qwen3-ForcedAligner-0.6B",
+        "paper": null
+      },
+      "name": "Qwen3-ForcedAligner 0.6B (portage MLX)",
+      "notes": "Premier modèle de la capacité, donc aucune comparaison A/B possible pour l'instant : le second variant déclaré ici — le bf16 du même portage — est ce qui permettra de chiffrer ce que la quantification 8 bits coûte en précision d'horodatage. Il n'est pas téléchargé.\nLe plafond de 300 s du contrat vient de la carte Qwen (« timestamp prediction for arbitrary units within up to 5 minutes of speech »). Le plafond DUR, lui, est d'architecture et se calcule : `classify_num` 5000 × `timestamp_segment_time` 80 ms = 400,0 s exactement, au-delà de quoi le réseau ne peut littéralement pas émettre la valeur. `max_position_embeddings` vaut 8192, ce qui laisse 2144 mots à 300 s : non contraignant.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "LA RÉPÉTITION LITTÉRALE FAIT DÉCROCHER L'ALIGNEUR, et c'est la limite à connaître avant toutes les autres. MESURÉ sur `assets/parole-tts.wav`, dont le texte répète une phrase mot pour mot : les huit premiers mots sont placés à 10,56 s sur un fichier où la parole commence à 1,28 s, et les onze derniers sont tassés sur 19,84 s. Un procès-verbal, une litanie ou un refrain rencontreront ce cas. `span_seconds` est la sonde qui le rend visible.",
+            "Le texte fourni fait loi, y compris quand il est faux : rien dans la sortie ne dit qu'il divergeait de l'enregistrement. Cette capacité ne vérifie pas ce qu'on lui donne, et ne le peut pas.",
+            "Un signe isolé du texte source — « ; », « — », « % », « : » entre deux espaces — n'a aucune unité à lui et disparaît des sorties : le modèle ne lui donne pas d'horodatage. MESURÉ sur la charge type, où « tiendrait ; elle » ressort en « tiendrait elle » dans les sous-titres. La liste des mots, elle, reste exacte : c'est un jeton sans instant, pas un mot perdu.",
+            "Une phrase plus longue que deux lignes de sous-titre se coupe en son milieu, et la fin de phrase ne rattrape pas la coupure : la charge type produit une réplique « erreur. » de 0,48 s. Un sous-titre est un regroupement, donc une interprétation ; `subtitle_format: none` reste le défaut et la liste des mots la sortie exacte.",
+            "Japonais et coréen REFUSÉS dans cet environnement : leur découpage en mots passe par `nagisa` et `soynlp`, qui n'y sont pas installés. Les neuf autres langues annoncées passent sans rien ajouter, le cantonais et le chinois compris.",
+            "Les noms de langue sont des NOMS anglais en minuscules — `french`, `chinese` —, pas des codes ISO. Un `fr` retomberait sans erreur sur le découpage par espaces ; le worker signale toute valeur hors de la liste annoncée.",
+            "Le coût cesse d'être linéaire au-delà d'une minute, à cause d'une boucle Python : `__call__` insère les traits audio un par un par un `for` suivi d'un `mx.stack`. MESURÉ hors charge type, sur la même parole répétée jusqu'à 300 s — un cas dégénéré pour l'alignement, mais pas pour le coût : 60 s → 428 ms / 2,521 Gio ; 120 s → 849 ms / 2,739 Gio ; 180 s → 1 415 ms / 3,261 Gio ; 300 s → 2 880 ms / 4,071 Gio. Le facteur temps réel remonte de 0,0071 à 0,0096 sur cet intervalle.",
+            "Neuvième locataire de l'environnement `mlx-audio`. Les modèles tiennent largement ensemble sous le budget ; c'est la bibliothèque partagée, pas la mémoire, qui est le point commun fragile."
+          ],
+          "defaults": {
+            "language": "french",
+            "max_seconds": 300,
+            "subtitle_format": "none"
+          },
+          "entrypoint": null,
+          "env": "mlx-audio",
+          "heavy": false,
+          "id": "8bit",
+          "options": null,
+          "profile": {
+            "disk_bytes": 1276473392,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 291,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1",
+            "peak_scaling": {
+              "base_bytes": 2027528907,
+              "bytes_per_unit": 13396164.0,
+              "measured_range": [
+                3.6,
+                32.0
+              ],
+              "parameter": "max_seconds",
+              "r_squared": 0.9999
+            },
+            "peak_unified_memory_bytes": 2457226300,
+            "rtf": 0.0075,
+            "throughput": "1 sortie / 0.3 s",
+            "warmup_ms": 619
+          },
+          "quantization": "8bit",
+          "ready": true,
+          "ref": "qwen3-forced-aligner@8bit",
+          "runtime": "mlx-audio",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "merges.txt"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3-ForcedAligner-0.6B-8bit",
+            "revision": "0e1a68e91d815300c7c9754b2a7639378b23db15",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "qwen3-forced-aligner@bf16 : poids absents du cache — ecurie pull qwen3-forced-aligner@bf16",
+            "qwen3-forced-aligner@bf16 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen3-forced-aligner@bf16"
+          ],
+          "caveats": [
+            "NON TÉLÉCHARGÉ, DONC NON MESURÉ. 1 840 060 363 octets sous ces `allow_patterns`, recalculés blob par blob à l'API. Il n'a pas de bloc `profile:` et n'en aura pas avant d'être passé au banc.",
+            "Sa raison d'être est la comparaison : chiffrer ce que le 8 bits coûte en précision d'horodatage. Cette question n'a de sens que parce que le 8 bits a une qualité mesurée à laquelle la comparer.",
+            "Les mêmes réserves que le 8 bits s'appliquent : répétition littérale, langues sans découpeur, noms de langue anglais."
+          ],
+          "defaults": {
+            "language": "french",
+            "max_seconds": 300,
+            "subtitle_format": "none"
+          },
+          "entrypoint": null,
+          "env": "mlx-audio",
+          "heavy": null,
+          "id": "bf16",
+          "options": null,
+          "profile": null,
+          "quantization": "bf16",
+          "ready": false,
+          "ref": "qwen3-forced-aligner@bf16",
+          "runtime": "mlx-audio",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "merges.txt"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3-ForcedAligner-0.6B-bf16",
+            "revision": "53c8c0e46733eec430e4b53dd6471d0e5dee45f8",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": null
         }
       ],
       "vendor": "Alibaba Qwen"
@@ -4800,6 +5591,99 @@
         }
       ],
       "vendor": "ByteDance Seed"
+    },
+    {
+      "capability": "robot-action",
+      "family": "smolvla",
+      "id": "smolvla-libero",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "unknown",
+      "links": {
+        "code": "https://github.com/huggingface/lerobot",
+        "homepage": "https://huggingface.co/lerobot/smolvla_libero",
+        "paper": "https://arxiv.org/abs/2506.01844"
+      },
+      "name": "SmolVLA 450M finetuné LIBERO (LeRobot)",
+      "notes": "Une politique vision-langage-action de 450 millions de paramètres : un SmolVLM2-500M dont on ne garde que seize couches, doublé d'un « expert d'action » plus étroit qui produit le tronçon par appariement de flux. La vue, la consigne et l'état entrent ensemble ; cinquante commandes d'effecteur sortent, à exécuter à la suite.\nLes nombres rendus sont des consignes de contrôleur dans la convention LIBERO/robosuite — ni des mètres, ni des degrés. Ils valent pour un bras Franka Panda simulé, et pour lui seul. Aucun robot du parc ne les exécute : ce qui est mesuré ici est le modèle, pas l'usage.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "LICENCE DÉCLARÉE, PAS ÉTABLIE — apache-2.0 est annoncée trois fois par le publiant, mais le dépôt porte `base_model: lerobot/smolvla_base`, qui n'a de licence sur aucun canal (cardData vide, aucun tag, LICENSE en 404). D'où `license_class: unknown` : le parc enregistre la déclaration et refuse d'en déduire une chaîne de titres. Voir l'en-tête du manifeste.",
+            "AUCUN ROBOT DU PARC N'EXÉCUTE CES NOMBRES, et c'est le risque principal de ce variant — un risque d'usage, pas de modèle. Les sorties sont des consignes de contrôleur pour un Franka Panda simulé sous robosuite. Le banc vérifie la forme, le domaine, la reproductibilité, la pente de coût et la sensibilité à la consigne. Rien ne dit si le geste est le bon, et rien ne peut le dire ici.",
+            "L'ÉTAT EST DE DIMENSION 8, PAS 6, ET LE `config.json` SE TROMPE. Il déclare `observation.state` de forme [6] ; les statistiques publiées à côté sont de dimension 8, et c'est le normaliseur qui applique. Mesuré : un état de dimension 6 lève `RuntimeError: The size of tensor a (6) must match the size of tensor b (8)`. L'adaptateur lit la dimension dans le fichier de statistiques et refuse en amont, en nommant les deux nombres. Disposition lue dans les valeurs : position de l'effecteur (3, mètres), orientation axe-angle (3, radians), ouverture de la pince (2, ±0,04 m).",
+            "L'ÉTAT DE REPOS N'EST PAS UN VECTEUR DE ZÉROS. Les q01/q99 publiés pour `observation.state` placent la quatrième composante entre 2,76 et 3,19 radians — la pince pointe vers le bas, et zéro est loin hors distribution. Mesuré par `ecurie run` sur la charge du banc : le même couple image-consigne avec un état de zéros plutôt que la médiane publiée déplace la sortie de 1,76 au maximum et de 0,081 en moyenne, sur des composantes dont l'écart-type d'entraînement va de 0,034 à 0,44. Aucune erreur n'est levée, et le tronçon reste dans son domaine.",
+            "ANGLAIS SEULEMENT, ET L'ÉCHEC EST MUET — mais pas tout à fait invisible. Mesuré sur un vrai job : « ramasse le cube rouge posé à gauche » rend un tronçon parfaitement bien formé, de forme (50, 7), sans la moindre erreur. Le seul signe est indirect et vient du contrôle de domaine — ce tronçon-là sort de l'enveloppe sur 32 valeurs quand les trois consignes anglaises du banc n'en sortent sur aucune. L'adaptateur avertit sur les caractères hors ASCII, ce qui a bien mordu ici ; une phrase française sans accent passerait au travers, et rien ne la rattraperait.",
+            "LA CONSIGNE EST TRONQUÉE À 48 JETONS par le pipeline du modèle (`tokenizer_max_length`), en silence. Deux gestes enchaînés dans une même phrase n'en donnent qu'un.",
+            "LE PIC À RETENIR EST LE RSS, PAS LE PILOTE METAL. Mesuré au banc : pilote 1 455 374 336 octets (1,36 Gio), RSS 3 438 411 776 (3,20 Gio), identiques à l'octet aux trois cas. L'écart vient du mmap des poids, de la pile torch et du tokeniseur — invisibles à Metal, et bien réels pour le budget unifié. Un profil qui n'inscrirait que le chiffre du pilote sous-estimerait le coût d'un facteur deux et demi.",
+            "`disk_bytes` NE COMPTE QUE LA POLITIQUE. Le banc mesure le dépôt principal filtré par ses `allow_patterns` : 906 728 993 octets. La dorsale vision-langage en ajoute 2 034 845 165, soit 2,94 Go réellement occupés pour 0,91 Go au profil.",
+            "SANS GRAINE, PAS DE COMPARAISON POSSIBLE. Mesuré : deux appels identiques sans bruit fixé rendent des tronçons différents, écart maximal 0,96. L'adaptateur pose toujours un bruit à graine explicite, tiré sur le processeur pour ne pas dépendre du générateur Metal ; `seed` a un défaut et n'est jamais laissée au hasard.",
+            "TOUT DÉPASSEMENT DE DOMAINE OBSERVÉ EST SUR LA PINCE, ET SUR ELLE SEULE — d'où le fait que `domain_ok` ne se lise jamais sans `out_of_domain` et `domain_margin`. `action.min/max` valent exactement ±1 pour cette septième composante, et l'intégrateur de flux ne sait pas s'arrêter pile sur une valeur binaire : quand le modèle décide de fermer franchement, il vise au-delà. Mesuré sur un vrai job — même image, consigne hors distribution — : 32 valeurs hors bornes sur 350, toutes sur l'axe 6, minimum -1,0689 pour une borne à -1, marge 0,0345 de l'étendue de l'axe ; les six autres axes tiennent au large de leurs bornes, la plus serrée à un tiers de sa plage. Mesuré au banc, sur ses trois cas anglais : aucun dépassement, `out_of_domain` vaut 0 aux trois. Sept centièmes sur une pince n'a rien à voir avec un tronçon parti ailleurs, et c'est le compte et la marge qui distinguent les deux.",
+            "LE COÛT SUIT LE NOMBRE DE VUES, et les vues ne sont pas interchangeables. Mesuré par `ecurie run` à 10 pas : 208 ms à une caméra, 306 à deux, 387 à trois — un tiers de plus par vue ajoutée, et le pic ne bouge pas. `empty_cameras` vaut 0 dans ce checkpoint : une caméra absente est omise et non remplie de noir masqué, ce que le modèle n'a pas vu à l'entraînement. Servir la même image aux trois entrées n'est pas neutre non plus — mesuré, la sortie change du tout au tout et sort du domaine (48 valeurs hors bornes à deux vues, 13 à trois), les trois caméras de LIBERO ne montrant pas la même chose.",
+            "`steps` PILOTE LA DURÉE, PAS LA MÉMOIRE. Mesuré par `ecurie run` sur un worker déjà chaud, à une caméra : 111 ms à 1 pas, 122 à 2, 149 à 5, 198 à 10, 290 à 20 — pendant que le pic reste à 3 438 116 864 octets, identique à l'octet aux cinq valeurs, et le pilote Metal à 16 kio près. La pente du profil est donc nulle par mesure, et non par défaut de mesure. Le premier job d'un worker fraîchement chargé paie une allocation unique qui masque cet écart : relevé, 251 ms à 1 pas en premier appel contre 111 au second, soit plus que la différence entre 1 et 20 pas.",
+            "L'ADHÉRENCE À `lerobot` EST FORTE ET RÉCENTE. Le format des fichiers de processeurs a déjà changé une fois en amont — le fil nº 12 de `smolvla_base` porte sur « Could not find 'policy_preprocessor.json' ». L'épingle `<0.7` de l'env protège de la prochaine, pas de celle d'après ; l'adaptateur signale toute autre branche que 0.6.x."
+          ],
+          "defaults": {
+            "seed": 0,
+            "steps": 10
+          },
+          "entrypoint": null,
+          "env": "lerobot",
+          "heavy": false,
+          "id": "bf16",
+          "options": {
+            "embodiment": "LIBERO — bras Franka Emika Panda simulé, contrôleur OSC de robosuite",
+            "gripper_index": 6,
+            "space": "cartesian-delta",
+            "units": "controller-normalized"
+          },
+          "profile": {
+            "disk_bytes": 906723317,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 186,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / lerobot 0.6.1 / numpy 2.2.6 / torch 2.11.0 / transformers 5.5.4",
+            "peak_scaling": {
+              "base_bytes": 3438411776,
+              "bytes_per_unit": 0.0,
+              "measured_range": [
+                2.0,
+                10.0
+              ],
+              "parameter": "steps",
+              "r_squared": 1.0
+            },
+            "peak_unified_memory_bytes": 3438411776,
+            "rtf": null,
+            "throughput": "1 sortie / 0.2 s",
+            "warmup_ms": 4527
+          },
+          "quantization": "bf16",
+          "ready": true,
+          "ref": "smolvla-libero@bf16",
+          "runtime": "lerobot",
+          "source": {
+            "allow_patterns": [
+              "config.json",
+              "model.safetensors",
+              "policy_preprocessor.json",
+              "policy_postprocessor.json",
+              "policy_preprocessor_step_5_normalizer_processor.safetensors",
+              "policy_postprocessor_step_0_unnormalizer_processor.safetensors"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "lerobot/smolvla_libero",
+            "revision": "31d453f7edd78c839a8bbc39744a292686daf0de",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Hugging Face / LeRobot"
     },
     {
       "capability": "image-upscale",

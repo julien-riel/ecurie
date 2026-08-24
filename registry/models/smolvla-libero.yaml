@@ -1,0 +1,205 @@
+# Image et consigne vers commandes de robot — SmolVLA 450M finetuné LIBERO.
+#
+# CE QUI A DÉCIDÉ DU CHECKPOINT, ET C'EST LE FAIT PRINCIPAL DE CE MANIFESTE.
+# Le candidat naturel de la famille est `lerobot/smolvla_base`, le modèle sur
+# lequel tout le monde s'appuie. Il est écarté pour trois motifs indépendants,
+# tous vérifiés :
+#
+#   1. il n'a AUCUNE licence — ni dans cardData, ni en tag, ni en fichier
+#      (LICENSE répond 404) ;
+#   2. sa normalisation est un no-op SILENCIEUX. Les seules clés publiées sont
+#      `so100.buffer.action.*`, `so100-blue.*` et `so100-red.*`, alors que le
+#      processeur cherche `action` et `observation.state` et rend le tenseur
+#      intact quand la clé manque. Et la moitié ENTRÉE du trou est irréparable :
+#      il n'existe aucune statistique `observation.state` nulle part, pas même
+#      dans `model.safetensors`, dont l'en-tête ne porte que 500 tenseurs tous
+#      préfixés `model.` ;
+#   3. sa propre carte le dit modèle de BASE, « to fine tune on your specific use
+#      case ».
+#
+# Ce checkpoint-ci, publié par la même organisation, dans la même famille, au même
+# coût, n'a aucun des trois : licence déclarée, statistiques indexées sous les
+# bonnes clés `action.*` et `observation.state.*`, et politique entraînée. Il
+# publie en outre q01/q99 pour l'action, ce qui rend possible un contrôle de
+# DOMAINE que `smolvla_base` ne permettait pas — et c'est le seul contrôle de
+# fond disponible dans un parc sans robot.
+#
+# LA LICENCE EST UNE DÉCLARATION, PAS UNE CHAÎNE DE TITRES, ET C'EST POURQUOI LES
+# DEUX CHAMPS DIVERGENT. `license: apache-2.0` enregistre ce que le publiant
+# déclare, et il le déclare trois fois — `cardData.license`, le tag
+# `license:apache-2.0`, et le corps du README. `license_class`, lui, est le
+# jugement du parc, et il vaut `unknown`. Le dépôt porte
+# `base_model: lerobot/smolvla_base`, et ce parent n'a aucune licence sur aucun
+# des trois canaux. Un dérivé ne transmet pas plus de droits que son parent ne
+# lui en a concédés, et un parent muet n'en concède aucun d'établi. La déclaration
+# est vraisemblablement de bonne foi — LeRobot est un projet Apache-2.0 de bout en
+# bout côté code — mais `permissive` affirmerait une provenance qu'on ne peut pas
+# suivre, alors que `unknown` dit exactement ce qu'on sait : on ne sait pas. Le
+# coût de ce choix est nul ici, le modèle entrant en `candidate` et non en
+# titulaire, et il n'existe dans cette famille aucune solution de rechange dont la
+# chaîne serait meilleure — `smolvla_robotwin` et `smolvla_metaworld` dérivent du
+# même parent muet. Le précédent du parc est `arcface.yaml` : inscrit comme
+# référence, pas comme titulaire.
+#
+# CE QUI A DÉCIDÉ DU SECOND DÉPÔT. SmolVLA n'embarque pas son encodeur
+# vision-langage : son `config.json` nomme
+# `HuggingFaceTB/SmolVLM2-500M-Video-Instruct`, et sans lui le chargement partirait
+# le chercher sur le réseau — ce qu'un worker du parc n'a pas le droit de faire.
+# Second emploi d'`extra_sources` au parc, après `cad-recode`, sous le rôle
+# `vision_encoder`. Attention aux `allow_patterns` : l'arbre complet de ce dépôt
+# pèse 7 917 649 732 octets, dont 5 882 804 567 d'ONNX qui ne servent à rien ici.
+# Les douze fichiers retenus en font 2 034 845 165, mesurés sur le disque.
+#
+# CE QUE `disk_bytes` NE COMPTE PAS. Le banc mesure l'occupation du dépôt
+# **principal** filtrée par ses `allow_patterns` — soit les 906 728 993 octets de
+# la politique. Les 2,03 Go de la dorsale n'y sont pas : ce variant occupe donc
+# 2,94 Go sur le disque pour 0,91 Go annoncés au profil. Ce n'est pas une erreur
+# de mesure, c'est la portée de la mesure, et c'est répété en caveat parce que la
+# comptabilité disque du parc s'y fie.
+#
+# CE QUI A DÉCIDÉ DE L'ENVIRONNEMENT NEUF. lerobot 0.6.1 borne lui-même
+# `torch>=2.7,<2.12` et `transformers>=5.4,<5.6`. Ce sont deux PLAFONDS : aucun
+# des cinq env torch du parc ne peut y descendre sans rétrograder des modèles
+# déjà mesurés — `esm-torch` exige transformers ≥ 5.15, `cad-recode` exige < 5,
+# `torch-vision` porte cinq profils. Le motif complet est dans
+# runtimes/lerobot/pyproject.toml.
+id: smolvla-libero
+name: SmolVLA 450M finetuné LIBERO (LeRobot)
+capability: robot-action
+family: smolvla
+vendor: Hugging Face / LeRobot
+license: apache-2.0
+license_class: unknown
+status: candidate
+
+notes: >
+  Une politique vision-langage-action de 450 millions de paramètres : un
+  SmolVLM2-500M dont on ne garde que seize couches, doublé d'un « expert
+  d'action » plus étroit qui produit le tronçon par appariement de flux. La vue,
+  la consigne et l'état entrent ensemble ; cinquante commandes d'effecteur
+  sortent, à exécuter à la suite.
+
+  Les nombres rendus sont des consignes de contrôleur dans la convention
+  LIBERO/robosuite — ni des mètres, ni des degrés. Ils valent pour un bras Franka
+  Panda simulé, et pour lui seul. Aucun robot du parc ne les exécute : ce qui est
+  mesuré ici est le modèle, pas l'usage.
+
+links:
+  homepage: https://huggingface.co/lerobot/smolvla_libero
+  code: https://github.com/huggingface/lerobot
+  paper: https://arxiv.org/abs/2506.01844
+
+variants:
+  - id: bf16
+    quantization: bf16
+    tier: hot
+    runtime: lerobot
+    source:
+      kind: huggingface
+      repo: lerobot/smolvla_libero
+      revision: "31d453f7edd78c839a8bbc39744a292686daf0de"   # 2026-08-24
+      # Les six fichiers du dépôt, tous retenus : il n'y a rien à écarter. Les
+      # deux `.safetensors` de statistiques sont le même contenu déposé deux fois
+      # — le cache Hugging Face les partage d'ailleurs par un seul blob — mais
+      # les nommer tous les deux est ce que le pipeline attend.
+      allow_patterns:
+        - "config.json"
+        - "model.safetensors"
+        - "policy_preprocessor.json"
+        - "policy_postprocessor.json"
+        - "policy_preprocessor_step_5_normalizer_processor.safetensors"
+        - "policy_postprocessor_step_0_unnormalizer_processor.safetensors"
+    extra_sources:
+      # La dorsale vision-langage, qui n'est pas dans le dépôt de la politique.
+      # Licence propre — apache-2.0, celle-là établie —, révision propre, et
+      # deux fois le poids du modèle qu'elle sert. `allow_patterns` exclut les
+      # 5,88 Go d'exports ONNX en ne nommant pas le dossier `onnx/` : ce sont
+      # des poids pour un autre moteur d'inférence, et rien ici ne les ouvrirait.
+      # Les douze fichiers nommés sont exactement ce que `AutoModelForImageTextToText`
+      # et `AutoProcessor` ouvrent — le processeur en fait partie, et l'oublier
+      # ferait échouer le chargement après le téléchargement des deux gigaoctets.
+      - kind: huggingface
+        repo: HuggingFaceTB/SmolVLM2-500M-Video-Instruct
+        revision: "7b375e1b73b11138ff12fe22c8f2822d8fe03467"   # 2026-08-24
+        allow_patterns:
+          - "config.json"
+          - "generation_config.json"
+          - "model.safetensors"
+          - "preprocessor_config.json"
+          - "processor_config.json"
+          - "chat_template.json"
+          - "tokenizer.json"
+          - "tokenizer_config.json"
+          - "special_tokens_map.json"
+          - "added_tokens.json"
+          - "vocab.json"
+          - "merges.txt"
+        role: vision_encoder
+    defaults:
+      steps: 10
+      seed: 0
+    options:
+      # Ces trois-là ne se lisent NULLE PART dans le checkpoint, et l'adaptateur
+      # refuse de charger sans elles. Un checkpoint sait combien de nombres il
+      # produit ; il ne sait pas quelle machine les exécute, ni s'il faut les
+      # ajouter à la pose courante ou les viser, ni dans quelle échelle ils sont
+      # exprimés. Servir un tronçon sans elles produirait sept flottants que
+      # n'importe qui peut prendre pour n'importe quoi.
+      embodiment: "LIBERO — bras Franka Emika Panda simulé, contrôleur OSC de robosuite"
+      space: cartesian-delta
+      # NI DES MÈTRES NI DES DEGRÉS, et c'est mesuré sur les statistiques
+      # publiées : action.min/max valent ±0,9375 sur les trois translations,
+      # -0,258/+0,356 puis ±0,375 en rotation, et exactement ±1,0 sur la pince.
+      # Ce sont les bornes d'un contrôleur, à l'échelle de ce contrôleur.
+      units: controller-normalized
+      # La septième composante. Son écart-type d'entraînement vaut 0,9988 quand
+      # les six autres tiennent entre 0,034 et 0,445, et ses extrêmes sont
+      # exactement ±1 : c'est une commande binaire déguisée en flottant, et le
+      # contrat la sort du tableau pour que personne ne l'interpole avec le reste.
+      gripper_index: 6
+    caveats:
+      - "LICENCE DÉCLARÉE, PAS ÉTABLIE — apache-2.0 est annoncée trois fois par le publiant, mais le dépôt porte `base_model: lerobot/smolvla_base`, qui n'a de licence sur aucun canal (cardData vide, aucun tag, LICENSE en 404). D'où `license_class: unknown` : le parc enregistre la déclaration et refuse d'en déduire une chaîne de titres. Voir l'en-tête du manifeste."
+      - "AUCUN ROBOT DU PARC N'EXÉCUTE CES NOMBRES, et c'est le risque principal de ce variant — un risque d'usage, pas de modèle. Les sorties sont des consignes de contrôleur pour un Franka Panda simulé sous robosuite. Le banc vérifie la forme, le domaine, la reproductibilité, la pente de coût et la sensibilité à la consigne. Rien ne dit si le geste est le bon, et rien ne peut le dire ici."
+      - "L'ÉTAT EST DE DIMENSION 8, PAS 6, ET LE `config.json` SE TROMPE. Il déclare `observation.state` de forme [6] ; les statistiques publiées à côté sont de dimension 8, et c'est le normaliseur qui applique. Mesuré : un état de dimension 6 lève `RuntimeError: The size of tensor a (6) must match the size of tensor b (8)`. L'adaptateur lit la dimension dans le fichier de statistiques et refuse en amont, en nommant les deux nombres. Disposition lue dans les valeurs : position de l'effecteur (3, mètres), orientation axe-angle (3, radians), ouverture de la pince (2, ±0,04 m)."
+      - "L'ÉTAT DE REPOS N'EST PAS UN VECTEUR DE ZÉROS. Les q01/q99 publiés pour `observation.state` placent la quatrième composante entre 2,76 et 3,19 radians — la pince pointe vers le bas, et zéro est loin hors distribution. Mesuré par `ecurie run` sur la charge du banc : le même couple image-consigne avec un état de zéros plutôt que la médiane publiée déplace la sortie de 1,76 au maximum et de 0,081 en moyenne, sur des composantes dont l'écart-type d'entraînement va de 0,034 à 0,44. Aucune erreur n'est levée, et le tronçon reste dans son domaine."
+      - "ANGLAIS SEULEMENT, ET L'ÉCHEC EST MUET — mais pas tout à fait invisible. Mesuré sur un vrai job : « ramasse le cube rouge posé à gauche » rend un tronçon parfaitement bien formé, de forme (50, 7), sans la moindre erreur. Le seul signe est indirect et vient du contrôle de domaine — ce tronçon-là sort de l'enveloppe sur 32 valeurs quand les trois consignes anglaises du banc n'en sortent sur aucune. L'adaptateur avertit sur les caractères hors ASCII, ce qui a bien mordu ici ; une phrase française sans accent passerait au travers, et rien ne la rattraperait."
+      - "LA CONSIGNE EST TRONQUÉE À 48 JETONS par le pipeline du modèle (`tokenizer_max_length`), en silence. Deux gestes enchaînés dans une même phrase n'en donnent qu'un."
+      - "LE PIC À RETENIR EST LE RSS, PAS LE PILOTE METAL. Mesuré au banc : pilote 1 455 374 336 octets (1,36 Gio), RSS 3 438 411 776 (3,20 Gio), identiques à l'octet aux trois cas. L'écart vient du mmap des poids, de la pile torch et du tokeniseur — invisibles à Metal, et bien réels pour le budget unifié. Un profil qui n'inscrirait que le chiffre du pilote sous-estimerait le coût d'un facteur deux et demi."
+      - "`disk_bytes` NE COMPTE QUE LA POLITIQUE. Le banc mesure le dépôt principal filtré par ses `allow_patterns` : 906 728 993 octets. La dorsale vision-langage en ajoute 2 034 845 165, soit 2,94 Go réellement occupés pour 0,91 Go au profil."
+      - "SANS GRAINE, PAS DE COMPARAISON POSSIBLE. Mesuré : deux appels identiques sans bruit fixé rendent des tronçons différents, écart maximal 0,96. L'adaptateur pose toujours un bruit à graine explicite, tiré sur le processeur pour ne pas dépendre du générateur Metal ; `seed` a un défaut et n'est jamais laissée au hasard."
+      - "TOUT DÉPASSEMENT DE DOMAINE OBSERVÉ EST SUR LA PINCE, ET SUR ELLE SEULE — d'où le fait que `domain_ok` ne se lise jamais sans `out_of_domain` et `domain_margin`. `action.min/max` valent exactement ±1 pour cette septième composante, et l'intégrateur de flux ne sait pas s'arrêter pile sur une valeur binaire : quand le modèle décide de fermer franchement, il vise au-delà. Mesuré sur un vrai job — même image, consigne hors distribution — : 32 valeurs hors bornes sur 350, toutes sur l'axe 6, minimum -1,0689 pour une borne à -1, marge 0,0345 de l'étendue de l'axe ; les six autres axes tiennent au large de leurs bornes, la plus serrée à un tiers de sa plage. Mesuré au banc, sur ses trois cas anglais : aucun dépassement, `out_of_domain` vaut 0 aux trois. Sept centièmes sur une pince n'a rien à voir avec un tronçon parti ailleurs, et c'est le compte et la marge qui distinguent les deux."
+      - "LE COÛT SUIT LE NOMBRE DE VUES, et les vues ne sont pas interchangeables. Mesuré par `ecurie run` à 10 pas : 208 ms à une caméra, 306 à deux, 387 à trois — un tiers de plus par vue ajoutée, et le pic ne bouge pas. `empty_cameras` vaut 0 dans ce checkpoint : une caméra absente est omise et non remplie de noir masqué, ce que le modèle n'a pas vu à l'entraînement. Servir la même image aux trois entrées n'est pas neutre non plus — mesuré, la sortie change du tout au tout et sort du domaine (48 valeurs hors bornes à deux vues, 13 à trois), les trois caméras de LIBERO ne montrant pas la même chose."
+      - "`steps` PILOTE LA DURÉE, PAS LA MÉMOIRE. Mesuré par `ecurie run` sur un worker déjà chaud, à une caméra : 111 ms à 1 pas, 122 à 2, 149 à 5, 198 à 10, 290 à 20 — pendant que le pic reste à 3 438 116 864 octets, identique à l'octet aux cinq valeurs, et le pilote Metal à 16 kio près. La pente du profil est donc nulle par mesure, et non par défaut de mesure. Le premier job d'un worker fraîchement chargé paie une allocation unique qui masque cet écart : relevé, 251 ms à 1 pas en premier appel contre 111 au second, soit plus que la différence entre 1 et 20 pas."
+      - "L'ADHÉRENCE À `lerobot` EST FORTE ET RÉCENTE. Le format des fichiers de processeurs a déjà changé une fois en amont — le fil nº 12 de `smolvla_base` porte sur « Could not find 'policy_preprocessor.json' ». L'épingle `<0.7` de l'env protège de la prochaine, pas de celle d'après ; l'adaptateur signale toute autre branche que 0.6.x."
+    profile:
+      # Mesuré par `ecurie bench`, l'autorité étant
+      # registry/measurements/smolvla-libero@bf16/mac17-4-24-gio.json. Le pic est
+      # le maximum de deux relevés — RSS du processus et pilote Metal —, et c'est
+      # le PREMIER qui l'emporte ici : 3,20 Gio de RSS contre 1,36 Gio au pilote,
+      # identique à l'octet aux trois cas.
+      #
+      # `disk_bytes` vaut 5 676 octets de moins que la somme des six fichiers du
+      # dépôt : les deux `.safetensors` de statistiques sont le même contenu, le
+      # cache Hugging Face les partage par un seul blob, et le banc déduplique par
+      # inode. C'est le nombre d'octets réellement occupés, pas la somme des
+      # tailles annoncées.
+      #
+      # LA PENTE EST NULLE, ET C'EST UNE MESURE. `bytes_per_unit: 0.0` avec
+      # R² = 1 ne dit pas que le banc a renoncé : les trois cas rendent le même
+      # pic à l'octet, à 2 comme à 10 pas. L'admission calcule donc `base + 0 × steps`,
+      # soit exactement le pic mesuré — le bloc ne change rien à son verdict, et il
+      # inscrit noir sur blanc que `steps` pilote la durée et pas la mémoire.
+      disk_bytes: 906723317
+      peak_unified_memory_bytes: 3438411776
+      peak_scaling:
+        parameter: "steps"
+        base_bytes: 3438411776
+        bytes_per_unit: 0.0
+        measured_range: [2.0, 10.0]
+        r_squared: 1.0
+      warmup_ms: 4527
+      latency_ms_p50: 186
+      throughput: "1 sortie / 0.2 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / lerobot 0.6.1 / numpy 2.2.6 / torch 2.11.0 / transformers 5.5.4"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

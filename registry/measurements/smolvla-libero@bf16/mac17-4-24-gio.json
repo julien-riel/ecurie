@@ -1,0 +1,132 @@
+{
+  "ref": "smolvla-libero@bf16",
+  "model": "smolvla-libero",
+  "variant": "bf16",
+  "capability": "robot-action",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / lerobot 0.6.1 / numpy 2.2.6 / torch 2.11.0 / transformers 5.5.4",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/robot-action.json",
+    "version": 1,
+    "cases": [
+      "pas-2",
+      "pas-10",
+      "consigne-autre"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 906723317,
+    "peak_unified_memory_bytes": 3438411776,
+    "peak_scaling": {
+      "parameter": "steps",
+      "base_bytes": 3438411776,
+      "bytes_per_unit": 0.0,
+      "measured_range": [
+        2.0,
+        10.0
+      ],
+      "r_squared": 1.0
+    },
+    "warmup_ms": 4527,
+    "latency_ms_p50": 186,
+    "throughput": "1 sortie / 0.2 s"
+  },
+  "cases": [
+    {
+      "id": "pas-2",
+      "ok": true,
+      "duration_ms": 310,
+      "metrics": {
+        "duration_ms": 310,
+        "device": "mps",
+        "steps": 2,
+        "seed": 0,
+        "cameras": 1,
+        "dof": 7,
+        "horizon": 50,
+        "state_dim": 8,
+        "embodiment": "LIBERO — bras Franka Emika Panda simulé, contrôleur OSC de robosuite",
+        "space": "cartesian-delta",
+        "units": "controller-normalized",
+        "action_sha256": "ce0108ad4b61011856355b1ce292740d1b63a655dac7af5adc9f07e6136a662a",
+        "domain_ok": true,
+        "out_of_domain": 0,
+        "domain_margin": 0.0,
+        "mps_current_allocated_bytes": 906982144,
+        "mps_driver_allocated_bytes": 1455374336,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 3438411776,
+        "warnings": [
+          "1 vue(s) fournies pour 3 caméra(s) déclarées : les caméras absentes sont omises et non remplies de noir (`empty_cameras` vaut 0), ce que ce modèle n'a pas vu à l'entraînement",
+          "tronçon calculé pour LIBERO — bras Franka Emika Panda simulé, contrôleur OSC de robosuite, en cartesian-delta et unités controller-normalized : aucun robot du parc ne l'exécute, et rien ici ne dit si le geste est le bon — seulement s'il est bien formé, dans le domaine et reproductible"
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "pas-10",
+      "ok": true,
+      "duration_ms": 186,
+      "metrics": {
+        "duration_ms": 186,
+        "device": "mps",
+        "steps": 10,
+        "seed": 0,
+        "cameras": 1,
+        "dof": 7,
+        "horizon": 50,
+        "state_dim": 8,
+        "embodiment": "LIBERO — bras Franka Emika Panda simulé, contrôleur OSC de robosuite",
+        "space": "cartesian-delta",
+        "units": "controller-normalized",
+        "action_sha256": "55d94acfe32fff82da064f4c2af896a16f52279f35585db7545d632347f589cd",
+        "domain_ok": true,
+        "out_of_domain": 0,
+        "domain_margin": 0.0,
+        "mps_current_allocated_bytes": 906982144,
+        "mps_driver_allocated_bytes": 1455374336,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 3438411776,
+        "warnings": [
+          "1 vue(s) fournies pour 3 caméra(s) déclarées : les caméras absentes sont omises et non remplies de noir (`empty_cameras` vaut 0), ce que ce modèle n'a pas vu à l'entraînement",
+          "tronçon calculé pour LIBERO — bras Franka Emika Panda simulé, contrôleur OSC de robosuite, en cartesian-delta et unités controller-normalized : aucun robot du parc ne l'exécute, et rien ici ne dit si le geste est le bon — seulement s'il est bien formé, dans le domaine et reproductible"
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "consigne-autre",
+      "ok": true,
+      "duration_ms": 185,
+      "metrics": {
+        "duration_ms": 185,
+        "device": "mps",
+        "steps": 10,
+        "seed": 0,
+        "cameras": 1,
+        "dof": 7,
+        "horizon": 50,
+        "state_dim": 8,
+        "embodiment": "LIBERO — bras Franka Emika Panda simulé, contrôleur OSC de robosuite",
+        "space": "cartesian-delta",
+        "units": "controller-normalized",
+        "action_sha256": "671a9ad0251452b64c70a1a2ee21f3d947e4d0ae399eccb27d3f9145a681546a",
+        "domain_ok": true,
+        "out_of_domain": 0,
+        "domain_margin": 0.0,
+        "mps_current_allocated_bytes": 906982144,
+        "mps_driver_allocated_bytes": 1455357952,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 3438411776,
+        "warnings": [
+          "1 vue(s) fournies pour 3 caméra(s) déclarées : les caméras absentes sont omises et non remplies de noir (`empty_cameras` vaut 0), ce que ce modèle n'a pas vu à l'entraînement",
+          "tronçon calculé pour LIBERO — bras Franka Emika Panda simulé, contrôleur OSC de robosuite, en cartesian-delta et unités controller-normalized : aucun robot du parc ne l'exécute, et rien ici ne dit si le geste est le bon — seulement s'il est bien formé, dans le domaine et reproductible"
+        ]
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

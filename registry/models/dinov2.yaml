@@ -1,0 +1,86 @@
+# Empreinte visuelle — DINOv2 ViT-B/14 à registres, l'option permissive.
+#
+# CE QUI A DÉCIDÉ. `dinov3.yaml` est sous une licence Meta que le registre
+# classe `restricted` : redistribution aux mêmes termes, usages ITAR et
+# militaires exclus, texte amendable avec effet immédiat. Ce manifeste-ci sert
+# la même capacité sous apache-2.0, et le parc préfère un permissif à un point
+# de qualité.
+#
+# CE QUE CE POINT VAUT, MESURÉ ET NON SUPPOSÉ. Sur l'épreuve dont on dispose —
+# trois requêtes 256 px contre huit solides gris calculés, passée sur le chemin
+# livré — ce variant rend 2/3 à 256 et à 512 pixels, contre 3/3 à 256 et 2/3 à
+# 512 pour `dinov3@convnext-small`. Une requête d'écart sur trois : cela ne
+# classe pas deux encodeurs, cela dit surtout que la définition d'entrée pèse
+# autant que le modèle. Les deux manifestes entrent donc ensemble, tous deux
+# `candidate`, et c'est un golden set qui tranchera.
+#
+# CE QUI A DÉCIDÉ DU VARIANT À REGISTRES. `reg4` porte quatre jetons de registre
+# en plus du CLS, soit `num_prefix_tokens: 5`. Ce n'est pas un détail : une
+# moyenne naïve sur les jetons de `forward_features` mélangerait les registres
+# aux patches et rendrait un vecteur qui n'est celui d'aucun espace. L'adaptateur
+# lit `num_prefix_tokens` sur le modèle plutôt que de le supposer, et c'est ce
+# variant qui rend ce chemin vérifiable au banc.
+#
+# 768 dimensions, comme `dinov3@convnext-small`. Les deux vecteurs ne sont pas
+# comparables pour autant, et le document de sortie nomme son modèle pour que
+# personne ne calcule ce cosinus-là.
+id: dinov2
+name: DINOv2 ViT-B/14 à registres (empreinte visuelle)
+capability: image-embed
+family: dinov2
+vendor: Meta AI (Oquab et al., Darcet et al.) — poids servis par le miroir timm
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Un encodeur, pas un moteur de recherche : un vecteur par job, un cosinus entre
+  deux images. « Retrouver toutes les pièces qui ressemblent » demande un index
+  que le parc n'a pas.
+
+  Poids en patch 14, pré-entraînés à 518 pixels. Le modèle est construit avec
+  `dynamic_img_size=True`, sans quoi toute définition autre que 518 échouerait
+  sur la table de positions : c'est timm qui l'interpole, l'adaptateur ne
+  rééchantillonne rien lui-même.
+
+links:
+  homepage: https://huggingface.co/timm/vit_base_patch14_reg4_dinov2.lvd142m
+  code: https://github.com/facebookresearch/dinov2
+  paper: https://arxiv.org/abs/2309.16588
+
+variants:
+  - id: vit-base
+    quantization: fp32
+    tier: hot
+    runtime: torch-vision
+    source:
+      kind: huggingface
+      repo: timm/vit_base_patch14_reg4_dinov2.lvd142m
+      revision: "3b06466a5548c52b8b98822e1390987695fcbf82"   # 2026-08-24
+      allow_patterns: ["config.json", "model.safetensors"]
+    options:
+      # CLS plutôt que la moyenne des patches, et c'est un choix d'espace
+      # vectoriel qu'on a mesuré plutôt que supposé : sur ces mêmes poids, la
+      # requête « cube » de l'épreuve tombe du rang 2 au rang 6 à 256 pixels et
+      # du rang 3 au rang 5 à 512 quand on passe de CLS à la moyenne. Le contrat
+      # ne l'expose donc pas — il n'y a pas de cosinus commun entre les deux
+      # espaces, et un formulaire le présenterait comme une préférence.
+      pooling: cls
+    defaults:
+      max_side: 252
+      normalize: true
+    caveats:
+      - "Patch 14 : toute définition demandée est ramenée au multiple de 14 le plus proche — mesuré au banc, 256 devient 252, 512 devient 518 et 1024 devient 1022. Le document de sortie porte la définition réellement soumise, jamais celle demandée."
+      - "Titulaire non départagé : 2/3 sur l'épreuve des trois solides à 256 et à 512 pixels, contre 3/3 à 256 pour `dinov3@convnext-small`. Une requête sur trois ne classe rien ; ce qui est sûr est le coût — 346,3 Mo de disque et 1,42 Gio de pic contre 197,9 Mo et 1,24 Gio — et la licence."
+      - "`pooling: cls` est mesuré, pas hérité : avec la moyenne des jetons de patch, la requête « cube » tombe du rang 2 au rang 6 à 256 pixels. Changer cette option change l'espace vectoriel, donc invalide tout vecteur déjà produit."
+      - "Pré-entraîné à 518 pixels ; les positions sont interpolées en dessous. Le défaut à 252 tient au coût, pas à une mesure de qualité."
+      - "Le pic ne suit pas la définition : 369 Mio de pilote Metal à 252, 1 457 à 518, 1 457 à 1022. Le banc a ajusté une pente à R² = 0,57 et l'a jetée ; le profil garde le pire cas mesuré."
+    profile:
+      disk_bytes: 346344785
+      peak_unified_memory_bytes: 1527463936
+      warmup_ms: 1562
+      latency_ms_p50: 134
+      throughput: "1 sortie / 0.3 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / timm 1.0.28 / torch 2.13.0 / transformers 5.15.1"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

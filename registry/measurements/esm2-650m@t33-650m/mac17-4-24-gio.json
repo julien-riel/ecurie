@@ -1,0 +1,89 @@
+{
+  "ref": "esm2-650m@t33-650m",
+  "model": "esm2-650m",
+  "variant": "t33-650m",
+  "capability": "protein-embed",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0 / transformers 5.15.1",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/protein-embed.json",
+    "version": 1,
+    "cases": [
+      "ubiquitine-76",
+      "lysozyme-129",
+      "gfp-238"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 2609507429,
+    "peak_unified_memory_bytes": 3347841024,
+    "warmup_ms": 1582,
+    "latency_ms_p50": 135,
+    "throughput": "1 sortie / 0.1 s"
+  },
+  "cases": [
+    {
+      "id": "ubiquitine-76",
+      "ok": true,
+      "duration_ms": 135,
+      "metrics": {
+        "duration_ms": 135,
+        "pooling": "mean",
+        "length": 76,
+        "submitted_length": 76,
+        "tokens": 78,
+        "truncated": false,
+        "dimensions": 1280,
+        "vector_norm": 1.0,
+        "mps_current_allocated_bytes": 2597613056,
+        "mps_driver_allocated_bytes": 3339419648,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 3339419648
+      },
+      "error": null
+    },
+    {
+      "id": "lysozyme-129",
+      "ok": true,
+      "duration_ms": 95,
+      "metrics": {
+        "duration_ms": 95,
+        "pooling": "mean",
+        "length": 129,
+        "submitted_length": 129,
+        "tokens": 131,
+        "truncated": false,
+        "dimensions": 1280,
+        "vector_norm": 1.0,
+        "mps_current_allocated_bytes": 2597613056,
+        "mps_driver_allocated_bytes": 3347824640,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 3347824640
+      },
+      "error": null
+    },
+    {
+      "id": "gfp-238",
+      "ok": true,
+      "duration_ms": 142,
+      "metrics": {
+        "duration_ms": 142,
+        "pooling": "mean",
+        "length": 238,
+        "submitted_length": 238,
+        "tokens": 240,
+        "truncated": false,
+        "dimensions": 1280,
+        "vector_norm": 1.0,
+        "mps_current_allocated_bytes": 2597613056,
+        "mps_driver_allocated_bytes": 3347841024,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 3347841024
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

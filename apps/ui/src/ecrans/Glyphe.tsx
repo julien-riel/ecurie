@@ -155,6 +155,82 @@ const TRAITS: Record<Forme, React.ReactNode> = {
       <path d="M15 4c2 0 2.5 1 2.5 3v2c0 1.6.6 2.6 2 3-1.4.4-2 1.4-2 3v2c0 2-.5 3-2.5 3" />
     </>
   ),
+  // Une mesure relevée dans le temps : irrégulière, et posée sur un axe. C'est
+  // l'axe qui la sépare du `vecteur`, dont les barres n'ont pas d'ordre.
+  serie: (
+    <>
+      <path d="M3 20h18" opacity="0.5" />
+      <path d="M3 15l3.5-4 3 3 3.5-6 3 4.5 4-3.5" />
+    </>
+  ),
+  // La même mesure, prolongée par ce qu'on ignore d'elle : le trait s'arrête,
+  // et deux bornes s'écartent. Une prévision qui se dessinerait en courbe seule
+  // effacerait l'incertitude, qui est précisément ce qu'elle apporte.
+  eventail: (
+    <>
+      <path d="M3 16l3-3 3 2.5 3-4" />
+      <path d="M12 11.5l3 1 3-.5" strokeDasharray="2.5 2" />
+      <path d="M12 11.5c2.5 1.5 4.5 4 5.5 7" opacity="0.55" />
+      <path d="M12 11.5c2.5-1 4.5-1.5 6-1.5" opacity="0.55" />
+    </>
+  ),
+  // Des plans empilés dans un cadre : une scène satellite n'est pas une photo,
+  // c'est le même terrain vu par six longueurs d'onde à la fois.
+  scene: (
+    <>
+      <path d="M4 8.5l8-4 8 4-8 4z" />
+      <path d="M4 12l8 4 8-4" opacity="0.7" />
+      <path d="M4 15.5l8 4 8-4" opacity="0.45" />
+    </>
+  ),
+  // Un semis dispersé en volume, sans contour : ce qui distingue un nuage d'un
+  // maillage est justement qu'aucune arête ne relie ses points.
+  nuage: (
+    <>
+      <path d="M6 9h.01M10 6.5h.01M14.5 8h.01M18 11h.01" strokeWidth="2.2" />
+      <path d="M5 14h.01M8.5 11.5h.01M12 10.5h.01M15.5 13h.01M19 15.5h.01" strokeWidth="2.2" />
+      <path d="M7 18h.01M11 16h.01M14.5 17.5h.01" strokeWidth="2.2" />
+    </>
+  ),
+  // Des lignes indentées entre deux chevrons : la seule sortie du parc qu'on
+  // peut encore modifier après coup.
+  programme: (
+    <>
+      <path d="M8 8l-4 4 4 4" />
+      <path d="M16 8l4 4-4 4" />
+      <path d="M13.5 6.5l-3 11" opacity="0.6" />
+    </>
+  ),
+  // Une chaîne de résidus : des perles reliées, repliées une fois. Ni du texte,
+  // ni des données — une séquence a un ordre et une longueur, et c'est tout.
+  molecule: (
+    <>
+      <path d="M4 15.5c2-4 4.5-4 6.5-1.5s4.5 2.5 6.5-1.5" opacity="0.6" />
+      <circle cx="4" cy="15.5" r="1.7" />
+      <circle cx="10.5" cy="14" r="1.7" />
+      <circle cx="17" cy="12.5" r="1.7" />
+      <circle cx="20.5" cy="8" r="1.7" />
+    </>
+  ),
+  // Trois axes et une pince : des nombres qui n'ont de sens que pour un bras
+  // précis. Ce n'est pas une flèche — une direction seule n'est pas une commande.
+  commande: (
+    <>
+      <path d="M12 21V9" />
+      <path d="M12 9L6.5 5.5" />
+      <path d="M12 9l5.5-3.5" />
+      <path d="M8.5 21h7" opacity="0.55" />
+    </>
+  ),
+  // Plusieurs cadres décalés : ce que la capacité reçoit n'est pas une image
+  // mais leur recouvrement, et c'est de là que sort la géométrie.
+  vues: (
+    <>
+      <rect x="3" y="8" width="11" height="9" rx="1.5" opacity="0.45" />
+      <rect x="6.5" y="6" width="11" height="9" rx="1.5" opacity="0.7" />
+      <rect x="10" y="4" width="11" height="9" rx="1.5" />
+    </>
+  ),
 };
 
 export function Glyphe({ forme, taille = 22 }: { forme: Forme; taille?: number }) {

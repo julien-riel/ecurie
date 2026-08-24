@@ -1,0 +1,71 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "protein-embed",
+  "title": "Empreinte de séquence protéique",
+  "description": "Encode une séquence d'acides aminés en un vecteur, tel que deux protéines de famille ou de fonction proches donnent deux vecteurs proches. Ce qui sort est une coordonnée, pas une annotation : ni structure, ni repliement, ni fonction prédite, ni site actif — et rien de ce qu'elle rend ne se lit sans un point de comparaison. Elle ne cherche rien non plus : un vecteur par job, et le cosinus entre deux séquences quand on lui en donne deux ; « retrouver toutes les protéines qui ressemblent à celle-ci » demande un index que le parc n'a pas. L'ÉCHELLE DES COSINUS EST LE PIÈGE DE LECTURE, ET IL EST MESURÉ. Sur ESM-2 650M, moyenne des résidus, MPS, fp32 : ubiquitine humaine contre ubiquitine de levure — trois substitutions — 0,9968 ; ubiquitine contre lysozyme 0,6649 ; ubiquitine contre GFP 0,5834 ; lysozyme contre GFP 0,7783 ; ubiquitine contre sa propre séquence mélangée, même composition et plus aucune protéine, 0,5773. Deux protéines étrangères l'une à l'autre sont donc PLUS proches (0,778) qu'une protéine et son propre bruit (0,577). Il n'existe aucun seuil : qui lira 0,78 et en conclura une parenté aura tort, et cette capacité ne décide pas à la place de qui l'appelle. Comme `face-embed`, elle ne se compare qu'à elle-même — deux modèles rendent des vecteurs qui n'appartiennent pas au même espace, et la confrontation A/B porte sur les rangs, jamais sur les valeurs. Elle ne porte pas sur une personne : une séquence sauvage d'ubiquitine ou de lysozyme est un fait de la nature, et `human_subject` est absent pour cela. La réserve tient en une phrase, et elle appartient à qui soumet l'entrée : une séquence VARIANTE issue du séquençage d'un individu peut le désigner, et rien ici ne le détecte.",
+  "input": {
+    "type": "object",
+    "required": ["sequence"],
+    "additionalProperties": false,
+    "properties": {
+      "sequence": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2048,
+        "x-ui": "textarea",
+        "description": "Séquence en code à une lettre, ou un enregistrement FASTA dont les lignes d'en-tête sont retirées. L'alphabet est celui du modèle et pas un de plus : les vingt acides aminés standards, plus X (résidu inconnu), B, Z, U et O. Une lettre en dehors est refusée plutôt qu'encodée en jeton inconnu, ce qui rendrait un vecteur que rien ne signalerait comme faux. Le plafond de 2048 caractères compte l'en-tête FASTA s'il y en a un ; c'est `max_length` qui borne les résidus soumis au réseau."
+      },
+      "compare_to": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2048,
+        "x-ui": "textarea",
+        "description": "Seconde séquence, facultative. Fournie, le job rend aussi le cosinus entre les deux vecteurs. C'est la seule façon de vérifier cette capacité sans index : un vecteur de 1280 nombres ne se relit pas, un cosinus se lit."
+      },
+      "max_length": {
+        "type": "integer",
+        "minimum": 16,
+        "maximum": 2048,
+        "default": 1024,
+        "x-ui": "slider",
+        "description": "Résidus soumis au réseau au plus, troncature explicite au-delà et rapportée dans `truncated`. C'est le seul paramètre qui borne le coût, et c'est surtout la seule protection réelle : le tokenizer d'ESM déclare un `model_max_length` de 10^30 et ne tronque jamais de lui-même, si bien qu'une séquence de cent mille résidus partirait telle quelle. Le pic mémoire, lui, n'en dépend pas — c'est la latence qui suit la longueur."
+      },
+      "normalize": {
+        "type": "boolean",
+        "default": true,
+        "description": "Ramener le vecteur à la norme 1. C'est ce qui rend le produit scalaire égal au cosinus, donc directement comparable ; le désactiver n'a d'intérêt que pour un index qui normalise lui-même. Le `similarity` rendu ne change pas : un cosinus est invariant d'échelle."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["embedding", "dimensions", "length"],
+    "properties": {
+      "embedding": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin du document produit, relatif au dossier du job : le vecteur, et ce qui permet de savoir à quel espace il appartient — le modèle, sa révision épinglée, l'agrégation des résidus, la normalisation et la longueur réellement encodée. Ces lignes ne sont pas de la courtoisie : quatre largeurs circulent dans cette famille (480, 640 et 1280 chez ESM-2, 960, 1152 et 2560 chez ESM-C), deux modèles peuvent partager la même, et un cosinus entre deux espaces étrangers est un nombre plausible qui ne veut rien dire."
+      },
+      "dimensions": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Longueur du vecteur. Une même longueur chez deux modèles ne rend pas leurs vecteurs comparables."
+      },
+      "length": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Résidus réellement encodés, jetons spéciaux exclus. Il diffère de la longueur soumise dès que la séquence a été tronquée, et c'est là qu'on le lit."
+      },
+      "truncated": {
+        "type": "boolean",
+        "description": "Vrai si la séquence dépassait `max_length`. L'enjeu est faible sur le vecteur — mesuré sur une chimère de 1402 résidus, en tronquer 380 rend un vecteur à 0,9996 de cosinus du vecteur complet — et fort sur le journal : un vecteur qui n'encode pas ce qu'on croit doit le dire."
+      },
+      "similarity": {
+        "type": "number",
+        "minimum": -1.0,
+        "maximum": 1.0,
+        "description": "Cosinus entre le vecteur de `sequence` et celui de `compare_to`, quand la seconde séquence est fournie. Aucun seuil universel : voir les cinq mesures de la description, où deux protéines sans rapport dépassent une protéine comparée à son propre mélange."
+      }
+    }
+  }
+}

@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import Any
 
 from ecurie_core.config import Config
-from ecurie_core.models import Variant
+from ecurie_core.models import Source, Variant
 from huggingface_hub import HfApi, snapshot_download
 from huggingface_hub.errors import HfHubHTTPError
 from huggingface_hub.utils import filter_repo_objects
@@ -40,6 +40,7 @@ from ecurie_store.figures import fmt_bytes
 from ecurie_store.weights import (
     WeightsMissing,
     hf_hub_dir,
+    resolve_source,
     resolve_weights,
     snapshot_dir,
 )
@@ -138,6 +139,10 @@ class PullPlan:
     missing: list[RepoFileInfo]
     presence: Presence
     guard: DiskGuard
+    # `None` pour les poids, le rôle de la source secondaire sinon. Ce qui
+    # s'affiche vient de là : « qwen2-tokenizer » à côté d'un dépôt de 11 Mo dit
+    # tout de suite pourquoi un second téléchargement part.
+    role: str | None = None
 
     @property
     def selected_bytes(self) -> int:
@@ -276,16 +281,28 @@ def select_files(
 
 
 def variant_presence(
-    config: Config, variant: Variant, *, ref: str, expected: Sequence[str] | None = None
+    config: Config,
+    variant: Variant,
+    *,
+    ref: str,
+    expected: Sequence[str] | None = None,
+    source: Source | None = None,
 ) -> Presence:
     """Le variant est-il déjà là, à la révision épinglée ? Sans réseau.
 
     `expected` est la liste des fichiers attendus (chemins relatifs à
     l'instantané) : sans elle, on ne peut rien dire de mieux que « le dossier de
     la révision existe » — un instantané interrompu à mi-course en a un aussi.
+
+    `source` désigne le dépôt à examiner quand le variant en a plusieurs. Par
+    défaut, celui des poids.
     """
     try:
-        location = resolve_weights(config, variant, ref=ref)
+        location = (
+            resolve_weights(config, variant, ref=ref)
+            if source is None
+            else resolve_source(config, source, ref=ref)
+        )
     except WeightsMissing as exc:
         return Presence(path=None, present=False, complete=False, reason=str(exc))
 
@@ -339,6 +356,27 @@ def disk_guard(
 # --- plan et exécution ----------------------------------------------------------------
 
 
+def plan_pulls(
+    config: Config,
+    variant: Variant,
+    *,
+    ref: str,
+    api: Any = None,
+    disk_usage: Callable[[Path], Any] = shutil.disk_usage,
+) -> list[PullPlan]:
+    """Un plan par dépôt du variant, les poids d'abord.
+
+    La plupart des variants n'en ont qu'un et cette liste en compte un. Ceux qui
+    en déclarent d'autres — un tokenizer publié à part, un encodeur visuel — les
+    obtiennent ici : un `pull` qui n'en ramènerait qu'un laisserait un variant
+    marqué présent et incapable de charger.
+    """
+    return [
+        plan_pull(config, variant, ref=ref, api=api, disk_usage=disk_usage, source=source)
+        for source in variant.sources
+    ]
+
+
 def plan_pull(
     config: Config,
     variant: Variant,
@@ -346,14 +384,18 @@ def plan_pull(
     ref: str,
     api: Any = None,
     disk_usage: Callable[[Path], Any] = shutil.disk_usage,
+    source: Source | None = None,
 ) -> PullPlan:
     """Tout vérifier, tout chiffrer, ne rien écrire. C'est le `--dry-run`.
 
     Interroge l'API HF pour l'inventaire de la révision : c'est ce qui rend les
     chiffres exacts (taille demandée, reste à télécharger). Pour savoir si un
     variant est là sans toucher au réseau, `variant_presence` suffit.
+
+    `source` vise un dépôt précis quand le variant en déclare plusieurs ; par
+    défaut, celui des poids.
     """
-    source = variant.source
+    source = source or variant.source
     if source.kind != "huggingface":
         raise PullError(
             f"{ref} : source {source.kind!r} — `pull` ne télécharge que depuis Hugging Face "
@@ -371,13 +413,16 @@ def plan_pull(
             f"{len(fichiers)} fichiers de {source.repo}@{revision[:12]} — patterns à corriger"
         )
 
-    presence = variant_presence(config, variant, ref=ref, expected=[f.path for f in retenus])
+    presence = variant_presence(
+        config, variant, ref=ref, expected=[f.path for f in retenus], source=source
+    )
     absents = set(presence.missing)
     manquants = [f for f in retenus if f.path in absents] if presence.present else retenus
     hub = hf_hub_dir(config)
 
     return PullPlan(
         ref=ref,
+        role=source.role,
         repo=source.repo,
         revision=revision,
         allow_patterns=list(source.allow_patterns) if source.allow_patterns else None,
@@ -396,12 +441,36 @@ def plan_pull(
     )
 
 
+def run_pulls(
+    config: Config,
+    variant: Variant,
+    *,
+    ref: str,
+    plans: Sequence[PullPlan] | None = None,
+    **kwargs: Any,
+) -> list[PullResult]:
+    """Télécharge tous les dépôts du variant, les poids d'abord.
+
+    Un seul appel pour un variant ordinaire. L'ordre compte quand il y en a
+    plusieurs : les poids en premier, parce que c'est le seul téléchargement que
+    la garde de disque peut refuser utilement — refuser un tokenizer de 11 Mo
+    après avoir écrit 3 Go n'aiderait personne.
+    """
+    sources = variant.sources
+    plans = list(plans) if plans is not None else [None] * len(sources)
+    return [
+        run_pull(config, variant, ref=ref, plan=plan, source=source, **kwargs)
+        for source, plan in zip(sources, plans, strict=True)
+    ]
+
+
 def run_pull(
     config: Config,
     variant: Variant,
     *,
     ref: str,
     plan: PullPlan | None = None,
+    source: Source | None = None,
     dry_run: bool = False,
     force: bool = False,
     ignore_disk_guard: bool = False,
@@ -414,8 +483,13 @@ def run_pull(
     `force` retélécharge un variant déjà complet ; `ignore_disk_guard` passe outre
     la garde des 15 % — les deux sont des décisions de l'appelant, jamais des
     valeurs par défaut.
+
+    `source` désigne le dépôt à ramener quand le variant en déclare plusieurs.
     """
-    plan = plan or plan_pull(config, variant, ref=ref, api=api, disk_usage=disk_usage)
+    source = source or variant.source
+    plan = plan or plan_pull(
+        config, variant, ref=ref, api=api, disk_usage=disk_usage, source=source
+    )
 
     if plan.presence.complete and not force:
         return PullResult(
@@ -471,7 +545,9 @@ def run_pull(
     except OSError as exc:
         raise PullError(_erreur_reseau(plan.repo, exc)) from exc
 
-    après = variant_presence(config, variant, ref=ref, expected=[f.path for f in plan.selected])
+    après = variant_presence(
+        config, variant, ref=ref, expected=[f.path for f in plan.selected], source=source
+    )
     if not après.complete:
         aperçu = ", ".join(après.missing[:5]) + ("…" if len(après.missing) > 5 else "")
         raise PullError(

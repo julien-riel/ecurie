@@ -1,0 +1,135 @@
+# Chronos-2 — la première capacité du parc qui ne voit ni n'entend rien.
+#
+# Un encodeur T5 de 120 millions de paramètres en fp32, entraîné à prolonger des
+# séries de nombres. Il ne s'entraîne pas sur ce qu'on lui donne : la prévision
+# est zéro-shot, et la série soumise ne laisse rien derrière elle.
+#
+# CE QUI A DÉCIDÉ, dans l'ordre où les faits se sont présentés.
+#
+# **La licence, d'abord.** apache-2.0 sur les poids comme sur le code. Le
+# candidat le plus léger de la famille — Moirai 2.0 R small, 45 Mo, dix fois
+# moins — est en CC-BY-NC-4.0 : la licence se lit avant la taille, et celle-là
+# ferme tout usage professionnel. TimesFM 2.5 (apache-2.0 lui aussi) reste la
+# seule alternative sérieuse, écartée pour ce tour et non rejetée : poids
+# doublés, aucune API DataFrame, pas de covariables.
+#
+# **Le processeur bat Metal, et c'est mesuré, pas supposé.** Un processus par
+# périphérique, médiane de cinq passages après deux tours de chauffe,
+# horizon 168 : CPU 35 / 55 / 139 ms aux contextes 512 / 2048 / 8192, MPS
+# 28 / 58 / 190 ms. MPS ne gagne qu'au contexte 512 et perd de 37 % à 8192 — le
+# modèle est trop petit pour que le transfert vers Metal se rembourse. Les deux
+# variants sont donc mesurés ici, et c'est le variant `cpu` qui sert : livrer MPS
+# par défaut ferait une capacité plus lente sur le cas le plus lourd du banc.
+# Les sorties des deux sont identiques à cinq décimales.
+#
+# **Ce que la bibliothèque fait mal, et que l'adaptateur reprend.** Trois
+# comportements d'amont, tous reproduits sur cette machine, ont décidé de la
+# forme du contrat autant que de celle de l'adaptateur : les quantiles hors
+# plage sont rabattus sous l'étiquette du niveau demandé ; un trou dans les
+# horodatages fait échouer l'appel, et le correctif intuitif (`freq="h"`) le
+# referme en silence ; `predict_df` rend deux colonnes que le contrat ne décrit
+# pas. Voir les caveats et l'en-tête de `workers/chronos_forecast.py`.
+id: chronos-2
+name: Chronos-2
+capability: time-series-forecast
+family: chronos
+vendor: Amazon Science
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Encodeur T5 — d_model 768, 12 couches, 12 têtes, fp32 — servi par
+  `chronos-forecasting`, dont `predict_df` est la seule API de la famille à
+  parler DataFrame. C'est elle qui permet au contrat d'accepter un CSV en format
+  long plutôt qu'un tableau de nombres à plat, et d'accepter des covariables
+  connues d'avance.
+
+  Deux plafonds sont lus dans `config.json` et repris tels quels par le contrat.
+  L'horizon s'arrête à 1024 pas parce que c'est ce que le modèle produit en un
+  passage — `max_output_patches` 64 × `output_patch_size` 16 ; au-delà il déroule,
+  et la falaise est nette : 1024 pas coûtent 47 ms, 1025 en coûtent 215. Le
+  contexte s'arrête à 8192, valeur de `context_length`, et c'est lui qui pilote
+  le coût — de 512 à 8192 pas, la latence est multipliée par quatre quand
+  l'horizon, lui, reste plat.
+
+links:
+  homepage: https://huggingface.co/amazon/chronos-2
+  code: https://github.com/amazon-science/chronos-forecasting
+  paper: https://arxiv.org/abs/2403.07815
+
+variants:
+  - id: cpu
+    quantization: fp32
+    tier: hot
+    runtime: chronos
+    source:
+      kind: huggingface
+      repo: amazon/chronos-2
+      revision: "29ec3766d36d6f73f0696f85560a422f50e8498c"   # 2026-07-02
+      # Le dépôt porte aussi un README et des figures. Deux fichiers suffisent à
+      # exécuter : la configuration et les poids.
+      allow_patterns: ["config.json", "model.safetensors"]
+    options:
+      device: cpu
+    defaults:
+      horizon: 24
+      contexte: 8192
+      quantiles: [0.1, 0.25, 0.5, 0.75, 0.9]
+      graphique: true
+    caveats:
+      - "Les niveaux de quantile hors de [0,01 ; 0,99] sont rabattus par la bibliothèque **sous l'étiquette du niveau demandé** — la colonne « 0.001 » contient la valeur de 0,01, vérifié par `allclose`. L'adaptateur écrête donc lui-même avant d'appeler et rend la liste des niveaux réellement produits ; sans cela un intervalle annoncé à 99,8 % en vaudrait 98."
+      - "Un trou dans les horodatages fait échouer `predict_df` par « Could not infer frequency ». Le correctif intuitif — passer `freq` — fait taire l'erreur **et referme le trou en silence** : le modèle lit deux points distants de trois heures comme s'ils se suivaient. L'adaptateur réindexe sur la grille et laisse des valeurs inconnues, que le modèle traite comme telles."
+      - "`predict_df` rend deux colonnes que le contrat ne décrit pas — `target_name` et `predictions`, cette dernière doublon exact de la médiane. Elles sont écartées, et les métriques du job le disent."
+      - "Prévision zéro-shot : rien n'est appris de la série soumise. Une rupture de régime, une promotion ou une panne que le passé ne contient pas ne sont pas prévisibles, et l'éventail de quantiles ne les couvre pas non plus."
+    profile:
+      disk_bytes: 477931539
+      peak_unified_memory_bytes: 932478976
+      peak_scaling:
+        parameter: "contexte"
+        base_bytes: 873857024
+        bytes_per_unit: 7085.7
+        measured_range: [512.0, 8192.0]
+        r_squared: 0.9917
+      warmup_ms: 2071
+      latency_ms_p50: 173
+      throughput: "1 sortie / 0.4 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / chronos-forecasting 2.3.1 / pandas 3.0.5 / torch 2.13.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"
+
+  - id: mps
+    quantization: fp32
+    tier: hot
+    runtime: chronos
+    source:
+      kind: huggingface
+      repo: amazon/chronos-2
+      revision: "29ec3766d36d6f73f0696f85560a422f50e8498c"   # 2026-07-02
+      allow_patterns: ["config.json", "model.safetensors"]
+    options:
+      device: mps
+    defaults:
+      horizon: 24
+      contexte: 8192
+      quantiles: [0.1, 0.25, 0.5, 0.75, 0.9]
+      graphique: true
+    caveats:
+      - "Plus lent que le variant `cpu` sur les contextes longs, et c'est le cas courant : mesuré ici même par le banc. Inscrit pour que l'écart reste vérifiable dans le dépôt plutôt que cité de mémoire — sur un modèle de cette taille, Metal coûte plus en transferts qu'il ne rend en calcul."
+      - "Mêmes limites que le variant `cpu` sur les quantiles, les trous d'horodatage et les colonnes écartées."
+      - "Le pic mémoire de ce variant ne se lit pas au RSS : il compte en plus le maximum de `driver_allocated_memory`, que le RSS ignore."
+    profile:
+      disk_bytes: 477931539
+      peak_unified_memory_bytes: 1014087680
+      peak_scaling:
+        parameter: "contexte"
+        base_bytes: 997840213
+        bytes_per_unit: 2051.0
+        measured_range: [512.0, 8192.0]
+        r_squared: 0.9149
+      warmup_ms: 1485
+      latency_ms_p50: 219
+      throughput: "1 sortie / 0.2 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / chronos-forecasting 2.3.1 / pandas 3.0.5 / torch 2.13.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

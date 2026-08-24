@@ -1,0 +1,100 @@
+# Empreinte visuelle — DINOv3 ConvNeXt-Small, servi par le miroir timm.
+#
+# CE QUI A DÉCIDÉ DU DÉPÔT. Les poids d'origine, `facebook/dinov3-*`, sont
+# derrière un formulaire Meta (`gated: manual`) : sans jeton, `ecurie pull`
+# renvoie 401 et le variant est inadmissible. Le miroir timm sert les mêmes
+# poids sans barrière, avec le même texte de licence à côté. Le prix de ce
+# détour est écrit dans les caveats : l'équivalence numérique avec
+# l'implémentation d'origine n'est vérifiable par personne ici, puisque le point
+# de comparaison est justement ce qui est fermé.
+#
+# CE QUI A DÉCIDÉ DE LA TAILLE. ConvNeXt-Small plutôt que ViT-L/16 ou
+# ViT-H+/16 : rien de mesuré ne justifie de tripler la mémoire. Et rien
+# n'écarte non plus les ViT — voir la réserve ci-dessous, c'est la même.
+#
+# CE QUI N'A PAS ÉTÉ DÉCIDÉ, ET QUI EXPLIQUE `status: candidate`. Le titulaire
+# n'est pas départagé, faute d'une épreuve qui puisse départager quoi que ce
+# soit. Celle dont on dispose — trois requêtes contre huit solides gris calculés
+# — est passée ici sur le chemin livré : ConvNeXt-S rend 3/3 à 256 pixels puis
+# 2/3 à 512, `dinov2@vit-base` rend 2/3 aux deux. Une requête d'écart sur trois
+# ne classe pas des encodeurs, et la définition d'entrée y pèse autant que le
+# modèle. Ce manifeste-ci entre donc au registre comme candidat sous licence
+# restrictive, à côté de `dinov2.yaml` sous licence permissive, et le parc
+# tranchera sur un golden set — pas sur trois solides.
+#
+# LA LICENCE EST UNE CIBLE MOBILE, et le sha ne l'épingle pas : son §8 autorise
+# Meta à l'amender « provided that they are similar in spirit », avec effet
+# immédiat. Le texte relu le 24 août 2026 est daté du 19 août 2025 et pèse
+# 7 503 octets (`Sections 3, 4 and 7 shall survive`). Il ne comporte aucune
+# clause non commerciale — d'où `restricted` et non `research-only` — mais il
+# interdit les usages ITAR, militaires, nucléaires, d'espionnage et d'armement
+# (§1.b.v) et impose de redistribuer aux mêmes termes, copie du texte jointe
+# (§1.b.i). C'est pourquoi `LICENSE.md` fait partie des `allow_patterns` : le
+# fichier qu'on doit joindre est téléchargé avec les poids, pas cherché après.
+id: dinov3
+name: DINOv3 ConvNeXt-Small (empreinte visuelle)
+capability: image-embed
+family: dinov3
+vendor: Meta AI (Siméoni et al.) — poids servis par le miroir timm
+license: DINOv3 License
+license_class: restricted
+status: candidate
+
+notes: >
+  Un encodeur, pas un moteur de recherche. Ce manifeste rend un vecteur par job
+  et un cosinus entre deux images ; « retrouver toutes les pièces qui
+  ressemblent » demande un index que le parc n'a pas, et que le backlog désigne
+  lui-même comme la brique manquante.
+
+  Le dépôt timm sert `model.safetensors` ET `pytorch_model.bin`, les mêmes poids
+  dans deux formats. Les `allow_patterns` nomment trois fichiers plutôt que
+  d'ouvrir en `*` : sans ce filtre, 395,8 Mo de disque pour 197,9 utiles.
+
+links:
+  homepage: https://huggingface.co/timm/convnext_small.dinov3_lvd1689m
+  code: https://github.com/facebookresearch/dinov3
+  paper: https://arxiv.org/abs/2508.10104
+
+variants:
+  - id: convnext-small
+    quantization: fp32
+    tier: hot
+    runtime: torch-vision
+    source:
+      kind: huggingface
+      repo: timm/convnext_small.dinov3_lvd1689m
+      revision: "9a0c319ae4531d36df6ef11fc253fdc4b503628a"   # 2026-08-24
+      allow_patterns: ["config.json", "model.safetensors", "LICENSE.md"]
+    options:
+      # L'agrégation est un choix d'espace vectoriel, pas un réglage : mesuré
+      # sur les poids voisins de `dinov2@vit-base`, la requête « cube » de
+      # l'épreuve passe du rang 2 (CLS) au rang 6 (moyenne des patches) à 256
+      # pixels. Deux valeurs, deux espaces, aucun cosinus commun — sa place est
+      # donc ici, dans le variant, et non dans le contrat où l'UI la
+      # présenterait comme une préférence.
+      #
+      # Ici il n'y a de toute façon pas de choix : une ConvNeXt n'a ni CLS ni
+      # registres, sa carte de traits est moyennée sur ses positions puis
+      # normalisée par la tête que ces poids ont apprise. L'adaptateur refuse
+      # `cls` sur cette architecture plutôt que de servir autre chose sous ce
+      # nom — et il le refuse au chargement, pas au premier job.
+      pooling: mean
+    defaults:
+      max_side: 256
+      normalize: true
+    caveats:
+      - "Licence DINOv3 : redistribution aux mêmes termes avec copie du texte, et usages ITAR, militaires, nucléaires, d'espionnage et d'armement exclus. Meta peut amender le texte avec effet immédiat."
+      - "Titulaire non départagé : sur la seule épreuve disponible — trois requêtes contre huit solides gris calculés, passée sur le chemin livré — ConvNeXt-S rend 3/3 à 256 pixels avec 0,036 de marge sur la requête « cube », puis 2/3 à 512 où le cube passe derrière la sphère. `dinov2@vit-base` rend 2/3 aux deux. Une requête d'écart sur trois n'affirme aucun gain de qualité."
+      - "Poids servis par le miroir timm : l'équivalence numérique avec l'implémentation d'origine est invérifiable ici, ses poids étant derrière un formulaire. Le document de sortie nomme l'implémentation pour cette raison."
+      - "Pré-entraîné à 224 pixels (`input_size: [3,224,224]`, `crop_pct: 1.0`). Le défaut `max_side: 256` s'y tient : monter à 512 multiplie le pic par cinq sans qu'aucune mesure du parc ne montre un gain."
+      - "Le pic ne suit pas la définition : 249 Mio de pilote Metal à 256, 1 273 à 512, 1 273 à 1024 — une marche puis un plateau, l'allocateur gardant son tas. Le banc a ajusté une pente à R² = 0,57 et l'a jetée ; le profil garde le pire cas mesuré."
+      - "Le warmup et la latence dépendent du cache de shaders Metal : deux mesures du même jour ont rendu 2 060 puis 1 400 ms de warmup et 172 puis 98 ms de latence médiane, pour un pic identique à l'octet. Le profil retient la seconde ; c'est le pic qui est stable, pas les durées."
+    profile:
+      disk_bytes: 197860778
+      peak_unified_memory_bytes: 1334722560
+      warmup_ms: 1400
+      latency_ms_p50: 98
+      throughput: "1 sortie / 0.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / timm 1.0.28 / torch 2.13.0 / transformers 5.15.1"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

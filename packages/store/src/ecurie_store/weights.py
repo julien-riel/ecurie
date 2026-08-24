@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from ecurie_core.config import Config
-from ecurie_core.models import Variant
+from ecurie_core.models import Source, Variant
 
 from ecurie_store.db import LocationRecord
 
@@ -57,7 +57,40 @@ def snapshot_dir(config: Config, repo: str, revision: str) -> Path:
 
 def resolve_weights(config: Config, variant: Variant, *, ref: str) -> WeightsLocation:
     """Chemin local des poids du variant, ou `WeightsMissing` avec la réparation."""
-    source = variant.source
+    return resolve_source(config, variant.source, ref=ref)
+
+
+def resolve_extra_weights(config: Config, variant: Variant, *, ref: str) -> dict[str, Path]:
+    """Les dépôts secondaires du variant, par rôle — tokenizer, encodeur visuel…
+
+    Résolus avec la même exigence que les poids principaux : un dépôt absent
+    lève, et le message porte la commande qui répare. Un variant à demi présent
+    est le pire des états — il passe le contrôle d'admission, coûte son warmup,
+    et meurt sur un fichier manquant plusieurs secondes plus tard.
+
+    Un rôle absent est refusé ici plutôt qu'au worker : c'est le manifeste qui
+    est fautif, pas l'exécution.
+    """
+    chemins: dict[str, Path] = {}
+    for source in variant.extra_sources or []:
+        if not source.role:
+            raise WeightsMissing(
+                f"{ref} : une source de `extra_sources` n'a pas de `role` — "
+                "le worker recevrait un chemin sans savoir ce qu'il contient"
+            )
+        chemins[source.role] = resolve_source(
+            config, source, ref=f"{ref} ({source.role})"
+        ).path
+    return chemins
+
+
+def resolve_source(config: Config, source: Source, *, ref: str) -> WeightsLocation:
+    """La résolution d'un dépôt, principale ou secondaire — elles sont identiques.
+
+    Publique parce que `pull` en a besoin : télécharger et vérifier la présence se
+    font source par source, et une seule des deux façons de trouver un
+    instantané doit exister.
+    """
     if source.kind == "local":
         if not source.path:
             raise WeightsMissing(f"{ref} : source local sans chemin dans le manifeste")

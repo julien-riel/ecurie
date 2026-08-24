@@ -358,7 +358,7 @@ bibliothèque du runtime. Rien n'est installé dans le venv du runtime : seuls
 `protocol`, `channel` et `workers/base` y sont visibles, tous trois en
 bibliothèque standard pure.
 
-Trente-sept sont livrés, plus le chemin `custom` :
+Quarante-six sont livrés, plus le chemin `custom` :
 
 | runtime | capacité | adaptateur | poids partagés avec |
 |---|---|---|---|
@@ -399,6 +399,15 @@ Trente-sept sont livrés, plus le chemin `custom` :
 | `uniface` | `face-embed` | `workers/uniface_embed.py` | `retinaface` |
 | `uniface` | `face-headpose` | `workers/uniface_headpose.py` | `retinaface` |
 | `uniface` | `face-gaze` | `workers/uniface_gaze.py` | `retinaface` |
+| `chronos` | `time-series-forecast` | `workers/chronos_forecast.py` | |
+| `mlx-audio` | `audio-align` | `workers/qwen3_align.py` | |
+| `torch-vision` | `image-embed` | `workers/dinov3_embed.py` | |
+| `terratorch` | `geo-segment` | `workers/prithvi_segment.py` | |
+| `terratorch` | `geo-embed` | `workers/prithvi_embed.py` | |
+| `esm-torch` | `protein-embed` | `workers/esm_embed.py` | |
+| `cad-recode` | `pointcloud-to-cad` | `workers/cad_recode.py` | |
+| `depth-anything` | `multiview-to-3d` | `workers/da3_multiview.py` | `da3-large` |
+| `lerobot` | `robot-action` | `workers/smolvla_act.py` | |
 | `custom` | — | l'`entrypoint` du manifeste (chemin de Hunyuan3D) | |
 
 La quatrième colonne est celle qui décide du coût d'une capacité de plus : un
@@ -474,6 +483,30 @@ les autres : `uniface` impose `scikit-image` et `scipy` que `rtmlib` n'a jamais
 vus, et `rtmlib` épingle ses propres bornes. Faire entrer une capacité neuve au
 prix d'une rétrogradation chez un modèle déjà mesuré est exactement l'arbitrage
 que l'isolation existe pour ne plus avoir à faire.
+
+**Quatre des cinq env du 24 août 2026 portent PyTorch, et aucun n'a pu entrer
+chez un autre.** Le motif est chaque fois une borne, jamais une préférence :
+`chronos` résout numpy 2.5 quand `depth-anything` impose `numpy<2` ; `terratorch`
+tire lightning, torchgeo, rasterio et geopandas ; `esm-torch` demande
+transformers 5.15 que `torch-vision` rétrograderait sous BiRefNet ; `lerobot`
+borne lui-même `torch<2.12` et `transformers<5.6` ; et `cad-recode` a besoin de
+`transformers<5`, où la borne n'est pas une prudence mais **la condition de
+fonctionnement** — au-delà, le modèle ne lève rien et produit du charabia. Le
+prix mesuré de cet isolement est plus faible qu'on ne le croit : le venv d'ESM
+pèse 699 Mio, celui de `torch-vision` qu'on aurait réemployé en pèse 756.
+
+Un cinquième cas mérite d'être noté à part, parce qu'il ne coûte rien :
+`image-embed` et `audio-align` sont entrées dans des env **existants**, l'une en
+relevant un plancher sur un paquet déjà installé au-dessus, l'autre sans toucher
+à une ligne. La question à poser devant un runtime neuf reste donc celle de la
+couverture complète du registre : lequel des env déjà là sait déjà le faire ?
+
+`cad-recode` est en revanche le **second env dont `ecurie env sync` ne suffit
+pas**, après `hunyuan3d`, et le premier pour un motif juridique : son code amont
+est sous licence non commerciale et ne peut pas être committé ici. Le README de
+l'env porte la commande, et `ecurie env list` le signale dans sa colonne « À
+lire » — un env annoncé « prêt » qui ne l'est pas enverrait découvrir le manque
+au premier job, plusieurs gigaoctets plus tard.
 
 ### 5.4 Contrôle d'admission
 
@@ -1290,6 +1323,91 @@ recette qui pose leurs angles, `face-headpose` s'y vérifie contre des lacets
 connus — 0°, +24°, −18°, +8° — sans annotation manuelle. Une charge synthétique
 n'est pas seulement un pis-aller juridique ; elle sait des choses de son contenu
 qu'aucune photo annotée après coup ne saurait.
+
+---
+
+### Ce que les capacités de mesure ont appris
+
+Le 24 août 2026, neuf capacités entrent d'un coup — `time-series-forecast`,
+`audio-align`, `image-embed`, `geo-segment`, `geo-embed`, `protein-embed`,
+`pointcloud-to-cad`, `multiview-to-3d`, `robot-action` — sur cinq runtimes neufs.
+Elles n'ont pas de modalité commune : une série de nombres, un texte à horodater,
+une image, une scène satellite à six bandes, une séquence protéique, un nuage de
+points, N photos, un état de robot. Ce qui les rassemble est ce qu'elles
+**rendent** : une mesure, une prévision, une géométrie, un programme, une action
+— jamais du contenu. Le détail est au rapport
+(`registry/veille/2026-08-24-mesure/`) ; six points touchent la conception.
+
+**Le modèle de données ne savait pas dire qu'un variant a besoin de deux
+dépôts.** Deux capacités l'ont demandé le même jour et pour des raisons
+indépendantes : CAD-Recode publie 3,09 Go de poids sans le moindre tokenizer —
+il faut celui de Qwen2-1.5B, sous une autre licence — et SmolVLA charge une
+dorsale visuelle publiée à part. Les contourner coûtait plus cher que le champ :
+un `pull` qui ne ramène qu'une moitié laisse un variant `tier: hot` qui échoue au
+chargement, et un second manifeste pour le seul tokenizer déclarerait une
+capacité que personne ne peut servir. D'où `extra_sources`, chacune portant un
+`role` sous lequel le worker retrouve son chemin. C'est le troisième ajout au
+modèle de données venu de l'usage et non du plan, après `runtime_env` et le
+profil paramétré — et le troisième à n'avoir été ni prévu ni prévisible.
+
+**Un contrat peut avoir besoin de N fichiers, et trois endroits l'ignoraient
+chacun à leur façon.** `multiview-to-3d` reçoit entre deux et trente-deux photos.
+Le type de média d'un tableau se déclare sur `items`, ce que ni
+`input_media_types`, ni `stage_inputs`, ni `bench._resolve_case` ne regardaient :
+la liste était invisible des trois, et le worker recevait des chemins relatifs à
+un dossier qu'il n'a jamais vu. La correction a tenu en une fonction partagée —
+`CapabilityContract.list_fields()` — parce que la quatrième lecture divergente
+était garantie. Deux détails s'y sont ajoutés à la mesure : le rang préfixe le
+nom du fichier copié (deux vues peuvent s'appeler `image.png`), et l'empreinte
+porte sur la liste **dans l'ordre reçu**, l'ordre des vues changeant la
+reconstruction.
+
+**Un `peak_scaling` peut suivre une cardinalité, pas seulement un nombre saisi.**
+Le coût de `multiview-to-3d` suit le nombre de vues, qui n'est écrit dans aucun
+champ : c'est la taille du champ. Le banc acceptait pourtant le nom du paramètre
+et ne produisait aucune pente, **sans un mot** — le pire des deux comportements.
+Une liste compte désormais pour sa longueur, des deux côtés (`fit_peak_scaling`
+et `expected_peak`), sans quoi l'admission réservait 11,77 Go à un job de deux
+vues qui en coûte 4,43.
+
+**Le §8 disait « MLX expose un pic exact, PyTorch/MPS non » ; il faut y ajouter
+que le RSS et le pilote Metal se disputent la première place selon le modèle.**
+Trois cas mesurés le même jour, trois réponses : `smolvla-libero` a un RSS de
+3,20 Gio contre 1,36 au pilote — inscrire le seul chiffre Metal sous-estimerait
+de moitié ; `prithvi-sen1floods11` bascule au milieu de sa propre charge, le RSS
+menant à 384 et 576 pixels, Metal passant devant à 768 ; `da3-large` était
+inscrit sur son seul RSS et **sous-déclarait de 2,79 Go, soit 42,6 % du vrai
+chiffre**. La règle qui tient est le maximum des deux, relevé à chaque appel — et
+le symptôme d'un instrument aveugle est reconnaissable : une pente nulle avec un
+R² de 1,0, c'est-à-dire une consommation qui ne bouge pas quand l'entrée
+quadruple.
+
+**Le vrai risque d'une capacité de mesure n'est pas qu'elle échoue, c'est qu'elle
+réussisse à côté.** Aucun des neuf adaptateurs n'a produit d'exception sur son
+mode de panne principal. `AutoModel` initialise **au hasard** un pooler absent du
+checkpoint d'ESM-2 : deux chargements des mêmes octets donnent des vecteurs à
+−0,038 de cosinus, et rien n'échoue. Le checkpoint de Prithvi porte ses 381 clés
+sous un préfixe `model.` : chargé sans le dépouiller, le réseau tourne et rend du
+bruit. Transformers ≥ 5 fait produire du charabia à CAD-Recode par un calcul de
+positions sur un masque qui porte des −1. L'aligneur rend des horodatages
+plausibles sur un enregistrement qu'il n'a pas compris. Et une prévision demandée
+au quantile 0,001 revient étiquetée « 0.001 » avec la valeur du quantile 0,01. Le
+§8 dit que le banc mesure un coût et non une qualité ; le 22 août on lui a ajouté
+qu'il ne regarde pas la forme. Il faut maintenant dire ce qui en découle : sur
+ces capacités, **la seule garde est un job réel dont on a lu la sortie**, et
+plusieurs adaptateurs portent désormais leur propre sonde — `span_seconds` pour
+l'alignement, `out_of_domain` pour les commandes de robot, le contrôle 0/0 des
+clés de poids pour Prithvi.
+
+**Une licence peut décider d'une architecture.** CAD-Recode est sous CC BY-NC
+4.0, et pas seulement ses poids : le `LICENSE.md` du dépôt amont couvre les cent
+quatorze lignes de code que l'adaptateur devait employer. Aucune n'est entrée
+dans ce dépôt — le patron de `hunyuan3d` a servi une seconde fois : le code amont
+est copié à la main dans `runtimes/<env>/vendor/`, non versionné, et l'env porte
+un README que `ecurie env list` signale. La différence avec le premier cas est
+que le motif est ici juridique et non technique, ce qui ne change rien à la
+mécanique. Le manifeste suit le précédent d'`arcface` : `research-only`, inscrit
+comme référence et non comme titulaire.
 
 ---
 

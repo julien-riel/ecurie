@@ -26,7 +26,18 @@
 import type { Capability } from "../api/types";
 import type { Modalite } from "../schema/modalites";
 
-export type Categorie = "texte" | "son" | "image" | "video" | "visage" | "volume" | "divers";
+export type Categorie =
+  | "texte"
+  | "son"
+  | "image"
+  | "video"
+  | "visage"
+  | "volume"
+  | "terrain"
+  | "series"
+  | "science"
+  | "commande"
+  | "divers";
 
 export interface DescriptionCategorie {
   id: Categorie;
@@ -42,7 +53,30 @@ export const CATEGORIES: readonly DescriptionCategorie[] = [
   { id: "image", titre: "Image", sous_titre: "Produire, retoucher, agrandir, découper, décrire" },
   { id: "video", titre: "Vidéo", sous_titre: "Animer, décrire, suivre un mouvement" },
   { id: "visage", titre: "Visage", sous_titre: "Situer, décrire, découper, reconnaître un visage" },
-  { id: "volume", titre: "Volume et profondeur", sous_titre: "Sortir une image de son plan" },
+  {
+    id: "volume",
+    titre: "Volume et profondeur",
+    sous_titre: "Sortir une image de son plan, et en refaire une pièce",
+  },
+  // Les quatre sections arrivées le 24 août 2026. Ce qui les rassemble n'est pas
+  // une modalité mais une intention : elles ne produisent pas de contenu, elles
+  // transforment une donnée en mesure, en prévision, en géométrie ou en action.
+  // Chacune n'a qu'une ou deux capacités aujourd'hui, et c'est assumé — une
+  // section courte se lit très bien, alors qu'un fourre-tout « données » aurait
+  // rangé une protéine avec une orthophoto et n'aurait rien dit de ni l'une ni
+  // l'autre. Le backlog annonce leur suite : météo, cristaux, anticipation.
+  {
+    id: "terrain",
+    titre: "Terrain",
+    sous_titre: "Lire une scène satellite, bande par bande",
+  },
+  {
+    id: "series",
+    titre: "Séries et prévision",
+    sous_titre: "Prolonger une mesure, et dire ce qu'on ignore d'elle",
+  },
+  { id: "science", titre: "Science", sous_titre: "Encoder ce que la nature a écrit" },
+  { id: "commande", titre: "Commande", sous_titre: "Transformer une consigne en gestes" },
   { id: "divers", titre: "Divers", sous_titre: "Ce que cet écran ne sait pas encore ranger" },
 ];
 
@@ -85,6 +119,23 @@ const PAR_CAPACITE: Record<string, Categorie> = {
   "image-to-mesh": "volume",
   "text-to-mesh": "volume",
   "depth-estimation": "volume",
+  // Deux voisines de `image-to-mesh`, et elles ne s'y confondent pas : l'une
+  // rend le **programme** qui construit la pièce plutôt que la pièce, l'autre
+  // relie plusieurs vues entre elles au lieu d'en refermer une seule.
+  "pointcloud-to-cad": "volume",
+  "multiview-to-3d": "volume",
+
+  "image-embed": "image",
+  "audio-align": "son",
+
+  "geo-segment": "terrain",
+  "geo-embed": "terrain",
+
+  "time-series-forecast": "series",
+
+  "protein-embed": "science",
+
+  "robot-action": "commande",
 };
 
 export function categorieDe(id: string): Categorie {
@@ -117,7 +168,19 @@ export type Forme =
   | "vecteur"
   | "angles"
   | "squelette"
-  | "donnees";
+  | "donnees"
+  // Les huit formes du 24 août 2026. Chacune existe parce qu'aucune des seize
+  // précédentes ne disait ce que la capacité fait : une série n'est pas « des
+  // données », un nuage de points n'est pas un maillage, et un programme CAO
+  // n'est ni l'un ni l'autre.
+  | "serie"
+  | "eventail"
+  | "scene"
+  | "nuage"
+  | "programme"
+  | "molecule"
+  | "commande"
+  | "vues";
 
 const FORME_DE_LA_MODALITE: Record<Modalite, Forme> = {
   texte: "texte",
@@ -155,16 +218,50 @@ const SORTIE_FINE: Record<string, Forme> = {
   "face-embed": "vecteur",
   "face-headpose": "angles",
   "face-gaze": "angles",
+  // Ce que rend une prévision n'est pas une courbe, c'est un éventail : la
+  // médiane et l'écart qui dit ce que le modèle ignore. Dessiner une simple
+  // courbe effacerait la seule chose qui distingue cette capacité.
+  "time-series-forecast": "eventail",
+  "image-embed": "vecteur",
+  "protein-embed": "vecteur",
+  "geo-embed": "vecteur",
+  "geo-segment": "masque",
+  "pointcloud-to-cad": "programme",
+  "multiview-to-3d": "nuage",
+  "robot-action": "commande",
+  // Un texte horodaté, pas une transcription : la sortie dit **quand**, et le
+  // « quoi » lui était donné. Deux ondes côte à côte annuleraient la frontière
+  // que ce contrat existe pour poser face à `speech-to-text`.
+  "audio-align": "serie",
 };
 
-/** L'entrée telle qu'elle se dessine : la modalité, sauf pour les visages. */
+/**
+ * Ce que l'entrée est vraiment, quand sa modalité ne suffit pas à le dire.
+ *
+ * Le symétrique de `SORTIE_FINE`, et il a fallu attendre les capacités de
+ * mesure pour en avoir besoin. Une scène satellite à six bandes et une photo
+ * sont toutes deux des `image/*` ; un nuage de points et un maillage sont tous
+ * deux des `model/*` ; une séquence protéique et une invite sont toutes deux du
+ * texte. Dans les trois cas, la modalité dit le format et tait le sujet.
+ */
+const ENTREE_FINE: Record<string, Forme> = {
+  "time-series-forecast": "serie",
+  "geo-segment": "scene",
+  "geo-embed": "scene",
+  "pointcloud-to-cad": "nuage",
+  "multiview-to-3d": "vues",
+  "protein-embed": "molecule",
+  "audio-align": "parole",
+};
+
+/** L'entrée telle qu'elle se dessine : la modalité, sauf quand elle ment. */
 export function formeEntree(id: string, modalite: Modalite): Forme {
   // Les six capacités du visage prennent une image, et le dire ainsi serait
   // exact et inutile : ce qu'elles regardent dans l'image est un visage, et
   // c'est ce que la glyphe doit montrer pour qu'on distingue `image-detect` de
   // `face-detect` d'un coup d'œil.
   if (categorieDe(id) === "visage") return "visage";
-  return FORME_DE_LA_MODALITE[modalite];
+  return ENTREE_FINE[id] ?? FORME_DE_LA_MODALITE[modalite];
 }
 
 export function formeSortie(id: string, modalite: Modalite): Forme {

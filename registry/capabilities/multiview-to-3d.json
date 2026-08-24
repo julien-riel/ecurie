@@ -1,0 +1,98 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "multiview-to-3d",
+  "title": "Reconstruction spatiale multi-vues",
+  "description": "Plusieurs photos d'une même scène vers **un seul repère** : une pose de caméra par vue, plus le nuage de points que ces vues décrivent ensemble. Ce qui est neuf ici est la **consistance inter-vues**, et rien d'autre — c'est ce qui la sépare de ses deux voisines, entre lesquelles il faut savoir choisir. `depth-estimation` prend UNE image et rend une carte de distances plus une caméra dans un repère propre à cette image : deux appels sur deux photos ne disent pas où était le photographe entre les deux, parce que rien ne relie leurs deux repères. `image-to-mesh` prend UNE image aussi et rend une surface fermée, sans aucune caméra : on obtient un objet, jamais un lieu. Ici l'entrée est une **liste** de photos, et c'est la seule capacité du parc dont un champ en accepte plusieurs. Ce qu'elle ne fait pas : elle ne mesure rien — l'échelle est **relative**, jamais métrique, et `is_metric` sort toujours à faux ; deux lots de photos de la même pièce ne donnent pas la même unité, et aucune distance rendue n'est en mètres. Elle ne rend pas non plus de surface : un nuage de points n'est pas un maillage, il n'a ni faces ni intérieur, et un `image-to-mesh` reste nécessaire pour obtenir un objet fermé. Elle ne recale pas des photos prises à des moments différents d'une scène qui a bougé, et elle ne demande ni ne lit aucune donnée EXIF : les focales sont estimées depuis les pixels, pas relevées sur l'appareil. L'ordre des vues compte enfin : la première fixe les axes dans lesquels tout le reste est rendu, et le même lot dans un autre ordre est un autre job.",
+  "input": {
+    "type": "object",
+    "required": [
+      "images"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "images": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 32,
+        "description": "Les vues de la scène, dans l'ordre où elles doivent être traitées. Deux au minimum — une vue seule ne porte aucune information inter-vues, et c'est `depth-estimation` qu'il faut alors. Trente-deux au maximum, parce que c'est le dernier nombre dont le pic mémoire a été mesuré sur cette machine (11,8 Go) ; au-delà, rien ne dit ce que coûte un job. La première vue fixe le repère de sortie : réordonner le même lot change le résultat, et l'empreinte du job le sait.",
+        "items": {
+          "type": "string",
+          "contentMediaType": "image/*",
+          "x-ui": "file",
+          "description": "Une photographie de la scène. Les vues doivent se recouvrir : deux images sans zone commune n'ont rien à apparier."
+        }
+      },
+      "process_res": {
+        "type": "integer",
+        "minimum": 256,
+        "maximum": 1024,
+        "default": 504,
+        "x-ui": "slider",
+        "description": "Côté de la grille sur laquelle le modèle raisonne. Le coût suit la surface **et** le nombre de vues : doubler ce nombre quadruple le travail de chacune. Les cartes de profondeur et les matrices intrinsèques sont rendues à cette résolution, pas à celle des images d'entrée. Un multiple de 14 — l'encodeur travaille par patchs de 14 pixels et arrondit sinon."
+      },
+      "conf_thresh_percentile": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 90,
+        "default": 40,
+        "x-ui": "slider",
+        "description": "Part des pixels les moins sûrs écartée du nuage, en centiles. À 40, les quatre dixièmes les moins confiants ne sont pas reprojetés — ce sont les bords d'objets, le ciel et les surfaces uniformes, c'est-à-dire là où la profondeur est le plus souvent fausse. Monter ce nombre donne un nuage plus propre et plus creux ; le descendre à zéro garde tout, bruit compris."
+      },
+      "max_points": {
+        "type": "integer",
+        "minimum": 50000,
+        "maximum": 2000000,
+        "default": 1000000,
+        "x-ui": "slider",
+        "description": "Plafond du nombre de points du nuage. Au-delà, l'export en tire au sort autant qu'il en faut parmi ceux qui ont passé le seuil de confiance — c'est le seul tirage au sort de cette capacité, et `seed` décide lesquels. Compter environ 16 octets par point dans le fichier produit : un million de points font une quinzaine de mégaoctets."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 0,
+        "description": "Graine du tirage qui ramène le nuage sous `max_points`. **Elle n'a aucun effet sur la reconstruction elle-même** : mesuré sur ces poids, deux passes sur les mêmes vues rendent des profondeurs, des confiances et des poses bit à bit identiques. Elle ne décide que de quels points survivent au plafond, et n'a donc aucun effet tant que le nuage tient dessous."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": [
+      "point_cloud",
+      "preview",
+      "cameras",
+      "view_count",
+      "point_count",
+      "is_metric"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "point_cloud": {
+        "type": "string",
+        "contentMediaType": "model/gltf-binary",
+        "description": "Chemin du nuage de points coloré, relatif au dossier du job. Le fichier porte aussi un tronc de pyramide par caméra, ce qui rend la disposition des prises de vue visible dans n'importe quel visualiseur glTF. Ce n'est pas un maillage : ni faces, ni surface, ni intérieur."
+      },
+      "preview": {
+        "type": "string",
+        "contentMediaType": "image/jpeg",
+        "description": "Chemin de l'aperçu composé, relatif au dossier du job. Une vignette par vue — la photo au-dessus de sa profondeur, encadrées de la couleur que la caméra porte dans le nuage — puis le **plan** : la scène vue de dessus et les centres de caméra reliés dans l'ordre reçu. C'est le seul endroit où une pose fausse se voit sans ouvrir le nuage ; un aperçu qui ne montrerait qu'une vue laisserait passer une reconstruction juste sur la première et fausse sur toutes les autres."
+      },
+      "cameras": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin du JSON des poses, relatif au dossier du job. Une entrée par vue : matrice extrinsèque 3×4 **world-to-camera**, matrice intrinsèque 3×3, centre optique déjà calculé, focale. La convention w2c est écrite dans le fichier parce que s'en tromper est silencieux : le centre d'une caméra est -Rᵀt et non t, et prendre t donne un arc plausible et faux."
+      },
+      "view_count": {
+        "type": "integer",
+        "description": "Nombre de vues effectivement reconstruites. C'est aussi le paramètre qui pilote le coût du job."
+      },
+      "point_count": {
+        "type": "integer",
+        "description": "Nombre de points du nuage écrit, compté en relisant le fichier plutôt qu'au moment de l'écrire. Égal à `max_points` quand le plafond a mordu."
+      },
+      "is_metric": {
+        "type": "boolean",
+        "description": "Toujours faux avec les modèles du parc. L'échelle de la reconstruction est arbitraire : les proportions et les angles sont exploitables, les longueurs ne le sont pas. Ce champ existe pour que la question soit posée à chaque job plutôt que dans une note qu'on ne relit pas."
+      }
+    }
+  }
+}

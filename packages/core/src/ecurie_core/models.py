@@ -48,6 +48,25 @@ Capability = Literal[
     "face-embed",
     "face-headpose",
     "face-gaze",
+    # Les capacités qui ne produisent pas de contenu. Elles transforment une
+    # donnée en mesure, en géométrie, en prévision, en programme ou en action —
+    # et c'est ce qui les fait entrer ensemble plutôt qu'au hasard des sorties de
+    # modèles. Aucune n'accepte ni ne rend un média : une série, un nuage de
+    # points, une scène satellite, une séquence protéique, un état de robot.
+    "time-series-forecast",
+    "pointcloud-to-cad",
+    "geo-segment",
+    "geo-embed",
+    "multiview-to-3d",
+    "robot-action",
+    "protein-embed",
+    # Deux capacités d'empreinte, du même patron que `face-embed` et pour le même
+    # usage : chercher par ressemblance. Elles attendent l'index que le parc n'a
+    # pas encore, et rendent en attendant un cosinus entre deux entrées.
+    "image-embed",
+    # L'alignement complète `speech-to-text`, dont le contrat ne porte pas
+    # d'horodatage au mot : le texte lui est donné, il ne le devine pas.
+    "audio-align",
 ]
 
 Status = Literal["active", "candidate", "deprecated", "retired"]
@@ -63,6 +82,17 @@ Runtime = Literal[
     "mflux",
     "rtmlib",
     "uniface",
+    # Les cinq familles arrivées avec les capacités de mesure. Aucune ne pouvait
+    # se greffer sur un env existant : `chronos` résout numpy 2 quand
+    # `depth-anything` impose numpy<2 ; `terratorch` tire lightning, torchgeo et
+    # rasterio ; `esm-torch` demande un transformers récent que `torch-vision`
+    # rétrograderait sous BiRefNet ; `cad-recode` ajoute OCP et cadquery ;
+    # `lerobot` borne lui-même torch<2.12 et transformers<5.6.
+    "chronos",
+    "terratorch",
+    "esm-torch",
+    "cad-recode",
+    "lerobot",
     "comfy",
     "ollama",
     "llama-cpp",
@@ -84,6 +114,27 @@ Quantization = Literal[
 ]
 
 
+def echelle_de(valeur: Any) -> float | None:
+    """La grandeur qu'un `peak_scaling` lit dans une entrée, ou None.
+
+    Un nombre compte pour lui-même — trente secondes de musique, une résolution
+    d'octree. Une **liste** compte pour sa longueur : `multiview-to-3d` reçoit N
+    photos et son pic les suit, mais N n'est saisi nulle part, c'est la taille
+    du champ. Sans ce cas, une capacité à cardinalité variable n'avait aucun
+    paramètre déclarable et l'admission réservait son pire cas à tous ses jobs.
+
+    Un booléen est refusé : `True` vaut 1 en Python, et un drapeau interprété
+    comme une échelle donnerait une pente ajustée sur du vent.
+    """
+    if isinstance(valeur, bool):
+        return None
+    if isinstance(valeur, (int, float)):
+        return float(valeur)
+    if isinstance(valeur, (list, tuple)):
+        return float(len(valeur))
+    return None
+
+
 class Source(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -93,6 +144,11 @@ class Source(BaseModel):
     allow_patterns: list[str] | None = None
     url: str | None = None
     path: str | None = None
+    # Renseigné pour une source **secondaire** seulement, où il nomme ce que le
+    # dépôt apporte : `tokenizer`, `vision_encoder`. Le worker le retrouve dans
+    # `extra_paths[<role>]` — sans lui, il recevrait deux chemins sans savoir
+    # lequel est lequel.
+    role: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_]*$")
 
 
 class PeakScaling(BaseModel):
@@ -146,11 +202,10 @@ class Profile(BaseModel):
         échelle = self.peak_scaling
         if échelle is None or not values:
             return mesuré, None
-        brut = values.get(échelle.parameter)
-        if not isinstance(brut, (int, float)) or isinstance(brut, bool):
+        valeur = echelle_de(values.get(échelle.parameter))
+        if valeur is None:
             return mesuré, None
 
-        valeur = float(brut)
         attendu = échelle.expected(valeur)
         if échelle.extrapolates(valeur):
             bas, haut = min(échelle.measured_range), max(échelle.measured_range)
@@ -172,6 +227,21 @@ class Variant(BaseModel):
     quantization: Quantization | None = None
     tier: Tier = "absent"
     source: Source
+    # Un variant peut avoir besoin de plus d'un dépôt, et le modèle de données
+    # ne savait pas le dire. Deux capacités arrivées le 24 août 2026 l'ont
+    # révélé en même temps : CAD-Recode publie ses 3,09 Go de poids sans aucun
+    # tokenizer — il faut celui de Qwen2-1.5B, dans un autre dépôt, sous une
+    # autre licence — et SmolVLA charge un encodeur visuel publié à part.
+    #
+    # Les contourner aurait coûté plus cher que ce champ : un `pull` qui ne
+    # ramène qu'une moitié laisse un variant `tier: hot` qui échoue au
+    # chargement, et un second manifeste pour le seul tokenizer déclarerait une
+    # capacité que personne ne peut servir.
+    #
+    # Chaque source secondaire porte un `role`, qui est la clé sous laquelle le
+    # worker retrouvera son chemin. La licence, elle, reste celle du modèle :
+    # si les dépôts divergent, c'est aux `caveats` de le dire.
+    extra_sources: list[Source] | None = None
     runtime: Runtime
     runtime_env: str | None = None
     entrypoint: str | None = None
@@ -184,6 +254,16 @@ class Variant(BaseModel):
     def env_name(self) -> str:
         """Nom de l'environnement isolé sous runtimes/ (défaut : le runtime)."""
         return self.runtime_env or self.runtime
+
+    @property
+    def sources(self) -> list[Source]:
+        """Toutes les sources du variant, la principale d'abord.
+
+        Ce que `pull` télécharge, ce que la comptabilité disque rattache, ce que
+        le superviseur résout : trois endroits qui doivent voir la même liste, et
+        qui la voyaient chacun à leur façon avant que ce champ existe.
+        """
+        return [self.source, *(self.extra_sources or [])]
 
 
 class Links(BaseModel):

@@ -94,14 +94,20 @@ class CapabilityContract:
         pointé (`tracks.vocals`) : une séparation audio rend un objet de pistes,
         et s'arrêter au premier niveau reviendrait à ne vérifier aucun des
         fichiers qu'elle produit.
+
+        Il descend aussi dans les **tableaux**, dont le type de média est porté
+        par `items` : une reconstruction multi-vues rend une image de contrôle
+        par caméra, et leur nombre n'est connu qu'à l'exécution. Le champ garde
+        alors son nom — c'est bien lui qui porte la liste.
         """
         trouvés: dict[str, str] = {}
 
         def visiter(propriétés: dict[str, Any] | None, préfixe: str) -> None:
             for nom, champ in (propriétés or {}).items():
                 chemin = f"{préfixe}{nom}"
-                if "contentMediaType" in champ:
-                    trouvés[chemin] = champ["contentMediaType"]
+                média = _media_du_champ(champ)
+                if média is not None:
+                    trouvés[chemin] = média
                 if champ.get("type") == "object":
                     visiter(champ.get("properties"), f"{chemin}.")
 
@@ -121,15 +127,20 @@ class CapabilityContract:
         accepte « application/pdf,image/* ») : c'est la graphie de l'attribut
         `accept` d'un `<input type="file">`, et la garder telle quelle évite de
         traduire deux fois la même chose.
+
+        Un champ **tableau** de fichiers déclare son type sur `items`, et compte
+        ici sous son propre nom : `multiview-to-3d` reçoit N photos d'une même
+        scène, et N n'est pas connu à l'écriture du contrat.
         """
         trouvés: dict[str, str] = {}
 
         def visiter(propriétés: dict[str, Any] | None, préfixe: str) -> None:
             for nom, champ in (propriétés or {}).items():
                 chemin = f"{préfixe}{nom}"
-                if "contentMediaType" in champ:
-                    trouvés[chemin] = champ["contentMediaType"]
-                elif champ.get("x-ui") == "file":
+                média = _media_du_champ(champ)
+                if média is not None:
+                    trouvés[chemin] = média
+                elif champ.get("x-ui") == "file" or _items(champ).get("x-ui") == "file":
                     # Un champ fichier sans type déclaré n'annonce aucune
                     # restriction : « */* » est la réponse exacte, pas un défaut
                     # de repli.
@@ -139,6 +150,20 @@ class CapabilityContract:
 
         visiter(self.input_properties, "")
         return trouvés
+
+    def list_fields(self) -> set[str]:
+        """Les champs d'entrée qui portent **plusieurs** fichiers plutôt qu'un.
+
+        Trois endroits en ont besoin et le déduisaient chacun à leur façon avant
+        que cette méthode existe : ce que le superviseur copie dans le dossier du
+        job, ce que le banc d'essai résout depuis le dossier de la charge, et ce
+        que l'UI rend. Une quatrième lecture divergente était garantie.
+        """
+        return {
+            nom
+            for nom, champ in self.input_properties.items()
+            if champ.get("type") == "array" and _media_du_champ(champ) is not None
+        }
 
     def file_outputs(self) -> set[str]:
         return set(self.output_media_types())
@@ -309,3 +334,27 @@ def check_variant_options(
         for nom in sorted(options)
         if nom in propriétés
     ]
+
+
+def _items(champ: dict[str, Any]) -> dict[str, Any]:
+    """Le schéma des éléments d'un tableau, ou un dictionnaire vide."""
+    items = champ.get("items")
+    return items if isinstance(items, dict) else {}
+
+
+def _media_du_champ(champ: dict[str, Any]) -> str | None:
+    """Le type de média d'un champ, qu'il porte un fichier ou une liste de fichiers.
+
+    Un tableau déclare son type sur `items`, parce que c'est chaque élément qui
+    est un fichier — le tableau, lui, n'en est pas un. Le chercher au premier
+    niveau seulement rendait invisibles, des deux côtés du contrat, tous les
+    champs à cardinalité variable.
+    """
+    direct = champ.get("contentMediaType")
+    if isinstance(direct, str):
+        return direct
+    if champ.get("type") == "array":
+        média = _items(champ).get("contentMediaType")
+        if isinstance(média, str):
+            return média
+    return None

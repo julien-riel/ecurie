@@ -1,0 +1,38 @@
+{
+  "capability": "audio-align",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Un seul enregistrement — six phrases lues, `assets/parole-fr-32s.wav`, recette dans `tools/assets/parole.py` — écouté par trois fenêtres emboîtées, avec à chaque fois le texte exact de ce qui tient dedans. Les bornes tombent dans des silences mesurés (3,36→3,92 ; 17,36→17,60 ; après 31,84), si bien qu'aucun cas ne coupe un mot en deux. C'est `max_seconds` qui est déclaré paramètre d'échelle, et le choix se justifie par deux mesures : la séquence coûte 13,0 jetons audio par seconde écoutée contre 3,7 jetons par mot, et à 2,38 mots par seconde de français lu, la durée pèse 13,0 contre 8,8 — elle l'emporte, sans écraser l'autre. Surtout, elle est le seul des deux à être un paramètre du contrat, donc le seul que le contrôle d'admission puisse lire avant de lancer le job ; le nombre de mots, lui, n'est connu qu'une fois le texte reçu. `assets/parole-tts.wav` a été essayé et REJETÉ : sa transcription répète une phrase mot pour mot, ce qui est le cas dégénéré de l'alignement forcé, et l'aligneur y saute les 10,5 premières secondes. Les cas ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "scaling_parameter": "max_seconds",
+  "cases": [
+    {
+      "id": "une-phrase-4s",
+      "input": {
+        "audio": "assets/parole-fr-32s.wav",
+        "text": "Le quinze mars, la neige tombait encore sur la ville.",
+        "language": "french",
+        "max_seconds": 3.6,
+        "subtitle_format": "none"
+      }
+    },
+    {
+      "id": "trois-phrases-18s",
+      "input": {
+        "audio": "assets/parole-fr-32s.wav",
+        "text": "Le quinze mars, la neige tombait encore sur la ville. Amélie a relu son rapport pendant toute la matinée, sans y trouver la moindre erreur. Le lendemain, elle l'a présenté devant le conseil de Trois-Rivières, qui l'a adopté sans un mot.",
+        "language": "french",
+        "max_seconds": 17.5,
+        "subtitle_format": "none"
+      }
+    },
+    {
+      "id": "six-phrases-32s",
+      "input": {
+        "audio": "assets/parole-fr-32s.wav",
+        "text": "Le quinze mars, la neige tombait encore sur la ville. Amélie a relu son rapport pendant toute la matinée, sans y trouver la moindre erreur. Le lendemain, elle l'a présenté devant le conseil de Trois-Rivières, qui l'a adopté sans un mot. On lui a demandé combien de temps la mesure tiendrait ; elle a répondu qu'elle l'ignorait. Personne n'a insisté, et la séance a été levée avant midi. Le procès-verbal, lui, n'a jamais été relu par quiconque.",
+        "language": "french",
+        "max_seconds": 32.0,
+        "subtitle_format": "srt"
+      }
+    }
+  ]
+}

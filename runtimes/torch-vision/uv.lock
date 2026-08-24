@@ -174,7 +174,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26" },
     { name = "pillow", specifier = ">=11,<13" },
     { name = "safetensors", specifier = ">=0.8.0" },
-    { name = "timm", specifier = ">=1.0" },
+    { name = "timm", specifier = ">=1.0.20" },
     { name = "torch", specifier = ">=2.6,<2.14" },
     { name = "torchvision", specifier = ">=0.21" },
     { name = "transformers", specifier = ">=4.41.2" },
