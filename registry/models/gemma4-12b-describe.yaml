@@ -72,3 +72,12 @@ variants:
       thinking: false
     caveats:
       - "Non téléchargé."
+    profile:
+      disk_bytes: 6399847042
+      peak_unified_memory_bytes: 6937470794
+      warmup_ms: 1774
+      latency_ms_p50: 5847
+      throughput: "1 sortie / 6.0 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"

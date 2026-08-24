@@ -1,0 +1,98 @@
+{
+  "ref": "hunyuan3d-2.1-shape-mlx@mlx-bf16",
+  "model": "hunyuan3d-2.1-shape-mlx",
+  "variant": "mlx-bf16",
+  "capability": "image-to-mesh",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/image-to-mesh.json",
+    "version": 1,
+    "cases": [
+      "cube-256",
+      "sphere-256",
+      "cone-384"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 7366426405,
+    "peak_unified_memory_bytes": 17693065216,
+    "warmup_ms": 44707,
+    "latency_ms_p50": 372803,
+    "throughput": "1 sortie / 494.0 s"
+  },
+  "cases": [
+    {
+      "id": "cube-256",
+      "ok": true,
+      "duration_ms": 348015,
+      "metrics": {
+        "duration_ms": 348015,
+        "device": "mps",
+        "octree_resolution": 256,
+        "num_inference_steps": 30,
+        "guidance_scale": 5.0,
+        "seed": 1,
+        "mesh_bytes": 13826684,
+        "caveats": [
+          "Chemin non vérifié de bout en bout sur Apple Silicon : aucune trace publique d'un Hunyuan3DDiTFlowMatchingPipeline 2.1 complet exécuté sur MPS.",
+          "Géométrie seulement — la texturation PBR amont exige des noyaux CUDA compilés.",
+          "peak_memory_bytes est une borne inférieure du pic réel, pas une mesure exacte."
+        ],
+        "faces": 768104,
+        "vertices": 384054,
+        "peak_memory_bytes": 17693065216
+      },
+      "error": null
+    },
+    {
+      "id": "sphere-256",
+      "ok": true,
+      "duration_ms": 372803,
+      "metrics": {
+        "duration_ms": 372803,
+        "device": "mps",
+        "octree_resolution": 256,
+        "num_inference_steps": 30,
+        "guidance_scale": 5.0,
+        "seed": 2,
+        "mesh_bytes": 10950056,
+        "caveats": [
+          "Chemin non vérifié de bout en bout sur Apple Silicon : aucune trace publique d'un Hunyuan3DDiTFlowMatchingPipeline 2.1 complet exécuté sur MPS.",
+          "Géométrie seulement — la texturation PBR amont exige des noyaux CUDA compilés.",
+          "peak_memory_bytes est une borne inférieure du pic réel, pas une mesure exacte."
+        ],
+        "faces": 608292,
+        "vertices": 304147,
+        "peak_memory_bytes": 17693065216
+      },
+      "error": null
+    },
+    {
+      "id": "cone-384",
+      "ok": true,
+      "duration_ms": 761125,
+      "metrics": {
+        "duration_ms": 761125,
+        "device": "mps",
+        "octree_resolution": 384,
+        "num_inference_steps": 30,
+        "guidance_scale": 5.0,
+        "seed": 3,
+        "mesh_bytes": 21128780,
+        "caveats": [
+          "Chemin non vérifié de bout en bout sur Apple Silicon : aucune trace publique d'un Hunyuan3DDiTFlowMatchingPipeline 2.1 complet exécuté sur MPS.",
+          "Géométrie seulement — la texturation PBR amont exige des noyaux CUDA compilés.",
+          "peak_memory_bytes est une borne inférieure du pic réel, pas une mesure exacte."
+        ],
+        "faces": 1173776,
+        "vertices": 586890,
+        "peak_memory_bytes": 17693065216
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

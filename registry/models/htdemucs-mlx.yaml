@@ -54,3 +54,19 @@ variants:
       - "`shifts` multiplie le temps d'autant : à 5, un morceau de trois minutes prend cinq fois plus longtemps pour un gain de l'ordre du dixième de dB."
       - "Entraîné sur MUSDB18-HQ, donc sur de la musique produite en studio. Sur un enregistrement de terrain ou une réunion, la piste « voix » ne veut plus dire grand-chose."
       - "44,1 kHz natif : un fichier à une autre fréquence est rééchantillonné avant traitement et restitué à 44,1 kHz."
+    profile:
+      disk_bytes: 168004409
+      peak_unified_memory_bytes: 2664448484
+      peak_scaling:
+        parameter: "segment_seconds"
+        base_bytes: 289641977
+        bytes_per_unit: 237480650.7
+        measured_range: [4.0, 10.0]
+        r_squared: 1.0
+      warmup_ms: 168
+      latency_ms_p50: 989
+      rtf: 0.078278
+      throughput: "12.78× temps réel"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-audiogen 0.2.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

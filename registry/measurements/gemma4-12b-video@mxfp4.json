@@ -1,0 +1,81 @@
+{
+  "ref": "gemma4-12b-video@mxfp4",
+  "model": "gemma4-12b-video",
+  "variant": "mxfp4",
+  "capability": "video-to-text",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+  "measured_at": "2026-08-23",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/video-to-text.json",
+    "version": 1,
+    "cases": [
+      "images-4",
+      "images-8",
+      "images-16"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 6399847042,
+    "peak_unified_memory_bytes": 9345312258,
+    "peak_scaling": {
+      "parameter": "max_frames",
+      "base_bytes": 6661540700,
+      "bytes_per_unit": 166686035.9,
+      "measured_range": [
+        4.0,
+        16.0
+      ],
+      "r_squared": 0.9981
+    },
+    "warmup_ms": 1865,
+    "latency_ms_p50": 11237,
+    "throughput": "1 sortie / 13.9 s"
+  },
+  "cases": [
+    {
+      "id": "images-4",
+      "ok": true,
+      "duration_ms": 9213,
+      "metrics": {
+        "duration_ms": 9213,
+        "characters": 355,
+        "generation_tokens": 99,
+        "tokens_per_second": 11.03,
+        "frames_sampled": 4,
+        "peak_memory_bytes": 7361874812
+      },
+      "error": null
+    },
+    {
+      "id": "images-8",
+      "ok": true,
+      "duration_ms": 11237,
+      "metrics": {
+        "duration_ms": 11237,
+        "characters": 262,
+        "generation_tokens": 72,
+        "tokens_per_second": 6.46,
+        "frames_sampled": 8,
+        "peak_memory_bytes": 7944644034
+      },
+      "error": null
+    },
+    {
+      "id": "images-16",
+      "ok": true,
+      "duration_ms": 21112,
+      "metrics": {
+        "duration_ms": 21112,
+        "characters": 374,
+        "generation_tokens": 102,
+        "tokens_per_second": 4.86,
+        "frames_sampled": 16,
+        "peak_memory_bytes": 9345312258
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

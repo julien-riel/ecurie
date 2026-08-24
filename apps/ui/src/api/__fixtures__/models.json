@@ -96,9 +96,7 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "da3-large@fp32 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench da3-large@fp32"
-          ],
+          "blockers": [],
           "caveats": [
             "Licence CC-BY-NC-4.0 : usage professionnel fermé. À trancher avant tout passage en `active`.",
             "Profondeur relative, sans échelle métrique. `near` et `far` sont indispensables pour interpréter le PNG 16 bits — sans eux, l'image ne dit qu'un ordre.",
@@ -111,12 +109,32 @@
           },
           "entrypoint": null,
           "env": "depth-anything",
-          "heavy": null,
+          "heavy": false,
           "id": "fp32",
           "options": null,
-          "profile": null,
+          "profile": {
+            "disk_bytes": 1643845073,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 718,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0",
+            "peak_scaling": {
+              "base_bytes": 3757539328,
+              "bytes_per_unit": 0.0,
+              "measured_range": [
+                256.0,
+                1008.0
+              ],
+              "parameter": "process_res",
+              "r_squared": 1.0
+            },
+            "peak_unified_memory_bytes": 3757539328,
+            "rtf": null,
+            "throughput": "1 sortie / 1.2 s",
+            "warmup_ms": 3647
+          },
           "quantization": "fp32",
-          "ready": false,
+          "ready": true,
           "ref": "da3-large@fp32",
           "runtime": "depth-anything",
           "source": {
@@ -263,10 +281,7 @@
           "weights_path": "<poids>"
         },
         {
-          "blockers": [
-            "gemma4-12b-describe@mxfp4 : poids absents du cache — ecurie pull gemma4-12b-describe@mxfp4",
-            "gemma4-12b-describe@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-describe@mxfp4"
-          ],
+          "blockers": [],
           "caveats": [
             "Non téléchargé."
           ],
@@ -277,14 +292,25 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": false,
           "id": "mxfp4",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 6399847042,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 5847,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 6937470794,
+            "rtf": null,
+            "throughput": "1 sortie / 6.0 s",
+            "warmup_ms": 1774
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "gemma4-12b-describe@mxfp4",
           "runtime": "mlx-vlm",
           "source": {
@@ -301,7 +327,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "Google"
@@ -323,9 +349,7 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "gemma4-12b-detect@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-detect@4bit"
-          ],
+          "blockers": [],
           "caveats": [
             "Grille de coordonnées non vérifiée sur ces poids : `options.grid` porte le défaut de Qwen3-VL. Une grille fausse trace les boîtes à une fraction de leur place sans que rien n'échoue — regarder `overlay.png` du premier job.",
             "La fiche amont annonce du « pointing », qui rend des centres là où le contrat attend des rectangles. Que le modèle sache produire des boîtes reste à établir.",
@@ -340,15 +364,26 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": false,
           "id": "4bit",
           "options": {
             "grid": 1000,
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 6773371194,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 6784,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 7278896970,
+            "rtf": null,
+            "throughput": "1 sortie / 5.8 s",
+            "warmup_ms": 2803
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "gemma4-12b-detect@4bit",
           "runtime": "mlx-vlm",
           "source": {
@@ -368,10 +403,7 @@
           "weights_path": "<poids>"
         },
         {
-          "blockers": [
-            "gemma4-12b-detect@mxfp4 : poids absents du cache — ecurie pull gemma4-12b-detect@mxfp4",
-            "gemma4-12b-detect@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-detect@mxfp4"
-          ],
+          "blockers": [],
           "caveats": [
             "Non téléchargé."
           ],
@@ -382,15 +414,26 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": false,
           "id": "mxfp4",
           "options": {
             "grid": 1000,
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 6399847042,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 6487,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 6904211274,
+            "rtf": null,
+            "throughput": "1 sortie / 5.6 s",
+            "warmup_ms": 1866
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "gemma4-12b-detect@mxfp4",
           "runtime": "mlx-vlm",
           "source": {
@@ -407,7 +450,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "Google"
@@ -429,9 +472,7 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "gemma4-12b-ocr@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-ocr@4bit"
-          ],
+          "blockers": [],
           "caveats": [
             "Profil non mesuré pour cette capacité.",
             "Un VLM transcrit, il ne localise pas : la sortie `layout` décrit les pages, pas des boîtes.",
@@ -444,14 +485,25 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": false,
           "id": "4bit",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 6773371194,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 8067,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 7313725178,
+            "rtf": null,
+            "throughput": "1 sortie / 9.3 s",
+            "warmup_ms": 2785
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "gemma4-12b-ocr@4bit",
           "runtime": "mlx-vlm",
           "source": {
@@ -471,10 +523,7 @@
           "weights_path": "<poids>"
         },
         {
-          "blockers": [
-            "gemma4-12b-ocr@mxfp4 : poids absents du cache — ecurie pull gemma4-12b-ocr@mxfp4",
-            "gemma4-12b-ocr@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-ocr@mxfp4"
-          ],
+          "blockers": [],
           "caveats": [
             "Non téléchargé."
           ],
@@ -485,14 +534,25 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": false,
           "id": "mxfp4",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 6399847042,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 7685,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 6939039482,
+            "rtf": null,
+            "throughput": "1 sortie / 8.9 s",
+            "warmup_ms": 2753
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "gemma4-12b-ocr@mxfp4",
           "runtime": "mlx-vlm",
           "source": {
@@ -509,7 +569,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "Google"
@@ -583,10 +643,7 @@
           "weights_path": "<poids>"
         },
         {
-          "blockers": [
-            "gemma4-12b-outils@mxfp4 : poids absents du cache — ecurie pull gemma4-12b-outils@mxfp4",
-            "gemma4-12b-outils@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-outils@mxfp4"
-          ],
+          "blockers": [],
           "caveats": [
             "Non téléchargé."
           ],
@@ -597,14 +654,25 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": false,
           "id": "mxfp4",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 6399847042,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 2221,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 7303153056,
+            "rtf": null,
+            "throughput": "1 sortie / 2.6 s",
+            "warmup_ms": 1924
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "gemma4-12b-outils@mxfp4",
           "runtime": "mlx-vlm",
           "source": {
@@ -621,7 +689,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "Google"
@@ -694,10 +762,7 @@
           "weights_path": "<poids>"
         },
         {
-          "blockers": [
-            "gemma4-12b-texte@mxfp4 : poids absents du cache — ecurie pull gemma4-12b-texte@mxfp4",
-            "gemma4-12b-texte@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-texte@mxfp4"
-          ],
+          "blockers": [],
           "caveats": [
             "370 Mo de moins que le variant 4bit. L'écart ne décide de rien ici — les deux tiennent largement dans le budget —, ce qui en fait surtout un point de comparaison sur la qualité à taille presque égale."
           ],
@@ -708,14 +773,25 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": false,
           "id": "mxfp4",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 6399847042,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 22230,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 6808747536,
+            "rtf": null,
+            "throughput": "1 sortie / 40.0 s",
+            "warmup_ms": 1765
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "gemma4-12b-texte@mxfp4",
           "runtime": "mlx-vlm",
           "source": {
@@ -732,7 +808,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "Google"
@@ -804,10 +880,7 @@
           "weights_path": "<poids>"
         },
         {
-          "blockers": [
-            "gemma4-12b-traduction@mxfp4 : poids absents du cache — ecurie pull gemma4-12b-traduction@mxfp4",
-            "gemma4-12b-traduction@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-traduction@mxfp4"
-          ],
+          "blockers": [],
           "caveats": [
             "Non téléchargé."
           ],
@@ -817,14 +890,25 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": false,
           "id": "mxfp4",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 6399847042,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 4252,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 6859582658,
+            "rtf": null,
+            "throughput": "1 sortie / 4.6 s",
+            "warmup_ms": 1847
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "gemma4-12b-traduction@mxfp4",
           "runtime": "mlx-vlm",
           "source": {
@@ -841,7 +925,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "Google"
@@ -863,9 +947,7 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "gemma4-12b-video@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-video@4bit"
-          ],
+          "blockers": [],
           "caveats": [
             "L'amont ne garantit l'analyse que jusqu'à 60 secondes de vidéo. Au-delà, le job aboutit mais la réponse sort du domaine annoncé.",
             "Le pic suit `max_frames`, pas la durée de la vidéo : huit images d'un plan de dix minutes coûtent autant que huit images de dix secondes.",
@@ -880,14 +962,34 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": true,
           "id": "4bit",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 6773371194,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 8953,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": {
+              "base_bytes": 7036226395,
+              "bytes_per_unit": 166686035.9,
+              "measured_range": [
+                4.0,
+                16.0
+              ],
+              "parameter": "max_frames",
+              "r_squared": 0.9981
+            },
+            "peak_unified_memory_bytes": 9719997954,
+            "rtf": null,
+            "throughput": "1 sortie / 11.0 s",
+            "warmup_ms": 2737
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "gemma4-12b-video@4bit",
           "runtime": "mlx-vlm",
           "source": {
@@ -907,10 +1009,7 @@
           "weights_path": "<poids>"
         },
         {
-          "blockers": [
-            "gemma4-12b-video@mxfp4 : poids absents du cache — ecurie pull gemma4-12b-video@mxfp4",
-            "gemma4-12b-video@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench gemma4-12b-video@mxfp4"
-          ],
+          "blockers": [],
           "caveats": [
             "Non téléchargé."
           ],
@@ -922,14 +1021,34 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": true,
           "id": "mxfp4",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 6399847042,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 11237,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": {
+              "base_bytes": 6661540700,
+              "bytes_per_unit": 166686035.9,
+              "measured_range": [
+                4.0,
+                16.0
+              ],
+              "parameter": "max_frames",
+              "r_squared": 0.9981
+            },
+            "peak_unified_memory_bytes": 9345312258,
+            "rtf": null,
+            "throughput": "1 sortie / 13.9 s",
+            "warmup_ms": 1865
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "gemma4-12b-video@mxfp4",
           "runtime": "mlx-vlm",
           "source": {
@@ -946,7 +1065,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "Google"
@@ -968,10 +1087,7 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "htdemucs-mlx@fp32-mlx : venv de runtimes/mlx-audiogen/ absent — ecurie env sync mlx-audiogen",
-            "htdemucs-mlx@fp32-mlx : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench htdemucs-mlx@fp32-mlx"
-          ],
+          "blockers": [],
           "caveats": [
             "`stems: 2` ne fait pas moins de calcul que 4 : le réseau produit toujours quatre pistes, et l'accompagnement est leur somme moins la voix.",
             "`shifts` multiplie le temps d'autant : à 5, un morceau de trois minutes prend cinq fois plus longtemps pour un gain de l'ordre du dixième de dB.",
@@ -985,12 +1101,32 @@
           },
           "entrypoint": null,
           "env": "mlx-audiogen",
-          "heavy": null,
+          "heavy": false,
           "id": "fp32-mlx",
           "options": null,
-          "profile": null,
+          "profile": {
+            "disk_bytes": 168004409,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 989,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-audiogen 0.2.0",
+            "peak_scaling": {
+              "base_bytes": 289641977,
+              "bytes_per_unit": 237480650.7,
+              "measured_range": [
+                4.0,
+                10.0
+              ],
+              "parameter": "segment_seconds",
+              "r_squared": 1.0
+            },
+            "peak_unified_memory_bytes": 2664448484,
+            "rtf": 0.078278,
+            "throughput": "12.78× temps réel",
+            "warmup_ms": 168
+          },
           "quantization": "fp32",
-          "ready": false,
+          "ready": true,
           "ref": "htdemucs-mlx@fp32-mlx",
           "runtime": "mlx-audio",
           "source": {
@@ -1025,11 +1161,7 @@
       "status": "active",
       "variants": [
         {
-          "blockers": [
-            "hunyuan3d-2.1-shape-mlx@mlx-bf16 : poids absents du cache — ecurie pull hunyuan3d-2.1-shape-mlx@mlx-bf16",
-            "hunyuan3d-2.1-shape-mlx@mlx-bf16 : venv de runtimes/hunyuan3d/ absent — ecurie env sync hunyuan3d",
-            "hunyuan3d-2.1-shape-mlx@mlx-bf16 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench hunyuan3d-2.1-shape-mlx@mlx-bf16"
-          ],
+          "blockers": [],
           "caveats": [
             "Géométrie seulement, pas de PBR complet.",
             "Licence à restrictions : vérifier avant tout usage professionnel.",
@@ -1041,12 +1173,23 @@
           },
           "entrypoint": "runtimes/hunyuan3d/run.py",
           "env": "hunyuan3d",
-          "heavy": null,
+          "heavy": true,
           "id": "mlx-bf16",
           "options": null,
-          "profile": null,
+          "profile": {
+            "disk_bytes": 7366426405,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 372803,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 17693065216,
+            "rtf": null,
+            "throughput": "1 sortie / 494.0 s",
+            "warmup_ms": 44707
+          },
           "quantization": "bf16",
-          "ready": false,
+          "ready": true,
           "ref": "hunyuan3d-2.1-shape-mlx@mlx-bf16",
           "runtime": "custom",
           "source": {
@@ -1062,7 +1205,7 @@
             "url": null
           },
           "tier": "hot",
-          "weights_path": null
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "Tencent"
@@ -1084,9 +1227,7 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "ltx-video-2b@bf16 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench ltx-video-2b@bf16"
-          ],
+          "blockers": [],
           "caveats": [
             "15,2 Go de poids pour 17,76 Gio de budget : le contrôle d'admission refusera ce variant tant qu'un autre modèle sera résident, et probablement même seul. À mesurer avec `ecurie bench` avant tout usage.",
             "Grille du modèle : largeur et hauteur multiples de 32, nombre d'images de la forme 8n+1. Le contrat est plus permissif parce qu'il sert aussi les modèles Wan ; l'adaptateur refuse ce que le modèle ne sait pas faire.",
@@ -1104,12 +1245,32 @@
           },
           "entrypoint": null,
           "env": "diffusers-mps",
-          "heavy": null,
+          "heavy": true,
           "id": "bf16",
           "options": null,
-          "profile": null,
+          "profile": {
+            "disk_bytes": 15242331197,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 38824,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2",
+            "peak_scaling": {
+              "base_bytes": 15634443702,
+              "bytes_per_unit": 32281161.1,
+              "measured_range": [
+                25.0,
+                97.0
+              ],
+              "parameter": "num_frames",
+              "r_squared": 0.9712
+            },
+            "peak_unified_memory_bytes": 18688720896,
+            "rtf": null,
+            "throughput": "1 sortie / 51.7 s",
+            "warmup_ms": 12289
+          },
           "quantization": "bf16",
-          "ready": false,
+          "ready": true,
           "ref": "ltx-video-2b@bf16",
           "runtime": "diffusers-mps",
           "source": {
@@ -1147,9 +1308,7 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "ltx-video-2b-i2v@bf16 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench ltx-video-2b-i2v@bf16"
-          ],
+          "blockers": [],
           "caveats": [
             "15,2 Go de poids pour 17,76 Gio de budget : le contrôle d'admission refusera ce variant tant qu'un autre modèle sera résident, et probablement même seul. À mesurer avec `ecurie bench` avant tout usage.",
             "Sans `prompt`, la séquence produite est quasi fixe : ce modèle a besoin d'une consigne de mouvement, contrairement à ceux pour qui le contrat rend le champ facultatif.",
@@ -1164,12 +1323,32 @@
           },
           "entrypoint": null,
           "env": "diffusers-mps",
-          "heavy": null,
+          "heavy": true,
           "id": "bf16",
           "options": null,
-          "profile": null,
+          "profile": {
+            "disk_bytes": 15242331197,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 21374,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2",
+            "peak_scaling": {
+              "base_bytes": 15641180647,
+              "bytes_per_unit": 17401368.4,
+              "measured_range": [
+                25.0,
+                97.0
+              ],
+              "parameter": "num_frames",
+              "r_squared": 0.9088
+            },
+            "peak_unified_memory_bytes": 17405509632,
+            "rtf": null,
+            "throughput": "1 sortie / 22.2 s",
+            "warmup_ms": 8805
+          },
           "quantization": "bf16",
-          "ready": false,
+          "ready": true,
           "ref": "ltx-video-2b-i2v@bf16",
           "runtime": "diffusers-mps",
           "source": {
@@ -1259,9 +1438,7 @@
           "weights_path": "<poids>"
         },
         {
-          "blockers": [
-            "minicpm-o45-describe@5bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench minicpm-o45-describe@5bit"
-          ],
+          "blockers": [],
           "caveats": [
             "1 Go de plus que le 4 bits. Le schéma du registre ne connaît pas « 5 bits » : `quantization` est déclaré `mixed`, faute de valeur juste — écrire `6bit` aurait été commode et faux, et c'est le genre de petit mensonge qu'on relit six mois plus tard en le croyant. L'identifiant du variant garde le nom réel du dépôt.",
             "Non téléchargé."
@@ -1273,14 +1450,25 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": false,
           "id": "5bit",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 7193177144,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 4530,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 7763140470,
+            "rtf": null,
+            "throughput": "1 sortie / 5.8 s",
+            "warmup_ms": 1941
+          },
           "quantization": "mixed",
-          "ready": false,
+          "ready": true,
           "ref": "minicpm-o45-describe@5bit",
           "runtime": "mlx-vlm",
           "source": {
@@ -1319,9 +1507,7 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "minicpm-o45-ecoute@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench minicpm-o45-ecoute@4bit"
-          ],
+          "blockers": [],
           "caveats": [
             "MESURÉ — IL SE CHARGE, IL N'ÉCOUTE PAS. Le correctif `minicpm_compat` a levé le refus de chargement, et la tour audio est bien construite (367 tenseurs). L'audio parvient au modèle — le gabarit porte son jeton, vérifié. Mais la sortie est inexploitable : « <unk><|tts_eos|> » sur une demande de transcription, et une boucle dégénérée sur une demande de description (« un chien abattant son chien », répété). La cause est en aval du chargement — préparation du signal, ou encodeur audio abîmé par la quantification à 4 bits. Le variant reste au registre pour porter ce constat, pas pour être employé.",
             "LE 5 BITS A ÉTÉ ESSAYÉ, ET IL NE SUFFIT PAS. Il est meilleur — là où le 4 bits parlait de chiens, il répond « c'est un son de synthèse », ce qui est **exact** : la charge est un enregistrement de TTS. L'encodeur audio fonctionne donc en partie, il perçoit la nature du son. Mais il ne transcrit pas, et la description part en boucle (« des sons de sons de synthèses », répété jusqu'au plafond de jetons). La quantification n'est donc pas la seule cause, et un cran de plus ne réglera pas cela.",
@@ -1336,14 +1522,25 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": false,
           "id": "4bit",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 6157966275,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 44489,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 7539386068,
+            "rtf": null,
+            "throughput": "1 sortie / 44.4 s",
+            "warmup_ms": 1805
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "minicpm-o45-ecoute@4bit",
           "runtime": "mlx-vlm",
           "source": {
@@ -1434,10 +1631,7 @@
           "weights_path": "<poids>"
         },
         {
-          "blockers": [
-            "minicpm-v46-describe@bf16 : poids absents du cache — ecurie pull minicpm-v46-describe@bf16",
-            "minicpm-v46-describe@bf16 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench minicpm-v46-describe@bf16"
-          ],
+          "blockers": [],
           "caveats": [
             "2,62 Go contre 2,18 pour le 4 bits : sur un modèle de cette taille, l'écart est assez faible pour que la question de la quantification se pose autrement qu'ailleurs — 440 Mo de plus pour ne rien perdre du tout."
           ],
@@ -1448,14 +1642,25 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": false,
           "id": "bf16",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 2621024573,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 1286,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 3298969408,
+            "rtf": null,
+            "throughput": "1 sortie / 1.3 s",
+            "warmup_ms": 1456
+          },
           "quantization": "bf16",
-          "ready": false,
+          "ready": true,
           "ref": "minicpm-v46-describe@bf16",
           "runtime": "mlx-vlm",
           "source": {
@@ -1472,7 +1677,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "OpenBMB"
@@ -2383,10 +2588,7 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "qwen36-27b-describe@mxfp4 : poids absents du cache — ecurie pull qwen36-27b-describe@mxfp4",
-            "qwen36-27b-describe@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-describe@mxfp4"
-          ],
+          "blockers": [],
           "caveats": [
             "840 Mo de moins que le variant 4bit, pour une quantification équivalente. Non téléchargé : c'est le variant 4bit qui a été mesuré.",
             "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure.",
@@ -2400,12 +2602,23 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": true,
           "id": "mxfp4",
           "options": null,
-          "profile": null,
+          "profile": {
+            "disk_bytes": 15240953186,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 15634,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 16877151224,
+            "rtf": null,
+            "throughput": "1 sortie / 25.6 s",
+            "warmup_ms": 3894
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "qwen36-27b-describe@mxfp4",
           "runtime": "mlx-vlm",
           "source": {
@@ -2422,7 +2635,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         },
         {
           "blockers": [
@@ -2483,10 +2696,7 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "qwen36-27b-detect@mxfp4 : poids absents du cache — ecurie pull qwen36-27b-detect@mxfp4",
-            "qwen36-27b-detect@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-detect@mxfp4"
-          ],
+          "blockers": [],
           "caveats": [
             "840 Mo de moins que le variant 4bit, pour une quantification équivalente. Non téléchargé : c'est le variant 4bit qui a été mesuré.",
             "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure. Sur cette capacité, dont la sortie est extraite par motif, un préambule risquait de faire rendre zéro objet — ce qui aurait mesuré l'adaptateur, pas le modèle.",
@@ -2501,12 +2711,23 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": true,
           "id": "mxfp4",
           "options": null,
-          "profile": null,
+          "profile": {
+            "disk_bytes": 15240953186,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 16877,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 16956270152,
+            "rtf": null,
+            "throughput": "1 sortie / 14.0 s",
+            "warmup_ms": 4326
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "qwen36-27b-detect@mxfp4",
           "runtime": "mlx-vlm",
           "source": {
@@ -2523,7 +2744,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         },
         {
           "blockers": [
@@ -2584,10 +2805,7 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "qwen36-27b-ocr@mxfp4 : poids absents du cache — ecurie pull qwen36-27b-ocr@mxfp4",
-            "qwen36-27b-ocr@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-ocr@mxfp4"
-          ],
+          "blockers": [],
           "caveats": [
             "840 Mo de moins que le variant 4bit, pour une quantification équivalente. Non téléchargé : c'est le variant 4bit qui a été mesuré.",
             "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure. Sur cette capacité, un préambule fausserait la comparaison au texte attendu autant qu'il gênerait la lecture.",
@@ -2601,12 +2819,23 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": true,
           "id": "mxfp4",
           "options": null,
-          "profile": null,
+          "profile": {
+            "disk_bytes": 15240953186,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 20715,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 17059620410,
+            "rtf": null,
+            "throughput": "1 sortie / 20.9 s",
+            "warmup_ms": 4507
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "qwen36-27b-ocr@mxfp4",
           "runtime": "mlx-vlm",
           "source": {
@@ -2623,7 +2852,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         },
         {
           "blockers": [
@@ -2726,10 +2955,7 @@
           "weights_path": "<poids>"
         },
         {
-          "blockers": [
-            "qwen36-27b-outils@mxfp4 : poids absents du cache — ecurie pull qwen36-27b-outils@mxfp4",
-            "qwen36-27b-outils@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-outils@mxfp4"
-          ],
+          "blockers": [],
           "caveats": [
             "840 Mo de moins que le variant 4bit. Non téléchargé."
           ],
@@ -2740,14 +2966,25 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": true,
           "id": "mxfp4",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 15240953186,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 9358,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 17610751252,
+            "rtf": null,
+            "throughput": "1 sortie / 10.3 s",
+            "warmup_ms": 4814
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "qwen36-27b-outils@mxfp4",
           "runtime": "mlx-vlm",
           "source": {
@@ -2764,7 +3001,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "Alibaba Qwen"
@@ -2839,10 +3076,7 @@
           "weights_path": "<poids>"
         },
         {
-          "blockers": [
-            "qwen36-27b-texte@mxfp4 : poids absents du cache — ecurie pull qwen36-27b-texte@mxfp4",
-            "qwen36-27b-texte@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-texte@mxfp4"
-          ],
+          "blockers": [],
           "caveats": [
             "840 Mo de moins que le variant 4bit, pour une quantification équivalente : c'est le seul des deux dont le pic ait une chance d'approcher le plafond. Non téléchargé."
           ],
@@ -2853,14 +3087,25 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": true,
           "id": "mxfp4",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 15240953186,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 28333,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 15619308546,
+            "rtf": null,
+            "throughput": "1 sortie / 76.7 s",
+            "warmup_ms": 4770
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "qwen36-27b-texte@mxfp4",
           "runtime": "mlx-vlm",
           "source": {
@@ -2877,7 +3122,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "Alibaba Qwen"
@@ -2940,10 +3185,7 @@
           "weights_path": "<poids>"
         },
         {
-          "blockers": [
-            "qwen36-27b-traduction@mxfp4 : poids absents du cache — ecurie pull qwen36-27b-traduction@mxfp4",
-            "qwen36-27b-traduction@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-traduction@mxfp4"
-          ],
+          "blockers": [],
           "caveats": [
             "840 Mo de moins que le variant 4bit. Non téléchargé."
           ],
@@ -2953,14 +3195,25 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": true,
           "id": "mxfp4",
           "options": {
             "thinking": false
           },
-          "profile": null,
+          "profile": {
+            "disk_bytes": 15240953186,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 9178,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 16190589704,
+            "rtf": null,
+            "throughput": "1 sortie / 10.1 s",
+            "warmup_ms": 3834
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "qwen36-27b-traduction@mxfp4",
           "runtime": "mlx-vlm",
           "source": {
@@ -2977,7 +3230,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "Alibaba Qwen"
@@ -2999,10 +3252,7 @@
       "status": "candidate",
       "variants": [
         {
-          "blockers": [
-            "qwen36-27b-video@mxfp4 : poids absents du cache — ecurie pull qwen36-27b-video@mxfp4",
-            "qwen36-27b-video@mxfp4 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench qwen36-27b-video@mxfp4"
-          ],
+          "blockers": [],
           "caveats": [
             "840 Mo de moins que le variant 4bit, pour une quantification équivalente. Non téléchargé : c'est le variant 4bit qui a été mesuré.",
             "Le pic suit `max_frames`, pas la durée de la vidéo : huit images d'un plan de dix minutes coûtent autant que huit images de dix secondes.",
@@ -3018,12 +3268,23 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": null,
+          "heavy": true,
           "id": "mxfp4",
           "options": null,
-          "profile": null,
+          "profile": {
+            "disk_bytes": 15240953186,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 27599,
+            "measured_at": "2026-08-23",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 18714456000,
+            "rtf": null,
+            "throughput": "1 sortie / 28.9 s",
+            "warmup_ms": 3898
+          },
           "quantization": "4bit",
-          "ready": false,
+          "ready": true,
           "ref": "qwen36-27b-video@mxfp4",
           "runtime": "mlx-vlm",
           "source": {
@@ -3040,7 +3301,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         },
         {
           "blockers": [
@@ -3287,7 +3548,6 @@
         },
         {
           "blockers": [
-            "sam3@4bit : poids absents du cache — ecurie pull sam3@4bit",
             "sam3@4bit : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench sam3@4bit"
           ],
           "caveats": [
@@ -3321,7 +3581,7 @@
             "url": null
           },
           "tier": "absent",
-          "weights_path": null
+          "weights_path": "<poids>"
         }
       ],
       "vendor": "Meta AI"

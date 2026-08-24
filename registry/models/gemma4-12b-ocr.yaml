@@ -45,6 +45,15 @@ variants:
       - "Profil non mesuré pour cette capacité."
       - "Un VLM transcrit, il ne localise pas : la sortie `layout` décrit les pages, pas des boîtes."
       - "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+    profile:
+      disk_bytes: 6773371194
+      peak_unified_memory_bytes: 7313725178
+      warmup_ms: 2785
+      latency_ms_p50: 8067
+      throughput: "1 sortie / 9.3 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"
   - id: mxfp4
     quantization: 4bit
     tier: absent
@@ -62,3 +71,12 @@ variants:
       thinking: false
     caveats:
       - "Non téléchargé."
+    profile:
+      disk_bytes: 6399847042
+      peak_unified_memory_bytes: 6939039482
+      warmup_ms: 2753
+      latency_ms_p50: 7685
+      throughput: "1 sortie / 8.9 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"

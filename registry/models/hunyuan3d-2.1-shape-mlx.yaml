@@ -40,3 +40,12 @@ variants:
       - "Géométrie seulement, pas de PBR complet."
       - "Licence à restrictions : vérifier avant tout usage professionnel."
       - "Le suffixe « mlx » de l'id est trompeur : aucun portage MLX de la partie shape 2.1 n'est publié (le portage communautaire s'arrête à 2.0/2mini). L'inférence passe par PyTorch/MPS, chemin non validé de bout en bout."
+    profile:
+      disk_bytes: 7366426405
+      peak_unified_memory_bytes: 17693065216
+      warmup_ms: 44707
+      latency_ms_p50: 372803
+      throughput: "1 sortie / 494.0 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

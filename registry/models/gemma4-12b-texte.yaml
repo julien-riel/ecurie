@@ -92,3 +92,12 @@ variants:
       thinking: false
     caveats:
       - "370 Mo de moins que le variant 4bit. L'écart ne décide de rien ici — les deux tiennent largement dans le budget —, ce qui en fait surtout un point de comparaison sur la qualité à taille presque égale."
+    profile:
+      disk_bytes: 6399847042
+      peak_unified_memory_bytes: 6808747536
+      warmup_ms: 1765
+      latency_ms_p50: 22230
+      throughput: "1 sortie / 40.0 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"

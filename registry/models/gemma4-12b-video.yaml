@@ -49,6 +49,21 @@ variants:
       - "Le pic suit `max_frames`, pas la durée de la vidéo : huit images d'un plan de dix minutes coûtent autant que huit images de dix secondes."
       - "Profil non mesuré pour cette capacité, et c'est celle dont le pic est le plus élevé sur la famille comparable."
       - "Poids partagés avec les six autres manifestes gemma4-12b — les déporter déplace les sept."
+    profile:
+      disk_bytes: 6773371194
+      peak_unified_memory_bytes: 9719997954
+      peak_scaling:
+        parameter: "max_frames"
+        base_bytes: 7036226395
+        bytes_per_unit: 166686035.9
+        measured_range: [4.0, 16.0]
+        r_squared: 0.9981
+      warmup_ms: 2737
+      latency_ms_p50: 8953
+      throughput: "1 sortie / 11.0 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"
   - id: mxfp4
     quantization: 4bit
     tier: absent
@@ -67,3 +82,18 @@ variants:
       thinking: false
     caveats:
       - "Non téléchargé."
+    profile:
+      disk_bytes: 6399847042
+      peak_unified_memory_bytes: 9345312258
+      peak_scaling:
+        parameter: "max_frames"
+        base_bytes: 6661540700
+        bytes_per_unit: 166686035.9
+        measured_range: [4.0, 16.0]
+        r_squared: 0.9981
+      warmup_ms: 1865
+      latency_ms_p50: 11237
+      throughput: "1 sortie / 13.9 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"

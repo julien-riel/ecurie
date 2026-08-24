@@ -81,3 +81,12 @@ variants:
     caveats:
       - "1 Go de plus que le 4 bits. Le schéma du registre ne connaît pas « 5 bits » : `quantization` est déclaré `mixed`, faute de valeur juste — écrire `6bit` aurait été commode et faux, et c'est le genre de petit mensonge qu'on relit six mois plus tard en le croyant. L'identifiant du variant garde le nom réel du dépôt."
       - "Non téléchargé."
+    profile:
+      disk_bytes: 7193177144
+      peak_unified_memory_bytes: 7763140470
+      warmup_ms: 1941
+      latency_ms_p50: 4530
+      throughput: "1 sortie / 5.8 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"

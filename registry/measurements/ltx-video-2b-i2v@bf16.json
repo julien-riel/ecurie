@@ -1,0 +1,117 @@
+{
+  "ref": "ltx-video-2b-i2v@bf16",
+  "model": "ltx-video-2b-i2v",
+  "variant": "bf16",
+  "capability": "image-to-video",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/image-to-video.json",
+    "version": 1,
+    "cases": [
+      "court-25",
+      "moyen-49",
+      "long-97"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 15242331197,
+    "peak_unified_memory_bytes": 17405509632,
+    "peak_scaling": {
+      "parameter": "num_frames",
+      "base_bytes": 15641180647,
+      "bytes_per_unit": 17401368.4,
+      "measured_range": [
+        25.0,
+        97.0
+      ],
+      "r_squared": 0.9088
+    },
+    "warmup_ms": 8805,
+    "latency_ms_p50": 21374,
+    "throughput": "1 sortie / 22.2 s"
+  },
+  "cases": [
+    {
+      "id": "court-25",
+      "ok": true,
+      "duration_ms": 21374,
+      "metrics": {
+        "duration_ms": 21374,
+        "seed": 1,
+        "steps": 20,
+        "guidance_scale": 3.0,
+        "width": 256,
+        "height": 256,
+        "num_frames": 25,
+        "fps": 16,
+        "duration_seconds": 1.562,
+        "frames_written": 25,
+        "dtype": "bfloat16",
+        "generate_ms": 21085,
+        "ms_per_step": 1054.2,
+        "ms_per_frame": 843.4,
+        "mps_current_allocated_bytes": 15241347072,
+        "mps_driver_allocated_bytes": 16229007360,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 16229007360
+      },
+      "error": null
+    },
+    {
+      "id": "moyen-49",
+      "ok": true,
+      "duration_ms": 15810,
+      "metrics": {
+        "duration_ms": 15810,
+        "seed": 2,
+        "steps": 20,
+        "guidance_scale": 3.0,
+        "width": 256,
+        "height": 256,
+        "num_frames": 49,
+        "fps": 16,
+        "duration_seconds": 3.062,
+        "frames_written": 49,
+        "dtype": "bfloat16",
+        "generate_ms": 15753,
+        "ms_per_step": 787.6,
+        "ms_per_frame": 321.5,
+        "mps_current_allocated_bytes": 15241347072,
+        "mps_driver_allocated_bytes": 16264658944,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 16264658944
+      },
+      "error": null
+    },
+    {
+      "id": "long-97",
+      "ok": true,
+      "duration_ms": 29299,
+      "metrics": {
+        "duration_ms": 29299,
+        "seed": 3,
+        "steps": 20,
+        "guidance_scale": 3.0,
+        "width": 256,
+        "height": 256,
+        "num_frames": 97,
+        "fps": 16,
+        "duration_seconds": 6.062,
+        "frames_written": 97,
+        "dtype": "bfloat16",
+        "generate_ms": 29179,
+        "ms_per_step": 1459.0,
+        "ms_per_frame": 300.8,
+        "mps_current_allocated_bytes": 15241347072,
+        "mps_driver_allocated_bytes": 17405509632,
+        "mps_recommended_max_bytes": 19069665280,
+        "peak_memory_bytes": 17405509632
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

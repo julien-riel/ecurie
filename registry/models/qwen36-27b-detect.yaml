@@ -45,6 +45,15 @@ variants:
       - "La grille de coordonnées de cette famille n'a pas été vérifiée : `options.grid` porte le défaut de Qwen3-VL. Une grille fausse trace les boîtes à une fraction de leur place sans que rien n'échoue — regarder `overlay.png` du premier job."
       - "Aucun score de confiance : un VLM en produit un si on le lui demande, et rien dans son entraînement ne le calibre. Le contrat n'en déclare pas."
       - "Poids partagés avec qwen36-27b-describe, -ocr et -video — les déporter déplace les quatre."
+    profile:
+      disk_bytes: 15240953186
+      peak_unified_memory_bytes: 16956270152
+      warmup_ms: 4326
+      latency_ms_p50: 16877
+      throughput: "1 sortie / 14.0 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"
   - id: 4bit
     quantization: 4bit
     tier: hot

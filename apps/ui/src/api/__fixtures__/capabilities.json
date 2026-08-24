@@ -176,7 +176,9 @@
         "tracks.other": "audio/wav",
         "tracks.vocals": "audio/wav"
       },
-      "ready_variants": [],
+      "ready_variants": [
+        "htdemucs-mlx@fp32-mlx"
+      ],
       "required": [
         "audio"
       ],
@@ -283,6 +285,7 @@
         "text": "text/plain"
       },
       "ready_variants": [
+        "minicpm-o45-ecoute@4bit",
         "qwen2-audio-7b@4bit"
       ],
       "required": [
@@ -385,7 +388,9 @@
         "intrinsics": "application/json",
         "preview": "image/png"
       },
-      "ready_variants": [],
+      "ready_variants": [
+        "da3-large@fp32"
+      ],
       "required": [
         "image"
       ],
@@ -482,7 +487,10 @@
         "text": "text/plain"
       },
       "ready_variants": [
-        "qwen3-vl-8b-ocr@4bit"
+        "gemma4-12b-ocr@4bit",
+        "gemma4-12b-ocr@mxfp4",
+        "qwen3-vl-8b-ocr@4bit",
+        "qwen36-27b-ocr@mxfp4"
       ],
       "required": [
         "document"
@@ -580,7 +588,10 @@
         "overlay": "image/png"
       },
       "ready_variants": [
-        "qwen3-vl-8b-detect@4bit"
+        "gemma4-12b-detect@4bit",
+        "gemma4-12b-detect@mxfp4",
+        "qwen3-vl-8b-detect@4bit",
+        "qwen36-27b-detect@mxfp4"
       ],
       "required": [
         "image"
@@ -1132,7 +1143,9 @@
       "output_media_types": {
         "mesh": "model/gltf-binary"
       },
-      "ready_variants": [],
+      "ready_variants": [
+        "hunyuan3d-2.1-shape-mlx@mlx-bf16"
+      ],
       "required": [
         "image"
       ],
@@ -1242,9 +1255,13 @@
       },
       "ready_variants": [
         "gemma4-12b-describe@4bit",
+        "gemma4-12b-describe@mxfp4",
         "minicpm-o45-describe@4bit",
+        "minicpm-o45-describe@5bit",
         "minicpm-v46-describe@4bit",
-        "qwen3-vl-8b-describe@4bit"
+        "minicpm-v46-describe@bf16",
+        "qwen3-vl-8b-describe@4bit",
+        "qwen36-27b-describe@mxfp4"
       ],
       "required": [
         "image"
@@ -1340,7 +1357,9 @@
       "output_media_types": {
         "video": "video/mp4"
       },
-      "ready_variants": [],
+      "ready_variants": [
+        "ltx-video-2b-i2v@bf16"
+      ],
       "required": [
         "image"
       ],
@@ -1749,8 +1768,10 @@
       },
       "ready_variants": [
         "gemma4-12b-texte@4bit",
+        "gemma4-12b-texte@mxfp4",
         "qwen25-coder-7b@4bit",
-        "qwen36-27b-texte@4bit"
+        "qwen36-27b-texte@4bit",
+        "qwen36-27b-texte@mxfp4"
       ],
       "required": [
         "prompt"
@@ -2105,7 +2126,9 @@
       "output_media_types": {
         "video": "video/mp4"
       },
-      "ready_variants": [],
+      "ready_variants": [
+        "ltx-video-2b@bf16"
+      ],
       "required": [
         "prompt"
       ],
@@ -2251,7 +2274,9 @@
       },
       "ready_variants": [
         "gemma4-12b-outils@4bit",
-        "qwen3-4b-outils@4bit"
+        "gemma4-12b-outils@mxfp4",
+        "qwen3-4b-outils@4bit",
+        "qwen36-27b-outils@mxfp4"
       ],
       "required": [
         "task",
@@ -2350,7 +2375,9 @@
       },
       "ready_variants": [
         "gemma4-12b-traduction@4bit",
-        "qwen3-4b-traduction@4bit"
+        "gemma4-12b-traduction@mxfp4",
+        "qwen3-4b-traduction@4bit",
+        "qwen36-27b-traduction@mxfp4"
       ],
       "required": [
         "text",
@@ -2598,7 +2625,10 @@
         "text": "text/plain"
       },
       "ready_variants": [
-        "qwen3-vl-8b-video@4bit"
+        "gemma4-12b-video@4bit",
+        "gemma4-12b-video@mxfp4",
+        "qwen3-vl-8b-video@4bit",
+        "qwen36-27b-video@mxfp4"
       ],
       "required": [
         "video"

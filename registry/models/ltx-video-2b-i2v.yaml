@@ -49,3 +49,18 @@ variants:
       - "Sans `prompt`, la séquence produite est quasi fixe : ce modèle a besoin d'une consigne de mouvement, contrairement à ceux pour qui le contrat rend le champ facultatif."
       - "L'image de départ est redimensionnée sur la grille du modèle — multiples de 32 —, rapport de forme conservé. Le cadrage exact d'origine n'est donc pas garanti au pixel près."
       - "Poids partagés avec ltx-video-2b — les déporter avec `ecurie store tier` déplace les deux."
+    profile:
+      disk_bytes: 15242331197
+      peak_unified_memory_bytes: 17405509632
+      peak_scaling:
+        parameter: "num_frames"
+        base_bytes: 15641180647
+        bytes_per_unit: 17401368.4
+        measured_range: [25.0, 97.0]
+        r_squared: 0.9088
+      warmup_ms: 8805
+      latency_ms_p50: 21374
+      throughput: "1 sortie / 22.2 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"
