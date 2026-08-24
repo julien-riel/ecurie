@@ -10,12 +10,12 @@
 #
 # Le `.venv` n'est pas versionné, ce fichier l'est.
 #
-# Ce que cet env ne sert pas encore : l'adaptateur de `audio-separation` n'est
-# pas écrit. Les poids sont téléchargés (168 Mo, `htdemucs-mlx@fp32-mlx`) et le
-# manifeste est au registre ; il manque le module worker. Le déclarer d'avance
-# n'est pas prématuré — c'est ce qui fait dire au contrôle de préparation
-# « environnement non synchronisé » plutôt que « environnement inconnu », et la
-# première des deux phrases porte la commande qui répare.
+# Ce que cet env sert : `ecurie_runtime.workers.demucs_separate`, l'adaptateur de
+# la capacité `audio-separation`, sur les poids `htdemucs-mlx@fp32-mlx` (168 Mo).
+# Il a été écrit après coup, et la campagne d'essai du 23 août 2026 a montré
+# pourquoi il fallait aussi l'inscrire dans `WORKER_MODULES_BY_CAPABILITY` : sans
+# cette ligne, le superviseur lançait ici le worker TTS du runtime `mlx-audio`,
+# qui cherchait dans cet env un paquet `mlx_audio` qui n'y est pas.
 
 [project]
 name = "ecurie-runtime-mlx-audiogen"

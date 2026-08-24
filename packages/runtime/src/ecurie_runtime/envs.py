@@ -56,6 +56,14 @@ WORKER_MODULES_BY_CAPABILITY = {
     # Cinquième emploi, et le second à faire parler : choisir une voix qu'on
     # embarque et imiter une voix qu'on reçoit ne se remplacent pas l'un l'autre.
     ("mlx-audio", "voice-clone"): "ecurie_runtime.workers.omnivoice",
+    # Septième et huitième emplois, et les deux seuls qui ne produisent pas de
+    # texte à partir d'un son : ils rendent du son. Sans ces deux lignes, les
+    # variants correspondants tombaient sur le worker générique du runtime — le
+    # TTS — qui refusait DeepFilterNet3 par « Model type deepfilternet3 not
+    # supported for tts », et cherchait `mlx_audio` dans l'env `mlx-audiogen`
+    # où il n'est pas. Deux capacités du registre n'étaient servies par rien.
+    ("mlx-audio", "audio-denoise"): "ecurie_runtime.workers.dfn3_denoise",
+    ("mlx-audio", "audio-separation"): "ecurie_runtime.workers.demucs_separate",
     # Mêmes poids que la lecture de document, autre question posée : décrire une
     # image et transcrire une page ne partagent ni l'appel ni la sortie.
     ("mlx-vlm", "image-to-text"): "ecurie_runtime.workers.mlx_vlm_describe",
@@ -77,6 +85,14 @@ WORKER_MODULES_BY_CAPABILITY = {
     # Ce qui le distingue de la retouche tient à `strength`, qui décide ici du
     # nombre de pas réellement exécutés.
     ("diffusers-mps", "image-to-image"): "ecurie_runtime.workers.diffusers_img2img",
+    # Les deux capacités vidéo de ce runtime. Elles ne pouvaient pas se contenter
+    # du worker générique : celui-ci charge par `AutoPipelineForText2Image`, et
+    # `AutoPipeline` ne connaît aucun pipeline vidéo — sur LTX il échouait en deux
+    # secondes, avant toute question de mémoire, par « can't find a pipeline
+    # linked to LTXPipeline ». Deux modules parce que deux pipelines : partir du
+    # texte seul ou conditionner sur une image de départ ne sont pas le même appel.
+    ("diffusers-mps", "text-to-video"): "ecurie_runtime.workers.ltx_video",
+    ("diffusers-mps", "image-to-video"): "ecurie_runtime.workers.ltx_video_i2v",
     # Un modèle de langue sert trois capacités, et chacune a sa façon de
     # composer l'invite et de lire la réponse : traduire attend du texte,
     # appeler un outil attend du JSON validable.

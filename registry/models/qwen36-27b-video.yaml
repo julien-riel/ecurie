@@ -50,6 +50,15 @@ variants:
       - "Le raisonnement à voix haute est coupé par l'adaptateur (`options.thinking: false`), qui transmet `enable_thinking` au gabarit. Le rallumer change ce que la capacité mesure."
       - "Le chemin vidéo natif de mlx-vlm est inutilisable avec les poids du titulaire ; son comportement avec ceux-ci n'a pas été éprouvé."
       - "Poids partagés avec qwen36-27b-describe, -ocr et -detect — les déporter déplace les quatre."
+    profile:
+      disk_bytes: 15240953186
+      peak_unified_memory_bytes: 18714456000
+      warmup_ms: 3898
+      latency_ms_p50: 27599
+      throughput: "1 sortie / 28.9 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"
   - id: 4bit
     quantization: 4bit
     tier: hot

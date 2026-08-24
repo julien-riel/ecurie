@@ -1,0 +1,42 @@
+{
+  "capability": "audio-separation",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Un mélange calculé à quatre pistes — basse, batterie, harmonie, voix —, soumis trois fois : en deux pistes, en quatre, puis avec des tranches plus courtes. Le réseau produit toujours quatre sorties, si bien que `stems` ne change pas le calcul mais la sortie ; c'est `segment_seconds` qui décide de la mémoire, le morceau étant traité par tranches recouvrantes. L'entrée est de la musique et non de la parole : HTDemucs a appris sur MUSDB18, et une voix seule lui fait rendre des pistes hors échelle. Les cas ne changent jamais.",
+  "scaling_parameter": "segment_seconds",
+  "cases": [
+    {
+      "id": "deux-pistes",
+      "input": {
+        "audio": "assets/melange-quatre-pistes.wav",
+        "stems": 2,
+        "shifts": 1,
+        "segment_seconds": 10
+      },
+      "source": {
+        "recipe": "musique",
+        "frequence": 44100,
+        "secondes": 12.0,
+        "tempo": 100.0,
+        "graine": 1
+      }
+    },
+    {
+      "id": "quatre-pistes",
+      "input": {
+        "audio": "assets/melange-quatre-pistes.wav",
+        "stems": 4,
+        "shifts": 1,
+        "segment_seconds": 10
+      }
+    },
+    {
+      "id": "tranches-courtes",
+      "input": {
+        "audio": "assets/melange-quatre-pistes.wav",
+        "stems": 4,
+        "shifts": 1,
+        "segment_seconds": 4
+      }
+    }
+  ]
+}

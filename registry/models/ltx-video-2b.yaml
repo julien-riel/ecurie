@@ -62,3 +62,18 @@ variants:
       - "Licence LTXV Open Weights : dérivée d'OpenRAIL, avec restrictions d'usage et un seuil de chiffre d'affaires. À lire avant tout emploi professionnel."
       - "Poids partagés avec ltx-video-2b-i2v — les déporter avec `ecurie store tier` déplace les deux."
       - "0.9.1 et non 0.9.8 : les versions récentes ne sont publiées qu'en checkpoint monolithique ou en 13B, et aucune conversion bf16 au format diffusers n'en existe. C'est la version la plus récente qui tienne dans le budget."
+    profile:
+      disk_bytes: 15242331197
+      peak_unified_memory_bytes: 18688720896
+      peak_scaling:
+        parameter: "num_frames"
+        base_bytes: 15634443702
+        bytes_per_unit: 32281161.1
+        measured_range: [25.0, 97.0]
+        r_squared: 0.9712
+      warmup_ms: 12289
+      latency_ms_p50: 38824
+      throughput: "1 sortie / 51.7 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

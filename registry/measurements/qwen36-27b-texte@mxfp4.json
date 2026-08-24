@@ -1,0 +1,71 @@
+{
+  "ref": "qwen36-27b-texte@mxfp4",
+  "model": "qwen36-27b-texte",
+  "variant": "mxfp4",
+  "capability": "text-generation",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+  "measured_at": "2026-08-23",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/text-generation.json",
+    "version": 1,
+    "cases": [
+      "court-128",
+      "moyen-512",
+      "long-1536"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 15240953186,
+    "peak_unified_memory_bytes": 15619308546,
+    "warmup_ms": 4770,
+    "latency_ms_p50": 28333,
+    "throughput": "1 sortie / 76.7 s"
+  },
+  "cases": [
+    {
+      "id": "court-128",
+      "ok": true,
+      "duration_ms": 8242,
+      "metrics": {
+        "duration_ms": 8242,
+        "characters": 222,
+        "prompt_tokens": 31,
+        "generation_tokens": 45,
+        "tokens_per_second": 5.48,
+        "peak_memory_bytes": 15531817112
+      },
+      "error": null
+    },
+    {
+      "id": "moyen-512",
+      "ok": true,
+      "duration_ms": 28333,
+      "metrics": {
+        "duration_ms": 28333,
+        "characters": 785,
+        "prompt_tokens": 56,
+        "generation_tokens": 240,
+        "tokens_per_second": 8.47,
+        "peak_memory_bytes": 15591052284
+      },
+      "error": null
+    },
+    {
+      "id": "long-1536",
+      "ok": true,
+      "duration_ms": 193640,
+      "metrics": {
+        "duration_ms": 193640,
+        "characters": 5735,
+        "prompt_tokens": 65,
+        "generation_tokens": 1536,
+        "tokens_per_second": 7.93,
+        "peak_memory_bytes": 15619308546
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

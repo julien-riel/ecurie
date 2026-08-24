@@ -1,0 +1,73 @@
+{
+  "ref": "qwen36-27b-video@mxfp4",
+  "model": "qwen36-27b-video",
+  "variant": "mxfp4",
+  "capability": "video-to-text",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+  "measured_at": "2026-08-23",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/video-to-text.json",
+    "version": 1,
+    "cases": [
+      "images-4",
+      "images-8",
+      "images-16"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 15240953186,
+    "peak_unified_memory_bytes": 18714456000,
+    "warmup_ms": 3898,
+    "latency_ms_p50": 27599,
+    "throughput": "1 sortie / 28.9 s"
+  },
+  "cases": [
+    {
+      "id": "images-4",
+      "ok": true,
+      "duration_ms": 21534,
+      "metrics": {
+        "duration_ms": 21534,
+        "characters": 379,
+        "generation_tokens": 98,
+        "tokens_per_second": 4.6,
+        "frames_sampled": 4,
+        "peak_memory_bytes": 17610097986
+      },
+      "error": null
+    },
+    {
+      "id": "images-8",
+      "ok": true,
+      "duration_ms": 27599,
+      "metrics": {
+        "duration_ms": 27599,
+        "characters": 333,
+        "generation_tokens": 94,
+        "tokens_per_second": 3.41,
+        "frames_sampled": 8,
+        "peak_memory_bytes": 18290953958
+      },
+      "error": null
+    },
+    {
+      "id": "images-16",
+      "ok": true,
+      "duration_ms": 37571,
+      "metrics": {
+        "duration_ms": 37571,
+        "characters": 246,
+        "generation_tokens": 62,
+        "tokens_per_second": 1.66,
+        "frames_sampled": 16,
+        "peak_memory_bytes": 18714456000
+      },
+      "error": null
+    }
+  ],
+  "warnings": [
+    "pente du pic mal ajustée (R² = 0.90) sur max_frames : la relation n'a pas l'air linéaire, le profil garde le pire cas mesuré"
+  ]
+}

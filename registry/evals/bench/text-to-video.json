@@ -1,0 +1,47 @@
+{
+  "capability": "text-to-video",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Une même consigne, une même définition, trois longueurs de séquence : c'est le nombre d'images qui pilote le pic mémoire, parce que le VAE 3D décode toute la séquence d'un coup. La définition reste à 512×320 et les pas à 20 pour que la pente mesurée porte sur la longueur et sur rien d'autre — un modèle vidéo de 15 Go de poids n'a pas la marge nécessaire pour faire varier deux choses à la fois sur une machine à 17,76 Gio. Les valeurs d'images sont des `8k+1`, la seule forme que ces modèles acceptent. Les cas ne changent jamais.",
+  "scaling_parameter": "num_frames",
+  "cases": [
+    {
+      "id": "court-25",
+      "input": {
+        "prompt": "Une pomme rouge posée sur une table en bois clair, la caméra avance lentement vers elle.",
+        "width": 512,
+        "height": 320,
+        "num_frames": 25,
+        "fps": 16,
+        "steps": 20,
+        "guidance_scale": 3.0,
+        "seed": 1
+      }
+    },
+    {
+      "id": "moyen-49",
+      "input": {
+        "prompt": "Une pomme rouge posée sur une table en bois clair, la caméra avance lentement vers elle.",
+        "width": 512,
+        "height": 320,
+        "num_frames": 49,
+        "fps": 16,
+        "steps": 20,
+        "guidance_scale": 3.0,
+        "seed": 2
+      }
+    },
+    {
+      "id": "long-97",
+      "input": {
+        "prompt": "Une pomme rouge posée sur une table en bois clair, la caméra avance lentement vers elle.",
+        "width": 512,
+        "height": 320,
+        "num_frames": 97,
+        "fps": 16,
+        "steps": 20,
+        "guidance_scale": 3.0,
+        "seed": 3
+      }
+    }
+  ]
+}

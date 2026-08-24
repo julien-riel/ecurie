@@ -1,0 +1,81 @@
+{
+  "ref": "da3-large@fp32",
+  "model": "da3-large",
+  "variant": "fp32",
+  "capability": "depth-estimation",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/depth-estimation.json",
+    "version": 1,
+    "cases": [
+      "res-256",
+      "res-504",
+      "res-1008"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 1643845073,
+    "peak_unified_memory_bytes": 3757539328,
+    "peak_scaling": {
+      "parameter": "process_res",
+      "base_bytes": 3757539328,
+      "bytes_per_unit": 0.0,
+      "measured_range": [
+        256.0,
+        1008.0
+      ],
+      "r_squared": 1.0
+    },
+    "warmup_ms": 3647,
+    "latency_ms_p50": 718,
+    "throughput": "1 sortie / 1.2 s"
+  },
+  "cases": [
+    {
+      "id": "res-256",
+      "ok": true,
+      "duration_ms": 718,
+      "metrics": {
+        "duration_ms": 718,
+        "process_res": 256,
+        "device": "mps",
+        "infer_ms": 699,
+        "depth_range": 0.452917,
+        "peak_memory_bytes": 3757539328
+      },
+      "error": null
+    },
+    {
+      "id": "res-504",
+      "ok": true,
+      "duration_ms": 516,
+      "metrics": {
+        "duration_ms": 516,
+        "process_res": 504,
+        "device": "mps",
+        "infer_ms": 482,
+        "depth_range": 0.765229,
+        "peak_memory_bytes": 3757539328
+      },
+      "error": null
+    },
+    {
+      "id": "res-1008",
+      "ok": true,
+      "duration_ms": 2330,
+      "metrics": {
+        "duration_ms": 2330,
+        "process_res": 1008,
+        "device": "mps",
+        "infer_ms": 2219,
+        "depth_range": 0.695394,
+        "peak_memory_bytes": 3757539328
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

@@ -63,6 +63,15 @@ variants:
   # Le format standard, et de loin le plus téléchargé des deux. Il est inscrit
   # pour que la comparaison mxfp4 / affine soit possible, pas parce qu'il aurait
   # une chance de tenir dans le budget : il est plus lourd de 840 Mo.
+    profile:
+      disk_bytes: 15240953186
+      peak_unified_memory_bytes: 16877151224
+      warmup_ms: 3894
+      latency_ms_p50: 15634
+      throughput: "1 sortie / 25.6 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"
   - id: 4bit
     quantization: 4bit
     tier: hot

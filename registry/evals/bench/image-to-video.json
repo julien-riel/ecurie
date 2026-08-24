@@ -1,0 +1,44 @@
+{
+  "capability": "image-to-video",
+  "version": 1,
+  "description": "Charge type du banc d'essai. La même image de départ et la même consigne de mouvement, trois longueurs de séquence — c'est le nombre d'images qui pilote le pic, le VAE 3D décodant toute la séquence d'un coup. La définition de sortie n'est pas un paramètre de ce contrat : elle vient de l'image, ici un carré de 768 px que les modèles ramènent sur leur grille. La consigne de mouvement est fournie parce que certains modèles rendent une séquence quasi fixe sans elle, et qu'une charge type ne doit pas mesurer un cas dégénéré. Les cas ne changent jamais.",
+  "scaling_parameter": "num_frames",
+  "cases": [
+    {
+      "id": "court-25",
+      "input": {
+        "image": "assets/cube.png",
+        "prompt": "la caméra tourne lentement autour du cube",
+        "num_frames": 25,
+        "fps": 16,
+        "steps": 20,
+        "guidance_scale": 3.0,
+        "seed": 1
+      }
+    },
+    {
+      "id": "moyen-49",
+      "input": {
+        "image": "assets/cube.png",
+        "prompt": "la caméra tourne lentement autour du cube",
+        "num_frames": 49,
+        "fps": 16,
+        "steps": 20,
+        "guidance_scale": 3.0,
+        "seed": 2
+      }
+    },
+    {
+      "id": "long-97",
+      "input": {
+        "image": "assets/cube.png",
+        "prompt": "la caméra tourne lentement autour du cube",
+        "num_frames": 97,
+        "fps": 16,
+        "steps": 20,
+        "guidance_scale": 3.0,
+        "seed": 3
+      }
+    }
+  ]
+}

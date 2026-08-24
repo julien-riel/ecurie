@@ -1,0 +1,76 @@
+{
+  "ref": "minicpm-o45-ecoute@4bit",
+  "model": "minicpm-o45-ecoute",
+  "variant": "4bit",
+  "capability": "audio-to-text",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+  "measured_at": "2026-08-23",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/audio-to-text.json",
+    "version": 1,
+    "cases": [
+      "court",
+      "moyen",
+      "long"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 6157966275,
+    "peak_unified_memory_bytes": 7539386068,
+    "warmup_ms": 1805,
+    "latency_ms_p50": 44489,
+    "throughput": "1 sortie / 44.4 s"
+  },
+  "cases": [
+    {
+      "id": "court",
+      "ok": true,
+      "duration_ms": 44489,
+      "metrics": {
+        "duration_ms": 44489,
+        "characters": 818,
+        "generation_tokens": 256,
+        "tokens_per_second": 5.76,
+        "reasoning_characters": 0,
+        "seconds": 44.489,
+        "peak_memory_bytes": 7539356432
+      },
+      "error": null
+    },
+    {
+      "id": "moyen",
+      "ok": true,
+      "duration_ms": 45330,
+      "metrics": {
+        "duration_ms": 45330,
+        "characters": 818,
+        "generation_tokens": 256,
+        "tokens_per_second": 5.65,
+        "reasoning_characters": 0,
+        "seconds": 45.33,
+        "peak_memory_bytes": 7539386068
+      },
+      "error": null
+    },
+    {
+      "id": "long",
+      "ok": true,
+      "duration_ms": 43452,
+      "metrics": {
+        "duration_ms": 43452,
+        "characters": 818,
+        "generation_tokens": 256,
+        "tokens_per_second": 5.89,
+        "reasoning_characters": 0,
+        "seconds": 43.452,
+        "peak_memory_bytes": 7539386068
+      },
+      "error": null
+    }
+  ],
+  "warnings": [
+    "pente du pic mal ajustée (R² = 0.72) sur max_seconds : la relation n'a pas l'air linéaire, le profil garde le pire cas mesuré"
+  ]
+}

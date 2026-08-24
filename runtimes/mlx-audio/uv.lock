@@ -147,6 +147,8 @@ dependencies = [
     { name = "jinja2" },
     { name = "mlx" },
     { name = "mlx-audio" },
+    { name = "numpy" },
+    { name = "scipy" },
 ]
 
 [package.metadata]
@@ -154,6 +156,8 @@ requires-dist = [
     { name = "jinja2", specifier = ">=3.1" },
     { name = "mlx", specifier = ">=0.32.1" },
     { name = "mlx-audio", specifier = ">=0.5.0,<0.6" },
+    { name = "numpy", specifier = ">=2.0" },
+    { name = "scipy", specifier = ">=1.13" },
 ]
 
 [[package]]

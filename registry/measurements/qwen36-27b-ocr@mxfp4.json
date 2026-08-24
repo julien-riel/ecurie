@@ -1,0 +1,80 @@
+{
+  "ref": "qwen36-27b-ocr@mxfp4",
+  "model": "qwen36-27b-ocr",
+  "variant": "mxfp4",
+  "capability": "document-to-text",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+  "measured_at": "2026-08-23",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/document-to-text.json",
+    "version": 1,
+    "cases": [
+      "paragraphe",
+      "tableau",
+      "dense"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 15240953186,
+    "peak_unified_memory_bytes": 17059620410,
+    "warmup_ms": 4507,
+    "latency_ms_p50": 20715,
+    "throughput": "1 sortie / 20.9 s"
+  },
+  "cases": [
+    {
+      "id": "paragraphe",
+      "ok": true,
+      "duration_ms": 20715,
+      "metrics": {
+        "duration_ms": 20715,
+        "pages": 1,
+        "characters": 346,
+        "generation_tokens": 97,
+        "tokens_per_second": 4.68,
+        "seconds_per_page": 20.71,
+        "dpi": 200,
+        "format": "text",
+        "peak_memory_bytes": 16992224978
+      },
+      "error": null
+    },
+    {
+      "id": "tableau",
+      "ok": true,
+      "duration_ms": 13349,
+      "metrics": {
+        "duration_ms": 13349,
+        "pages": 1,
+        "characters": 229,
+        "generation_tokens": 79,
+        "tokens_per_second": 5.92,
+        "seconds_per_page": 13.35,
+        "dpi": 200,
+        "format": "markdown",
+        "peak_memory_bytes": 16910352478
+      },
+      "error": null
+    },
+    {
+      "id": "dense",
+      "ok": true,
+      "duration_ms": 28575,
+      "metrics": {
+        "duration_ms": 28575,
+        "pages": 1,
+        "characters": 421,
+        "generation_tokens": 203,
+        "tokens_per_second": 7.1,
+        "seconds_per_page": 28.57,
+        "dpi": 200,
+        "format": "markdown",
+        "peak_memory_bytes": 17059620410
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

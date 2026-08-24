@@ -62,3 +62,18 @@ variants:
       - "Profondeur relative, sans échelle métrique. `near` et `far` sont indispensables pour interpréter le PNG 16 bits — sans eux, l'image ne dit qu'un ordre."
       - "La sortie est rendue à la résolution de traitement (504 par défaut), pas à celle de l'image d'entrée : remettre une carte de profondeur à l'échelle par interpolation inventerait des distances qui n'ont pas été estimées."
       - "Le chargement lie deux copies du runtime OpenMP — celle de torch et celle de pycolmap. Le worker pose `KMP_DUPLICATE_LIB_OK` avant tout import lourd, faute de quoi la bibliothèque avorte le processus. Les deux paquets sont nécessaires au chemin d'inférence et aucun ne se recompile."
+    profile:
+      disk_bytes: 1643845073
+      peak_unified_memory_bytes: 3757539328
+      peak_scaling:
+        parameter: "process_res"
+        base_bytes: 3757539328
+        bytes_per_unit: 0.0
+        measured_range: [256.0, 1008.0]
+        r_squared: 1.0
+      warmup_ms: 3647
+      latency_ms_p50: 718
+      throughput: "1 sortie / 1.2 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / torch 2.13.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

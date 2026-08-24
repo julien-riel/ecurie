@@ -44,6 +44,15 @@ dependencies = [
     # défaut que le `requirements.txt` amont incomplet du v0.3 : une dépendance
     # que personne ne déclare parce que personne ne l'a rencontrée.
     "jinja2>=3.1",
+    # Le débruitage (`dfn3_denoise`) refait autour du réseau tout le traitement du
+    # signal de DeepFilterNet — STFT, banc ERB, filtre profond, synthèse. Les deux
+    # paquets arrivaient déjà par mlx-audio ; on les déclare parce qu'un
+    # adaptateur en dépend directement, et qu'une dépendance transitive qui
+    # disparaît est une panne qu'on ne voit qu'au premier job.
+    "numpy>=2.0",
+    # `scipy.signal.resample_poly` : le contrat expose une fréquence de sortie, et
+    # décimer sans filtrer replierait le haut du spectre dans la voix.
+    "scipy>=1.13",
 ]
 
 # Cet env n'est pas une bibliothèque : rien à construire, rien à installer de lui-même.

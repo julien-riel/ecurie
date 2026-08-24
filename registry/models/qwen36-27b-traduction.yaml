@@ -59,3 +59,12 @@ variants:
       thinking: false
     caveats:
       - "840 Mo de moins que le variant 4bit. Non téléchargé."
+    profile:
+      disk_bytes: 15240953186
+      peak_unified_memory_bytes: 16190589704
+      warmup_ms: 3834
+      latency_ms_p50: 9178
+      throughput: "1 sortie / 10.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"

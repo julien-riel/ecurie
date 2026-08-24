@@ -1,0 +1,94 @@
+{
+  "ref": "htdemucs-mlx@fp32-mlx",
+  "model": "htdemucs-mlx",
+  "variant": "fp32-mlx",
+  "capability": "audio-separation",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-audiogen 0.2.0",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/audio-separation.json",
+    "version": 1,
+    "cases": [
+      "deux-pistes",
+      "quatre-pistes",
+      "tranches-courtes"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 168004409,
+    "peak_unified_memory_bytes": 2664448484,
+    "peak_scaling": {
+      "parameter": "segment_seconds",
+      "base_bytes": 289641977,
+      "bytes_per_unit": 237480650.7,
+      "measured_range": [
+        4.0,
+        10.0
+      ],
+      "r_squared": 1.0
+    },
+    "warmup_ms": 168,
+    "latency_ms_p50": 989,
+    "rtf": 0.078278,
+    "throughput": "12.78× temps réel"
+  },
+  "cases": [
+    {
+      "id": "deux-pistes",
+      "ok": true,
+      "duration_ms": 1078,
+      "metrics": {
+        "duration_ms": 1078,
+        "stems": 2,
+        "sources_computed": 4,
+        "segment_seconds": 10.0,
+        "overlap": 0.25,
+        "sample_rate": 44100,
+        "resampled": false,
+        "peak_memory_bytes": 2664448484,
+        "audio_seconds": 12.0,
+        "rtf": 0.0869
+      },
+      "error": null
+    },
+    {
+      "id": "quatre-pistes",
+      "ok": true,
+      "duration_ms": 989,
+      "metrics": {
+        "duration_ms": 989,
+        "stems": 4,
+        "sources_computed": 4,
+        "segment_seconds": 10.0,
+        "overlap": 0.25,
+        "sample_rate": 44100,
+        "resampled": false,
+        "peak_memory_bytes": 2664448484,
+        "audio_seconds": 12.0,
+        "rtf": 0.0804
+      },
+      "error": null
+    },
+    {
+      "id": "tranches-courtes",
+      "ok": true,
+      "duration_ms": 751,
+      "metrics": {
+        "duration_ms": 751,
+        "stems": 4,
+        "sources_computed": 4,
+        "segment_seconds": 4.0,
+        "overlap": 0.25,
+        "sample_rate": 44100,
+        "resampled": false,
+        "peak_memory_bytes": 1239564580,
+        "audio_seconds": 12.0,
+        "rtf": 0.0603
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

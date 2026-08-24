@@ -81,3 +81,12 @@ variants:
       thinking: false
     caveats:
       - "2,62 Go contre 2,18 pour le 4 bits : sur un modèle de cette taille, l'écart est assez faible pour que la question de la quantification se pose autrement qu'ailleurs — 440 Mo de plus pour ne rien perdre du tout."
+    profile:
+      disk_bytes: 2621024573
+      peak_unified_memory_bytes: 3298969408
+      warmup_ms: 1456
+      latency_ms_p50: 1286
+      throughput: "1 sortie / 1.3 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-23"
+      harness_version: "0.3.0"
