@@ -11,7 +11,7 @@ listes de résidents sont volontairement données dans un ordre qui n'est pas
 l'ordre LRU.
 """
 
-from ecurie_core.config import Config
+from ecurie_core.config import Config, resolve_heavy_threshold
 from ecurie_runtime.admission import (
     DEFAULT_HEAVY_THRESHOLD,
     DEFAULT_MAX_HEAVY_RESIDENT,
@@ -22,6 +22,9 @@ from ecurie_runtime.admission import (
 )
 
 GIB = 1 << 30
+# Ce que Metal annonce sur la machine de référence (24 Go de mémoire unifiée),
+# et le budget sous lequel les 8 Gio du seuil ont été calés.
+BUDGET_REFERENCE = 19_069_665_280
 
 BUDGET_16 = Policy(budget_bytes=16 * GIB)
 BUDGET_32 = Policy(budget_bytes=32 * GIB)
@@ -43,10 +46,37 @@ def test_le_seuil_par_defaut_est_le_meme_des_deux_cotes():
 
     Deux valeurs qui divergent ne donneraient pas une erreur mais deux politiques
     — celle d'une machine configurée et celle d'un `Policy()` construit sans
-    config — dont une seule serait celle qu'on croit appliquer.
+    config — dont une seule serait celle qu'on croit appliquer. Le défaut de la
+    config est une part du budget ; c'est donc au budget de référence que les
+    deux doivent se rejoindre, à l'arrondi près.
     """
-    assert Config().heavy_threshold_bytes == DEFAULT_HEAVY_THRESHOLD
+    assert Config().heavy_threshold_bytes == "auto"
     assert Config().max_heavy_resident == DEFAULT_MAX_HEAVY_RESIDENT
+    résolu = resolve_heavy_threshold(Config(), BUDGET_REFERENCE)
+    assert abs(résolu - DEFAULT_HEAVY_THRESHOLD) < GIB // 10
+
+
+def test_le_seuil_auto_suit_le_budget_de_la_machine():
+    """Le sens de la règle se transporte d'un Mac à l'autre, pas sa valeur.
+
+    Sur la machine de référence, la voix (7,65 Gio) reste légère et l'image
+    (15,95) est lourde. Sur un Mac de 16 Go — budget ~11,8 Gio —, un seuil resté
+    à 8 Gio garderait la voix légère alors qu'elle occupe les deux tiers du
+    budget : deux « légers » de ce calibre ne tiennent plus ensemble, et la
+    politique croirait le contraire.
+    """
+    voix = 8_215_308_206  # 7,65 Gio, profil mesuré du parc
+
+    référence = resolve_heavy_threshold(Config(), BUDGET_REFERENCE)
+    assert voix < référence
+
+    petit = resolve_heavy_threshold(Config(), 11_824_000_000)
+    assert voix > petit
+
+
+def test_un_seuil_explicite_dans_la_config_l_emporte_sur_la_part():
+    """Le réglage reste un réglage : qui écrit un nombre d'octets l'obtient."""
+    assert resolve_heavy_threshold(Config(heavy_threshold_bytes=2 * GIB), 32 * GIB) == 2 * GIB
 
 
 # --- parc vide, et le refus qu'aucune éviction ne sauverait ------------------------

@@ -16,6 +16,8 @@ découle :
 
 import json
 
+from ecurie_core.config import resolve_heavy_threshold
+
 GIB = 1 << 30
 
 
@@ -106,12 +108,19 @@ def test_le_variant_porte_sa_reference_son_profil_et_son_environnement(client):
     assert variant["weights_path"].endswith("poids")
 
 
-def test_le_drapeau_lourd_suit_le_seuil_de_la_politique(client_factory, depot):
-    """8 Gio pile n'est pas lourd, un octet de plus l'est. C'est ce chiffre que
-    le bandeau de ressources traduit par « lancer déchargera X »."""
+def test_le_drapeau_lourd_suit_le_seuil_de_la_politique(client_factory, depot, config):
+    """Le seuil pile n'est pas lourd, un octet de plus l'est. C'est ce chiffre que
+    le bandeau de ressources traduit par « lancer déchargera X ».
+
+    Le seuil se déduit du budget de la machine et non d'une constante : l'écrire
+    en dur ici ferait passer le test sur le Mac de son auteur et échouer sur
+    celui du relecteur, ou pire, le ferait passer partout en mesurant autre
+    chose que ce que le serveur applique.
+    """
+    seuil = resolve_heavy_threshold(config, 16 * GIB)
     depot.capability("text-to-speech").env("mlx-audio")
-    depot.model("pile", peak_bytes=8 * GIB, incumbent=True)
-    depot.model("au-dessus", peak_bytes=8 * GIB + 1, incumbent=False)
+    depot.model("pile", peak_bytes=seuil, incumbent=True)
+    depot.model("au-dessus", peak_bytes=seuil + 1, incumbent=False)
     client = client_factory(depot)
 
     corps = client.get("/registry/models").json()

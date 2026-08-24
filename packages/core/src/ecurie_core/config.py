@@ -23,6 +23,11 @@ _AUTODETECT = {
 }
 
 
+# Part du budget mémoire au-delà de laquelle un variant est « lourd ». Calée sur
+# la machine de référence : 8 Gio pour les 17,76 Gio que Metal y annonce.
+HEAVY_THRESHOLD_RATIO = 0.45
+
+
 def ecurie_home() -> Path:
     return Path(os.environ.get("ECURIE_HOME", str(Path.home() / ".ecurie"))).expanduser()
 
@@ -57,7 +62,13 @@ class Config(BaseModel):
     # sur les 17,76 disponibles) et seules l'image et la musique se disputent la
     # place, ce qui est exactement ce que la règle veut dire.
     max_heavy_resident: int = Field(default=1, ge=0)
-    heavy_threshold_bytes: int = Field(default=8 * (1 << 30), ge=0)
+    # « auto » = une part du budget détecté, et non 8 Gio en dur. Les 8 Gio
+    # ci-dessus valent pour les 17,76 Gio de la machine de référence ; sur un Mac
+    # de 16 Go, dont le budget tombe à ~11,8 Gio, un seuil fixe déclare lourds
+    # les quatre profils du parc et ne discrimine plus rien — exactement le
+    # reproche fait aux 6 Go d'avant mesure. La part conserve le sens de la
+    # règle d'une machine à l'autre ; un nombre d'octets explicite la remplace.
+    heavy_threshold_bytes: Literal["auto"] | int = "auto"
     # Un worker résident oublié garderait sa mémoire indéfiniment : il se retire
     # de lui-même après ce délai sans travail. 0 = jamais.
     resident_idle_timeout_s: int = Field(default=1800, ge=0)
@@ -95,6 +106,19 @@ class Config(BaseModel):
     @property
     def plans_dir(self) -> Path:
         return ecurie_home() / "plans"
+
+
+def resolve_heavy_threshold(config: Config, budget_bytes: int) -> int:
+    """Le seuil de lourdeur en octets, pour ce budget-ci.
+
+    `core` ne connaît pas le budget — il est lu dans Metal par `runtime` —, donc
+    la résolution ne peut pas vivre dans le modèle. Elle vit ici plutôt que dans
+    `admission` parce que l'API en a besoin aussi, pour dire d'un variant s'il
+    est lourd sans rien admettre du tout.
+    """
+    if isinstance(config.heavy_threshold_bytes, int):
+        return config.heavy_threshold_bytes
+    return int(budget_bytes * HEAVY_THRESHOLD_RATIO)
 
 
 def autodetect_scan() -> ScanConfig:
@@ -138,7 +162,10 @@ def render_config(config: Config) -> str:
         "# Exécution : politique de résidence mémoire (ARCHITECTURE.md §7).",
         "# Un seul modèle lourd résident à la fois ; les légers restent chauds.",
         f"max_heavy_resident = {config.max_heavy_resident}",
-        f"heavy_threshold_bytes = {config.heavy_threshold_bytes}",
+        '# "auto" = une part du budget détecté (0,45) ; sinon un nombre d\'octets.',
+        f"heavy_threshold_bytes = {config.heavy_threshold_bytes!r}"
+        if isinstance(config.heavy_threshold_bytes, str)
+        else f"heavy_threshold_bytes = {config.heavy_threshold_bytes}",
         "# Un worker résident se retire seul après ce temps sans travail (0 = jamais).",
         f"resident_idle_timeout_s = {config.resident_idle_timeout_s}",
         "# `ecurie pull` refuse un téléchargement qui ferait passer l'espace libre",

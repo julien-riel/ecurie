@@ -14,6 +14,7 @@ from pathlib import Path
 import pytest
 import yaml
 from ecurie_core.config import Config, ScanConfig
+from ecurie_core.machine import machine_slug
 from ecurie_core.registry import load_registry
 from ecurie_runtime.envs import WorkerSpec
 from ecurie_runtime.supervisor import Supervisor
@@ -21,6 +22,9 @@ from ecurie_runtime.worker import Timeouts
 
 REPO_ROOT = Path(__file__).parents[3]
 GIB = 1 << 30
+# Le `measured_on` que `Parc.model()` inscrit au manifeste, et donc celui du
+# relevé que `Parc.mesure()` écrit par défaut.
+MACHINE_D_ESSAI = "machine d'essai"
 
 FAKE_ARGV = [sys.executable, "-m", "ecurie_runtime.workers.fake"]
 
@@ -112,7 +116,7 @@ def parc(tmp_path: Path):
                     "disk_bytes": 4096,
                     "peak_unified_memory_bytes": peak_bytes,
                     "warmup_ms": 10,
-                    "measured_on": "machine d'essai",
+                    "measured_on": MACHINE_D_ESSAI,
                     "measured_at": "2026-08-20",
                     "harness_version": "0.3.0",
                 }
@@ -129,11 +133,26 @@ def parc(tmp_path: Path):
             )
             return self
 
-        def mesure(self, ref: str, profile: dict) -> "Parc":
-            dossier = self.root / "registry" / "measurements"
+        def mesure(
+            self, ref: str, profile: dict, *, measured_on: str = MACHINE_D_ESSAI
+        ) -> "Parc":
+            """Un relevé, rangé par variant puis par machine comme le banc le range.
+
+            `measured_on` par défaut est celui que `model()` inscrit au manifeste :
+            le cas ordinaire est donc le relevé de la machine que le manifeste
+            nomme. Le passer explicitement simule le second Mac.
+            """
+            dossier = self.root / "registry" / "measurements" / ref
             dossier.mkdir(parents=True, exist_ok=True)
-            (dossier / f"{ref}.json").write_text(
-                json.dumps({"ref": ref, "profile": profile, "harness_version": "0.3.0"})
+            (dossier / f"{machine_slug(measured_on)}.json").write_text(
+                json.dumps(
+                    {
+                        "ref": ref,
+                        "measured_on": measured_on,
+                        "profile": profile,
+                        "harness_version": "0.3.0",
+                    }
+                )
             )
             return self
 

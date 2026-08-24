@@ -168,9 +168,10 @@ def test_bench_ecrit_la_mesure_et_affiche_le_patch(parc, cli):
     assert résultat.exit_code == 0, résultat.stdout
     assert "décharge tout le parc" in résultat.stdout
     assert "profile:" in résultat.stdout
-    mesure = parc.root / "registry" / "measurements" / "a-mesurer@essai.json"
-    assert mesure.is_file()
-    assert json.loads(mesure.read_text())["profile"]["peak_unified_memory_bytes"] > 0
+    dossier = parc.root / "registry" / "measurements" / "a-mesurer@essai"
+    relevés = list(dossier.glob("*.json"))
+    assert len(relevés) == 1, "un relevé, nommé d'après la machine qui a mesuré"
+    assert json.loads(relevés[0].read_text())["profile"]["peak_unified_memory_bytes"] > 0
 
 
 def test_env_list_dit_comment_reparer(parc, cli):

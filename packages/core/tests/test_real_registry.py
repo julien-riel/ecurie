@@ -9,7 +9,7 @@ Le seuil qui compte : `ecurie run` refuse de s'exécuter sur un registre en
 erreur, et la CI du v0.6 en fera un motif de rejet de PR.
 """
 
-from ecurie_core.registry import load_registry
+from ecurie_core.registry import load_registry, measurement_records
 
 FONDATEURS = {"qwen3-tts-1.7b", "hunyuan3d-2.1-shape-mlx", "trellis2"}
 
@@ -84,8 +84,9 @@ def test_les_contrats_de_capacite_couvrent_les_modeles(repo_root):
 def test_un_profil_committe_a_sa_mesure(repo_root):
     """« profile est rempli par le banc d'essai, pas à la main » (ARCHITECTURE.md §3).
 
-    Le fichier de measurements/ est l'autorité ; un bloc `profile:` sans lui est
-    une estimation déguisée, et le contrôle d'admission s'y fierait.
+    Les fichiers de measurements/ sont l'autorité — un par machine ayant mesuré ;
+    un bloc `profile:` sans aucun d'eux est une estimation déguisée, et le
+    contrôle d'admission s'y fierait.
     """
     reg = load_registry(repo_root)
     mesurés = [
@@ -95,6 +96,6 @@ def test_un_profil_committe_a_sa_mesure(repo_root):
         if v.profile is not None
     ]
     for model_id, variant_id in mesurés:
-        mesure = repo_root / "registry" / "measurements" / f"{model_id}@{variant_id}.json"
-        assert mesure.is_file(), f"{model_id}@{variant_id} : profil sans mesure"
+        relevés, _ = measurement_records(repo_root, f"{model_id}@{variant_id}")
+        assert relevés, f"{model_id}@{variant_id} : profil sans mesure"
     assert not any("sans mesure correspondante" in i.message for i in reg.warnings)

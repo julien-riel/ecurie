@@ -207,38 +207,111 @@ def _check_model(reg: Registry, model: Model, rel: str) -> None:
                 )
 
 
+# Ce qu'un relevé pris sur un Mac dit encore d'un autre : les poids sur le disque
+# et le pic mémoire, qui ne dépendent pas de qui les charge. `warmup_ms`,
+# `latency_ms_p50` et `throughput` en sont délibérément absents — ils mesurent la
+# machine autant que le modèle, et les comparer d'un poste à l'autre ne
+# reprocherait au manifeste que d'avoir été mesuré ailleurs.
+PORTABLE_FIELDS = ("peak_unified_memory_bytes", "disk_bytes")
+
+
+def measurement_records(root: Path, ref: str) -> tuple[list[tuple[str, dict]], list[Issue]]:
+    """Les relevés de ce variant, un par machine, et ce qui n'a pas pu être lu.
+
+    Un fichier corrompu est signalé sans faire disparaître ses voisins : sur un
+    dépôt partagé, le relevé illisible d'une machine ne doit pas priver le
+    validateur de ceux des autres.
+    """
+    chemins = sorted((root / MEASUREMENTS_DIR / ref).glob("*.json"))
+    # Disposition d'avant la mesure par machine : un fichier plat par variant.
+    # Toujours lue, pour qu'une branche antérieure à ce changement ne voie pas
+    # ses relevés disparaître d'un coup ; le banc n'écrit plus que dans le
+    # dossier.
+    plat = root / MEASUREMENTS_DIR / f"{ref}.json"
+    if plat.is_file():
+        chemins.append(plat)
+
+    relevés: list[tuple[str, dict]] = []
+    issues: list[Issue] = []
+    for chemin in chemins:
+        rel = str(chemin.relative_to(root))
+        try:
+            relevés.append((rel, json.loads(chemin.read_text())))
+        except json.JSONDecodeError as exc:
+            issues.append(Issue("error", rel, f"JSON illisible : {exc}"))
+        except OSError as exc:  # supprimé ou illisible entre le glob et la lecture
+            issues.append(Issue("error", rel, f"relevé illisible : {exc}"))
+    return relevés, issues
+
+
 def _check_profile(reg: Registry, model: Model, variant, ref: str, rel: str) -> list[Issue]:
     """Un bloc `profile:` doit être la copie d'une mesure, jamais une estimation.
 
     C'est la règle non négociable du §3 de l'architecture : le contrôle
     d'admission mémoire décide de charger ou de décharger sur la foi de ce
     chiffre. Un profil saisi à la main est un profil faux, et il se paie en swap.
-    Le fichier de `measurements/` est l'autorité ; le manifeste en est la copie
+    Les fichiers de `measurements/` sont l'autorité ; le manifeste en est la copie
     committée par un humain, et cette copie peut diverger — on le dit.
+
+    Il y a un relevé **par machine**, et le manifeste ne peut être la copie que de
+    l'un d'eux. On cherche donc d'abord celui dont le `measured_on` est exactement
+    celui que le manifeste annonce : c'est le seul cas où la comparaison est une
+    égalité et où l'on peut aussi reprocher une version de banc d'essai. À défaut
+    — le manifeste vient d'un poste dont ce clone n'a pas le relevé, ce qui est
+    l'ordinaire d'un dépôt partagé —, il suffit que ses chiffres portables
+    tombent d'accord avec **un** des relevés présents. Ce qu'on refuse reste ce
+    qu'on refusait : un profil qui ne correspond à aucune mesure.
     """
-    issues: list[Issue] = []
-    fichier = reg.root / MEASUREMENTS_DIR / f"{ref}.json"
-    if not fichier.is_file():
+    relevés, issues = measurement_records(reg.root, ref)
+    if not relevés:
         issues.append(
             Issue(
                 "warning",
                 rel,
                 f"{ref} : bloc profile: sans mesure correspondante "
-                f"({MEASUREMENTS_DIR}/{ref}.json) — le mesurer avec ecurie bench {ref}",
+                f"({MEASUREMENTS_DIR / ref}/) — le mesurer avec ecurie bench {ref}",
             )
         )
         return issues
 
-    try:
-        mesure = json.loads(fichier.read_text())
-    except json.JSONDecodeError as exc:
-        issues.append(
-            Issue("error", str(MEASUREMENTS_DIR / f"{ref}.json"), f"JSON illisible : {exc}")
-        )
+    exact = [
+        (chemin, doc)
+        for chemin, doc in relevés
+        if doc.get("measured_on") == variant.profile.measured_on
+    ]
+    if exact:
+        issues.extend(_compare_exact(exact[0], variant, ref, rel))
         return issues
 
+    if not any(_accorde(doc, variant) for _, doc in relevés):
+        machines = ", ".join(sorted({doc.get("measured_on", "?") for _, doc in relevés}))
+        issues.append(
+            Issue(
+                "warning",
+                rel,
+                f"{ref} : profile.measured_on dit {variant.profile.measured_on!r}, dont ce "
+                f"dépôt n'a pas le relevé, et ses chiffres ne correspondent à aucun de ceux "
+                f"qui s'y trouvent ({machines}) — remesurer avec ecurie bench {ref}",
+            )
+        )
+    return issues
+
+
+def _accorde(mesure: dict, variant) -> bool:
+    """Les chiffres portables du manifeste sont-ils ceux de ce relevé-ci ?"""
     mesuré = mesure.get("profile") or {}
-    for champ in ("peak_unified_memory_bytes", "disk_bytes"):
+    return all(
+        mesuré.get(champ) is None or getattr(variant.profile, champ) == mesuré.get(champ)
+        for champ in PORTABLE_FIELDS
+    )
+
+
+def _compare_exact(relevé: tuple[str, dict], variant, ref: str, rel: str) -> list[Issue]:
+    """Le relevé de la machine que le manifeste nomme : là, on attend l'égalité."""
+    _, mesure = relevé
+    issues: list[Issue] = []
+    mesuré = mesure.get("profile") or {}
+    for champ in PORTABLE_FIELDS:
         attendu, déclaré = mesuré.get(champ), getattr(variant.profile, champ)
         if attendu is not None and déclaré != attendu:
             issues.append(

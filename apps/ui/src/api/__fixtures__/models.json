@@ -41,7 +41,7 @@
           },
           "entrypoint": null,
           "env": "torch-vision",
-          "heavy": false,
+          "heavy": true,
           "id": "fp16",
           "options": null,
           "profile": {
@@ -1450,7 +1450,7 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": false,
+          "heavy": true,
           "id": "5bit",
           "options": {
             "thinking": false
@@ -2268,7 +2268,7 @@
           },
           "entrypoint": null,
           "env": "mlx-audio",
-          "heavy": false,
+          "heavy": true,
           "id": "8bit-mlx",
           "options": null,
           "profile": {
@@ -3689,7 +3689,7 @@
           },
           "entrypoint": null,
           "env": "diffusers-mps",
-          "heavy": false,
+          "heavy": true,
           "id": "fp16",
           "options": null,
           "profile": {

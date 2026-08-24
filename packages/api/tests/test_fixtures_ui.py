@@ -16,6 +16,15 @@ signale.
 Le test vit ici, dans la suite pytest, pour la même raison que
 `test_openapi_fige.py` : c'est celui qui édite `registry/` qui doit être averti,
 et il ne lance pas `npm test`.
+
+Ce qu'il ne garde pas, et il faut le dire : les champs que la capture tire du
+disque — `ready`, `blockers`, `weights_path`, `ready_variants`. Ils figurent bien
+dans les fichiers committés, le front s'en sert, mais ils décrivent le parc
+téléchargé de qui a régénéré. Sur un dépôt partagé entre plusieurs Macs, les
+comparer ne dirait pas « le registre a bougé », il dirait « tu n'as pas les mêmes
+poids que l'auteur » — dans tous les clones sauf un. Les rendre indépendants de
+la machine demanderait de décider ce que « prêt » veut dire dans un instantané,
+et les trois états de capacité du front en dépendent : c'est un autre chantier.
 """
 
 import importlib.util
@@ -40,14 +49,31 @@ def _capture(root: Path) -> dict:
     return module.capture(root)
 
 
+# Ce que la capture tire du **disque** et non du registre : quels poids sont
+# téléchargés ici, et où. Ces champs sont dans les fichiers committés — le front
+# en a besoin pour ses trois états de capacité —, mais ils disent le parc de qui
+# a régénéré, et personne d'autre n'a le même. Les comparer ferait échouer ce
+# test dans tout clone sauf un, pour une divergence qui n'est pas celle qu'il
+# surveille : le registre.
+ETAT_DISQUE = ("ready", "blockers", "weights_path", "ready_variants")
+
+
+def _sans_etat_disque(valeur):
+    if isinstance(valeur, dict):
+        return {c: _sans_etat_disque(v) for c, v in valeur.items() if c not in ETAT_DISQUE}
+    if isinstance(valeur, list):
+        return [_sans_etat_disque(v) for v in valeur]
+    return valeur
+
+
 @pytest.mark.parametrize("nom", NOMS)
 def test_les_fixtures_du_front_refletent_le_registre(nom: str):
     chemin = DOSSIER / f"{nom}.json"
     if not chemin.exists():
         pytest.skip("apps/ui absent : le front n'est pas installé dans cette copie")
 
-    attendu = _capture(REPO_ROOT)[nom]
-    figé = json.loads(chemin.read_text(encoding="utf-8"))
+    attendu = _sans_etat_disque(_capture(REPO_ROOT)[nom])
+    figé = _sans_etat_disque(json.loads(chemin.read_text(encoding="utf-8")))
 
     assert figé == attendu, (
         f"la fixture {nom}.json du front ne reflète plus le registre.\n"

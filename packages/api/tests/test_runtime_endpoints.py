@@ -17,6 +17,8 @@ Deux propriétés tiennent ce module :
 
 import os
 
+from ecurie_core.config import HEAVY_THRESHOLD_RATIO
+
 GIB = 1 << 30
 PID_MORT = 4_194_303  # au-delà de pid_max sur macOS : sûrement libre, jamais le nôtre
 
@@ -44,10 +46,13 @@ def test_un_parc_vide_annonce_le_budget_et_la_politique(client):
     assert corps["budget_measured"] is False
     assert corps["used_bytes"] == 0
     assert corps["free_bytes"] == 16 * GIB
+    # Le seuil servi est celui qu'appliquera l'admission, donc celui que la part
+    # par défaut tire du budget de cette machine — pas les 8 Gio de la machine de
+    # référence, qui ne veulent rien dire sous un budget de 16 Gio.
     assert corps["policy"] == {
         "budget_bytes": 16 * GIB,
         "max_heavy_resident": 1,
-        "heavy_threshold_bytes": 8 * GIB,
+        "heavy_threshold_bytes": int(16 * GIB * HEAVY_THRESHOLD_RATIO),
     }
     assert corps["residents"] == []
     assert corps["stale"] == []

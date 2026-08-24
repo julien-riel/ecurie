@@ -10,12 +10,20 @@ résident à la fois, les petits restent chauds. Un `warmup_ms` de 2,4 s payé �
 chaque phrase de synthèse rend l'outil désagréable ; c'est la raison d'être des
 résidents.
 
-Le seuil de lourdeur vaut 8 Gio, corrigé des 6 Go que l'architecture avançait
-avant toute mesure : à 6 Go, les quatre profils du parc réel sont tous lourds et
-la règle ne discrimine plus rien. Il doit rester d'accord avec le défaut de
-`Config.heavy_threshold_bytes` — `core` ne peut pas dépendre de `runtime`, donc
-la constante est écrite deux fois et un test vérifie qu'elles disent la même
-chose.
+Le seuil de lourdeur vaut 8 Gio sur la machine de référence, corrigé des 6 Go
+que l'architecture avançait avant toute mesure : à 6 Go, les quatre profils du
+parc réel sont tous lourds et la règle ne discrimine plus rien.
+
+Mais 8 Gio n'est pas un absolu, c'est **une part du budget** — 45 % des 17,76 Gio
+que Metal annonce sur cette machine-là. Sur un Mac de 16 Go, dont le budget tombe
+à ~11,8 Gio, un seuil resté à 8 Gio commettrait la faute qu'on reprochait aux
+6 Go : tout devient lourd, plus rien ne cohabite. `Config.heavy_threshold_bytes`
+vaut donc « auto » par défaut, et `resolve_heavy_threshold` en tire les octets à
+partir du budget détecté. Un nombre explicite dans la config le remplace.
+
+La constante ci-dessous n'est plus que le défaut de `Policy` construite sans
+config — les tests, pour l'essentiel. Elle reste d'accord avec la part, et un
+test le vérifie au budget de référence.
 
 Deux refus explicites valent mieux qu'un swap subi :
 - un variant **sans profil mesuré** n'est pas admis en usage courant. Il passe
