@@ -1,0 +1,75 @@
+# Empreinte d'identité — ArcFace, servi par uniface en ONNX.
+#
+# ATTENTION — DEUX RESTRICTIONS SE CUMULENT ICI, et aucune des deux ne se déduit
+# de l'autre.
+#
+# La première est juridique. InsightFace publie son **code** sous MIT et écrit
+# deux fois dans son README, puis une troisième dans son model zoo, que **tous
+# ses modèles pré-entraînés sont réservés à un usage de recherche non
+# commerciale**. `license_class: research-only` est donc la valeur exacte, et le
+# score de veille la traite comme telle.
+#
+# La seconde est d'usage, et c'est celle que le registre ne savait pas dire avant
+# cette famille : cette capacité **identifie des personnes réelles**. Le contrat
+# porte `human_subject: identifies`. Un modèle sous licence permissive poserait
+# exactement la même question ; c'est pourquoi elle est posée sur le contrat et
+# non sur le manifeste.
+id: arcface
+name: ArcFace (empreinte d'identité)
+capability: face-embed
+family: arcface
+vendor: InsightFace (Deng et al.)
+license: mit
+license_class: research-only
+status: candidate
+
+notes: >
+  Inscrit comme référence de comparaison, pas comme titulaire : c'est EdgeFace
+  qui sert cette capacité au parc, à qualité moindre mais sous BSD-3. Un usage
+  professionnel de ce manifeste-ci est exclu par sa licence, et le score de
+  veille du projet écarte `research-only` d'office.
+
+  Entraîné sur MS1M-V2, dont InsightFace distribue les données sous la même
+  réserve. La restriction porte donc sur les poids par deux chemins
+  indépendants.
+
+links:
+  homepage: https://github.com/yakhyo/uniface
+  code: https://github.com/deepinsight/insightface
+  paper: https://arxiv.org/abs/1801.07698
+
+variants:
+  - id: resnet
+    quantization: fp32
+    tier: hot
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["arcface_resnet.onnx", "retinaface_mnet050.onnx"]
+    options:
+      weights: arcface_resnet
+      detector: retinaface_mnet050
+    defaults:
+      confidence_threshold: 0.5
+      max_faces: 10
+      normalize: true
+    caveats:
+      - "USAGE DE RECHERCHE NON COMMERCIALE UNIQUEMENT — voir l'en-tête du manifeste."
+      - "166 Mo, le plus gros jeu de poids de la famille visage, pour la même sortie de 512 dimensions que les 14 Mo d'EdgeFace."
+    profile:
+      disk_bytes: 181031751
+      peak_unified_memory_bytes: 1204092928
+      peak_scaling:
+        parameter: "max_faces"
+        base_bytes: 1204092928
+        bytes_per_unit: 0.0
+        measured_range: [1.0, 4.0]
+        r_squared: 1.0
+      warmup_ms: 1950
+      latency_ms_p50: 40
+      throughput: "1 sortie / 0.0 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

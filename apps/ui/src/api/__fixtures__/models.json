@@ -13,6 +13,83 @@
   ],
   "models": [
     {
+      "capability": "face-embed",
+      "family": "arcface",
+      "id": "arcface",
+      "incumbent": false,
+      "license": "mit",
+      "license_class": "research-only",
+      "links": {
+        "code": "https://github.com/deepinsight/insightface",
+        "homepage": "https://github.com/yakhyo/uniface",
+        "paper": "https://arxiv.org/abs/1801.07698"
+      },
+      "name": "ArcFace (empreinte d'identité)",
+      "notes": "Inscrit comme référence de comparaison, pas comme titulaire : c'est EdgeFace qui sert cette capacité au parc, à qualité moindre mais sous BSD-3. Un usage professionnel de ce manifeste-ci est exclu par sa licence, et le score de veille du projet écarte `research-only` d'office.\nEntraîné sur MS1M-V2, dont InsightFace distribue les données sous la même réserve. La restriction porte donc sur les poids par deux chemins indépendants.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "USAGE DE RECHERCHE NON COMMERCIALE UNIQUEMENT — voir l'en-tête du manifeste.",
+            "166 Mo, le plus gros jeu de poids de la famille visage, pour la même sortie de 512 dimensions que les 14 Mo d'EdgeFace."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "max_faces": 10,
+            "normalize": true
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": false,
+          "id": "resnet",
+          "options": {
+            "detector": "retinaface_mnet050",
+            "weights": "arcface_resnet"
+          },
+          "profile": {
+            "disk_bytes": 181031751,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 40,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+            "peak_scaling": {
+              "base_bytes": 1204092928,
+              "bytes_per_unit": 0.0,
+              "measured_range": [
+                1.0,
+                4.0
+              ],
+              "parameter": "max_faces",
+              "r_squared": 1.0
+            },
+            "peak_unified_memory_bytes": 1204092928,
+            "rtf": null,
+            "throughput": "1 sortie / 0.0 s",
+            "warmup_ms": 1950
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "arcface@resnet",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "arcface_resnet.onnx",
+              "retinaface_mnet050.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "InsightFace (Deng et al.)"
+    },
+    {
       "capability": "image-matting",
       "family": "birefnet",
       "id": "birefnet",
@@ -78,6 +155,114 @@
         }
       ],
       "vendor": "Peng Zheng et al."
+    },
+    {
+      "capability": "face-parse",
+      "family": "bisenet",
+      "id": "bisenet-parsing",
+      "incumbent": false,
+      "license": "mit",
+      "license_class": "restricted",
+      "links": {
+        "code": "https://github.com/yakhyo/face-parsing",
+        "homepage": "https://github.com/yakhyo/uniface",
+        "paper": null
+      },
+      "name": "BiSeNet (régions du visage)",
+      "notes": "Dépôt sous MIT, entraînement sur CelebAMask-HQ, dont la licence réserve l'usage à la recherche non commerciale. Même arbitrage que pour `retinaface` et `pipnet` : `restricted`.\n**Le réseau travaille sur un visage cadré, le contrat promet une carte aux dimensions de l'entrée.** L'écart est absorbé par l'adaptateur, qui recadre, découpe puis recolle — un masque à la taille du crop, qu'il faudrait replacer soi-même en connaissant la boîte, ne serait utilisable par aucun compositeur, et sur une image à deux visages il y en aurait deux sans dire où les poser.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Dorsale ResNet-18, 51 Mo. Le compromis par défaut de la capacité.",
+            "Le cadrage est élargi de 25 % autour de la boîte du détecteur avant découpage : ce réseau est entraîné sur des visages cadrés large, front et menton compris, et la boîte nue lui fait étiqueter du cheveu en « peau ».",
+            "MESURÉ SUR LA CHARGE TYPE — LES RÉGIONS SONT JUSTES, LEURS ÉTIQUETTES PAS TOUJOURS. Sur les visages calculés de la charge, le réseau place correctement peau, nez, yeux, sourcils et lèvres, mais range de larges plages de joue et de front sous `hat` (33 000 pixels sur le plus grand visage) et ne rend qu'un sourcil sur deux. Ces visages n'ont pas de texture de peau : le réseau n'a rien à quoi se raccrocher là où une photo lui donne du grain. La charge mesure un coût, pas une qualité — c'est le golden set qui demandera de vraies photographies, et il faudra alors résoudre la question du consentement que cette charge-ci évite.",
+            "Entraîné sur CelebAMask-HQ, réservé à la recherche non commerciale — voir les notes."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "max_faces": 5
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": false,
+          "id": "r18",
+          "options": {
+            "detector": "retinaface_mnet050",
+            "weights": "parsing_resnet18"
+          },
+          "profile": {
+            "disk_bytes": 59853255,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 120,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 741769216,
+            "rtf": null,
+            "throughput": "1 sortie / 0.1 s",
+            "warmup_ms": 873
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "bisenet-parsing@r18",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "parsing_resnet18.onnx",
+              "retinaface_mnet050.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "bisenet-parsing@r34 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench bisenet-parsing@r34"
+          ],
+          "caveats": [
+            "Dorsale ResNet-34 : contours un peu plus fermes sur les cheveux et les oreilles, pour un coût mémoire supérieur. C'est le golden set qui devra dire si l'écart justifie la différence.",
+            "Entraîné sur CelebAMask-HQ — voir les notes."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "max_faces": 5
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": null,
+          "id": "r34",
+          "options": {
+            "detector": "retinaface_mnet050",
+            "weights": "parsing_resnet34"
+          },
+          "profile": null,
+          "quantization": "fp32",
+          "ready": false,
+          "ref": "bisenet-parsing@r34",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "parsing_resnet34.onnx",
+              "retinaface_mnet050.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Yakhyokhuja Valikhujaev, d'après Yu et al."
     },
     {
       "capability": "depth-estimation",
@@ -212,6 +397,229 @@
         }
       ],
       "vendor": "Hendrik Schröter et al. — conversion MLX par aufklarer"
+    },
+    {
+      "capability": "face-embed",
+      "family": "edgeface",
+      "id": "edgeface",
+      "incumbent": false,
+      "license": "bsd-3-clause",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/otroshi/edgeface",
+        "homepage": "https://github.com/yakhyo/uniface",
+        "paper": null
+      },
+      "name": "EdgeFace (empreinte d'identité)",
+      "notes": "Vecteurs de 512 dimensions depuis un carré de 112 pixels où les cinq points d'ancrage ont été amenés sur une position canonique. **C'est l'alignement qui fait la capacité** : un recadrage sur la boîte, sans redressement, donnerait un vecteur qui mesure surtout la pose. Ce variant exige donc un détecteur qui rende cinq points — l'adaptateur refuse net les autres plutôt que d'encoder un visage de travers.\nLes vecteurs de deux modèles de cette capacité ne se comparent pas, même à dimension égale : ils n'appartiennent pas au même espace. Le document produit nomme donc le modèle qui l'a écrit, et la confrontation A/B de cette capacité portera sur des rangs, jamais sur des valeurs.\nMesuré sur la charge type : deux vues du même visage de synthèse, de face et de trois quarts, donnent un cosinus de 0,92.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "14 Mo pour 512 dimensions — douze fois plus léger qu'ArcFace ResNet, sous une licence qui autorise l'usage professionnel.",
+            "Exige un détecteur à cinq points d'ancrage. BlazeFace en rend six et échouerait ; tous les RetinaFace du parc conviennent."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "max_faces": 10,
+            "normalize": true
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": false,
+          "id": "s-gamma-05",
+          "options": {
+            "detector": "retinaface_mnet050",
+            "weights": "edgeface_s_gamma_05"
+          },
+          "profile": {
+            "disk_bytes": 21453405,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 89,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 584499200,
+            "rtf": null,
+            "throughput": "1 sortie / 0.1 s",
+            "warmup_ms": 932
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "edgeface@s-gamma-05",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "edgeface_s_gamma_05.onnx",
+              "retinaface_mnet050.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "edgeface@xxs : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench edgeface@xxs"
+          ],
+          "caveats": [
+            "La plus petite dorsale EdgeFace. À retenir quand le nombre de visages à encoder compte plus que la finesse de la distinction."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "max_faces": 10,
+            "normalize": true
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": null,
+          "id": "xxs",
+          "options": {
+            "detector": "retinaface_mnet050",
+            "weights": "edgeface_xxs"
+          },
+          "profile": null,
+          "quantization": "fp32",
+          "ready": false,
+          "ref": "edgeface@xxs",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "edgeface_xxs.onnx",
+              "retinaface_mnet050.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Idiap Research Institute"
+    },
+    {
+      "capability": "face-landmark",
+      "family": "mediapipe",
+      "id": "face-mesh",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/google-ai-edge/mediapipe",
+        "homepage": "https://github.com/yakhyo/uniface",
+        "paper": null
+      },
+      "name": "Face Mesh (MediaPipe)",
+      "notes": "Le maillage n'est pas calculé à partir de la boîte du détecteur mais d'une région **orientée**, déduite des cinq points d'ancrage : c'est ce qui lui permet de rester juste sur une tête penchée, là où un rectangle droit l'inclurait de travers. Conséquence pratique : ce variant exige un détecteur qui rende les cinq points, ce que font tous les RetinaFace du parc.\nLa variante à 478 points ajoute dix points d'iris aux 468 du maillage de base. C'est la seule différence, et elle coûte deux mégaoctets.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "468 points en 3D, dont la troisième coordonnée est une profondeur relative sans unité ni origine.",
+            "2,4 Mo — vingt fois moins que PIPNet, pour cinq fois plus de points. Le maillage est dense mais peu précis point à point : il décrit une surface, là où PIPNet vise des repères anatomiques.",
+            "Apache-2.0 sur le code comme sur les modèles — le seul jeu de poids de la famille visage sans restriction de données à lire par-dessus."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "max_faces": 10
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": false,
+          "id": "v1-468",
+          "options": {
+            "detector": "retinaface_mnet050",
+            "weights": "face_mesh"
+          },
+          "profile": {
+            "disk_bytes": 9113959,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 55,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 499023872,
+            "rtf": null,
+            "throughput": "1 sortie / 0.1 s",
+            "warmup_ms": 702
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "face-mesh@v1-468",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "face_mesh.onnx",
+              "retinaface_mnet050.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [],
+          "caveats": [
+            "478 points : les 468 du maillage, plus dix points d'iris. À retenir quand la position de la pupille compte — mais `face-gaze` mesure la direction du regard bien mieux qu'une interpolation entre dix points.",
+            "Les indices des 468 premiers points sont ceux du variant v1 : les deux se comparent, ce qui n'est vrai d'aucune autre paire de variants de cette capacité."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "max_faces": 10
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": false,
+          "id": "v2-478",
+          "options": {
+            "detector": "retinaface_mnet050",
+            "weights": "face_landmarker"
+          },
+          "profile": {
+            "disk_bytes": 11512608,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 58,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 502382592,
+            "rtf": null,
+            "throughput": "1 sortie / 0.1 s",
+            "warmup_ms": 1194
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "face-mesh@v2-478",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "face_landmarker.onnx",
+              "retinaface_mnet050.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Google"
     },
     {
       "capability": "image-to-text",
@@ -1071,6 +1479,113 @@
       "vendor": "Google"
     },
     {
+      "capability": "face-headpose",
+      "family": "6drepnet",
+      "id": "headpose-6drepnet",
+      "incumbent": false,
+      "license": "mit",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/yakhyo/head-pose-estimation",
+        "homepage": "https://github.com/yakhyo/uniface",
+        "paper": "https://arxiv.org/abs/2202.12555"
+      },
+      "name": "6DRepNet (orientation de la tête)",
+      "notes": "Le contrat fixe le signe des trois angles pour tous les modèles de la capacité — menton qui monte, sujet qui tourne vers sa gauche, tête qui penche vers son épaule droite. Aucune convention ne s'impose dans ce domaine, et deux modèles de la même capacité qui rendraient des signes opposés pour la même pose ne seraient pas interchangeables, ce qu'un contrat doit garantir.\nLe cadrage compte plus qu'on ne croit : ces réseaux sont entraînés sur une vignette un peu plus large que la boîte du détecteur. L'adaptateur élargit donc de 15 %, faute de quoi l'angle dérive sans que rien ne le signale — le job réussit et les nombres sont faux.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Dorsale ResNet-18, 43 Mo. Angles en degrés, selon la convention fixée par le contrat.",
+            "MESURÉ, ET C'EST LA SEULE VÉRIFICATION CROISÉE DE TOUTE LA FAMILLE. Les quatre visages de la charge type sont rendus à des lacets **connus** — 0°, +24°, −18°, +8°, puisque c'est la recette qui les pose. Le modèle mesure −0,2°, +20,1°, −13,9° et +5,3° : signes justes, amplitudes cohérentes. La convention de signe déclarée par le contrat n'est donc pas une convention d'espoir, elle est vérifiée contre une vérité terrain qu'on contrôle. Aucune photographie ne donnerait cela sans annotation manuelle.",
+            "MESURÉ — le tangage, lui, porte un biais d'environ +13° sur cette charge (13,4° annoncés pour un visage rendu à 0°). Le cadrage en est la cause probable ; à confirmer sur le golden set avant de s'en servir pour autre chose qu'une comparaison entre variants.",
+            "Licence MIT sur le code comme sur les poids — l'une des deux capacités de la famille sans restriction de données à lire par-dessus."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "max_faces": 10
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": false,
+          "id": "r18",
+          "options": {
+            "detector": "retinaface_mnet050",
+            "weights": "headpose_resnet18"
+          },
+          "profile": {
+            "disk_bytes": 51362751,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 52,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 581976064,
+            "rtf": null,
+            "throughput": "1 sortie / 0.1 s",
+            "warmup_ms": 695
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "headpose-6drepnet@r18",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "headpose_resnet18.onnx",
+              "retinaface_mnet050.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "headpose-6drepnet@mobilenetv2 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench headpose-6drepnet@mobilenetv2"
+          ],
+          "caveats": [
+            "Dorsale MobileNetV2 : plus léger, à retenir quand le nombre de visages par image est élevé."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "max_faces": 10
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": null,
+          "id": "mobilenetv2",
+          "options": {
+            "detector": "retinaface_mnet050",
+            "weights": "headpose_mobilenetv2"
+          },
+          "profile": null,
+          "quantization": "fp32",
+          "ready": false,
+          "ref": "headpose-6drepnet@mobilenetv2",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "headpose_mobilenetv2.onnx",
+              "retinaface_mnet050.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Yakhyokhuja Valikhujaev, d'après Hempel et al."
+    },
+    {
       "capability": "audio-separation",
       "family": "demucs",
       "id": "htdemucs-mlx",
@@ -1762,6 +2277,120 @@
       "vendor": "MiniMax"
     },
     {
+      "capability": "face-gaze",
+      "family": "mobilegaze",
+      "id": "mobilegaze",
+      "incumbent": false,
+      "license": "mit",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/yakhyo/gaze-estimation",
+        "homepage": "https://github.com/yakhyo/uniface",
+        "paper": null
+      },
+      "name": "MobileGaze (direction du regard)",
+      "notes": "Le contrat aligne les signes sur ceux de `face-headpose` — tangage positif vers le haut, lacet positif vers la gauche du sujet — pour que les deux mesures s'additionnent au lieu de se contredire. C'est la seule façon de répondre à la question qui motive cette capacité : quelqu'un dont la tête est tournée à 20° et le regard à −20° regarde droit devant.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Dorsale ResNet-34, 82 Mo. Angles convertis en degrés par l'adaptateur — le réseau, lui, rend des radians.",
+            "Licence MIT sur le code comme sur les poids."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "max_faces": 10
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": false,
+          "id": "r34",
+          "options": {
+            "detector": "retinaface_mnet050",
+            "weights": "gaze_resnet34"
+          },
+          "profile": {
+            "disk_bytes": 92139535,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 61,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+            "peak_scaling": {
+              "base_bytes": 712900608,
+              "bytes_per_unit": 0.0,
+              "measured_range": [
+                1.0,
+                4.0
+              ],
+              "parameter": "max_faces",
+              "r_squared": 1.0
+            },
+            "peak_unified_memory_bytes": 712900608,
+            "rtf": null,
+            "throughput": "1 sortie / 0.1 s",
+            "warmup_ms": 1032
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "mobilegaze@r34",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "gaze_resnet34.onnx",
+              "retinaface_mnet050.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [
+            "mobilegaze@mobilenetv2 : aucun profil mesuré, donc pic mémoire inconnu — l'admission refuse par principe ; mesurer avec ecurie bench mobilegaze@mobilenetv2"
+          ],
+          "caveats": [
+            "Dorsale MobileNetV2 : nettement plus léger, pour un écart de précision que le golden set devra chiffrer."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "max_faces": 10
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": null,
+          "id": "mobilenetv2",
+          "options": {
+            "detector": "retinaface_mnet050",
+            "weights": "gaze_mobilenetv2"
+          },
+          "profile": null,
+          "quantization": "fp32",
+          "ready": false,
+          "ref": "mobilegaze@mobilenetv2",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "gaze_mobilenetv2.onnx",
+              "retinaface_mnet050.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "absent",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Yakhyokhuja Valikhujaev"
+    },
+    {
       "capability": "speech-to-text",
       "family": "moss",
       "id": "moss-transcribe",
@@ -1977,6 +2606,121 @@
         }
       ],
       "vendor": "k2-fsa / Next-gen Kaldi"
+    },
+    {
+      "capability": "face-landmark",
+      "family": "pipnet",
+      "id": "pipnet",
+      "incumbent": false,
+      "license": "mit",
+      "license_class": "restricted",
+      "links": {
+        "code": "https://github.com/jhb86253817/PIPNet",
+        "homepage": "https://github.com/yakhyo/uniface",
+        "paper": "https://arxiv.org/abs/2003.03771"
+      },
+      "name": "PIPNet (points clés du visage)",
+      "notes": "Le dépôt d'origine est sous MIT. Les jeux d'annotation sur lesquels ces poids sont entraînés ne le sont pas : WFLW et 300W sont publiés pour la recherche, et la variante 68 points ajoute CelebA. Même raisonnement que pour `retinaface` — `restricted` plutôt que `permissive`, parce qu'une licence de code permissive ne lève pas la restriction posée par l'éditeur des données.\n**Ce modèle ne cherche pas les visages.** Il décrit celui qu'on lui désigne, à partir de sa boîte. Un détecteur tourne donc devant lui, nommé par `options.detector` ; à défaut, l'adaptateur prend `retinaface_mnet050`, qui est le titulaire de `face-detect`.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "98 points, convention WFLW : contour, sourcils, paupières, nez, lèvres, plus les pupilles. C'est la convention la plus dense des deux, et celle qui décrit le mieux une paupière.",
+            "Deux jeux de poids sont téléchargés pour ce variant — le réseau de points clés et son détecteur. C'est la règle de la famille : cinq capacités sur six en ont deux."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "max_faces": 10
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": false,
+          "id": "wflw-98",
+          "options": {
+            "detector": "retinaface_mnet050",
+            "weights": "pipnet_r18_wflw_98"
+          },
+          "profile": {
+            "disk_bytes": 55970720,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 54,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 575602688,
+            "rtf": null,
+            "throughput": "1 sortie / 0.1 s",
+            "warmup_ms": 692
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "pipnet@wflw-98",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "pipnet_r18_wflw_98.onnx",
+              "retinaface_mnet050.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [],
+          "caveats": [
+            "68 points, convention 300W — la plus répandue, et celle qu'attendent la plupart des outils tiers. À préférer pour une sortie qui doit être relue ailleurs.",
+            "Les indices ne correspondent PAS à ceux du variant à 98 points. Comparer les deux point à point est une faute que `scheme` signale sans l'empêcher."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "max_faces": 10
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": false,
+          "id": "dw300w-68",
+          "options": {
+            "detector": "retinaface_mnet050",
+            "weights": "pipnet_r18_300w_celeba_68"
+          },
+          "profile": {
+            "disk_bytes": 54554840,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 53,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 571670528,
+            "rtf": null,
+            "throughput": "1 sortie / 0.1 s",
+            "warmup_ms": 689
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "pipnet@dw300w-68",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "pipnet_r18_300w_celeba_68.onnx",
+              "retinaface_mnet050.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Haibo Jin et al."
     },
     {
       "capability": "audio-to-text",
@@ -3345,6 +4089,194 @@
         }
       ],
       "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "face-detect",
+      "family": "retinaface",
+      "id": "retinaface",
+      "incumbent": false,
+      "license": "mit",
+      "license_class": "restricted",
+      "links": {
+        "code": "https://github.com/yakhyo/retinaface-pytorch",
+        "homepage": "https://github.com/yakhyo/uniface",
+        "paper": "https://arxiv.org/abs/1905.00641"
+      },
+      "name": "RetinaFace (détection de visages)",
+      "notes": "**La licence du code et celle des données ne disent pas la même chose, et c'est le second qui contraint.** Le dépôt d'où viennent ces poids (`yakhyo/retinaface-pytorch`) est sous MIT, sans réserve. Mais l'entraînement s'est fait sur WIDER FACE, publié pour un usage de recherche non commercial — et une restriction posée par un éditeur de jeu de données ne s'efface pas parce que le dépôt qui l'emploie a choisi une licence permissive. `license_class: restricted` est donc la valeur juste : permissive serait un contresens, research-only serait plus sévère que ce qui est écrit. À trancher avant tout usage professionnel, ce que le registre ne fait pas à la place de qui l'emploie.\nLes poids sont sur Hugging Face sous une forme que `ecurie pull` prend telle quelle, épinglés à la révision près. C'est la différence avec `rtmw3d-x`, dont les deux artefacts vivent hors de tout dépôt épinglable et que le worker doit exiger d'un cache qu'il ne remplit pas : ici il n'y a aucune dette de provenance.\n`input_size` est honoré par tous les variants de cette famille, ce qui n'est pas vrai de toute la capacité : les poids SCRFD et YOLOv8 du même dépôt ont une entrée figée dans leur graphe ONNX et refusent toute autre définition. C'est pourquoi aucun des deux n'entre au parc — la charge type de `face-detect` fait varier ce paramètre, et un variant qui ne le sert pas ne serait pas profilable.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "MESURÉ — le seul des sept variants, avec mnet025, à trouver les quatre visages de la charge type aux trois définitions. C'est ce qui en fait le détecteur pressenti pour la capacité, et le détecteur par défaut des cinq autres capacités de la famille.",
+            "Entraîné sur WIDER FACE, dont la publication est réservée à un usage de recherche non commercial. Voir les notes."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "input_size": 640,
+            "max_faces": 50
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": false,
+          "id": "mnet050",
+          "options": {
+            "weights": "retinaface_mnet050"
+          },
+          "profile": {
+            "disk_bytes": 6647891,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 152,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+            "peak_scaling": {
+              "base_bytes": 0,
+              "bytes_per_unit": 1197019.4,
+              "measured_range": [
+                320.0,
+                1280.0
+              ],
+              "parameter": "input_size",
+              "r_squared": 0.9803
+            },
+            "peak_unified_memory_bytes": 1369751552,
+            "rtf": null,
+            "throughput": "1 sortie / 0.2 s",
+            "warmup_ms": 394
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "retinaface@mnet050",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "retinaface_mnet050.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [],
+          "caveats": [
+            "1,7 Mo — le plus petit jeu de poids du parc. Il trouve lui aussi les quatre visages de la charge type aux trois définitions, à un score un peu plus bas sur le plus petit visage (0,82 contre 0,96 à 320).",
+            "Entraîné sur WIDER FACE — voir les notes."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "input_size": 640,
+            "max_faces": 50
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": false,
+          "id": "mnet025",
+          "options": {
+            "weights": "retinaface_mnet025"
+          },
+          "profile": {
+            "disk_bytes": 1736694,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 120,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+            "peak_scaling": {
+              "base_bytes": 0,
+              "bytes_per_unit": 662250.1,
+              "measured_range": [
+                320.0,
+                1280.0
+              ],
+              "parameter": "input_size",
+              "r_squared": 0.9779
+            },
+            "peak_unified_memory_bytes": 826064896,
+            "rtf": null,
+            "throughput": "1 sortie / 0.1 s",
+            "warmup_ms": 376
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "retinaface@mnet025",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "retinaface_mnet025.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        },
+        {
+          "blockers": [],
+          "caveats": [
+            "MESURÉ — À 320, IL NE TROUVE AUCUN DES QUATRE VISAGES DE LA CHARGE TYPE ; à 640 il en trouve deux, à 1280 les quatre. Son défaut d'`input_size` est donc porté à 1280, contre 640 pour les autres variants : en dessous, ce modèle de 104 Mo fait moins bien qu'un modèle de 1,7. Le plus gros réseau n'est pas le plus robuste sur des visages qui ne sont pas photographiques.",
+            "104 Mo contre 6,3 pour le variant pressenti, pour une détection qui n'est meilleure qu'à pleine définition. À ne retenir que sur des images où les visages sont petits et nombreux — ce que le golden set devra départager.",
+            "Entraîné sur WIDER FACE — voir les notes."
+          ],
+          "defaults": {
+            "confidence_threshold": 0.5,
+            "input_size": 1280,
+            "max_faces": 50
+          },
+          "entrypoint": null,
+          "env": "uniface",
+          "heavy": false,
+          "id": "r50",
+          "options": {
+            "weights": "retinaface_r50"
+          },
+          "profile": {
+            "disk_bytes": 109458344,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 861,
+            "measured_at": "2026-08-24",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+            "peak_scaling": {
+              "base_bytes": 712450048,
+              "bytes_per_unit": 513890.7,
+              "measured_range": [
+                320.0,
+                1280.0
+              ],
+              "parameter": "input_size",
+              "r_squared": 0.9907
+            },
+            "peak_unified_memory_bytes": 1361051648,
+            "rtf": null,
+            "throughput": "1 sortie / 0.9 s",
+            "warmup_ms": 1029
+          },
+          "quantization": "fp32",
+          "ready": true,
+          "ref": "retinaface@r50",
+          "runtime": "uniface",
+          "source": {
+            "allow_patterns": [
+              "retinaface_r50.onnx"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "yakhyo/uniface-weights",
+            "revision": "4c7ed723a20deb7ff154b1ba7d6e73747d954016",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Yakhyokhuja Valikhujaev, d'après Deng et al."
     },
     {
       "capability": "video-to-motion",

@@ -1,0 +1,160 @@
+# Détection de visages — RetinaFace, servi par uniface en ONNX.
+#
+# Premier modèle de la famille visage, et celui dont tous les autres dépendent :
+# cinq des six capacités `face-*` chargent un détecteur avant leur propre réseau,
+# parce qu'aucune ne cherche les visages qu'elle traite. Un visage manqué ici
+# n'aura ni points clés, ni régions, ni empreinte — il n'existera pas pour la
+# suite de la chaîne.
+#
+# **Le choix du variant à retenir est une mesure, pas une préférence.** Sur la charge
+# type — quatre visages à quatre échelles, trois définitions d'entrée —
+# `mnet050` trouve les quatre visages dans les trois cas. `mnet_v2`, pourtant
+# deux fois plus lourd, en trouve deux à 320, **un seul** à 640 et quatre à
+# 1280 : une réponse qui ne croît pas avec la définition n'est pas exploitable
+# en amont d'autre chose. `r50`, le plus gros des sept, ne trouve rien du tout à
+# 320. Le relevé complet est dans le rapport du 2026-08-24.
+id: retinaface
+name: RetinaFace (détection de visages)
+capability: face-detect
+family: retinaface
+vendor: Yakhyokhuja Valikhujaev, d'après Deng et al.
+license: mit
+license_class: restricted
+status: candidate
+
+notes: >
+  **La licence du code et celle des données ne disent pas la même chose, et
+  c'est le second qui contraint.** Le dépôt d'où viennent ces poids
+  (`yakhyo/retinaface-pytorch`) est sous MIT, sans réserve. Mais l'entraînement
+  s'est fait sur WIDER FACE, publié pour un usage de recherche non commercial —
+  et une restriction posée par un éditeur de jeu de données ne s'efface pas parce
+  que le dépôt qui l'emploie a choisi une licence permissive. `license_class:
+  restricted` est donc la valeur juste : permissive serait un contresens,
+  research-only serait plus sévère que ce qui est écrit. À trancher avant tout
+  usage professionnel, ce que le registre ne fait pas à la place de qui l'emploie.
+
+  Les poids sont sur Hugging Face sous une forme que `ecurie pull` prend telle
+  quelle, épinglés à la révision près. C'est la différence avec `rtmw3d-x`, dont
+  les deux artefacts vivent hors de tout dépôt épinglable et que le worker doit
+  exiger d'un cache qu'il ne remplit pas : ici il n'y a aucune dette de
+  provenance.
+
+  `input_size` est honoré par tous les variants de cette famille, ce qui n'est
+  pas vrai de toute la capacité : les poids SCRFD et YOLOv8 du même dépôt ont une
+  entrée figée dans leur graphe ONNX et refusent toute autre définition. C'est
+  pourquoi aucun des deux n'entre au parc — la charge type de `face-detect` fait
+  varier ce paramètre, et un variant qui ne le sert pas ne serait pas profilable.
+
+links:
+  homepage: https://github.com/yakhyo/uniface
+  code: https://github.com/yakhyo/retinaface-pytorch
+  paper: https://arxiv.org/abs/1905.00641
+
+variants:
+  # Pressenti titulaire : 6,3 Mo, quatre visages sur quatre aux trois définitions.
+  - id: mnet050
+    quantization: fp32
+    tier: hot
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["retinaface_mnet050.onnx"]
+    options:
+      weights: retinaface_mnet050
+    defaults:
+      input_size: 640
+      confidence_threshold: 0.5
+      max_faces: 50
+    caveats:
+      - "MESURÉ — le seul des sept variants, avec mnet025, à trouver les quatre visages de la charge type aux trois définitions. C'est ce qui en fait le détecteur pressenti pour la capacité, et le détecteur par défaut des cinq autres capacités de la famille."
+      - "Entraîné sur WIDER FACE, dont la publication est réservée à un usage de recherche non commercial. Voir les notes."
+
+  # Le plus léger du parc, toutes capacités confondues : 1,7 Mo.
+    profile:
+      disk_bytes: 6647891
+      peak_unified_memory_bytes: 1369751552
+      peak_scaling:
+        parameter: "input_size"
+        base_bytes: 0
+        bytes_per_unit: 1197019.4
+        measured_range: [320.0, 1280.0]
+        r_squared: 0.9803
+      warmup_ms: 394
+      latency_ms_p50: 152
+      throughput: "1 sortie / 0.2 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"
+
+  - id: mnet025
+    quantization: fp32
+    tier: hot
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["retinaface_mnet025.onnx"]
+    options:
+      weights: retinaface_mnet025
+    defaults:
+      input_size: 640
+      confidence_threshold: 0.5
+      max_faces: 50
+    caveats:
+      - "1,7 Mo — le plus petit jeu de poids du parc. Il trouve lui aussi les quatre visages de la charge type aux trois définitions, à un score un peu plus bas sur le plus petit visage (0,82 contre 0,96 à 320)."
+      - "Entraîné sur WIDER FACE — voir les notes."
+
+  # Inscrit pour ce qu'il apprend, et le caveat le dit sans détour.
+    profile:
+      disk_bytes: 1736694
+      peak_unified_memory_bytes: 826064896
+      peak_scaling:
+        parameter: "input_size"
+        base_bytes: 0
+        bytes_per_unit: 662250.1
+        measured_range: [320.0, 1280.0]
+        r_squared: 0.9779
+      warmup_ms: 376
+      latency_ms_p50: 120
+      throughput: "1 sortie / 0.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"
+
+  - id: r50
+    quantization: fp32
+    tier: hot
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["retinaface_r50.onnx"]
+    options:
+      weights: retinaface_r50
+    defaults:
+      input_size: 1280
+      confidence_threshold: 0.5
+      max_faces: 50
+    caveats:
+      - "MESURÉ — À 320, IL NE TROUVE AUCUN DES QUATRE VISAGES DE LA CHARGE TYPE ; à 640 il en trouve deux, à 1280 les quatre. Son défaut d'`input_size` est donc porté à 1280, contre 640 pour les autres variants : en dessous, ce modèle de 104 Mo fait moins bien qu'un modèle de 1,7. Le plus gros réseau n'est pas le plus robuste sur des visages qui ne sont pas photographiques."
+      - "104 Mo contre 6,3 pour le variant pressenti, pour une détection qui n'est meilleure qu'à pleine définition. À ne retenir que sur des images où les visages sont petits et nombreux — ce que le golden set devra départager."
+      - "Entraîné sur WIDER FACE — voir les notes."
+    profile:
+      disk_bytes: 109458344
+      peak_unified_memory_bytes: 1361051648
+      peak_scaling:
+        parameter: "input_size"
+        base_bytes: 712450048
+        bytes_per_unit: 513890.7
+        measured_range: [320.0, 1280.0]
+        r_squared: 0.9907
+      warmup_ms: 1029
+      latency_ms_p50: 861
+      throughput: "1 sortie / 0.9 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

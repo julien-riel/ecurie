@@ -2,7 +2,7 @@
 
     uv run --project runtimes/mlx-vlm python tools/golden_assets.py
 
-Deux recettes, toutes deux déterministes et sans réseau :
+Cinq recettes, toutes déterministes et sans réseau :
 
 - `page` rend une page de document depuis son texte de référence. Le manifeste
   reste l'autorité : c'est `reference.text_file` qui est rendu, si bien qu'une
@@ -13,7 +13,17 @@ Deux recettes, toutes deux déterministes et sans réseau :
 - `solide` rend un objet 3D en RGBA à fond réellement transparent, par lancer de
   rayons sur une fonction de distance signée. Pas de photo, pas de moteur 3D,
   pas de licence à suivre : une centaine de lignes de numpy et le même résultat
-  à chaque exécution.
+  à chaque exécution ;
+- `scene` compose des solides sur un fond opaque **et rend l'alpha exact avec** :
+  la vérité terrain du détourage est calculée en même temps que l'image, non
+  annotée après coup ;
+- `musique` fabrique un mélange à quatre pistes dont on connaît exactement les
+  composantes, puisque c'est nous qui les additionnons ;
+- `portrait` compose des visages calculés sur un fond. Même procédé que `solide`,
+  et la même raison en plus forte : une charge type est versionnée, publique et
+  figée pour des années, ce qui est exactement ce qu'on ne fait pas du portrait
+  de quelqu'un. Le visage calculé n'a ni identité, ni consentement à recueillir,
+  ni licence à suivre.
 
 **Ce script existe surtout pour ne pas répéter l'oubli du banc d'essai.** Les
 images de `registry/evals/bench/assets/` ont été produites par une recette
@@ -435,6 +445,243 @@ def rendre_solide(forme: str, taille: int = 768, *, suréchantillon: int = 2) ->
     return Image.fromarray(rgba.reshape(taille, taille, 4), mode="RGBA")
 
 
+# --- visages : de la géométrie, et personne de réel -------------------------------
+#
+# La famille `face-*` a besoin d'images contenant des visages, et aucune photo ne
+# peut entrer ici : une charge type est versionnée, publique et figée pour des
+# années, ce qui est exactement ce qu'on ne fait pas du portrait de quelqu'un.
+# Un visage calculé n'a ni identité, ni consentement à recueillir, ni licence à
+# suivre — et il se refabrique à l'identique, ce que le README de ce dossier
+# réclame depuis que les six premières images s'en sont trouvées privées.
+#
+# **Le réalisme n'est pas une coquetterie, c'est le critère de recevabilité.**
+# Une première version sans paupières — le globe oculaire entier apparent — était
+# trouvée par RetinaFace MobileNet à 1,00 et par SCRFD à 0,61, mais **pas du tout
+# par RetinaFace ResNet-50**, le plus strict des sept. Une charge qu'un variant
+# ne peut pas servir le rend non profilable, donc inadmissible : c'est ce qui est
+# arrivé à SAM 3 sur `image-segment`, et la leçon a coûté assez cher pour ne pas
+# la répéter. Les paupières ajoutées, les neuf détecteurs du dépôt trouvent le
+# visage, ResNet-50 à 0,976.
+
+_OEIL = np.array([0.255, 0.115, 0.455])
+_GLOBE = _OEIL + np.array([0.0, 0.0, -0.075])
+
+
+def _ellipsoide(p: np.ndarray, centre: np.ndarray, rayons: np.ndarray) -> np.ndarray:
+    q = (p - centre) / rayons
+    k0 = np.linalg.norm(q, axis=1)
+    k1 = np.linalg.norm(q / rayons, axis=1)
+    return np.where(k0 > 0, k0 * (k0 - 1.0) / np.maximum(k1, 1e-9), -float(min(rayons)))
+
+
+def _sphere(p: np.ndarray, centre: np.ndarray, rayon: float) -> np.ndarray:
+    return np.linalg.norm(p - centre, axis=1) - rayon
+
+
+def _boite_sdf(p, centre, demi, arrondi: float = 0.0) -> np.ndarray:
+    q = np.abs(p - centre) - demi
+    return (
+        np.linalg.norm(np.maximum(q, 0.0), axis=1)
+        + np.minimum(q.max(axis=1), 0.0)
+        - arrondi
+    )
+
+
+def _capsule(p, a, b, rayon: float) -> np.ndarray:
+    pa, ba = p - a, b - a
+    h = np.clip((pa @ ba) / (ba @ ba), 0.0, 1.0)
+    return np.linalg.norm(pa - h[:, None] * ba[None, :], axis=1) - rayon
+
+
+def _smin(a, b, k: float):
+    """Union lissée. Sans elle, le nez est un cylindre posé sur une sphère."""
+    h = np.clip(0.5 + 0.5 * (b - a) / k, 0.0, 1.0)
+    return b * (1 - h) + a * h - k * h * (1 - h)
+
+
+def _smax(a, b, k: float):
+    return -_smin(-a, -b, k)
+
+
+def _parties_visage(p: np.ndarray) -> tuple[np.ndarray, ...]:
+    """Distance à chaque partie. La plus proche décide de la couleur du pixel.
+
+    Rendre les parties séparément plutôt qu'une seule distance est ce qui permet
+    de peindre l'iris sans le sculpter : c'est le contraste sombre au centre du
+    blanc de l'œil qu'un détecteur de visage cherche en premier, et il n'a aucune
+    épaisseur.
+    """
+    q = p.copy()
+    q[:, 0] = np.abs(q[:, 0])  # le visage est symétrique : on n'en décrit qu'un côté
+
+    crane = _ellipsoide(p, np.array([0.0, 0.10, -0.05]), np.array([0.62, 0.72, 0.60]))
+    menton = _ellipsoide(p, np.array([0.0, -0.42, 0.02]), np.array([0.42, 0.42, 0.48]))
+    peau = _smin(crane, menton, 0.22)
+
+    orbite = _sphere(q, _OEIL + np.array([0.0, 0.0, -0.03]), 0.175)
+    peau = _smax(peau, -orbite, 0.05)
+
+    # Paupières : une coque de peau sur le globe, percée d'une fente. Voir
+    # l'en-tête de section — c'est ce détail-là qui décide de la recevabilité.
+    paupiere = _ellipsoide(
+        q, _GLOBE + np.array([0.0, 0.0, 0.012]), np.array([0.165, 0.125, 0.145])
+    )
+    ouverture = _ellipsoide(
+        q, _GLOBE + np.array([0.0, -0.004, 0.10]), np.array([0.108, 0.046, 0.16])
+    )
+    peau = _smin(peau, _smax(paupiere, -ouverture, 0.012), 0.022)
+
+    nez = _capsule(p, np.array([0.0, 0.16, 0.42]), np.array([0.0, -0.14, 0.60]), 0.085)
+    ailes = _sphere(q, np.array([0.075, -0.15, 0.52]), 0.075)
+    peau = _smin(peau, _smin(nez, ailes, 0.04), 0.045)
+
+    oreille = _ellipsoide(
+        q, np.array([0.575, 0.02, -0.06]), np.array([0.075, 0.155, 0.115])
+    )
+    peau = _smin(peau, oreille, 0.03)
+
+    globe = _sphere(q, _GLOBE, 0.128)
+
+    levres = _ellipsoide(p, np.array([0.0, -0.40, 0.47]), np.array([0.20, 0.085, 0.14]))
+    fente = _boite_sdf(p, np.array([0.0, -0.40, 0.60]), np.array([0.165, 0.011, 0.12]))
+    levres = _smax(levres, -fente, 0.018)
+
+    sourcil = _capsule(
+        q, np.array([0.10, 0.310, 0.475]), np.array([0.355, 0.290, 0.395]), 0.042
+    )
+
+    # Cheveux : une calotte dont on retire la face avant et le bas du crâne. Sans
+    # ces deux coupes, la calotte englobe le visage entier et le rendu peint le
+    # front, les joues et le nez en noir.
+    calotte = _ellipsoide(p, np.array([0.0, 0.13, -0.07]), np.array([0.66, 0.77, 0.65]))
+    visage_nu = _boite_sdf(
+        p, np.array([0.0, -0.42, 0.62]), np.array([0.47, 1.00, 0.70]), arrondi=0.14
+    )
+    nuque = _boite_sdf(p, np.array([0.0, -1.30, 0.10]), np.array([1.4, 1.28, 1.0]))
+    cheveux = _smax(_smax(calotte, -visage_nu, 0.035), -nuque, 0.05)
+
+    return peau, globe, levres, sourcil, cheveux
+
+
+def _sdf_visage(p: np.ndarray) -> np.ndarray:
+    return np.min(np.stack(_parties_visage(p), axis=1), axis=1)
+
+
+def _albedo_visage(p: np.ndarray) -> np.ndarray:
+    peau, globe, levres, sourcil, cheveux = _parties_visage(p)
+    q = p.copy()
+    q[:, 0] = np.abs(q[:, 0])
+
+    quoi = np.argmin(np.stack([peau, globe, levres, sourcil, cheveux], axis=1), axis=1)
+    valeur = np.select(
+        [quoi == 0, quoi == 1, quoi == 2, quoi == 3, quoi == 4],
+        [0.76, 0.94, 0.44, 0.11, 0.13],
+        default=0.76,
+    )
+
+    devant = q - _GLOBE
+    rayon = np.hypot(devant[:, 0], devant[:, 1])
+    sur_le_globe = (quoi == 1) & (devant[:, 2] > 0.0)
+    valeur = np.where(sur_le_globe & (rayon < 0.066), 0.22, valeur)  # iris
+    valeur = np.where(sur_le_globe & (rayon < 0.030), 0.04, valeur)  # pupille
+    return valeur
+
+
+def rendre_visage(
+    taille: int = 512, lacet: float = 0.0, tangage: float = 0.0, *, suréchantillon: int = 2
+) -> Image.Image:
+    """Un visage en RGBA, fond transparent, par lancer de rayons sur la SDF.
+
+    Même procédé que `rendre_solide`, et pour les mêmes raisons : rien de photo-
+    graphique, rien de téléchargé, le même résultat à chaque exécution. L'alpha
+    est exact hors silhouette, ce qui permet de composer plusieurs sujets sur un
+    fond sans halo.
+    """
+    if suréchantillon > 1:
+        grande = rendre_visage(taille * suréchantillon, lacet, tangage, suréchantillon=1)
+        return grande.resize((taille, taille), Image.LANCZOS)
+
+    axes = np.linspace(-1.25, 1.25, taille, dtype=np.float64)
+    u, v = np.meshgrid(axes, -axes)
+    n = taille * taille
+
+    lacet_rad, tangage_rad = math.radians(lacet), math.radians(tangage)
+    avant = np.array([
+        -math.sin(lacet_rad) * math.cos(tangage_rad),
+        -math.sin(tangage_rad),
+        -math.cos(lacet_rad) * math.cos(tangage_rad),
+    ])
+    droite = np.array([math.cos(lacet_rad), 0.0, -math.sin(lacet_rad)])
+    haut = np.cross(droite, avant)
+
+    origines = (
+        -3.0 * avant[None, :]
+        + u.reshape(n, 1) * droite[None, :]
+        + v.reshape(n, 1) * haut[None, :]
+    )
+    directions = np.repeat(avant[None, :], n, axis=0)
+
+    distance = np.zeros(n)
+    vivants = np.ones(n, dtype=bool)
+    for _ in range(140):
+        d = _sdf_visage(origines + distance[:, None] * directions)
+        vivants &= (d >= 1e-4) & (distance < 6.5)
+        distance = np.where(vivants, distance + np.maximum(0.75 * d, 1e-4), distance)
+        if not vivants.any():
+            break
+
+    points = origines + distance[:, None] * directions
+    atteint = _sdf_visage(points) < 1.5e-3
+
+    eps = 1.5e-3
+    normales = np.zeros_like(points)
+    for axe in range(3):
+        décalage = np.zeros(3)
+        décalage[axe] = eps
+        normales[:, axe] = _sdf_visage(points + décalage) - _sdf_visage(points - décalage)
+    normales /= np.maximum(np.linalg.norm(normales, axis=1, keepdims=True), 1e-9)
+
+    lumiere = np.array([0.35, 0.55, 0.76])
+    lumiere = lumiere / np.linalg.norm(lumiere)
+    diffus = np.clip(normales @ lumiere, 0.0, 1.0)
+    appoint = np.clip(normales @ np.array([-0.6, 0.1, 0.5]), 0.0, 1.0)
+    éclairement = 0.30 + 0.62 * diffus + 0.16 * appoint
+
+    gris = (np.clip(_albedo_visage(points) * éclairement, 0.0, 1.0) * 255).astype(np.uint8)
+    rgba = np.zeros((n, 4), dtype=np.uint8)
+    rgba[:, 0] = rgba[:, 1] = rgba[:, 2] = gris
+    rgba[:, 3] = np.where(atteint, 255, 0)
+    rgba[~atteint, :3] = 0
+    return Image.fromarray(rgba.reshape(taille, taille, 4), mode="RGBA")
+
+
+def rendre_portrait(source: dict) -> Image.Image:
+    """Un ou plusieurs visages composés sur un fond opaque.
+
+    Plusieurs sujets à des échelles différentes ne sont pas un ornement : c'est
+    ce qui donne aux cinq capacités qui traitent visage par visage un paramètre
+    d'échelle mesurable. `max_faces` ne fait varier aucun coût sur une image qui
+    n'en contient qu'un.
+    """
+    taille = int(source.get("taille", 512))
+    image = _fond(str(source.get("fond", "atelier")), taille).convert("RGB")
+    sujets = source.get("sujets") or [{"lacet": 0.0, "tangage": 0.0}]
+
+    for sujet in sujets:
+        échelle = float(sujet.get("echelle", 1.0))
+        côté = max(48, int(échelle * taille))
+        vignette = rendre_visage(
+            côté, float(sujet.get("lacet", 0.0)), float(sujet.get("tangage", 0.0))
+        )
+        coin = (
+            int(float(sujet.get("x", 0.5)) * taille) - côté // 2,
+            int(float(sujet.get("y", 0.5)) * taille) - côté // 2,
+        )
+        image.paste(vignette, coin, vignette.getchannel("A"))
+
+    return image
+
+
 # --- scènes : un sujet, un fond, et un alpha connu d'avance ----------------------
 
 
@@ -658,6 +905,9 @@ def fichiers_du_cas(dossier: Path, cas: dict, source: dict) -> dict[str, Image.I
 
     if recette == "musique":
         return {entrée: rendre_musique(source)}
+
+    if recette == "portrait":
+        return {entrée: rendre_portrait(source)}
 
     if recette == "scene":
         image, masque = rendre_scene(source)

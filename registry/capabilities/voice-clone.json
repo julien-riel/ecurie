@@ -3,6 +3,7 @@
   "id": "voice-clone",
   "title": "Synthèse à voix de référence",
   "description": "Lit un texte avec la voix d'un échantillon fourni, sans entraînement préalable. C'est une capacité distincte de la synthèse vocale et non un champ de plus : le titulaire de celle-ci choisit parmi les voix qu'il embarque, et il ne saurait pas quoi faire d'un enregistrement de référence.",
+  "human_subject": "synthesizes",
   "input": {
     "type": "object",
     "required": ["text", "reference_audio"],

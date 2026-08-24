@@ -1,4 +1,17 @@
 {
+  "arcface@resnet": {
+    "capability": "face-embed",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10,
+      "normalize": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10,
+      "normalize": true
+    }
+  },
   "birefnet@fp16": {
     "capability": "image-matting",
     "merged": {
@@ -8,6 +21,30 @@
     "variant_defaults": {
       "edge_refine": true,
       "max_side": 1024
+    }
+  },
+  "bisenet-parsing@r18": {
+    "capability": "face-parse",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "max_faces": 5,
+      "overlay": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "max_faces": 5
+    }
+  },
+  "bisenet-parsing@r34": {
+    "capability": "face-parse",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "max_faces": 5,
+      "overlay": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "max_faces": 5
     }
   },
   "da3-large@fp32": {
@@ -32,6 +69,56 @@
       "sample_rate": 48000,
       "segment_seconds": 15,
       "strength": 1.0
+    }
+  },
+  "edgeface@s-gamma-05": {
+    "capability": "face-embed",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10,
+      "normalize": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10,
+      "normalize": true
+    }
+  },
+  "edgeface@xxs": {
+    "capability": "face-embed",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10,
+      "normalize": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10,
+      "normalize": true
+    }
+  },
+  "face-mesh@v1-468": {
+    "capability": "face-landmark",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10,
+      "overlay": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10
+    }
+  },
+  "face-mesh@v2-478": {
+    "capability": "face-landmark",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10,
+      "overlay": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10
     }
   },
   "gemma4-12b-describe@4bit": {
@@ -222,6 +309,30 @@
       "temperature": 0.2
     }
   },
+  "headpose-6drepnet@mobilenetv2": {
+    "capability": "face-headpose",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10,
+      "overlay": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10
+    }
+  },
+  "headpose-6drepnet@r18": {
+    "capability": "face-headpose",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10,
+      "overlay": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10
+    }
+  },
   "htdemucs-mlx@fp32-mlx": {
     "capability": "audio-separation",
     "merged": {
@@ -355,6 +466,30 @@
       "duration_seconds": 30
     }
   },
+  "mobilegaze@mobilenetv2": {
+    "capability": "face-gaze",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10,
+      "overlay": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10
+    }
+  },
+  "mobilegaze@r34": {
+    "capability": "face-gaze",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10,
+      "overlay": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10
+    }
+  },
   "moss-transcribe-diarize@bf16": {
     "capability": "speaker-diarization",
     "merged": {
@@ -388,6 +523,30 @@
     },
     "variant_defaults": {
       "speed": 1.0
+    }
+  },
+  "pipnet@dw300w-68": {
+    "capability": "face-landmark",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10,
+      "overlay": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10
+    }
+  },
+  "pipnet@wflw-98": {
+    "capability": "face-landmark",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10,
+      "overlay": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "max_faces": 10
     }
   },
   "qwen2-audio-7b@4bit": {
@@ -694,6 +853,48 @@
       "max_frames": 8,
       "max_tokens": 512,
       "temperature": 0.2
+    }
+  },
+  "retinaface@mnet025": {
+    "capability": "face-detect",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "input_size": 640,
+      "max_faces": 50,
+      "overlay": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "input_size": 640,
+      "max_faces": 50
+    }
+  },
+  "retinaface@mnet050": {
+    "capability": "face-detect",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "input_size": 640,
+      "max_faces": 50,
+      "overlay": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "input_size": 640,
+      "max_faces": 50
+    }
+  },
+  "retinaface@r50": {
+    "capability": "face-detect",
+    "merged": {
+      "confidence_threshold": 0.5,
+      "input_size": 1280,
+      "max_faces": 50,
+      "overlay": true
+    },
+    "variant_defaults": {
+      "confidence_threshold": 0.5,
+      "input_size": 1280,
+      "max_faces": 50
     }
   },
   "rtmw3d-x@onnx": {

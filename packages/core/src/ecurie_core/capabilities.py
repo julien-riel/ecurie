@@ -56,6 +56,18 @@ class CapabilityContract:
         return list(self.input_schema.get("required") or [])
 
     @property
+    def human_subject(self) -> str | None:
+        """Ce que la capacité fait d'une personne réelle, ou None.
+
+        `license_class` dit ce que le droit interdit ; ce champ dit ce que la
+        capacité **fait**, et les deux ne se recouvrent pas : EdgeFace est sous
+        licence BSD-3 et sert pourtant à reconnaître quelqu'un qui n'a rien
+        demandé. Porté par le contrat plutôt que par le variant, parce que c'est
+        la capacité qui décide — tous ses modèles rendent la même chose.
+        """
+        return self.document.get("human_subject") or None
+
+    @property
     def composite(self) -> bool:
         return bool(self.document.get("composite"))
 

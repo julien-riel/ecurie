@@ -230,6 +230,18 @@
             ],
             "title": "Description"
           },
+          "human_subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ce que la capacité fait d'une personne réelle, quand elle en fait quelque chose : `analyzes` la mesure sans la nommer, `identifies` la désigne, `synthesizes` produit son image ou sa voix. Absent pour la grande majorité des capacités. Distinct de `license_class`, qui dit ce que le droit interdit : un modèle parfaitement permissif peut servir à identifier quelqu'un qui n'a rien demandé.",
+            "title": "Human Subject"
+          },
           "id": {
             "title": "Id",
             "type": "string"

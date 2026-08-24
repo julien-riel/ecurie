@@ -26,6 +26,12 @@ CAPACITÉS_DU_DÉPÔT = [
     "audio-to-text",
     "depth-estimation",
     "document-to-text",
+    "face-detect",
+    "face-embed",
+    "face-gaze",
+    "face-headpose",
+    "face-landmark",
+    "face-parse",
     "image-detect",
     "image-inpaint",
     "image-matting",
@@ -149,9 +155,10 @@ def test_chaque_sortie_typee_annonce_un_chemin_de_fichier(repo_root):
         for nom, champ in _sorties_typées(contract.output_schema).items()
     }
 
-    # 44 depuis que `depth-estimation` en apporte quatre : la carte, son
-    # aperçu colorisé, la confiance et les paramètres de caméra.
-    assert len(typées) == 44
+    # 56 depuis que la famille visage en apporte douze : chacune de ses six
+    # capacités rend son relevé JSON, et cinq d'entre elles un aperçu annoté —
+    # une liste de coordonnées ou une carte d'indices ne se relit pas autrement.
+    assert len(typées) == 56
     mal_décrites = {
         ref
         for ref, champ in typées.items()

@@ -1,0 +1,75 @@
+{
+  "ref": "arcface@resnet",
+  "model": "arcface",
+  "variant": "resnet",
+  "capability": "face-embed",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/face-embed.json",
+    "version": 1,
+    "cases": [
+      "visages-1",
+      "visages-2",
+      "visages-4"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 181031751,
+    "peak_unified_memory_bytes": 1204092928,
+    "peak_scaling": {
+      "parameter": "max_faces",
+      "base_bytes": 1204092928,
+      "bytes_per_unit": 0.0,
+      "measured_range": [
+        1.0,
+        4.0
+      ],
+      "r_squared": 1.0
+    },
+    "warmup_ms": 1950,
+    "latency_ms_p50": 40,
+    "throughput": "1 sortie / 0.0 s"
+  },
+  "cases": [
+    {
+      "id": "visages-1",
+      "ok": true,
+      "duration_ms": 64,
+      "metrics": {
+        "duration_ms": 64,
+        "faces": 1,
+        "dimensions": 512,
+        "peak_memory_bytes": 1204092928
+      },
+      "error": null
+    },
+    {
+      "id": "visages-2",
+      "ok": true,
+      "duration_ms": 36,
+      "metrics": {
+        "duration_ms": 36,
+        "faces": 2,
+        "dimensions": 512,
+        "peak_memory_bytes": 1204092928
+      },
+      "error": null
+    },
+    {
+      "id": "visages-4",
+      "ok": true,
+      "duration_ms": 40,
+      "metrics": {
+        "duration_ms": 40,
+        "faces": 4,
+        "dimensions": 512,
+        "peak_memory_bytes": 1204092928
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

@@ -1,0 +1,72 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "face-embed",
+  "title": "Empreinte d'identité faciale",
+  "description": "Redresse un visage sur ses cinq points d'ancrage et rend un vecteur, tel que deux photos d'une même personne donnent deux vecteurs proches. C'est la reconnaissance faciale : la sortie ne décrit pas une image, elle désigne quelqu'un. Elle ne se compare qu'à elle-même — deux modèles de cette capacité produisent des vecteurs de même longueur qui ne veulent pas dire la même chose, et un cosinus entre les deux ne signifie rien. La confrontation A/B porte donc sur les rangs, jamais sur les valeurs.",
+  "human_subject": "identifies",
+  "input": {
+    "type": "object",
+    "required": ["image"],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image contenant le ou les visages à encoder."
+      },
+      "compare_to": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Seconde image, facultative. Fournie, le job rend aussi la similarité entre le visage principal de chacune. C'est la seule façon de vérifier cette capacité sans index : un vecteur de 512 nombres ne se relit pas, un cosinus se lit."
+      },
+      "max_faces": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10,
+        "description": "Plafond de visages encodés, les plus grands d'abord. Chaque visage coûte un redressement et un passage de plus dans le réseau."
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "default": 0.5,
+        "description": "Seuil du détecteur qui précède. Un visage écarté ici n'est pas encodé : cette capacité ne cherche pas les visages, elle encode ceux qu'on lui désigne."
+      },
+      "normalize": {
+        "type": "boolean",
+        "default": true,
+        "description": "Ramener chaque vecteur à la norme 1. C'est ce qui rend le produit scalaire égal au cosinus, donc directement comparable ; le désactiver n'a d'intérêt que pour un index qui normalise lui-même."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["embeddings", "count", "dimensions"],
+    "properties": {
+      "embeddings": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin des vecteurs produits, relatif au dossier du job : pour chaque visage, sa boîte, son score de détection et son vecteur. Le document nomme le modèle qui l'a écrit, sans quoi rien ne dit à quel espace ces nombres appartiennent."
+      },
+      "count": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de visages encodés."
+      },
+      "dimensions": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Longueur d'un vecteur. Une même longueur chez deux modèles ne rend pas leurs vecteurs comparables."
+      },
+      "similarity": {
+        "type": "number",
+        "minimum": -1.0,
+        "maximum": 1.0,
+        "description": "Cosinus entre le visage principal de `image` et celui de `compare_to`, quand la seconde image est fournie. Il n'y a pas de seuil universel : le seuil d'une décision d'identité appartient au modèle et au risque qu'on accepte, et cette capacité ne décide pas à la place de qui l'appelle."
+      }
+    }
+  }
+}

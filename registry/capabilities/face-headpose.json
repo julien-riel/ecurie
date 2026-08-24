@@ -1,0 +1,60 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "face-headpose",
+  "title": "Orientation de la tête",
+  "description": "Rend les trois angles d'une tête — tangage, lacet, roulis — en degrés. C'est où la tête pointe, et non où les yeux regardent : quelqu'un peut avoir la tête de face et l'œil ailleurs, ce que `face-gaze` mesure séparément. La convention est celle des trois rotations successives ; leur signe dépend du modèle, et le contrat le fixe pour tous : tangage positif quand le menton monte, lacet positif quand le sujet tourne vers sa gauche, roulis positif quand la tête penche vers son épaule droite.",
+  "human_subject": "analyzes",
+  "input": {
+    "type": "object",
+    "required": ["image"],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image contenant le ou les visages à mesurer."
+      },
+      "max_faces": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10,
+        "description": "Plafond de visages mesurés, les plus grands d'abord."
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "default": 0.5,
+        "description": "Seuil du détecteur qui précède. Cette capacité ne cherche pas les visages, elle mesure ceux qu'on lui désigne."
+      },
+      "overlay": {
+        "type": "boolean",
+        "default": true,
+        "description": "Produire l'image annotée, repère d'orientation dessiné sur chaque visage. Trois angles ne se vérifient pas de tête ; un axe tracé, si."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["poses", "count"],
+    "properties": {
+      "poses": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin du relevé produit, relatif au dossier du job : pour chaque visage, sa boîte et ses trois angles en degrés."
+      },
+      "overlay": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de l'image annotée, relatif au dossier du job."
+      },
+      "count": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de visages mesurés."
+      }
+    }
+  }
+}

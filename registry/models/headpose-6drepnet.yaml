@@ -1,0 +1,85 @@
+# Orientation de la tête — 6DRepNet, servi par uniface en ONNX.
+#
+# Trois angles par visage : où la tête pointe. Ce n'est pas où les yeux
+# regardent, que `face-gaze` mesure séparément — une tête de face avec l'œil en
+# coin donne un lacet de tête nul et un lacet de regard franc, et confondre les
+# deux fait dire à la mesure l'inverse de ce qui se passe.
+#
+# Le réseau prédit une matrice de rotation plutôt que trois angles, puis la
+# convertit : c'est ce qui lui évite le blocage de cardan des régresseurs
+# d'angles directs, dont la sortie devient instable quand le sujet regarde vers
+# le haut.
+id: headpose-6drepnet
+name: 6DRepNet (orientation de la tête)
+capability: face-headpose
+family: 6drepnet
+vendor: Yakhyokhuja Valikhujaev, d'après Hempel et al.
+license: mit
+license_class: permissive
+status: candidate
+
+notes: >
+  Le contrat fixe le signe des trois angles pour tous les modèles de la
+  capacité — menton qui monte, sujet qui tourne vers sa gauche, tête qui penche
+  vers son épaule droite. Aucune convention ne s'impose dans ce domaine, et deux
+  modèles de la même capacité qui rendraient des signes opposés pour la même pose
+  ne seraient pas interchangeables, ce qu'un contrat doit garantir.
+
+  Le cadrage compte plus qu'on ne croit : ces réseaux sont entraînés sur une
+  vignette un peu plus large que la boîte du détecteur. L'adaptateur élargit donc
+  de 15 %, faute de quoi l'angle dérive sans que rien ne le signale — le job
+  réussit et les nombres sont faux.
+
+links:
+  homepage: https://github.com/yakhyo/uniface
+  code: https://github.com/yakhyo/head-pose-estimation
+  paper: https://arxiv.org/abs/2202.12555
+
+variants:
+  - id: r18
+    quantization: fp32
+    tier: hot
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["headpose_resnet18.onnx", "retinaface_mnet050.onnx"]
+    options:
+      weights: headpose_resnet18
+      detector: retinaface_mnet050
+    defaults:
+      confidence_threshold: 0.5
+      max_faces: 10
+    caveats:
+      - "Dorsale ResNet-18, 43 Mo. Angles en degrés, selon la convention fixée par le contrat."
+      - "MESURÉ, ET C'EST LA SEULE VÉRIFICATION CROISÉE DE TOUTE LA FAMILLE. Les quatre visages de la charge type sont rendus à des lacets **connus** — 0°, +24°, −18°, +8°, puisque c'est la recette qui les pose. Le modèle mesure −0,2°, +20,1°, −13,9° et +5,3° : signes justes, amplitudes cohérentes. La convention de signe déclarée par le contrat n'est donc pas une convention d'espoir, elle est vérifiée contre une vérité terrain qu'on contrôle. Aucune photographie ne donnerait cela sans annotation manuelle."
+      - "MESURÉ — le tangage, lui, porte un biais d'environ +13° sur cette charge (13,4° annoncés pour un visage rendu à 0°). Le cadrage en est la cause probable ; à confirmer sur le golden set avant de s'en servir pour autre chose qu'une comparaison entre variants."
+      - "Licence MIT sur le code comme sur les poids — l'une des deux capacités de la famille sans restriction de données à lire par-dessus."
+    profile:
+      disk_bytes: 51362751
+      peak_unified_memory_bytes: 581976064
+      warmup_ms: 695
+      latency_ms_p50: 52
+      throughput: "1 sortie / 0.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"
+
+  - id: mobilenetv2
+    quantization: fp32
+    tier: absent
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["headpose_mobilenetv2.onnx", "retinaface_mnet050.onnx"]
+    options:
+      weights: headpose_mobilenetv2
+      detector: retinaface_mnet050
+    defaults:
+      confidence_threshold: 0.5
+      max_faces: 10
+    caveats:
+      - "Dorsale MobileNetV2 : plus léger, à retenir quand le nombre de visages par image est élevé."

@@ -1,0 +1,35 @@
+{
+  "capability": "face-gaze",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Une seule scène à quatre visages, trois plafonds : `max_faces` décide du nombre de passages dans le réseau de regard, la détection ne se faisant qu'une fois.. Les visages sont calculés, pas photographiés — voir `tools/golden_assets.py`. Les cas ne changent jamais : une charge modifiée détruit la comparabilité de toutes les mesures antérieures.",
+  "scaling_parameter": "max_faces",
+  "cases": [
+    {
+      "id": "visages-1",
+      "input": {
+        "image": "assets/visages-groupe.png",
+        "max_faces": 1,
+        "confidence_threshold": 0.5,
+        "overlay": true
+      }
+    },
+    {
+      "id": "visages-2",
+      "input": {
+        "image": "assets/visages-groupe.png",
+        "max_faces": 2,
+        "confidence_threshold": 0.5,
+        "overlay": true
+      }
+    },
+    {
+      "id": "visages-4",
+      "input": {
+        "image": "assets/visages-groupe.png",
+        "max_faces": 4,
+        "confidence_threshold": 0.5,
+        "overlay": true
+      }
+    }
+  ]
+}

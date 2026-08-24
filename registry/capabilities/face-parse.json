@@ -1,0 +1,69 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "face-parse",
+  "title": "Régions du visage",
+  "description": "Découpe un visage en ses parties nommées — peau, sourcils, yeux, nez, lèvres, oreilles, cheveux, cou, lunettes — et rend une carte où chaque pixel porte le numéro de sa région. Ce qui la sépare de la segmentation guidée n'est pas la finesse mais la désignation : `image-segment` découpe ce qu'on lui montre ou ce qu'on lui nomme, une région à la fois ; ici le vocabulaire est fixé d'avance et tout le visage est étiqueté d'un coup. Personne ne demande « la lèvre supérieure » : on demande le découpage, et il vient entier.",
+  "human_subject": "analyzes",
+  "input": {
+    "type": "object",
+    "required": ["image"],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image contenant le ou les visages à découper."
+      },
+      "max_faces": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 20,
+        "default": 5,
+        "description": "Plafond de visages traités, les plus grands d'abord. Chaque visage coûte un passage de plus dans le réseau."
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "default": 0.5,
+        "description": "Seuil du détecteur qui précède. Cette capacité ne cherche pas les visages, elle découpe ceux qu'on lui désigne."
+      },
+      "overlay": {
+        "type": "boolean",
+        "default": true,
+        "description": "Produire l'image annotée, régions teintées sur l'image d'origine. Une carte d'indices est illisible telle quelle : elle est presque noire, les numéros de classe tenant tous entre 0 et 18."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["mask", "count", "regions"],
+    "properties": {
+      "mask": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de la carte des régions, relatif au dossier du job : une image en niveaux de gris **aux dimensions de l'entrée**, où la valeur d'un pixel est le numéro de sa région et non une intensité. Elle paraît noire à l'écran, et c'est normal — c'est `overlay` qui se regarde, celle-ci qui se lit."
+      },
+      "overlay": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de l'image annotée, relatif au dossier du job : chaque région teintée de sa couleur, par-dessus l'image d'origine."
+      },
+      "regions": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin du relevé produit, relatif au dossier du job : pour chaque visage, sa boîte, et pour chaque région trouvée son numéro, son nom et le nombre de pixels qu'elle occupe. C'est ce document qui donne le sens des valeurs de `mask` — sans lui, la carte est une suite d'entiers sans légende."
+      },
+      "count": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de visages découpés."
+      },
+      "scheme": {
+        "type": "string",
+        "description": "Vocabulaire des régions employé — par exemple `celebamask-hq-19`. Deux vocabulaires ne partagent pas la numérotation, et la comparer serait une faute."
+      }
+    }
+  }
+}

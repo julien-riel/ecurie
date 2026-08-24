@@ -1,0 +1,72 @@
+{
+  "ref": "mobilegaze@r34",
+  "model": "mobilegaze",
+  "variant": "r34",
+  "capability": "face-gaze",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/face-gaze.json",
+    "version": 1,
+    "cases": [
+      "visages-1",
+      "visages-2",
+      "visages-4"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 92139535,
+    "peak_unified_memory_bytes": 712900608,
+    "peak_scaling": {
+      "parameter": "max_faces",
+      "base_bytes": 712900608,
+      "bytes_per_unit": 0.0,
+      "measured_range": [
+        1.0,
+        4.0
+      ],
+      "r_squared": 1.0
+    },
+    "warmup_ms": 1032,
+    "latency_ms_p50": 61,
+    "throughput": "1 sortie / 0.1 s"
+  },
+  "cases": [
+    {
+      "id": "visages-1",
+      "ok": true,
+      "duration_ms": 91,
+      "metrics": {
+        "duration_ms": 91,
+        "faces": 1,
+        "peak_memory_bytes": 712900608
+      },
+      "error": null
+    },
+    {
+      "id": "visages-2",
+      "ok": true,
+      "duration_ms": 55,
+      "metrics": {
+        "duration_ms": 55,
+        "faces": 2,
+        "peak_memory_bytes": 712900608
+      },
+      "error": null
+    },
+    {
+      "id": "visages-4",
+      "ok": true,
+      "duration_ms": 61,
+      "metrics": {
+        "duration_ms": 61,
+        "faces": 4,
+        "peak_memory_bytes": 712900608
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

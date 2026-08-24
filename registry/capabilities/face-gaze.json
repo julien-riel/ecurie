@@ -1,0 +1,60 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "face-gaze",
+  "title": "Direction du regard",
+  "description": "Rend la direction dans laquelle les yeux pointent, en deux angles — tangage et lacet, en degrés, relatifs à la caméra. À distinguer de l'orientation de la tête, qu'un autre contrat mesure : une tête de face avec l'œil en coin donne un lacet de tête nul et un lacet de regard franc, et confondre les deux fait dire à la mesure l'inverse de ce qui se passe. La mesure porte sur le visage entier et non sur les yeux découpés : c'est la pose de la tête qui donne au réseau son référentiel.",
+  "human_subject": "analyzes",
+  "input": {
+    "type": "object",
+    "required": ["image"],
+    "additionalProperties": false,
+    "properties": {
+      "image": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image contenant le ou les visages à mesurer."
+      },
+      "max_faces": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10,
+        "description": "Plafond de visages mesurés, les plus grands d'abord."
+      },
+      "confidence_threshold": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "default": 0.5,
+        "description": "Seuil du détecteur qui précède. Cette capacité ne cherche pas les visages, elle mesure ceux qu'on lui désigne."
+      },
+      "overlay": {
+        "type": "boolean",
+        "default": true,
+        "description": "Produire l'image annotée, une flèche partant de chaque visage dans la direction mesurée."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["gazes", "count"],
+    "properties": {
+      "gazes": {
+        "type": "string",
+        "contentMediaType": "application/json",
+        "description": "Chemin du relevé produit, relatif au dossier du job : pour chaque visage, sa boîte et ses deux angles en degrés."
+      },
+      "overlay": {
+        "type": "string",
+        "contentMediaType": "image/png",
+        "description": "Chemin de l'image annotée, relatif au dossier du job."
+      },
+      "count": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Nombre de visages mesurés."
+      }
+    }
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "ref": "retinaface@mnet025",
+  "model": "retinaface",
+  "variant": "mnet025",
+  "capability": "face-detect",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0",
+  "measured_at": "2026-08-24",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/face-detect.json",
+    "version": 1,
+    "cases": [
+      "res-320",
+      "res-640",
+      "res-1280"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 1736694,
+    "peak_unified_memory_bytes": 826064896,
+    "peak_scaling": {
+      "parameter": "input_size",
+      "base_bytes": 0,
+      "bytes_per_unit": 662250.1,
+      "measured_range": [
+        320.0,
+        1280.0
+      ],
+      "r_squared": 0.9779
+    },
+    "warmup_ms": 376,
+    "latency_ms_p50": 120,
+    "throughput": "1 sortie / 0.1 s"
+  },
+  "cases": [
+    {
+      "id": "res-320",
+      "ok": true,
+      "duration_ms": 117,
+      "metrics": {
+        "duration_ms": 117,
+        "faces": 4,
+        "confidence_max": 0.99,
+        "peak_memory_bytes": 208715776
+      },
+      "error": null
+    },
+    {
+      "id": "res-640",
+      "ok": true,
+      "duration_ms": 120,
+      "metrics": {
+        "duration_ms": 120,
+        "faces": 4,
+        "confidence_max": 0.9985,
+        "peak_memory_bytes": 328581120
+      },
+      "error": null
+    },
+    {
+      "id": "res-1280",
+      "ok": true,
+      "duration_ms": 190,
+      "metrics": {
+        "duration_ms": 190,
+        "faces": 4,
+        "confidence_max": 0.9991,
+        "peak_memory_bytes": 826064896
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

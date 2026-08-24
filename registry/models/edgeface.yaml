@@ -1,0 +1,92 @@
+# Empreinte d'identité — EdgeFace, servi par uniface en ONNX.
+#
+# ATTENTION — CETTE CAPACITÉ IDENTIFIE DES PERSONNES RÉELLES. Le contrat porte
+# `human_subject: identifies`, et ce n'est pas une décoration : c'est le champ
+# que la famille visage a fait ajouter au schéma de capacité, précisément parce
+# que `license_class` ne dit rien de cet usage-là. EdgeFace est sous BSD-3, la
+# licence la plus permissive de toute la famille, et cela ne rend pas plus
+# légitime d'encoder le visage de quelqu'un qui n'a rien demandé. Les deux
+# questions sont distinctes, et le registre les pose maintenant séparément.
+#
+# Pressenti titulaire plutôt qu'ArcFace pour une raison de licence et une seule : ArcFace
+# est un meilleur modèle sur les jeux d'évaluation publics, et tous les poids
+# d'InsightFace sont réservés à la recherche non commerciale. EdgeFace vient de
+# l'Idiap Research Institute sous BSD-3-Clause, sans restriction de données à
+# lire par-dessus.
+id: edgeface
+name: EdgeFace (empreinte d'identité)
+capability: face-embed
+family: edgeface
+vendor: Idiap Research Institute
+license: bsd-3-clause
+license_class: permissive
+status: candidate
+
+notes: >
+  Vecteurs de 512 dimensions depuis un carré de 112 pixels où les cinq points
+  d'ancrage ont été amenés sur une position canonique. **C'est l'alignement qui
+  fait la capacité** : un recadrage sur la boîte, sans redressement, donnerait un
+  vecteur qui mesure surtout la pose. Ce variant exige donc un détecteur qui
+  rende cinq points — l'adaptateur refuse net les autres plutôt que d'encoder un
+  visage de travers.
+
+  Les vecteurs de deux modèles de cette capacité ne se comparent pas, même à
+  dimension égale : ils n'appartiennent pas au même espace. Le document produit
+  nomme donc le modèle qui l'a écrit, et la confrontation A/B de cette capacité
+  portera sur des rangs, jamais sur des valeurs.
+
+  Mesuré sur la charge type : deux vues du même visage de synthèse, de face et de
+  trois quarts, donnent un cosinus de 0,92.
+
+links:
+  homepage: https://github.com/yakhyo/uniface
+  code: https://github.com/otroshi/edgeface
+
+variants:
+  - id: s-gamma-05
+    quantization: fp32
+    tier: hot
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["edgeface_s_gamma_05.onnx", "retinaface_mnet050.onnx"]
+    options:
+      weights: edgeface_s_gamma_05
+      detector: retinaface_mnet050
+    defaults:
+      confidence_threshold: 0.5
+      max_faces: 10
+      normalize: true
+    caveats:
+      - "14 Mo pour 512 dimensions — douze fois plus léger qu'ArcFace ResNet, sous une licence qui autorise l'usage professionnel."
+      - "Exige un détecteur à cinq points d'ancrage. BlazeFace en rend six et échouerait ; tous les RetinaFace du parc conviennent."
+    profile:
+      disk_bytes: 21453405
+      peak_unified_memory_bytes: 584499200
+      warmup_ms: 932
+      latency_ms_p50: 89
+      throughput: "1 sortie / 0.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"
+
+  - id: xxs
+    quantization: fp32
+    tier: absent
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["edgeface_xxs.onnx", "retinaface_mnet050.onnx"]
+    options:
+      weights: edgeface_xxs
+      detector: retinaface_mnet050
+    defaults:
+      confidence_threshold: 0.5
+      max_faces: 10
+      normalize: true
+    caveats:
+      - "La plus petite dorsale EdgeFace. À retenir quand le nombre de visages à encoder compte plus que la finesse de la distinction."

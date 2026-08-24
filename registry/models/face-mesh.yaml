@@ -1,0 +1,92 @@
+# Points clés du visage — Face Mesh (MediaPipe), servi par uniface en ONNX.
+#
+# Second modèle de `face-landmark`, et le seul de la famille visage dont les
+# poids soient **franchement permissifs** : Apache-2.0, code et modèles, sans
+# restriction de jeu d'entraînement à lire par-dessus. Sur une famille où quatre
+# manifestes sur huit portent `restricted` et un `research-only`, cela suffit à
+# le rendre intéressant même là où PIPNet ferait mieux.
+#
+# Ce qu'il rend n'est pas comparable au titulaire : 468 ou 478 points contre 98,
+# et une troisième coordonnée. Cette profondeur est **relative et sans unité** —
+# ni des pixels, ni des millimètres, ni une distance à la caméra. Le document
+# produit le déclare, faute de quoi on la prendrait pour l'une des trois.
+id: face-mesh
+name: Face Mesh (MediaPipe)
+capability: face-landmark
+family: mediapipe
+vendor: Google
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Le maillage n'est pas calculé à partir de la boîte du détecteur mais d'une
+  région **orientée**, déduite des cinq points d'ancrage : c'est ce qui lui
+  permet de rester juste sur une tête penchée, là où un rectangle droit
+  l'inclurait de travers. Conséquence pratique : ce variant exige un détecteur
+  qui rende les cinq points, ce que font tous les RetinaFace du parc.
+
+  La variante à 478 points ajoute dix points d'iris aux 468 du maillage de base.
+  C'est la seule différence, et elle coûte deux mégaoctets.
+
+links:
+  homepage: https://github.com/yakhyo/uniface
+  code: https://github.com/google-ai-edge/mediapipe
+
+variants:
+  - id: v1-468
+    quantization: fp32
+    tier: hot
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["face_mesh.onnx", "retinaface_mnet050.onnx"]
+    options:
+      weights: face_mesh
+      detector: retinaface_mnet050
+    defaults:
+      confidence_threshold: 0.5
+      max_faces: 10
+    caveats:
+      - "468 points en 3D, dont la troisième coordonnée est une profondeur relative sans unité ni origine."
+      - "2,4 Mo — vingt fois moins que PIPNet, pour cinq fois plus de points. Le maillage est dense mais peu précis point à point : il décrit une surface, là où PIPNet vise des repères anatomiques."
+      - "Apache-2.0 sur le code comme sur les modèles — le seul jeu de poids de la famille visage sans restriction de données à lire par-dessus."
+    profile:
+      disk_bytes: 9113959
+      peak_unified_memory_bytes: 499023872
+      warmup_ms: 702
+      latency_ms_p50: 55
+      throughput: "1 sortie / 0.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"
+
+  - id: v2-478
+    quantization: fp32
+    tier: hot
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["face_landmarker.onnx", "retinaface_mnet050.onnx"]
+    options:
+      weights: face_landmarker
+      detector: retinaface_mnet050
+    defaults:
+      confidence_threshold: 0.5
+      max_faces: 10
+    caveats:
+      - "478 points : les 468 du maillage, plus dix points d'iris. À retenir quand la position de la pupille compte — mais `face-gaze` mesure la direction du regard bien mieux qu'une interpolation entre dix points."
+      - "Les indices des 468 premiers points sont ceux du variant v1 : les deux se comparent, ce qui n'est vrai d'aucune autre paire de variants de cette capacité."
+    profile:
+      disk_bytes: 11512608
+      peak_unified_memory_bytes: 502382592
+      warmup_ms: 1194
+      latency_ms_p50: 58
+      throughput: "1 sortie / 0.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

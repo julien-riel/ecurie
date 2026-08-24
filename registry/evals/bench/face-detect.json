@@ -1,0 +1,73 @@
+{
+  "capability": "face-detect",
+  "version": 1,
+  "description": "Charge type du banc d'essai. Une seule scène à quatre visages, trois définitions soumises au réseau : `input_size` décide de la taille à laquelle l'image entre, et le coût suit sa surface — au carré, comme pour le détourage et la profondeur. La scène ne change pas d'un cas à l'autre pour que la pente mesurée porte sur la définition et sur rien d'autre. Les quatre visages sont à des échelles délibérément différentes : à 320 les plus petits sortent du champ du réseau, ce qui est précisément ce que ce paramètre gouverne. Les visages sont calculés, pas photographiés — voir `tools/golden_assets.py`. Les cas ne changent jamais.",
+  "scaling_parameter": "input_size",
+  "cases": [
+    {
+      "id": "res-320",
+      "input": {
+        "image": "assets/visages-groupe.png",
+        "input_size": 320,
+        "confidence_threshold": 0.5,
+        "max_faces": 20,
+        "overlay": true
+      },
+      "source": {
+        "recipe": "portrait",
+        "taille": 1024,
+        "fond": "atelier",
+        "sujets": [
+          {
+            "lacet": 0.0,
+            "tangage": 0.0,
+            "x": 0.27,
+            "y": 0.66,
+            "echelle": 0.52
+          },
+          {
+            "lacet": 24.0,
+            "tangage": 6.0,
+            "x": 0.71,
+            "y": 0.45,
+            "echelle": 0.42
+          },
+          {
+            "lacet": -18.0,
+            "tangage": -8.0,
+            "x": 0.3,
+            "y": 0.19,
+            "echelle": 0.34
+          },
+          {
+            "lacet": 8.0,
+            "tangage": 12.0,
+            "x": 0.83,
+            "y": 0.83,
+            "echelle": 0.28
+          }
+        ]
+      }
+    },
+    {
+      "id": "res-640",
+      "input": {
+        "image": "assets/visages-groupe.png",
+        "input_size": 640,
+        "confidence_threshold": 0.5,
+        "max_faces": 20,
+        "overlay": true
+      }
+    },
+    {
+      "id": "res-1280",
+      "input": {
+        "image": "assets/visages-groupe.png",
+        "input_size": 1280,
+        "confidence_threshold": 0.5,
+        "max_faces": 20,
+        "overlay": true
+      }
+    }
+  ]
+}

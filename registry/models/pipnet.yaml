@@ -1,0 +1,90 @@
+# Points clés du visage — PIPNet, servi par uniface en ONNX.
+#
+# Deux jeux de poids, et la différence n'est pas un réglage de finesse : ce sont
+# deux **conventions d'annotation** distinctes. WFLW numérote 98 points, 300W en
+# numérote 68, et l'indice 33 ne désigne pas le même endroit de l'une à l'autre.
+# Le contrat rend donc `scheme` à côté des coordonnées ; sans lui, deux sorties
+# de cette même capacité se compareraient point à point et diraient n'importe
+# quoi.
+id: pipnet
+name: PIPNet (points clés du visage)
+capability: face-landmark
+family: pipnet
+vendor: Haibo Jin et al.
+license: mit
+license_class: restricted
+status: candidate
+
+notes: >
+  Le dépôt d'origine est sous MIT. Les jeux d'annotation sur lesquels ces poids
+  sont entraînés ne le sont pas : WFLW et 300W sont publiés pour la recherche, et
+  la variante 68 points ajoute CelebA. Même raisonnement que pour `retinaface` —
+  `restricted` plutôt que `permissive`, parce qu'une licence de code permissive
+  ne lève pas la restriction posée par l'éditeur des données.
+
+  **Ce modèle ne cherche pas les visages.** Il décrit celui qu'on lui désigne, à
+  partir de sa boîte. Un détecteur tourne donc devant lui, nommé par
+  `options.detector` ; à défaut, l'adaptateur prend `retinaface_mnet050`, qui est
+  le titulaire de `face-detect`.
+
+links:
+  homepage: https://github.com/yakhyo/uniface
+  code: https://github.com/jhb86253817/PIPNet
+  paper: https://arxiv.org/abs/2003.03771
+
+variants:
+  - id: wflw-98
+    quantization: fp32
+    tier: hot
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["pipnet_r18_wflw_98.onnx", "retinaface_mnet050.onnx"]
+    options:
+      weights: pipnet_r18_wflw_98
+      detector: retinaface_mnet050
+    defaults:
+      confidence_threshold: 0.5
+      max_faces: 10
+    caveats:
+      - "98 points, convention WFLW : contour, sourcils, paupières, nez, lèvres, plus les pupilles. C'est la convention la plus dense des deux, et celle qui décrit le mieux une paupière."
+      - "Deux jeux de poids sont téléchargés pour ce variant — le réseau de points clés et son détecteur. C'est la règle de la famille : cinq capacités sur six en ont deux."
+    profile:
+      disk_bytes: 55970720
+      peak_unified_memory_bytes: 575602688
+      warmup_ms: 692
+      latency_ms_p50: 54
+      throughput: "1 sortie / 0.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"
+
+  - id: dw300w-68
+    quantization: fp32
+    tier: hot
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["pipnet_r18_300w_celeba_68.onnx", "retinaface_mnet050.onnx"]
+    options:
+      weights: pipnet_r18_300w_celeba_68
+      detector: retinaface_mnet050
+    defaults:
+      confidence_threshold: 0.5
+      max_faces: 10
+    caveats:
+      - "68 points, convention 300W — la plus répandue, et celle qu'attendent la plupart des outils tiers. À préférer pour une sortie qui doit être relue ailleurs."
+      - "Les indices ne correspondent PAS à ceux du variant à 98 points. Comparer les deux point à point est une faute que `scheme` signale sans l'empêcher."
+    profile:
+      disk_bytes: 54554840
+      peak_unified_memory_bytes: 571670528
+      warmup_ms: 689
+      latency_ms_p50: 53
+      throughput: "1 sortie / 0.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"

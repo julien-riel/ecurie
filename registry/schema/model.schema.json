@@ -25,7 +25,9 @@
         "video-to-text", "video-to-motion",
         "depth-estimation",
         "image-inpaint", "image-detect", "image-segment",
-        "audio-to-text", "speaker-diarization", "voice-clone"
+        "audio-to-text", "speaker-diarization", "voice-clone",
+        "face-detect", "face-landmark", "face-parse",
+        "face-embed", "face-headpose", "face-gaze"
       ]
     },
     "family": { "type": "string" },
@@ -105,7 +107,7 @@
         "runtime": {
           "type": "string",
           "description": "Adaptateur responsable. Doit exister dans packages/runtime/adapters/.",
-          "enum": ["mlx-lm", "mlx-audio", "mlx-vlm", "diffusers-mps", "torch-vision", "depth-anything", "mflux", "rtmlib", "comfy", "ollama", "llama-cpp", "custom"]
+          "enum": ["mlx-lm", "mlx-audio", "mlx-vlm", "diffusers-mps", "torch-vision", "depth-anything", "mflux", "rtmlib", "uniface", "comfy", "ollama", "llama-cpp", "custom"]
         },
         "runtime_env": {
           "type": "string",

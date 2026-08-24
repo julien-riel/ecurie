@@ -6,9 +6,10 @@ Silicon, ni le budget mémoire. C'est la file d'entrée du skill `veille-modeles
 qui décide, mesure et rend un rapport daté sous `registry/veille/<date>/`.
 
 Ce qu'il apporte par rapport à la liste d'origine : le **croisement avec le parc
-réel** (46 modèles, 26 capacités au 24 août 2026). Une piste qui double un
-titulaire ne se traite pas comme une piste qui ouvre une capacité — la seconde
-coûte un contrat, un adaptateur, une charge type et souvent un runtime.
+réel** (46 modèles, 26 capacités au 23 août 2026 ; 54 et 32 depuis le 24). Une
+piste qui double un titulaire ne se traite pas comme une piste qui ouvre une
+capacité — la seconde coûte un contrat, un adaptateur, une charge type et
+souvent un runtime.
 
 ## Ordre de priorité voulu
 
@@ -23,6 +24,10 @@ Une exception d'opportunité : la famille **visage** (§D) n'est pas dans cette
 liste, mais elle contient la seule piste annoncée comme optimisée pour Apple
 Silicon (MLX-UniFace). Elle coûterait moins cher à instruire que les six autres,
 et c'est un argument d'ordonnancement, pas de valeur.
+
+> **Fait le 2026-08-24.** Le pari était juste : six capacités pour un runtime de
+> vingt lignes de `pyproject.toml`, aucun code amont à vendorer. La file revient
+> donc à l'ordre voulu ci-dessus — séries temporelles en tête.
 
 ---
 
@@ -103,9 +108,17 @@ plus éloignés du parc actuel, et ceux dont les sorties se vérifient le mieux 
 une structure prédite se compare à une structure connue.
 
 ### Embeddings et similarité — `image-embed`
-**DINOv3** (image → vecteur), **ArcFace** (visage → identité), **ESM-C**
+**DINOv3** (image → vecteur), ~~**ArcFace** (visage → identité)~~, **ESM-C**
 (protéine → vecteur). Une capacité qui ne rend ni texte ni fichier mais un
-**vecteur** : elle appelle un index, donc une brique que le parc n'a pas. C'est
+**vecteur** : elle appelle un index, donc une brique que le parc n'a pas.
+
+> **Le volet visage est fait**, sous son propre contrat `face-embed` plutôt que
+> fondu ici : redresser un visage sur ses cinq points d'ancrage n'a pas
+> d'équivalent pour une pièce mécanique ou une protéine, et le mêler à
+> `image-embed` aurait donné un contrat dont la moitié des paramètres ne
+> s'appliquent qu'à la moitié des modèles. L'index reste à faire, et il servira
+> les trois. Le contournement retenu en attendant — `compare_to`, qui rend un
+> cosinus entre deux images — vaut pour vérifier, pas pour chercher. C'est
 aussi le socle de « trouver toutes les pièces qui ressemblent à celle-ci » et de
 la détection d'anomalies industrielle.
 
@@ -133,7 +146,35 @@ sur les mêmes poids, comme `sdxl-base` sert déjà trois contrats.
 fichier local. À traiter en dernier : la donnée d'entrée est un projet à elle
 seule.
 
-## D. Visage — une famille à elle seule
+## D. Visage — TRAITÉE LE 2026-08-24
+
+**Cette section est soldée.** Six capacités sont ouvertes et mesurées, un runtime
+`uniface` est entré au parc, huit manifestes sont en `status: candidate` — voir
+[le rapport du 2026-08-24](2026-08-24/RAPPORT.md). Ce qui suit est le texte
+d'origine, conservé pour ce qu'il annonçait ; les écarts constatés sont dans le
+rapport, et il y en a trois qui valent d'être connus avant d'instruire les autres
+sections :
+
+- **« MLX-UniFace » n'est pas un projet MLX.** C'est UniFace, une couche MIT
+  au-dessus d'onnxruntime. La conclusion du backlog tient — c'est bien la piste
+  la moins coûteuse —, mais pour une autre raison que celle écrite.
+- **Le tri par licence a été fait en amont, et c'est ce qui a décidé.** Le dépôt
+  de poids porte un tableau vérifié source par source, jeux d'entraînement
+  compris. Trois des six capacités sont `restricted` non par leur code mais par
+  leurs données ; deux sont franchement permissives.
+- **La question d'usage est tranchée** : `human_subject` sur le contrat de
+  capacité, à trois valeurs. `voice-clone`, qui était au parc depuis le v0.3, en
+  porte une — la preuve que le champ ne servait pas qu'à cette famille.
+
+Restent hors périmètre, avec leur raison : `face-restore` (vendoring PyTorch),
+`image-to-face-mesh` (FLAME sous licence de recherche, §F.3),
+`portrait-animate` (non instruit), `face-expression` (licence des poids non
+établie, §F.3).
+
+---
+
+### Texte d'origine (2026-08-23)
+
 
 Assez fournie pour ne pas se diluer dans les sections précédentes, et elle a une
 particularité : **MLX-UniFace est annoncé optimisé Apple Silicon**, ce qui en

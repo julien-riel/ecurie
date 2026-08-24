@@ -1,0 +1,83 @@
+# Direction du regard — MobileGaze, servi par uniface en ONNX.
+#
+# Deux angles par visage : où les yeux pointent. La mesure porte sur le visage
+# entier et non sur les yeux découpés — c'est la pose de la tête qui donne au
+# réseau son référentiel, et un œil isolé ne dit pas s'il regarde la caméra ou
+# le mur derrière elle.
+#
+# **Ce modèle rend des radians, `face-headpose` rend des degrés.** L'écart vient
+# d'amont et l'adaptateur le corrige, parce que le laisser passer serait le pire
+# des pièges : deux capacités voisines, deux sorties d'apparence identique, un
+# facteur 57 entre les deux.
+id: mobilegaze
+name: MobileGaze (direction du regard)
+capability: face-gaze
+family: mobilegaze
+vendor: Yakhyokhuja Valikhujaev
+license: mit
+license_class: permissive
+status: candidate
+
+notes: >
+  Le contrat aligne les signes sur ceux de `face-headpose` — tangage positif vers
+  le haut, lacet positif vers la gauche du sujet — pour que les deux mesures
+  s'additionnent au lieu de se contredire. C'est la seule façon de répondre à la
+  question qui motive cette capacité : quelqu'un dont la tête est tournée à 20°
+  et le regard à −20° regarde droit devant.
+
+links:
+  homepage: https://github.com/yakhyo/uniface
+  code: https://github.com/yakhyo/gaze-estimation
+
+variants:
+  - id: r34
+    quantization: fp32
+    tier: hot
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["gaze_resnet34.onnx", "retinaface_mnet050.onnx"]
+    options:
+      weights: gaze_resnet34
+      detector: retinaface_mnet050
+    defaults:
+      confidence_threshold: 0.5
+      max_faces: 10
+    caveats:
+      - "Dorsale ResNet-34, 82 Mo. Angles convertis en degrés par l'adaptateur — le réseau, lui, rend des radians."
+      - "Licence MIT sur le code comme sur les poids."
+    profile:
+      disk_bytes: 92139535
+      peak_unified_memory_bytes: 712900608
+      peak_scaling:
+        parameter: "max_faces"
+        base_bytes: 712900608
+        bytes_per_unit: 0.0
+        measured_range: [1.0, 4.0]
+        r_squared: 1.0
+      warmup_ms: 1032
+      latency_ms_p50: 61
+      throughput: "1 sortie / 0.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / onnxruntime 1.25.1 / uniface 4.0.0"
+      measured_at: "2026-08-24"
+      harness_version: "0.3.0"
+
+  - id: mobilenetv2
+    quantization: fp32
+    tier: absent
+    runtime: uniface
+    source:
+      kind: huggingface
+      repo: yakhyo/uniface-weights
+      revision: "4c7ed723a20deb7ff154b1ba7d6e73747d954016"   # 2026-07-30
+      allow_patterns: ["gaze_mobilenetv2.onnx", "retinaface_mnet050.onnx"]
+    options:
+      weights: gaze_mobilenetv2
+      detector: retinaface_mnet050
+    defaults:
+      confidence_threshold: 0.5
+      max_faces: 10
+    caveats:
+      - "Dorsale MobileNetV2 : nettement plus léger, pour un écart de précision que le golden set devra chiffrer."
