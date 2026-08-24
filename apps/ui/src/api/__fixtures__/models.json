@@ -1450,7 +1450,7 @@
           },
           "entrypoint": null,
           "env": "mlx-vlm",
-          "heavy": false,
+          "heavy": true,
           "id": "5bit",
           "options": {
             "thinking": false

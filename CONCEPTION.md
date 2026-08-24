@@ -112,7 +112,7 @@ ecurie/                          # monorepo uv workspace
     schema/{model,capability,golden}.schema.json  ✓
     capabilities/*.json                        ✓ 25 contrats atomiques
     models/*.yaml                              ✓ 26 manifestes, un par capacité au moins
-    measurements/<id>@<variant>/<machine>.json ✓ 29 profils mesurés, par machine
+    measurements/<id>@<variant>/<machine>.json ✓ 54 profils mesurés, par machine
     evals/
       bench/<capability>.json + assets/        ✓ charges type du banc d'essai
       golden/<capability>/manifest.json        ✓ 11 jeux (§9), dont l'ASR sans son
