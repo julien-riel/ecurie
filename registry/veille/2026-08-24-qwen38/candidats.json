@@ -1,0 +1,186 @@
+{
+  "date": "2026-08-24",
+  "declencheur": "demande explicite de l'utilisateur — « je veux utiliser qwen38-27b »",
+  "portee": "cycle ciblé sur un seul modèle nommé, sur les sept capacités que sert déjà la famille qwen36-27b ; aucun balayage général des sources n'a été mené. Portée arbitrée avec l'utilisateur : les sept capacités d'un coup, et aucune modification des manifestes qwen36-27b.",
+  "budget_gpu": {
+    "valeur_gio": 17.76,
+    "valeur_octets": 19070000000,
+    "provenance": "recommendedMaxWorkingSetSize de Metal, lu via le mlx de runtimes/mflux",
+    "machine": "Mac17,4 — 24 Gio de mémoire unifiée, macOS 26.5.2"
+  },
+  "erreur_du_cycle_precedent_corrigee": {
+    "ou": "registry/veille/2026-08-23/candidats.json → a_surveiller[0], et RAPPORT.md §7.5",
+    "affirmait": "« mlx-community/Qwen3.8-27B-4bit pèse 16,08 Go, soit le même dépassement de budget. Aucune conversion mxfp4 à ce jour. » — « changer de génération ne débloque rien : le mur est la taille, pas la version »",
+    "constat": "les deux moitiés sont fausses. mlx-community/Qwen3.8-27B-mxfp4 a été publié le 2026-08-14, le jour même du modèle amont, et pèse 15,24 Go. Et le mur n'était pas la taille : les sept relevés de registry/measurements/qwen36-27b-*@mxfp4/ montrent la génération précédente au vert sur ses sept capacités, avec des pics de 14,55 à 17,43 Gio pour un budget de 17,76. C'est le format de quantification qui décidait, pas le nombre de paramètres.",
+    "cause_probable": "le balayage du 2026-08-23 a interrogé l'API HF avec search=Qwen3.8-27B et une limite de 50 résultats, que les dérivés communautaires — abliterated, uncensored, GGUF tiers — saturent. Le dépôt mlx-community/Qwen3.8-27B-mxfp4 existait et n'est pas remonté.",
+    "lecon": "un `search` borné sur un modèle populaire ne prouve pas l'absence. Interroger `author=mlx-community` en plus du plein texte."
+  },
+
+  "candidats": [
+    {
+      "modele": "Qwen/Qwen3.8-27B",
+      "verifie_le": "2026-08-24",
+      "existe": true,
+      "revision_amont": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
+      "cree_le": "2026-08-05",
+      "publie_le": "2026-08-14",
+      "telechargements_amont": 2645226,
+      "likes_amont": 12501,
+      "parametres": "27B dense",
+      "architecture": "qwen3_5 — Qwen3_5ForConditionalGeneration, identique à Qwen3.6-27B sur chacun des champs comparés",
+      "architecture_detail": {
+        "couches": 64,
+        "hidden_size": 5120,
+        "tetes_attention_q": 24,
+        "tetes_attention_kv": 4,
+        "vocabulaire": 248320,
+        "contexte_natif": 262144,
+        "contexte_extensible": 1000000,
+        "disposition": "16 × (3 × (Gated DeltaNet → FFN) → 1 × (Gated Attention → FFN)) — hybride récurrent dont l'état ne croît pas avec le contexte",
+        "ffn_intermediate": 17408,
+        "mtp": "entraîné, mais absent de la conversion retenue — mlx-community le publie dans des dépôts MTP-* distincts"
+      },
+      "vision": {
+        "presente": true,
+        "preuve": "vision_config dans config.json, language_model_only: false, video_preprocessor_config.json présent",
+        "depth": 27,
+        "hidden_size": 1152,
+        "out_hidden_size": 5120,
+        "patch_size": 16,
+        "spatial_merge_size": 2,
+        "temporal_patch_size": 2,
+        "identique_a_qwen36": true
+      },
+      "audio": false,
+      "licence": "apache-2.0",
+      "license_class": "permissive",
+      "modalites": ["texte", "image", "video"],
+
+      "gabarit_de_conversation": {
+        "compare_a": "mlx-community/Qwen3.6-27B-mxfp4/chat_template.jinja",
+        "verdict": "modifié — 169 lignes contre 153, quatre différences de comportement",
+        "differences": [
+          {
+            "quoi": "enable_thinking",
+            "constat": "toujours honoré : `{%- if enable_thinking is undefined or enable_thinking is true %}` court-circuite tout le bloc de raisonnement quand le drapeau est faux",
+            "consequence": "options.thinking: false reste effectif — vérifié dans le Jinja, pas supposé. C'était le premier point à établir : un drapeau renommé aurait laissé le parc mesurer un modèle bavard en croyant l'avoir fait taire, et les capacités à sortie extraite par motif (detect, ocr, traduction) auraient rendu des chiffres qui mesurent l'adaptateur."
+          },
+          {
+            "quoi": "reasoning_effort",
+            "constat": "nouveau. Défaut `xhigh`, valeurs admises xhigh / medium / low, et le gabarit lève une exception sur toute autre valeur. Injecte une consigne système de profondeur de raisonnement.",
+            "consequence": "aucun adaptateur du parc ne le transmet. Sans effet tant que thinking est faux, puisque le bloc entier est court-circuité ; mais rallumer le raisonnement revient à demander la profondeur maximale sans moyen de la baisser."
+          },
+          {
+            "quoi": "preserve_thinking",
+            "constat": "défaut inversé — indéfini valait faux chez Qwen3.6, vaut vrai chez Qwen3.8",
+            "consequence": "sans effet sur les contrats du parc, tous à un seul tour. Réel dès qu'une conversation en aura deux."
+          },
+          {
+            "quoi": "format d'appel d'outils",
+            "constat": "inchangé, mot pour mot : <tool_call><function=nom><parameter=clé>valeur</parameter></function></tool_call>",
+            "consequence": "la stratégie d'extraction xml_function, écrite pour Qwen3.6 dans mlx_lm_tools, s'applique sans retouche. La métrique parse_strategy doit rendre xml_function."
+          }
+        ]
+      },
+
+      "chemin_execution": {
+        "runtime": "mlx-vlm",
+        "version_installee": "0.6.15",
+        "mlx": "0.32.1",
+        "transformers": "5.15.1",
+        "support_qwen3_5": true,
+        "preuve": "runtimes/mlx-vlm/.venv/.../mlx_vlm/models/qwen3_5/ présent (config.py, gated_delta.py, language.py, qwen3_5.py, vision.py)",
+        "code_a_ecrire": "aucun — les sept adaptateurs de la famille qwen36-27b servent ces poids sans modification",
+        "runtime_a_ouvrir": "aucun",
+        "contrat_a_creer": "aucun"
+      },
+
+      "variants_mlx": [
+        {
+          "id": "mxfp4",
+          "repo": "mlx-community/Qwen3.8-27B-mxfp4",
+          "revision": "97ab0819817ab1c61d7d39f9169fc71999915641",
+          "publie_le": "2026-08-14",
+          "disque_go": 15.24,
+          "vision": true,
+          "mode_quantization": "mxfp4 (group_size 32, 4 bits)",
+          "supporte_par_mlx_0_32_1": true,
+          "retenu": true,
+          "motif": "seul format dont le jumeau de génération précédente ait mesuré les sept capacités sous le budget"
+        }
+      ],
+      "variants_ecartes": [
+        {"repo": "mlx-community/Qwen3.8-27B-4bit", "disque_go": 16.08, "motif": "affine 4 bits — 840 Mo de plus que le mxfp4, et c'est exactement le format qui a échoué six fois sur sept sur Qwen3.6-27B en « [METAL] Insufficient Memory ». Le mesurer coûterait sept bancs pour reproduire un échec connu."},
+        {"repo": "mlx-community/Qwen3.8-27B-nvfp4", "disque_go": 16.08, "motif": "aucun gain sur le mxfp4, et plus lourd de 840 Mo"},
+        {"repo": "mlx-community/Qwen3.8-27B-oQ4", "disque_go": 16.68, "motif": "plus lourd que le mxfp4 de 1,44 Go"},
+        {"repo": "mlx-community/Qwen3.8-27B-OptiQ-4bit", "disque_go": 20.68, "motif": "hors budget, et sans tour de vision — ne peut servir aucune des quatre capacités visuelles"},
+        {"repo": "mlx-community/Qwen3.8-27B-oQ6", "disque_go": 23.33, "motif": "hors budget"},
+        {"repo": "mlx-community/Qwen3.8-27B-mxfp8", "disque_go": 28.69, "motif": "hors budget"},
+        {"repo": "mlx-community/Qwen3.8-27B-8bit", "disque_go": 29.53, "motif": "hors budget"},
+        {"repo": "mlx-community/Qwen3.8-27B-bf16", "disque_go": 54.74, "motif": "hors budget"},
+        {"repo": "mlx-community/Qwen3.8-27B-MTP-*", "disque_go": 0.25, "motif": "tête de prédiction multi-jetons seule, pas un modèle complet — même écartement que pour Qwen3.6"},
+        {"repo": "lmstudio-community/Qwen3.8-27B-MLX-4bit / -6bit / -8bit", "motif": "doublons des conversions mlx-community, sans gain de poids"},
+        {"repo": "lukaskremla/Qwen3.8-27B-*-TextOnly, majentik/*, avlp12/*, maglun/*, Jundot/*, Youssofal/*, keXjos/*", "motif": "conversions tierces non canoniques ; les variantes TextOnly perdent la tour de vision, donc quatre des sept capacités"},
+        {"repo": "abliterated / uncensored / OBLITERATED / Heretic / AEON / Cold-Fusion et autres finetunes", "motif": "hors périmètre : ce ne sont pas les poids de référence"},
+        {"repo": "GGUF (unsloth, bartowski, mradermacher…)", "motif": "le parc n'a pas de runtime GGUF — llama-cpp est hors périmètre et supposerait un serveur tiers que le superviseur ne contrôle pas"},
+        {"repo": "NVFP4 / AWQ / exl3 / FP8 (RadixArk, unsloth, True2456, turboderp, Qwen/Qwen3.8-27B-FP8)", "motif": "formats CUDA / vLLM / TensorRT — aucun chemin Apple Silicon"}
+      ],
+
+      "capacites": {
+        "visees": [
+          {"id": "text-generation",  "manifeste": "qwen38-27b-texte",      "worker": "mlx_vlm_text",     "titulaire_de_fait": "qwen25-coder-7b@4bit"},
+          {"id": "translation",      "manifeste": "qwen38-27b-traduction", "worker": "mlx_vlm_translate", "titulaire_de_fait": "qwen3-4b-traduction@4bit"},
+          {"id": "tool-use",         "manifeste": "qwen38-27b-outils",     "worker": "mlx_vlm_tools",    "titulaire_de_fait": "qwen3-4b-outils@4bit"},
+          {"id": "image-to-text",    "manifeste": "qwen38-27b-describe",   "worker": "mlx_vlm_describe", "titulaire_de_fait": "qwen3-vl-8b-describe@4bit"},
+          {"id": "document-to-text", "manifeste": "qwen38-27b-ocr",        "worker": "mlx_vlm (défaut)", "titulaire_de_fait": "qwen3-vl-8b-ocr@4bit"},
+          {"id": "image-detect",     "manifeste": "qwen38-27b-detect",     "worker": "mlx_vlm_detect",   "titulaire_de_fait": "qwen3-vl-8b-detect@4bit"},
+          {"id": "video-to-text",    "manifeste": "qwen38-27b-video",      "worker": "mlx_vlm_video",    "titulaire_de_fait": "qwen3-vl-8b-video@4bit"}
+        ],
+        "non_supportees": [
+          {"id": "audio-to-text", "motif": "aucun encodeur audio dans la configuration — pas d'audio_config"},
+          {"id": "speech-to-text", "motif": "idem"},
+          {"id": "image-segment", "motif": "ne rend pas de masques"},
+          {"id": "text-to-image", "motif": "ne génère pas d'image"}
+        ]
+      },
+
+      "score": {
+        "provisoire": true,
+        "motif": "gain_qualité_relatif inconnu, et il le restera : il n'existe aucun exécuteur de golden set dans le dépôt — ni commande CLI (ecurie n'expose que ps/unload/pull/run/bench/serve/registry/store/env) ni route d'API. Les jeux existent pour cinq des sept capacités visées (text-generation, translation, tool-use, image-to-text, document-to-text) et rien ne les fait tourner. C'est le troisième cycle consécutif où ce manque empêche toute recommandation de remplacement.",
+        "gain_qualite_relatif": null,
+        "maturite_runtime": 1.0,
+        "licence": 1.0,
+        "velocite": 1.0,
+        "adequation_budget": null
+      }
+    }
+  ],
+
+  "dette_constatee_hors_perimetre": [
+    {
+      "ou": "les sept manifestes registry/models/qwen36-27b-*.yaml",
+      "quoi": "leur variant mxfp4 porte un bloc profile: mesuré ET un caveat qui affirme « Non téléchargé : c'est le variant 4bit qui a été mesuré »",
+      "preuve_du_contraire": "les poids sont sur le disque (14 Gio dans le cache HF) et les sept relevés sont versionnés depuis le commit 981ee83",
+      "cause": "le commit 3d5b680 a collé les vingt-cinq profils mesurés aux manifestes sans reprendre les caveats écrits avant la mesure",
+      "non_corrige_ici": "l'utilisateur a explicitement exclu la famille qwen36-27b du périmètre de ce cycle"
+    }
+  ],
+
+  "a_surveiller": [
+    {
+      "modele": "mlx-community/Qwen3.8-27B-MTP-mxfp4",
+      "constat": "la tête de prédiction multi-jetons est entraînée par l'amont et publiée séparément — 0,25 Go, soit 1,6 % du poids du modèle. Le parc ne sait pas la charger, mais le runtime, si.",
+      "verifie": {
+        "runtime": "mlx-vlm 0.6.15 embarque un décodage spéculatif complet : mlx_vlm/speculative/ (mtp.py, eagle3.py, dflash.py, ddtree.py) et un drafter dédié à cette architecture, mlx_vlm/speculative/drafters/qwen3_5_mtp/",
+        "modele": "models/qwen3_5/qwen3_5.py:145-147 écarte explicitement les clés `mtp.` du modèle de base (« The MTP draft shard is separate from the base model »), et language.py:2112 implémente chunked_prefill_policy pour draft_kind == 'mtp' ainsi que rollback_speculative_cache",
+        "schema_ecurie": "le champ `extra_sources` du variant, avec son `role` obligatoire, existe déjà et sert dans cad-recode.yaml et smolvla-libero.yaml — une tête de brouillon aurait où se déclarer sans toucher au schéma"
+      },
+      "consequence": "le seul levier connu contre le vrai défaut de ce gabarit, qui est la latence — la génération de texte se mesurait à 76,7 s par sortie sur la 3.6. Ce qui manque n'est ni les poids, ni le runtime, ni le schéma : c'est le câblage dans l'adaptateur mlx_vlm, qui ne passe aujourd'hui aucun draft_model. Chantier bien délimité, hors périmètre de ce cycle."
+    },
+    {
+      "modele": "Qwen3.8-9B",
+      "constat": "même génération, gabarit quatre fois plus léger, conversions MLX communautaires disponibles (aucune chez mlx-community à ce jour)",
+      "consequence": "le seul membre de la famille qui aurait une chance de cohabiter avec le reste du parc au lieu de le vider. À instruire si la 27B est retenue sur la qualité mais refusée sur le coût."
+    }
+  ]
+}

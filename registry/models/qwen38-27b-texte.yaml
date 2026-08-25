@@ -1,0 +1,57 @@
+# Génération de texte — cinquième emploi des mêmes poids.
+#
+# Le modèle sait écrire ; c'est l'aiguillage qui a manqué jusqu'au cycle du
+# 2026-08-23. Les adaptateurs de `text-generation`, `translation` et `tool-use`
+# n'étaient enregistrés que sous le runtime `mlx-lm`, dont la version installée
+# ne charge pas l'architecture `qwen3_5`. Trois adaptateurs de plus — qui
+# héritent des premiers et n'en changent que le moteur — ont levé l'empêchement,
+# et Qwen3.8 en hérite sans rien coûter puisqu'il porte le même `model_type`.
+id: qwen38-27b-texte
+name: Qwen3.8 27B (génération de texte)
+capability: text-generation
+family: qwen3.8
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Challenger de qwen25-coder-7b, titulaire de fait de cette capacité et près de
+  quatre fois plus léger. La comparaison sera rude à établir honnêtement : l'un
+  tient dans le budget et cohabite avec le reste du parc, l'autre occupe la
+  machine entière. La fiche amont met en avant le codage et les tâches agentiques
+  longues, c'est-à-dire précisément le terrain du titulaire ; un gain devra être
+  large pour valoir ce prix, et c'est le golden set qui le dira.
+
+links:
+  homepage: https://huggingface.co/Qwen/Qwen3.8-27B
+
+variants:
+  - id: mxfp4
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3.8-27B-mxfp4
+      revision: "97ab0819817ab1c61d7d39f9169fc71999915641"   # 2026-08-14
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      temperature: 0.7
+      top_p: 0.95
+      max_tokens: 1024
+    options:
+      thinking: false
+    caveats:
+      - "Le raisonnement à voix haute est coupé (`options.thinking: false`). C'est la capacité où le rallumer se défend le mieux — un modèle de cette taille sur des tâches longues est fait pour cela —, mais il faut alors relever `max_tokens`, car le brouillon consommerait le budget de la réponse avant qu'elle ne commence."
+      - "`reasoning_effort`, nouveau chez Qwen3.8, n'est transmis par aucun adaptateur du parc, et son défaut dans le gabarit est `xhigh`. Poser `thinking: true` ici, c'est donc demander la profondeur maximale sans moyen de la baisser — sur un modèle qui rend déjà une sortie en dizaines de secondes."
+      - "Poids partagés avec les six autres manifestes qwen38-27b — les déporter déplace les sept."
+    profile:
+      disk_bytes: 15240954241
+      peak_unified_memory_bytes: 15619308546
+      warmup_ms: 4013
+      latency_ms_p50: 31770
+      throughput: "1 sortie / 75.1 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-25"
+      harness_version: "0.3.0"

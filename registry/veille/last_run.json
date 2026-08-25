@@ -1,79 +1,62 @@
 {
-  "last_run": "2026-08-23",
-  "portee": "deux lots : Qwen3.6-27B et Gemma 4 12B, puis cinq modèles demandés nommément. Mené jusqu'à la phase d'épreuve sur autorisation.",
-  "rapport": "registry/veille/2026-08-23/RAPPORT.md",
+  "last_run": "2026-08-24",
+  "portee": "cycle ciblé sur Qwen3.8-27B, demandé nommément, sur les sept capacités que sert déjà la famille qwen36-27b. Mené jusqu'à la mesure sur autorisation. Aucun balayage général.",
+  "rapport": "registry/veille/2026-08-24-qwen38/RAPPORT.md",
   "sources_balayees": [
-    "huggingface.co/api/models — org Qwen, org mlx-community, recherche Qwen3.6",
-    "fiche amont Qwen/Qwen3.6-27B",
-    "runtimes/mlx-vlm et runtimes/mlx-lm installés localement (support d'architecture)",
-    "packages/runtime/src/ecurie_runtime/envs.py (couples runtime/capacité servis)"
+    "huggingface.co/api/models — author=mlx-community + recherche plein texte Qwen3.8 (les deux, après l'erreur du cycle précédent)",
+    "fiche amont Qwen/Qwen3.8-27B et son LICENSE",
+    "config.json et chat_template.jinja de mlx-community/Qwen3.8-27B-mxfp4, comparés à ceux de la 3.6",
+    "runtimes/mlx-vlm installé — support d'architecture qwen3_5 et paquet speculative/",
+    "registry/measurements/qwen36-27b-*@mxfp4/ — les sept relevés de la génération précédente"
   ],
   "sources_non_balayees": [
     "releases GitHub des runtimes (ml-explore/mlx, Blaizzy/mlx-audio, ComfyUI)",
     "API HF par tâche, une passe par capacité du registre",
     "laboratoires suivis hors Qwen",
-    "déclencheurs des candidats déjà au registre (dont trellis2)"
+    "déclencheurs des candidats déjà au registre (dont trellis2)",
+    "conversions MLX tierces de Qwen3.8-9B"
   ],
   "manifestes_ajoutes": [
-    "qwen36-27b-texte",
-    "qwen36-27b-traduction",
-    "qwen36-27b-outils",
-    "qwen36-27b-describe",
-    "qwen36-27b-ocr",
-    "qwen36-27b-detect",
-    "qwen36-27b-video",
-    "gemma4-12b-texte",
-    "gemma4-12b-traduction",
-    "gemma4-12b-outils",
-    "gemma4-12b-describe",
-    "gemma4-12b-ocr",
-    "gemma4-12b-detect",
-    "gemma4-12b-video",
-    "sam3",
-    "minicpm-v46-describe",
-    "minicpm-o45-describe",
-    "minicpm-o45-ecoute",
-    "da3-large",
-    "seedvr2-3b"
+    "qwen38-27b-texte",
+    "qwen38-27b-traduction",
+    "qwen38-27b-outils",
+    "qwen38-27b-describe",
+    "qwen38-27b-ocr",
+    "qwen38-27b-detect",
+    "qwen38-27b-video"
   ],
   "telechargements": {
-    "qwen36-27b@4bit": 16081487798,
-    "gemma4-12b@4bit": 6773371194
+    "qwen38-27b@mxfp4": 15240954241
   },
   "manifestes_actifs_modifies": 0,
   "profils_mesures": [
-    "qwen36-27b-texte@4bit",
-    "gemma4-12b-texte@4bit",
-    "gemma4-12b-describe@4bit"
+    "qwen38-27b-texte@mxfp4",
+    "qwen38-27b-traduction@mxfp4",
+    "qwen38-27b-outils@mxfp4",
+    "qwen38-27b-describe@mxfp4",
+    "qwen38-27b-ocr@mxfp4",
+    "qwen38-27b-detect@mxfp4",
+    "qwen38-27b-video@mxfp4"
   ],
-  "echecs_mesures": {
-    "qwen36-27b-describe@4bit": "[METAL] Insufficient Memory sur les 3 cas de la charge type"
-  },
-  "code_ajoute": [
-    "mode hors budget (--hors-budget / overcommit) dans le contrôle d'admission, la CLI et l'API",
-    "adaptateurs mlx_vlm_text, mlx_vlm_translate, mlx_vlm_tools (héritent de leurs jumeaux mlx-lm)",
-    "transmission de enable_thinking et séparation du raisonnement (workers/base.py)",
-    "stratégie d'extraction xml_function pour les appels d'outils",
-    "grille de détection déclarable par variant (options.grid)",
-    "adaptateur mlx_vlm_audio — audio-to-text pour les modèles omni",
-    "adaptateur sam3 — segmentation par concept",
-    "adaptateur depth_anything — profondeur monoculaire",
-    "adaptateur seedvr2 — agrandissement par diffusion",
-    "correctif minicpm_compat — noms de poids attendus par le sanitize d'amont",
-    "flux de jetons (ev:delta) et WebSocket /jobs/ws"
-  ],
-  "capacites_creees": [
-    "depth-estimation"
-  ],
-  "capacites_etendues": {
-    "image-segment": "champ `prompt` — désigner par le concept et non par le clic"
-  },
-  "runtimes_ouverts": [
-    "depth-anything",
-    "mflux"
-  ],
+  "echecs_mesures": {},
+  "code_ajoute": [],
+  "capacites_creees": [],
+  "capacites_etendues": {},
+  "runtimes_ouverts": [],
   "erreurs_corrigees": [
-    "SeedVR2 écarté à tort sur sa conversion MLX-Swift : mflux en porte une implémentation Python",
-    "Qwen3.6-27B déclaré hors budget en comparant des Go décimaux à un budget en Gio"
+    "le cycle du 2026-08-23 avait déclaré qu'aucune conversion mxfp4 de Qwen3.8-27B n'existait : elle était publiée depuis le 2026-08-14, le jour même du modèle amont. Cause : un `search` plein texte borné à 50 résultats, saturé par les dérivés communautaires sur un modèle à 2,6 M de téléchargements",
+    "le même cycle concluait que « le mur est la taille, pas la version » pour la classe 27B : le mur était le mode de quantification. Le mxfp4 à 15,24 Go tient là où le 4 bits affine à 16,08 Go échoue",
+    "une confusion Go décimaux / Gio dans la rédaction de ce cycle-ci, corrigée avant mesure — la même faute que le cycle du 23 avait dû corriger sur cette famille"
+  ],
+  "constats_notables": [
+    "les sept pics de Qwen3.8-27B@mxfp4 égalent ceux de Qwen3.6-27B@mxfp4 au dernier octet — pic dominé par le préremplissage sur une architecture hybride où une couche sur quatre porte un cache KV croissant",
+    "qwen36-27b-detect@mxfp4 était au vert sur ses trois cas en ne rendant AUCUN objet (0 objets, 3/2/3 rejetés) ; qwen38-27b-detect en rend 3/1/3 avec zéro rejet. Le banc mesure un coût, pas la forme d'une sortie",
+    "video-to-text tient à 0,33 Gio du budget (98,1 %), et son pic suit max_frames que le contrat autorise à dépasser les 16 images du banc"
+  ],
+  "declencheurs_poses": [
+    "câbler le décodage spéculatif par tête MTP dans l'adaptateur mlx_vlm — poids, runtime et schéma sont déjà en place, seul le passage d'un draft_model manque",
+    "instruire Qwen3.8-9B, seul membre de la famille susceptible de cohabiter avec le parc au lieu de le vider",
+    "écrire un exécuteur de golden set — troisième cycle consécutif bloqué par son absence",
+    "un banc qui s'adapte au variant, rendu plus urgent par la falaise de video-to-text"
   ]
 }

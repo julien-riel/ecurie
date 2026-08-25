@@ -1,0 +1,59 @@
+# Traduction — sixième emploi des mêmes poids.
+#
+# C'est la capacité où le mode « thinking » ferait le plus de dégâts silencieux :
+# une traduction se compare au caractère près à sa référence, et un brouillon de
+# raisonnement placé devant elle ferait chuter la note d'un modèle qui a pourtant
+# traduit juste. L'adaptateur le coupe à la racine plutôt que de le retirer après
+# coup — les jetons du brouillon sont facturés au budget de la réponse.
+#
+# C'est aussi la capacité qui a fait tomber le variant 4bit de la génération
+# précédente : 17,78 Gio de pic, deux cas sur trois seulement, et un refus
+# d'admission par absence de profil. La longueur de l'invite est ici la variable
+# qui décide, pas la taille du modèle.
+id: qwen38-27b-traduction
+name: Qwen3.8 27B (traduction)
+capability: translation
+family: qwen3.8
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Challenger de qwen3-4b-traduction, sept fois plus léger. Le contrat expose une
+  langue d'arrivée libre, ce qu'un modèle généraliste honore et qu'un moteur NMT
+  dédié ne fait pas ; à ce jeu la taille joue en faveur de ce candidat sur les
+  langues peu servies. Reste à savoir si l'écart justifie de vider le parc à
+  chaque job.
+
+links:
+  homepage: https://huggingface.co/Qwen/Qwen3.8-27B
+
+variants:
+  - id: mxfp4
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3.8-27B-mxfp4
+      revision: "97ab0819817ab1c61d7d39f9169fc71999915641"   # 2026-08-14
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      register: neutre
+      preserve_formatting: true
+    options:
+      thinking: false
+    caveats:
+      - "Ne détecte pas la langue de départ : il traduit ce qu'on lui donne. `detected_source_language` rend la langue déclarée, ou rien."
+      - "Le raisonnement à voix haute est coupé (`options.thinking: false`) — indispensable ici, où la sortie est comparée au caractère près."
+      - "Poids partagés avec les six autres manifestes qwen38-27b — les déporter déplace les sept."
+    profile:
+      disk_bytes: 15240954241
+      peak_unified_memory_bytes: 16190589704
+      warmup_ms: 4225
+      latency_ms_p50: 8519
+      throughput: "1 sortie / 9.5 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-25"
+      harness_version: "0.3.0"

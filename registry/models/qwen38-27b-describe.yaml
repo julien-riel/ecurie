@@ -1,0 +1,101 @@
+# Description d'image — premier manifeste d'une famille de sept qui partagent
+# un seul jeu de poids, sur le modèle de la famille qwen36-27b dont celle-ci
+# reprend la structure ligne pour ligne.
+#
+# Qwen3.8-27B est un modèle de langue à encodeur visuel, paru le 2026-08-14 sous
+# Apache-2.0. Son architecture est celle de la génération précédente et le dit
+# jusque dans son `model_type` : `qwen3_5`, 64 couches, hidden 5120, 24 têtes Q
+# pour 4 KV, vocabulaire 248 320, contexte natif 262 144 jetons, tour de vision
+# de profondeur 27 pour un `out_hidden_size` de 5120. Les configurations de
+# `Qwen3.6-27B-mxfp4` et de `Qwen3.8-27B-mxfp4` sont identiques sur chacun de
+# ces champs — vérifié en les comparant, pas supposé d'après le numéro de
+# version. C'est ce qui autorise à écrire ces sept manifestes sans rien changer
+# au code : même runtime `mlx-vlm`, mêmes adaptateurs, mêmes contrats.
+#
+# CE QUI CHANGE PAR RAPPORT À LA FAMILLE 3.6, ET QUI EST TOUT L'INTÉRÊT DU
+# CYCLE : le variant retenu ici est le `mxfp4`, et lui seul. La veille du
+# 2026-08-23 avait classé Qwen3.8-27B en « à surveiller » sur le constat qu'il
+# n'en existait aucune conversion mxfp4 et que « le mur est la taille, pas la
+# version ». Les deux moitiés du constat sont fausses. `mlx-community` a publié
+# `Qwen3.8-27B-mxfp4` le jour même du modèle amont, 15,24 Go, soit exactement le
+# poids du mxfp4 de la 3.6. Et le mur n'était pas la taille : c'était le format.
+# Les relevés de `registry/measurements/qwen36-27b-*@mxfp4/` montrent les sept
+# capacités au vert sur les mêmes 24 Gio, avec des pics de 14,55 Gio (texte) à
+# 17,43 Gio (vidéo) pour un budget de 17,76 Gio. C'est le variant `4bit` affine,
+# plus lourd de 840 Mo, qui échouait six fois sur sept en « Insufficient
+# Memory » — et il échouait sans jamais rendre de pic, puisque le banc n'écrit
+# pas de profil quand un cas tombe.
+#
+# Les deux unités ne se mélangent pas impunément : le budget se lit en gibioctets
+# et les tailles de dépôt s'annoncent en gigaoctets décimaux. Confondre les deux
+# est la faute que le cycle du 2026-08-23 a dû corriger sur cette même famille,
+# après avoir déclaré Qwen3.6-27B hors budget à tort.
+#
+# Ce que cela ne dit pas : que ce modèle-ci tient. Un profil ne se recopie pas
+# d'une génération à l'autre, même à architecture et quantification identiques —
+# ce serait précisément l'estimation à la main que le projet s'interdit. Les
+# profils ci-dessous viennent de `ecurie bench` sur ces poids-là.
+id: qwen38-27b-describe
+name: Qwen3.8 27B (description d'image)
+capability: image-to-text
+family: qwen3.8
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Challenger de qwen3-vl-8b-describe, titulaire en poste, et de qwen36-27b-describe,
+  candidat mesuré sur le même gabarit. Le gain de qualité reste inconnu : la fiche
+  amont compare Qwen3.8-27B à Qwen3.6-27B et à des modèles fermés, jamais à
+  Qwen3-VL 8B, et rien dans ce cycle n'a fait tourner un golden set. Ce qui est
+  établi ici est un coût, pas une compétence.
+
+links:
+  homepage: https://huggingface.co/Qwen/Qwen3.8-27B
+
+variants:
+  # Un seul variant déclaré, et c'est une décision. `mlx-community` publie aussi
+  # ce modèle en 4bit affine (16,08 Go), nvfp4 (16,08), oQ4 (16,68), 8bit et
+  # bf16 : tous plus lourds que le mxfp4, sur une machine où le mxfp4 de la
+  # génération précédente passait à 316 Mio près sur sa capacité la plus tendue.
+  # Les déclarer sans les mesurer reviendrait à inscrire au registre des
+  # variants dont on sait déjà qu'ils ne seront pas admis. Le motif de chacun
+  # est dans le rapport de veille du jour, où il reste réutilisable.
+  - id: mxfp4
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3.8-27B-mxfp4
+      revision: "97ab0819817ab1c61d7d39f9169fc71999915641"   # 2026-08-14
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      detail: normal
+      max_tokens: 512
+      temperature: 0.2
+    options:
+      # Qwen3.8 raisonne à voix haute par défaut, et sa fiche amont y insiste
+      # plus que celle de la 3.6 : le mode est actif d'usine, se coupe par
+      # requête, et sa profondeur se règle par un `reasoning_effort` que les
+      # adaptateurs du parc ne connaissent pas. `false` est déjà leur défaut ;
+      # on l'écrit ici pour que le manifeste porte la décision plutôt que de la
+      # subir au prochain changement de gabarit.
+      thinking: false
+    caveats:
+      - "Poids partagés avec les six autres manifestes qwen38-27b — les déporter avec `ecurie store tier` déplace les sept."
+      - "Le raisonnement à voix haute est coupé (`options.thinking: false`), ce que l'adaptateur transmet en `enable_thinking`. Le rallumer change ce que la capacité mesure, et demande de relever `max_tokens` en conséquence : le brouillon est facturé au budget de la réponse."
+      - "VÉRIFIÉ DANS LE GABARIT : `enable_thinking is false` court-circuite bien tout le bloc de raisonnement de Qwen3.8 — la coupure est effective, pas seulement demandée. C'était le premier point à établir : un gabarit qui aurait renommé le drapeau aurait laissé le parc mesurer un modèle bavard en croyant l'avoir fait taire."
+      - "`reasoning_effort`, nouveau chez Qwen3.8, n'est transmis par aucun adaptateur du parc, et son défaut dans le gabarit est `xhigh` — le réglage le plus coûteux des trois. Rallumer le raisonnement sans pouvoir le régler revient donc à demander la profondeur maximale. Le gabarit lève de surcroît une exception sur toute valeur hors de `xhigh`/`medium`/`low`."
+      - "`preserve_thinking` a changé de défaut entre les deux générations : indéfini valait faux chez Qwen3.6, il vaut vrai chez Qwen3.8. Sans effet sur les contrats du parc, qui sont tous à un seul tour, mais c'est une différence de comportement réelle dès qu'une conversation en aura deux."
+      - "Quantification 4 bits à virgule flottante microscalaire, group_size 32 — le même mode que le mxfp4 de la 3.6, et toujours moins éprouvé dans le parc que le mode affine."
+    profile:
+      disk_bytes: 15240954241
+      peak_unified_memory_bytes: 16877151224
+      warmup_ms: 4284
+      latency_ms_p50: 14887
+      throughput: "1 sortie / 20.6 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-25"
+      harness_version: "0.3.0"
