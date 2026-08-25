@@ -1,0 +1,55 @@
+# Lecture de document — les MÊMES poids que qwen38-27b-describe, autre contrat.
+#
+# Aucun téléchargement propre : ce manifeste désigne le dépôt et la révision de
+# qwen38-27b-describe, dont l'en-tête porte le raisonnement de la famille. Le
+# profil, lui, est mesuré pour lui-même — transcrire une page et décrire une
+# photo ne produisent ni le même nombre de jetons ni le même pic, et sur ce
+# gabarit l'écart entre les deux se compte en centaines de mébioctets contre une
+# marge qui en fait quelques centaines.
+id: qwen38-27b-ocr
+name: Qwen3.8 27B (lecture de document)
+capability: document-to-text
+family: qwen3.8
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Challenger de qwen3-vl-8b-ocr. La fiche amont annonce des gains sur les
+  documents et les diagrammes STEM par rapport à Qwen3.6, sans jamais situer
+  aucun des deux face au titulaire du parc. Le gain reste donc inconnu, et le
+  restera jusqu'au golden set — ce cycle mesure un coût.
+
+links:
+  homepage: https://huggingface.co/Qwen/Qwen3.8-27B
+
+variants:
+  - id: mxfp4
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3.8-27B-mxfp4
+      revision: "97ab0819817ab1c61d7d39f9169fc71999915641"   # 2026-08-14
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      format: markdown
+      detect_layout: true
+      dpi: 200
+    options:
+      thinking: false
+    caveats:
+      - "Poids partagés avec les six autres manifestes qwen38-27b — les déporter déplace les sept."
+      - "Le raisonnement à voix haute est coupé (`options.thinking: false`). Sur cette capacité, un préambule fausserait la comparaison au texte attendu autant qu'il gênerait la lecture."
+      - "Un VLM transcrit, il ne localise pas : la sortie `layout` décrit les pages, pas des boîtes."
+    profile:
+      disk_bytes: 15240954241
+      peak_unified_memory_bytes: 17059620410
+      warmup_ms: 4108
+      latency_ms_p50: 16966
+      throughput: "1 sortie / 20.7 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-25"
+      harness_version: "0.3.0"

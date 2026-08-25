@@ -1,0 +1,57 @@
+# Détection — troisième emploi des mêmes poids, et le seul des sept à rendre une
+# structure plutôt qu'un texte.
+#
+# C'est aussi la capacité où le mode « thinking » fait le plus de dégâts
+# silencieux : l'adaptateur `mlx_vlm_detect` lit des coordonnées dans la réponse
+# du modèle, et un bloc <think>…</think> placé devant fait tomber l'extraction à
+# zéro objet sur un modèle qui a pourtant vu la bonne chose. Qwen3.8 raisonne à
+# voix haute d'usine ; `options.thinking: false` n'est pas une préférence ici,
+# c'est la condition pour que la mesure porte sur le modèle et non sur
+# l'extracteur.
+id: qwen38-27b-detect
+name: Qwen3.8 27B (détection)
+capability: image-detect
+family: qwen3.8
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Challenger de qwen3-vl-8b-detect. Voir l'en-tête de qwen38-27b-describe pour
+  ce que ce cycle a établi sur la famille, et pourquoi le variant mxfp4 est le
+  seul déclaré.
+
+links:
+  homepage: https://huggingface.co/Qwen/Qwen3.8-27B
+
+variants:
+  - id: mxfp4
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3.8-27B-mxfp4
+      revision: "97ab0819817ab1c61d7d39f9169fc71999915641"   # 2026-08-14
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      max_objects: 20
+      max_tokens: 1024
+      temperature: 0.0
+    options:
+      thinking: false
+    caveats:
+      - "La grille de coordonnées de cette famille n'a pas été vérifiée : `options.grid` n'est pas déclaré, donc l'adaptateur applique le défaut hérité de Qwen3-VL. Une grille fausse trace les boîtes à une fraction de leur place sans que rien n'échoue — regarder `overlay.png` du premier job avant toute comparaison. La famille qwen36-27b porte la même dette."
+      - "Aucun score de confiance : un VLM en produit un si on le lui demande, et rien dans son entraînement ne le calibre. Le contrat n'en déclare pas."
+      - "Le raisonnement à voix haute est coupé (`options.thinking: false`). Sur cette capacité, dont la sortie est extraite par motif, un préambule ferait rendre zéro objet — ce qui mesurerait l'adaptateur, pas le modèle."
+      - "Poids partagés avec les six autres manifestes qwen38-27b — les déporter déplace les sept."
+    profile:
+      disk_bytes: 15240954241
+      peak_unified_memory_bytes: 16956270152
+      warmup_ms: 4058
+      latency_ms_p50: 14973
+      throughput: "1 sortie / 13.5 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-25"
+      harness_version: "0.3.0"

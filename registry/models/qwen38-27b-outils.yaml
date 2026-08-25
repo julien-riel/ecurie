@@ -1,0 +1,67 @@
+# Appel d'outils — septième et dernier emploi des mêmes poids.
+#
+# Cette capacité a demandé plus qu'un aiguillage à la génération précédente.
+# Qwen3.6 ne rend pas ses appels en JSON balisé comme Qwen3, mais en XML
+# imbriqué :
+#
+#     <tool_call><function=météo><parameter=ville>Paris</parameter></function></tool_call>
+#
+# L'extracteur de `mlx_lm_tools` capturait bien la balise, tentait un
+# `json.loads` sur son contenu, échouait, et rendait zéro appel — sur un modèle
+# qui avait choisi le bon outil et rempli le bon argument. Il a gagné une
+# stratégie `xml_function`, et la métrique `parse_strategy` du job dit désormais
+# lequel des trois formats a servi. Qwen3.8 partage le gabarit de chat de la
+# 3.6 ; il devrait rendre `xml_function` lui aussi, et cette métrique est la
+# première chose à lire dans le relevé.
+#
+# Écurie n'exécute aucun outil : elle juge le choix et le remplissage.
+id: qwen38-27b-outils
+name: Qwen3.8 27B (appel d'outils)
+capability: tool-use
+family: qwen3.8
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Challenger de qwen3-4b-outils. La fiche amont place l'exécution agentique en
+  tête de ses gains — planification autonome, meilleure prise en compte du retour
+  de l'environnement —, ce qui fait de cette capacité celle où un écart avec le
+  titulaire est le plus plausible. C'est aussi celle que le contrat du parc teste
+  le plus mal : trois outils déclarés, un tour, aucune boucle.
+
+links:
+  homepage: https://huggingface.co/Qwen/Qwen3.8-27B
+
+variants:
+  - id: mxfp4
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3.8-27B-mxfp4
+      revision: "97ab0819817ab1c61d7d39f9169fc71999915641"   # 2026-08-14
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      tool_choice: auto
+      parallel_calls: false
+      temperature: 0.0
+    options:
+      thinking: false
+    caveats:
+      - "Format d'appel XML et non JSON : la métrique `parse_strategy` doit rendre `xml_function`. Si elle rend `aucun`, c'est l'extracteur qu'il faut regarder avant d'accuser le modèle. VÉRIFIÉ dans le gabarit de Qwen3.8 : la consigne d'appel et le rendu sont mot pour mot ceux de la 3.6 — `<tool_call><function=…><parameter=…>` —, donc la stratégie écrite pour elle s'applique sans retouche."
+      - "`template_tools` doit rester vraie d'une exécution à l'autre : le gabarit accepte `tools`, donc l'appel est natif et non un repli par consigne système. Si elle passe à faux après une mise à jour du gabarit, la comparaison avec les mesures antérieures cesse d'être valide."
+      - "La déclaration des outils allonge l'invite — 177 jetons contre 44 pour une invite nue. Sur ce gabarit c'est la capacité dont l'invite est la plus longue après la traduction du cas long, et c'est ce qui avait fait échouer le variant 4bit de la génération précédente."
+      - "Le raisonnement à voix haute est coupé (`options.thinking: false`)."
+      - "Poids partagés avec les six autres manifestes qwen38-27b — les déporter déplace les sept."
+    profile:
+      disk_bytes: 15240954241
+      peak_unified_memory_bytes: 17610751252
+      warmup_ms: 4183
+      latency_ms_p50: 6760
+      throughput: "1 sortie / 7.6 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-25"
+      harness_version: "0.3.0"

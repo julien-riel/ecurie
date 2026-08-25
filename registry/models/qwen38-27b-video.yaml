@@ -1,0 +1,65 @@
+# Description de vidéo — quatrième emploi des mêmes poids, et le plus coûteux en
+# mémoire des sept.
+#
+# C'est sur cette capacité que le mxfp4 de la génération précédente frôlait le
+# plafond : 17,43 Gio de pic mesuré pour un budget de 17,76, soit 0,33 Gio de
+# marge — la plus tendue des sept, et 2,85 Gio au-dessus de la capacité la plus
+# économe de la même famille, la génération de texte. Les trois cas passaient
+# tous. C'est donc ici que la mesure de cette génération-ci a le plus de chances
+# de rendre un verdict différent des six autres, et ici qu'il faut la lire avant
+# de conclure quoi que ce soit sur la famille.
+#
+# Le modèle porte un `video_token_id` et un `video_preprocessor_config.json`,
+# donc un chemin vidéo natif déclaré. Sur les poids du titulaire qwen3-vl-8b, ce
+# chemin s'est révélé cassé — il transmettait un unique jeton de remplissage, et
+# l'adaptateur décode les images lui-même depuis. Rien ne dit que Qwen3.8 se
+# comporte pareil, et rien ne dit le contraire.
+id: qwen38-27b-video
+name: Qwen3.8 27B (description de vidéo)
+capability: video-to-text
+family: qwen3.8
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Challenger de qwen3-vl-8b-video. La fiche amont annonce la compréhension de
+  vidéos « à l'échelle de l'heure » ; le contrat du parc échantillonne huit
+  images, ce qui ne teste pas cette prétention et n'a pas vocation à le faire.
+  Voir l'en-tête de qwen38-27b-describe pour la famille.
+
+links:
+  homepage: https://huggingface.co/Qwen/Qwen3.8-27B
+
+variants:
+  - id: mxfp4
+    quantization: 4bit
+    tier: hot
+    runtime: mlx-vlm
+    source:
+      kind: huggingface
+      repo: mlx-community/Qwen3.8-27B-mxfp4
+      revision: "97ab0819817ab1c61d7d39f9169fc71999915641"   # 2026-08-14
+      allow_patterns: ["*.json", "*.safetensors", "*.txt", "*.jinja"]
+    defaults:
+      fps: 1.0
+      max_frames: 8
+      max_tokens: 512
+      temperature: 0.2
+    options:
+      thinking: false
+    caveats:
+      - "Le pic suit `max_frames`, pas la durée de la vidéo : huit images d'un plan de dix minutes coûtent autant que huit images de dix secondes. Relever `max_frames` sur ce gabarit est le moyen le plus direct de sortir du budget."
+      - "Le chemin vidéo natif de mlx-vlm est inutilisable avec les poids du titulaire ; son comportement avec ceux-ci n'a pas été éprouvé."
+      - "Le raisonnement à voix haute est coupé (`options.thinking: false`)."
+      - "Poids partagés avec les six autres manifestes qwen38-27b — les déporter déplace les sept."
+    profile:
+      disk_bytes: 15240954241
+      peak_unified_memory_bytes: 18714456000
+      warmup_ms: 4054
+      latency_ms_p50: 29581
+      throughput: "1 sortie / 34.8 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15"
+      measured_at: "2026-08-25"
+      harness_version: "0.3.0"

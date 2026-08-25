@@ -1,0 +1,77 @@
+{
+  "ref": "qwen38-27b-detect@mxfp4",
+  "model": "qwen38-27b-detect",
+  "variant": "mxfp4",
+  "capability": "image-detect",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+  "measured_at": "2026-08-25",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/image-detect.json",
+    "version": 1,
+    "cases": [
+      "categories",
+      "langue-naturelle",
+      "libre"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 15240954241,
+    "peak_unified_memory_bytes": 16956270152,
+    "warmup_ms": 4058,
+    "latency_ms_p50": 14973,
+    "throughput": "1 sortie / 13.5 s"
+  },
+  "cases": [
+    {
+      "id": "categories",
+      "ok": true,
+      "duration_ms": 16815,
+      "metrics": {
+        "duration_ms": 16815,
+        "objects": 3,
+        "discarded": 0,
+        "image_width": 768,
+        "image_height": 768,
+        "generation_tokens": 92,
+        "tokens_per_second": 5.51,
+        "peak_memory_bytes": 16941561284
+      },
+      "error": null
+    },
+    {
+      "id": "langue-naturelle",
+      "ok": true,
+      "duration_ms": 8598,
+      "metrics": {
+        "duration_ms": 8598,
+        "objects": 1,
+        "discarded": 0,
+        "image_width": 768,
+        "image_height": 768,
+        "generation_tokens": 38,
+        "tokens_per_second": 4.45,
+        "peak_memory_bytes": 16949508548
+      },
+      "error": null
+    },
+    {
+      "id": "libre",
+      "ok": true,
+      "duration_ms": 14973,
+      "metrics": {
+        "duration_ms": 14973,
+        "objects": 3,
+        "discarded": 0,
+        "image_width": 768,
+        "image_height": 768,
+        "generation_tokens": 92,
+        "tokens_per_second": 6.16,
+        "peak_memory_bytes": 16956270152
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

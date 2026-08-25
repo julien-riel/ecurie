@@ -1,0 +1,83 @@
+{
+  "ref": "qwen38-27b-outils@mxfp4",
+  "model": "qwen38-27b-outils",
+  "variant": "mxfp4",
+  "capability": "tool-use",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+  "measured_at": "2026-08-25",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/tool-use.json",
+    "version": 1,
+    "cases": [
+      "outils-3",
+      "outils-8",
+      "outils-16"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 15240954241,
+    "peak_unified_memory_bytes": 17610751252,
+    "warmup_ms": 4183,
+    "latency_ms_p50": 6760,
+    "throughput": "1 sortie / 7.6 s"
+  },
+  "cases": [
+    {
+      "id": "outils-3",
+      "ok": true,
+      "duration_ms": 6728,
+      "metrics": {
+        "duration_ms": 6728,
+        "tools_declared": 3,
+        "calls": 1,
+        "parse_strategy": "xml_function",
+        "template_tools": true,
+        "complaints": [],
+        "prompt_tokens": 382,
+        "generation_tokens": 32,
+        "tokens_per_second": 4.77,
+        "peak_memory_bytes": 16315429384
+      },
+      "error": null
+    },
+    {
+      "id": "outils-8",
+      "ok": true,
+      "duration_ms": 6760,
+      "metrics": {
+        "duration_ms": 6760,
+        "tools_declared": 8,
+        "calls": 1,
+        "parse_strategy": "xml_function",
+        "template_tools": true,
+        "complaints": [],
+        "prompt_tokens": 630,
+        "generation_tokens": 31,
+        "tokens_per_second": 4.59,
+        "peak_memory_bytes": 16851424678
+      },
+      "error": null
+    },
+    {
+      "id": "outils-16",
+      "ok": true,
+      "duration_ms": 9321,
+      "metrics": {
+        "duration_ms": 9321,
+        "tools_declared": 16,
+        "calls": 1,
+        "parse_strategy": "xml_function",
+        "template_tools": true,
+        "complaints": [],
+        "prompt_tokens": 1095,
+        "generation_tokens": 31,
+        "tokens_per_second": 3.33,
+        "peak_memory_bytes": 17610751252
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}
