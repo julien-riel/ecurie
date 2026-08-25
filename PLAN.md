@@ -18,8 +18,9 @@
 | v0.5 → v0.7 | à faire | — |
 
 Le parc réel compte **quarante et une capacités déclarées**, toutes pourvues d'au
-moins un modèle — soixante-quatre manifestes. Seize environnements de runtime,
-quarante-six adaptateurs, quatre paquets Python et un front,
+moins un modèle — soixante-douze manifestes. Dix-huit environnements de runtime,
+cinquante-deux adaptateurs sous `workers/` plus les entrypoints des runtimes
+`custom`, quatre paquets Python et un front,
 **1 293 tests Python et 497 tests de front**, plus les essais sur le vrai parc et
 contre un vrai serveur, exclus par défaut.
 
@@ -27,6 +28,62 @@ Deux choses ont été faites en marge du jalon, et elles n'attendaient personne 
 le **recalibrage du seuil de lourdeur** (voir les points de contrôle), et la
 **rédaction des golden sets** de la tâche 5.1, qui est du travail de fond dont le
 v0.5 dépend entièrement.
+
+### Un modèle qui ne tourne pas en Python, et du son dans la vidéo — le 25 août 2026
+
+**MiniMax-H3** entre au parc, et il casse trois hypothèses que le projet avait
+tenues pour acquises sans jamais les écrire.
+
+**Un runtime peut ne pas être une bibliothèque Python.** L'inférence est faite
+par `h3`, un binaire C + Metal (antirez/h3.c, MIT). `runtimes/h3-metal` est donc
+le premier environnement dont `uv sync` ne fabrique qu'un interpréteur nu : il
+n'y a aucune dépendance à installer, parce qu'il n'y a rien à importer.
+L'adaptateur compose une ligne de commande, lance le binaire, et l'écoute.
+
+**Le pic mémoire peut ne pas être mesurable depuis le worker.** `mx.get_peak_memory()`
+n'existe pas hors MLX, et le RSS du processus Python ne mesure que le processus
+Python. L'adaptateur combine donc deux instruments et retient le plus grand : le
+RSS du processus fils, échantillonné toutes les 100 ms, et les `peak=` par phase
+du `--profile` du binaire. **Les deux changent de place selon le job**, et le
+maximum est retenu : sur le cas court du banc, le RSS seul aurait déclaré
+3,47 Gio là où le pilote Metal en tenait 9,55 ; sur un job minuscule, c'est
+l'inverse et le RSS l'emporte de 50 %.
+
+Ce va-et-vient a mis au jour autre chose, qui vaut au-delà de ce modèle : **le
+RSS de ce runtime n'est pas reproductible.** Le même job rendu quatre fois a
+donné 3,47, 3,60, 5,45 et 5,85 Gio, pendant que le profil Metal rendait le même
+octet à chaque fois. Le RSS compte les pages mappées d'un fichier de poids de
+134 Gio, que macOS garde ou évince selon la pression du moment — c'est une
+propriété de la machine à cet instant, pas du modèle. Or le
+`peak_unified_memory_bytes` d'un profil est justement le chiffre que le README
+promet portable d'un Mac à l'autre. Le maximum reste retenu par prudence, mais
+la métrique `peak_source` de chaque job dit lequel a gagné, et deux mesures de ce
+variant ne se comparent que si elles ont la même source.
+
+**Le rapport poids/budget peut dépasser 7 pour 1.** 134 Gio sur le disque, un
+budget de 17,76 Gio, et un pic mesuré de **9,55 Gio** — 53,8 % du budget. Ce
+n'est pas une quantification qui le permet : les poids sont en BF16 d'origine.
+C'est le streaming SSD, qui ne garde que deux blocs de DiT en mémoire et lit le
+suivant pendant que le GPU travaille sur le courant. Le facteur limitant de ce
+modèle n'est donc pas le GPU mais le disque : 144 Gio lus à 5,06 Gio/s pour une
+seconde de vidéo.
+
+**Et le contrat `text-to-video` gagne un champ de sortie `audio`**, parce que ce
+modèle rend une bande-son synchronisée en même temps que l'image. La capacité
+n'est pas dédoublée : le dénominateur commun reste la vidéo, et c'est la présence
+du champ — et elle seule — qui dit qu'il y a du son. `ltx-video-2b` ne le remplit
+pas, et n'a rien à changer.
+
+Mesuré sur la charge type de la capacité, à 512×320 : 282 s pour 39 images
+produites, 426 s pour 56, 795 s pour 107. Le pic ne bouge pas d'un octet entre
+les trois — le VAE vidéo décode par tuiles à empreinte fixe — pendant que son mur
+croît linéairement. Cette pente nulle a été vérifiée avant d'être inscrite : les
+pics du DiT (2,02 → 2,40 Gio) et le RSS du fils (3,47 → 5,26 Gio) bougent, eux,
+ce qui écarte l'hypothèse d'un instrument gelé.
+
+Reste en `status: candidate`, et sous une licence à **restrictions
+territoriales qui portent aussi sur les sorties** — détail au manifeste et dans
+`runtimes/h3-metal/README.md`.
 
 ### Neuf capacités qui ne produisent pas de contenu — le 24 août 2026
 

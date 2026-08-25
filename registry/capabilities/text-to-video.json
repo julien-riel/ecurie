@@ -1,7 +1,7 @@
 {
   "id": "text-to-video",
   "title": "Texte vers vidéo",
-  "description": "Produit une séquence animée à partir d'une consigne. Le nombre d'images demandé multiplie tout — la durée du calcul comme la mémoire.",
+  "description": "Produit une séquence animée à partir d'une consigne. Le nombre d'images demandé multiplie tout — la durée du calcul comme la mémoire. Certains modèles produisent en plus une bande-son synchronisée ; elle est alors dans la vidéo, et le champ `audio` en donne une copie séparée.",
   "input": {
     "type": "object",
     "required": [
@@ -80,7 +80,12 @@
       "video": {
         "type": "string",
         "contentMediaType": "video/mp4",
-        "description": "Chemin de la vidéo produite, relatif au dossier du job."
+        "description": "Chemin de la vidéo produite, relatif au dossier du job. Elle porte la bande-son quand le modèle en produit une."
+      },
+      "audio": {
+        "type": "string",
+        "contentMediaType": "audio/wav",
+        "description": "Chemin de la bande-son seule, relatif au dossier du job. Absent des modèles qui ne rendent que de l'image — c'est la présence de ce champ, et elle seule, qui dit qu'il y a du son. La piste est déjà dans la vidéo ; cette copie existe pour qu'on puisse l'écouter et la juger sans la regarder."
       }
     }
   }

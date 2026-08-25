@@ -1,0 +1,258 @@
+{
+  "ref": "minimax-h3@bf16-ssd",
+  "model": "minimax-h3",
+  "variant": "bf16-ssd",
+  "capability": "text-to-video",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / ffmpeg 8.1 / ffprobe 8.1 / h3 0.1.0-dev",
+  "measured_at": "2026-08-25",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/text-to-video.json",
+    "version": 1,
+    "cases": [
+      "court-25",
+      "moyen-49",
+      "long-97"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 144051254765,
+    "peak_unified_memory_bytes": 10258529386,
+    "peak_scaling": {
+      "parameter": "num_frames",
+      "base_bytes": 10258529386,
+      "bytes_per_unit": 0.0,
+      "measured_range": [
+        25.0,
+        97.0
+      ],
+      "r_squared": 1.0
+    },
+    "warmup_ms": 70,
+    "latency_ms_p50": 510372,
+    "throughput": "1 sortie / 582.2 s"
+  },
+  "cases": [
+    {
+      "id": "court-25",
+      "ok": true,
+      "duration_ms": 372354,
+      "metrics": {
+        "duration_ms": 372354,
+        "peak_memory_bytes": 10258529386,
+        "peak_source": "profil-metal",
+        "peak_rss_child_bytes": 5057380352,
+        "peak_profile_bytes": 10258529386,
+        "frames_requested": 25,
+        "steps": 20,
+        "layers": 50,
+        "reuse": 1,
+        "ssd_streaming": true,
+        "seed": 1,
+        "width": 512,
+        "height": 320,
+        "frames_produced": 39,
+        "fps": 24.0,
+        "duration_seconds": 1.625,
+        "video_codec": "h264",
+        "has_audio": true,
+        "audio_codec": "aac",
+        "audio_sample_rate": 32000,
+        "audio_channels": 2,
+        "ignored_contract_fields": [
+          "guidance_scale",
+          "fps"
+        ],
+        "ssd_stream": {
+          "read_gib": 718.491,
+          "seconds": 161.984,
+          "gib_per_second": 4.436,
+          "unhidden_wait_seconds": 0.008
+        },
+        "phases": [
+          {
+            "label": "Qwen text encoder        total",
+            "wall_s": 8.539,
+            "peak_bytes": 3905199013
+          },
+          {
+            "label": "H3 DiT                   load",
+            "wall_s": 7.12,
+            "peak_bytes": 2172179709
+          },
+          {
+            "label": "H3 DiT                   GPU Euler denoise",
+            "wall_s": 321.158,
+            "peak_bytes": 2172179709
+          },
+          {
+            "label": "H3 DiT                   total",
+            "wall_s": 328.34,
+            "peak_bytes": 2172179709
+          },
+          {
+            "label": "audio VAE decoder        total",
+            "wall_s": 0.508,
+            "peak_bytes": 302795194
+          },
+          {
+            "label": "video VAE decoder        total",
+            "wall_s": 34.575,
+            "peak_bytes": 10258529386
+          }
+        ],
+        "text_encode_s": 8.539,
+        "denoise_s": 321.158
+      },
+      "error": null
+    },
+    {
+      "id": "moyen-49",
+      "ok": true,
+      "duration_ms": 510372,
+      "metrics": {
+        "duration_ms": 510372,
+        "peak_memory_bytes": 10258529386,
+        "peak_source": "profil-metal",
+        "peak_rss_child_bytes": 6002442240,
+        "peak_profile_bytes": 10258529386,
+        "frames_requested": 49,
+        "steps": 20,
+        "layers": 50,
+        "reuse": 1,
+        "ssd_streaming": true,
+        "seed": 2,
+        "width": 512,
+        "height": 320,
+        "frames_produced": 56,
+        "fps": 24.0,
+        "duration_seconds": 2.333,
+        "video_codec": "h264",
+        "has_audio": true,
+        "audio_codec": "aac",
+        "audio_sample_rate": 32000,
+        "audio_channels": 2,
+        "ignored_contract_fields": [
+          "guidance_scale",
+          "fps"
+        ],
+        "ssd_stream": {
+          "read_gib": 718.491,
+          "seconds": 156.243,
+          "gib_per_second": 4.599,
+          "unhidden_wait_seconds": 0.007
+        },
+        "phases": [
+          {
+            "label": "Qwen text encoder        total",
+            "wall_s": 8.262,
+            "peak_bytes": 3905199013
+          },
+          {
+            "label": "H3 DiT                   load",
+            "wall_s": 7.185,
+            "peak_bytes": 2274185183
+          },
+          {
+            "label": "H3 DiT                   GPU Euler denoise",
+            "wall_s": 445.593,
+            "peak_bytes": 2274185183
+          },
+          {
+            "label": "H3 DiT                   total",
+            "wall_s": 452.836,
+            "peak_bytes": 2274185183
+          },
+          {
+            "label": "audio VAE decoder        total",
+            "wall_s": 0.6,
+            "peak_bytes": 302795194
+          },
+          {
+            "label": "video VAE decoder        total",
+            "wall_s": 48.146,
+            "peak_bytes": 10258529386
+          }
+        ],
+        "text_encode_s": 8.262,
+        "denoise_s": 445.593
+      },
+      "error": null
+    },
+    {
+      "id": "long-97",
+      "ok": true,
+      "duration_ms": 863988,
+      "metrics": {
+        "duration_ms": 863988,
+        "peak_memory_bytes": 10258529386,
+        "peak_source": "profil-metal",
+        "peak_rss_child_bytes": 5712150528,
+        "peak_profile_bytes": 10258529386,
+        "frames_requested": 97,
+        "steps": 20,
+        "layers": 50,
+        "reuse": 1,
+        "ssd_streaming": true,
+        "seed": 3,
+        "width": 512,
+        "height": 320,
+        "frames_produced": 107,
+        "fps": 24.0,
+        "duration_seconds": 4.458,
+        "video_codec": "h264",
+        "has_audio": true,
+        "audio_codec": "aac",
+        "audio_sample_rate": 32000,
+        "audio_channels": 2,
+        "ignored_contract_fields": [
+          "guidance_scale",
+          "fps"
+        ],
+        "ssd_stream": {
+          "read_gib": 718.491,
+          "seconds": 153.489,
+          "gib_per_second": 4.681,
+          "unhidden_wait_seconds": 0.008
+        },
+        "phases": [
+          {
+            "label": "Qwen text encoder        total",
+            "wall_s": 8.318,
+            "peak_bytes": 3905199013
+          },
+          {
+            "label": "H3 DiT                   load",
+            "wall_s": 7.164,
+            "peak_bytes": 2580201603
+          },
+          {
+            "label": "H3 DiT                   GPU Euler denoise",
+            "wall_s": 753.109,
+            "peak_bytes": 2580201603
+          },
+          {
+            "label": "H3 DiT                   total",
+            "wall_s": 760.36,
+            "peak_bytes": 2580201603
+          },
+          {
+            "label": "audio VAE decoder        total",
+            "wall_s": 0.805,
+            "peak_bytes": 303868936
+          },
+          {
+            "label": "video VAE decoder        total",
+            "wall_s": 93.892,
+            "peak_bytes": 10258529386
+          }
+        ],
+        "text_encode_s": 8.318,
+        "denoise_s": 753.109
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

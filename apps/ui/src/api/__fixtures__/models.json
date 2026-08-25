@@ -2709,6 +2709,95 @@
       "vendor": "OpenBMB"
     },
     {
+      "capability": "text-to-video",
+      "family": "minimax-h3",
+      "id": "minimax-h3",
+      "incumbent": false,
+      "license": "minimax-h3-community-license",
+      "license_class": "restricted",
+      "links": {
+        "code": "https://github.com/antirez/h3.c",
+        "homepage": "https://huggingface.co/MiniMaxAI/MiniMax-H3",
+        "paper": null
+      },
+      "name": "MiniMax-H3 (texte vers vidéo sonorisée)",
+      "notes": "Challenger de ltx-video-2b, seul titulaire de la capacité. La comparaison sera malhonnête si on ne dit pas ce qui les sépare : LTX rend une vidéo muette en quelques dizaines de secondes, celui-ci rend une vidéo sonorisée en lisant plus de cent gibioctets depuis le SSD. Ce ne sont pas deux implémentations de la même chose. C'est pour cela que le contrat a gagné un champ `audio` plutôt qu'une capacité neuve : le dénominateur commun reste la vidéo, et la présence du champ dit à elle seule qu'il y a du son.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "LICENCE À RESTRICTIONS TERRITORIALES, et elles portent aussi sur les sorties. Le « territoire applicable » de la MiniMax H3 Community License est le monde MOINS l'Union européenne, le Royaume-Uni, la Corée du Sud et les États-Unis. L'article V.4 interdit l'usage, la reproduction, la distribution et l'affichage des Œuvres ET DE LEURS SORTIES hors de ce territoire : une vidéo produite ici ne peut pas être diffusée aux États-Unis ou en Europe sous cet accord. S'y ajoutent une autorisation écrite au-delà de 20 M$ de revenus annuels, l'affichage obligatoire de « MiniMax H3 » sur toute interface commerciale, et l'interdiction d'employer les sorties pour améliorer un autre modèle. À lire avant tout emploi, professionnel ou non.",
+            "Les poids ne sont pas gérés par le parc : 134 Gio déposés à la main, désignés par un chemin local. `ecurie pull` ne les téléchargera pas et `ecurie store trash` ne les effacera pas. Leur présence est vérifiée au chargement par `h3 --info`, qui contrôle la disposition sans mapper un octet.",
+            "Le binaire `h3` doit être construit à la main : le code amont est un dépôt Git avec un Makefile, il n'est pas versionné ici. Deux commandes dans runtimes/h3-metal/README.md, ou la variable `ECURIE_H3_BIN` pour désigner une construction déjà faite ailleurs.",
+            "FFmpeg et FFprobe doivent être sur le PATH — le binaire écrit le MP4 avec le premier, l'adaptateur le relit avec le second. Leur absence est signalée au chargement plutôt qu'à la fin d'un job.",
+            "TROIS CHAMPS DU CONTRAT SONT REÇUS ET IGNORÉS : `fps` (H3 produit à 24 im/s, point), `guidance_scale` et `negative_prompt` (aucun équivalent dans la CLI amont). Le job les rend dans sa métrique `ignored_contract_fields` : un réglage sans effet qui ne se voit nulle part est pire qu'un réglage absent.",
+            "H3 quantifie le nombre d'images sur sa propre grille — une demande de 8 images en rend 22, vérifié. Les métriques du job déclarent `frames_requested` et `frames_produced` séparément, et toute mesure porte sur ce qui a été produit.",
+            "Le contrat plafonne `num_frames` à 129, soit 5,4 s à 24 im/s. Le modèle sait aller au-delà — le binaire a produit ici des séquences de 10 s — mais le parc ne sait pas le lui demander. Relever ce plafond ferait échouer les modèles plus légers de la même capacité ; c'est le besoin d'un contrat qui s'adapte au variant, pas un défaut de ce manifeste.",
+            "Le DiT Ref2VA n'est pas dans cette partition : `h3 --info` le rend à 0 fichier, 0 tenseur, et le model_index.json ne déclare que `t2va` et `fl2va`. Les références Ref2VA (`--ref-image`, `--ref-video`) sont donc inutilisables, et l'adaptateur ne les expose pas.",
+            "Le conditionnement par première et dernière image (`fl2va`) est disponible dans les poids mais pas exposé : il relève de `image-to-video`, donc d'un second manifeste, non écrit dans ce cycle.",
+            "Le facteur limitant est le SSD, pas le GPU. Une sonde à 256×256 a lu 115,6 Gio à 5,05 Gio/s, dont 13,5 s d'attente non masquée sur 23,2 s de débruitage. Un disque plus lent changerait le profil bien plus qu'un GPU plus lent.",
+            "Le pic mémoire est mesuré par deux instruments — le RSS du processus fils échantillonné toutes les 100 ms, et les `peak=` par phase du `--profile` — dont le maximum est retenu ; la métrique `peak_source` du job dit lequel a gagné. Les deux changent de place : sur le cas court du banc, le RSS seul aurait déclaré 3,47 Gio là où le pilote Metal en tenait 9,55 ; sur un job minuscule c'est l'inverse, le RSS l'emporte de 50 %.",
+            "ATTENTION EN COMPARANT DEUX MESURES DE CE VARIANT : le RSS n'est pas reproductible ici. Le même job rendu quatre fois a donné 3,47, 3,60, 5,45 et 5,85 Gio, pendant que le profil Metal rendait le même octet à chaque fois. Le RSS compte les pages mappées d'un fichier de poids de 134 Gio, que macOS garde ou évince selon la pression du moment : c'est un état de la machine, pas une propriété du modèle. Deux relevés ne se comparent que si leur `peak_source` est le même.",
+            "Le pic ne varie pas avec le nombre d'images : 9,55 Gio à 39, 56 et 107 images produites, à l'octet près. Ce n'est pas un instrument gelé — le mur du VAE vidéo croît linéairement (26,6 s, 43,8 s, 88,6 s) et les deux autres instruments bougent, le pic du DiT de 2,02 à 2,40 Gio et le RSS du fils de 3,47 à 5,26. Le VAE vidéo décode par tuiles à empreinte fixe. Le `peak_scaling` du profil porte donc une pente nulle qui est un fait du modèle, et son `measured_range` dit jusqu'où ce fait a été éprouvé.",
+            "Rien ne gagne à laisser ce variant résident : le binaire meurt avec son job et ne garde rien en mémoire entre deux appels. Chaque job repaie le chargement. C'est aussi pourquoi `warmup_ms` est ridiculement bas — il ne mesure que `h3 --info` et deux appels de version, pas un chargement de poids.",
+            "LES LATENCES SONT CELLES D'UNE MACHINE CHAUDE, ET C'EST VOULU. Le banc a tourné trois fois : 282/426/795 s la première, sur une machine froide, puis 366/500/846 et 372/510/864 après une heure de charge — les deux dernières s'accordant à 2 %. Le README amont prévient que cette charge est sensible au throttling thermique et demande de comparer sur des exécutions répétées. Le profil porte donc le relevé à chaud, qui décrit l'usage réel ; un premier essai sur une machine au repos paraîtra 25 % plus rapide, sans que rien n'ait changé."
+          ],
+          "defaults": {
+            "height": 320,
+            "num_frames": 25,
+            "steps": 20,
+            "width": 512
+          },
+          "entrypoint": "runtimes/h3-metal/run.py",
+          "env": "h3-metal",
+          "heavy": true,
+          "id": "bf16-ssd",
+          "options": {
+            "layers": 50,
+            "reuse": 1,
+            "ssd_streaming": true
+          },
+          "profile": {
+            "disk_bytes": 144051254765,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 510372,
+            "measured_at": "2026-08-25",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / ffmpeg 8.1 / ffprobe 8.1 / h3 0.1.0-dev",
+            "peak_scaling": {
+              "base_bytes": 10258529386,
+              "bytes_per_unit": 0.0,
+              "measured_range": [
+                25.0,
+                97.0
+              ],
+              "parameter": "num_frames",
+              "r_squared": 1.0
+            },
+            "peak_unified_memory_bytes": 10258529386,
+            "rtf": null,
+            "throughput": "1 sortie / 582.2 s",
+            "warmup_ms": 70
+          },
+          "quantization": "bf16",
+          "ready": true,
+          "ref": "minimax-h3@bf16-ssd",
+          "runtime": "custom",
+          "source": {
+            "allow_patterns": null,
+            "kind": "local",
+            "path": "~/AI/minimax-h3/MiniMax-H3",
+            "repo": null,
+            "revision": null,
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "MiniMax"
+    },
+    {
       "capability": "text-to-music",
       "family": "minimax-music",
       "id": "minimax-music3",
@@ -4873,6 +4962,503 @@
             "path": null,
             "repo": "mlx-community/Qwen3.6-27B-4bit",
             "revision": "c000ac2c2057d94be3fa931000c31723aac53282",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "image-to-text",
+      "family": "qwen3.8",
+      "id": "qwen38-27b-describe",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/Qwen/Qwen3.8-27B",
+        "paper": null
+      },
+      "name": "Qwen3.8 27B (description d'image)",
+      "notes": "Challenger de qwen3-vl-8b-describe, titulaire en poste, et de qwen36-27b-describe, candidat mesuré sur le même gabarit. Le gain de qualité reste inconnu : la fiche amont compare Qwen3.8-27B à Qwen3.6-27B et à des modèles fermés, jamais à Qwen3-VL 8B, et rien dans ce cycle n'a fait tourner un golden set. Ce qui est établi ici est un coût, pas une compétence.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Poids partagés avec les six autres manifestes qwen38-27b — les déporter avec `ecurie store tier` déplace les sept.",
+            "Le raisonnement à voix haute est coupé (`options.thinking: false`), ce que l'adaptateur transmet en `enable_thinking`. Le rallumer change ce que la capacité mesure, et demande de relever `max_tokens` en conséquence : le brouillon est facturé au budget de la réponse.",
+            "VÉRIFIÉ DANS LE GABARIT : `enable_thinking is false` court-circuite bien tout le bloc de raisonnement de Qwen3.8 — la coupure est effective, pas seulement demandée. C'était le premier point à établir : un gabarit qui aurait renommé le drapeau aurait laissé le parc mesurer un modèle bavard en croyant l'avoir fait taire.",
+            "`reasoning_effort`, nouveau chez Qwen3.8, n'est transmis par aucun adaptateur du parc, et son défaut dans le gabarit est `xhigh` — le réglage le plus coûteux des trois. Rallumer le raisonnement sans pouvoir le régler revient donc à demander la profondeur maximale. Le gabarit lève de surcroît une exception sur toute valeur hors de `xhigh`/`medium`/`low`.",
+            "`preserve_thinking` a changé de défaut entre les deux générations : indéfini valait faux chez Qwen3.6, il vaut vrai chez Qwen3.8. Sans effet sur les contrats du parc, qui sont tous à un seul tour, mais c'est une différence de comportement réelle dès qu'une conversation en aura deux.",
+            "Quantification 4 bits à virgule flottante microscalaire, group_size 32 — le même mode que le mxfp4 de la 3.6, et toujours moins éprouvé dans le parc que le mode affine."
+          ],
+          "defaults": {
+            "detail": "normal",
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": true,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": {
+            "disk_bytes": 15240954241,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 14887,
+            "measured_at": "2026-08-25",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 16877151224,
+            "rtf": null,
+            "throughput": "1 sortie / 20.6 s",
+            "warmup_ms": 4284
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "qwen38-27b-describe@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.8-27B-mxfp4",
+            "revision": "97ab0819817ab1c61d7d39f9169fc71999915641",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "image-detect",
+      "family": "qwen3.8",
+      "id": "qwen38-27b-detect",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/Qwen/Qwen3.8-27B",
+        "paper": null
+      },
+      "name": "Qwen3.8 27B (détection)",
+      "notes": "Challenger de qwen3-vl-8b-detect. Voir l'en-tête de qwen38-27b-describe pour ce que ce cycle a établi sur la famille, et pourquoi le variant mxfp4 est le seul déclaré.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "La grille de coordonnées de cette famille n'a pas été vérifiée : `options.grid` n'est pas déclaré, donc l'adaptateur applique le défaut hérité de Qwen3-VL. Une grille fausse trace les boîtes à une fraction de leur place sans que rien n'échoue — regarder `overlay.png` du premier job avant toute comparaison. La famille qwen36-27b porte la même dette.",
+            "Aucun score de confiance : un VLM en produit un si on le lui demande, et rien dans son entraînement ne le calibre. Le contrat n'en déclare pas.",
+            "Le raisonnement à voix haute est coupé (`options.thinking: false`). Sur cette capacité, dont la sortie est extraite par motif, un préambule ferait rendre zéro objet — ce qui mesurerait l'adaptateur, pas le modèle.",
+            "Poids partagés avec les six autres manifestes qwen38-27b — les déporter déplace les sept."
+          ],
+          "defaults": {
+            "max_objects": 20,
+            "max_tokens": 1024,
+            "temperature": 0.0
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": true,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": {
+            "disk_bytes": 15240954241,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 14973,
+            "measured_at": "2026-08-25",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 16956270152,
+            "rtf": null,
+            "throughput": "1 sortie / 13.5 s",
+            "warmup_ms": 4058
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "qwen38-27b-detect@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.8-27B-mxfp4",
+            "revision": "97ab0819817ab1c61d7d39f9169fc71999915641",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "document-to-text",
+      "family": "qwen3.8",
+      "id": "qwen38-27b-ocr",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/Qwen/Qwen3.8-27B",
+        "paper": null
+      },
+      "name": "Qwen3.8 27B (lecture de document)",
+      "notes": "Challenger de qwen3-vl-8b-ocr. La fiche amont annonce des gains sur les documents et les diagrammes STEM par rapport à Qwen3.6, sans jamais situer aucun des deux face au titulaire du parc. Le gain reste donc inconnu, et le restera jusqu'au golden set — ce cycle mesure un coût.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Poids partagés avec les six autres manifestes qwen38-27b — les déporter déplace les sept.",
+            "Le raisonnement à voix haute est coupé (`options.thinking: false`). Sur cette capacité, un préambule fausserait la comparaison au texte attendu autant qu'il gênerait la lecture.",
+            "Un VLM transcrit, il ne localise pas : la sortie `layout` décrit les pages, pas des boîtes."
+          ],
+          "defaults": {
+            "detect_layout": true,
+            "dpi": 200,
+            "format": "markdown"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": true,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": {
+            "disk_bytes": 15240954241,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 16966,
+            "measured_at": "2026-08-25",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 17059620410,
+            "rtf": null,
+            "throughput": "1 sortie / 20.7 s",
+            "warmup_ms": 4108
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "qwen38-27b-ocr@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.8-27B-mxfp4",
+            "revision": "97ab0819817ab1c61d7d39f9169fc71999915641",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "tool-use",
+      "family": "qwen3.8",
+      "id": "qwen38-27b-outils",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/Qwen/Qwen3.8-27B",
+        "paper": null
+      },
+      "name": "Qwen3.8 27B (appel d'outils)",
+      "notes": "Challenger de qwen3-4b-outils. La fiche amont place l'exécution agentique en tête de ses gains — planification autonome, meilleure prise en compte du retour de l'environnement —, ce qui fait de cette capacité celle où un écart avec le titulaire est le plus plausible. C'est aussi celle que le contrat du parc teste le plus mal : trois outils déclarés, un tour, aucune boucle.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Format d'appel XML et non JSON : la métrique `parse_strategy` doit rendre `xml_function`. Si elle rend `aucun`, c'est l'extracteur qu'il faut regarder avant d'accuser le modèle. VÉRIFIÉ dans le gabarit de Qwen3.8 : la consigne d'appel et le rendu sont mot pour mot ceux de la 3.6 — `<tool_call><function=…><parameter=…>` —, donc la stratégie écrite pour elle s'applique sans retouche.",
+            "`template_tools` doit rester vraie d'une exécution à l'autre : le gabarit accepte `tools`, donc l'appel est natif et non un repli par consigne système. Si elle passe à faux après une mise à jour du gabarit, la comparaison avec les mesures antérieures cesse d'être valide.",
+            "La déclaration des outils allonge l'invite — 177 jetons contre 44 pour une invite nue. Sur ce gabarit c'est la capacité dont l'invite est la plus longue après la traduction du cas long, et c'est ce qui avait fait échouer le variant 4bit de la génération précédente.",
+            "Le raisonnement à voix haute est coupé (`options.thinking: false`).",
+            "Poids partagés avec les six autres manifestes qwen38-27b — les déporter déplace les sept."
+          ],
+          "defaults": {
+            "parallel_calls": false,
+            "temperature": 0.0,
+            "tool_choice": "auto"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": true,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": {
+            "disk_bytes": 15240954241,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 6760,
+            "measured_at": "2026-08-25",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 17610751252,
+            "rtf": null,
+            "throughput": "1 sortie / 7.6 s",
+            "warmup_ms": 4183
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "qwen38-27b-outils@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.8-27B-mxfp4",
+            "revision": "97ab0819817ab1c61d7d39f9169fc71999915641",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "text-generation",
+      "family": "qwen3.8",
+      "id": "qwen38-27b-texte",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/Qwen/Qwen3.8-27B",
+        "paper": null
+      },
+      "name": "Qwen3.8 27B (génération de texte)",
+      "notes": "Challenger de qwen25-coder-7b, titulaire de fait de cette capacité et près de quatre fois plus léger. La comparaison sera rude à établir honnêtement : l'un tient dans le budget et cohabite avec le reste du parc, l'autre occupe la machine entière. La fiche amont met en avant le codage et les tâches agentiques longues, c'est-à-dire précisément le terrain du titulaire ; un gain devra être large pour valoir ce prix, et c'est le golden set qui le dira.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Le raisonnement à voix haute est coupé (`options.thinking: false`). C'est la capacité où le rallumer se défend le mieux — un modèle de cette taille sur des tâches longues est fait pour cela —, mais il faut alors relever `max_tokens`, car le brouillon consommerait le budget de la réponse avant qu'elle ne commence.",
+            "`reasoning_effort`, nouveau chez Qwen3.8, n'est transmis par aucun adaptateur du parc, et son défaut dans le gabarit est `xhigh`. Poser `thinking: true` ici, c'est donc demander la profondeur maximale sans moyen de la baisser — sur un modèle qui rend déjà une sortie en dizaines de secondes.",
+            "Poids partagés avec les six autres manifestes qwen38-27b — les déporter déplace les sept."
+          ],
+          "defaults": {
+            "max_tokens": 1024,
+            "temperature": 0.7,
+            "top_p": 0.95
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": true,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": {
+            "disk_bytes": 15240954241,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 31770,
+            "measured_at": "2026-08-25",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 15619308546,
+            "rtf": null,
+            "throughput": "1 sortie / 75.1 s",
+            "warmup_ms": 4013
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "qwen38-27b-texte@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.8-27B-mxfp4",
+            "revision": "97ab0819817ab1c61d7d39f9169fc71999915641",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "translation",
+      "family": "qwen3.8",
+      "id": "qwen38-27b-traduction",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/Qwen/Qwen3.8-27B",
+        "paper": null
+      },
+      "name": "Qwen3.8 27B (traduction)",
+      "notes": "Challenger de qwen3-4b-traduction, sept fois plus léger. Le contrat expose une langue d'arrivée libre, ce qu'un modèle généraliste honore et qu'un moteur NMT dédié ne fait pas ; à ce jeu la taille joue en faveur de ce candidat sur les langues peu servies. Reste à savoir si l'écart justifie de vider le parc à chaque job.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Ne détecte pas la langue de départ : il traduit ce qu'on lui donne. `detected_source_language` rend la langue déclarée, ou rien.",
+            "Le raisonnement à voix haute est coupé (`options.thinking: false`) — indispensable ici, où la sortie est comparée au caractère près.",
+            "Poids partagés avec les six autres manifestes qwen38-27b — les déporter déplace les sept."
+          ],
+          "defaults": {
+            "preserve_formatting": true,
+            "register": "neutre"
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": true,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": {
+            "disk_bytes": 15240954241,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 8519,
+            "measured_at": "2026-08-25",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 16190589704,
+            "rtf": null,
+            "throughput": "1 sortie / 9.5 s",
+            "warmup_ms": 4225
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "qwen38-27b-traduction@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.8-27B-mxfp4",
+            "revision": "97ab0819817ab1c61d7d39f9169fc71999915641",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
+    },
+    {
+      "capability": "video-to-text",
+      "family": "qwen3.8",
+      "id": "qwen38-27b-video",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/Qwen/Qwen3.8-27B",
+        "paper": null
+      },
+      "name": "Qwen3.8 27B (description de vidéo)",
+      "notes": "Challenger de qwen3-vl-8b-video. La fiche amont annonce la compréhension de vidéos « à l'échelle de l'heure » ; le contrat du parc échantillonne huit images, ce qui ne teste pas cette prétention et n'a pas vocation à le faire. Voir l'en-tête de qwen38-27b-describe pour la famille.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Le pic suit `max_frames`, pas la durée de la vidéo : huit images d'un plan de dix minutes coûtent autant que huit images de dix secondes. Relever `max_frames` sur ce gabarit est le moyen le plus direct de sortir du budget.",
+            "Le chemin vidéo natif de mlx-vlm est inutilisable avec les poids du titulaire ; son comportement avec ceux-ci n'a pas été éprouvé.",
+            "Le raisonnement à voix haute est coupé (`options.thinking: false`).",
+            "Poids partagés avec les six autres manifestes qwen38-27b — les déporter déplace les sept."
+          ],
+          "defaults": {
+            "fps": 1.0,
+            "max_frames": 8,
+            "max_tokens": 512,
+            "temperature": 0.2
+          },
+          "entrypoint": null,
+          "env": "mlx-vlm",
+          "heavy": true,
+          "id": "mxfp4",
+          "options": {
+            "thinking": false
+          },
+          "profile": {
+            "disk_bytes": 15240954241,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 29581,
+            "measured_at": "2026-08-25",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.5.2 / mlx 0.32.1 / mlx-vlm 0.6.15",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 18714456000,
+            "rtf": null,
+            "throughput": "1 sortie / 34.8 s",
+            "warmup_ms": 4054
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "qwen38-27b-video@mxfp4",
+          "runtime": "mlx-vlm",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors",
+              "*.txt",
+              "*.jinja"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Qwen3.8-27B-mxfp4",
+            "revision": "97ab0819817ab1c61d7d39f9169fc71999915641",
             "url": null
           },
           "tier": "hot",

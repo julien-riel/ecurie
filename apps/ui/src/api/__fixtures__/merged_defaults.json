@@ -579,6 +579,23 @@
       "temperature": 0.2
     }
   },
+  "minimax-h3@bf16-ssd": {
+    "capability": "text-to-video",
+    "merged": {
+      "fps": 16,
+      "guidance_scale": 5.0,
+      "height": 320,
+      "num_frames": 25,
+      "steps": 20,
+      "width": 512
+    },
+    "variant_defaults": {
+      "height": 320,
+      "num_frames": 25,
+      "steps": 20,
+      "width": 512
+    }
+  },
   "minimax-music3@4bit": {
     "capability": "text-to-music",
     "merged": {
@@ -1028,6 +1045,100 @@
     }
   },
   "qwen36-27b-video@mxfp4": {
+    "capability": "video-to-text",
+    "merged": {
+      "fps": 1.0,
+      "max_frames": 8,
+      "max_pixels": 451584,
+      "max_tokens": 512,
+      "temperature": 0.2
+    },
+    "variant_defaults": {
+      "fps": 1.0,
+      "max_frames": 8,
+      "max_tokens": 512,
+      "temperature": 0.2
+    }
+  },
+  "qwen38-27b-describe@mxfp4": {
+    "capability": "image-to-text",
+    "merged": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    },
+    "variant_defaults": {
+      "detail": "normal",
+      "max_tokens": 512,
+      "temperature": 0.2
+    }
+  },
+  "qwen38-27b-detect@mxfp4": {
+    "capability": "image-detect",
+    "merged": {
+      "max_objects": 20,
+      "max_tokens": 1024,
+      "temperature": 0.0
+    },
+    "variant_defaults": {
+      "max_objects": 20,
+      "max_tokens": 1024,
+      "temperature": 0.0
+    }
+  },
+  "qwen38-27b-ocr@mxfp4": {
+    "capability": "document-to-text",
+    "merged": {
+      "detect_layout": true,
+      "dpi": 200,
+      "format": "markdown"
+    },
+    "variant_defaults": {
+      "detect_layout": true,
+      "dpi": 200,
+      "format": "markdown"
+    }
+  },
+  "qwen38-27b-outils@mxfp4": {
+    "capability": "tool-use",
+    "merged": {
+      "max_tokens": 1024,
+      "parallel_calls": false,
+      "temperature": 0.0,
+      "tool_choice": "auto"
+    },
+    "variant_defaults": {
+      "parallel_calls": false,
+      "temperature": 0.0,
+      "tool_choice": "auto"
+    }
+  },
+  "qwen38-27b-texte@mxfp4": {
+    "capability": "text-generation",
+    "merged": {
+      "max_tokens": 1024,
+      "repetition_penalty": 1.0,
+      "temperature": 0.7,
+      "top_p": 0.95
+    },
+    "variant_defaults": {
+      "max_tokens": 1024,
+      "temperature": 0.7,
+      "top_p": 0.95
+    }
+  },
+  "qwen38-27b-traduction@mxfp4": {
+    "capability": "translation",
+    "merged": {
+      "preserve_formatting": true,
+      "register": "neutre"
+    },
+    "variant_defaults": {
+      "preserve_formatting": true,
+      "register": "neutre"
+    }
+  },
+  "qwen38-27b-video@mxfp4": {
     "capability": "video-to-text",
     "merged": {
       "fps": 1.0,
