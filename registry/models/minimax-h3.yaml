@@ -1,0 +1,112 @@
+# MiniMax-H3 — la première capacité du parc qui rende du son en même temps que
+# de l'image, et le premier modèle dont l'inférence ne se fasse pas en Python.
+#
+# 134 Gio de poids sur le disque pour un budget mémoire de 17,76 Gio : le rapport
+# est de 7,5 pour 1, et le modèle tourne quand même. Ce n'est pas une
+# quantification qui le permet — les poids sont en BF16 d'origine — mais le
+# streaming depuis le SSD, qui ne garde que deux blocs de DiT en mémoire et lit
+# le suivant pendant que le GPU travaille sur le courant. Le DiT tombe ainsi à
+# 2,0-2,4 Gio, et ce n'est plus lui qui décide du pic : à la définition du banc
+# c'est le VAE vidéo, à 9,55 Gio, et sur une sonde plus petite c'était l'encodeur
+# de texte. Les phases se succèdent au lieu de s'additionner, et le maximum
+# change de phase selon la taille demandée. Voir runtimes/h3-metal/README.md.
+#
+# L'exécution est celle de `h3.c`, écrite par Salvatore Sanfilippo en C et Metal
+# (MIT). Écurie n'en pilote que la ligne de commande : `runtime: custom`, comme
+# hunyuan3d, et un binaire à construire à la main, comme cad-recode.
+#
+# CE QUI EST DÉJÀ ÉTABLI, ET CE QUI NE L'EST PAS. Le modèle a produit ici une
+# vidéo sonorisée conforme à sa consigne — 256×256, 22 images, piste AAC stéréo
+# non silencieuse, image ouverte et regardée. Ce que le profil ci-dessous mesure
+# est le coût de la charge type du banc, à 512×320. Rien n'établit la qualité :
+# la capacité `text-to-video` n'a pas de golden set.
+id: minimax-h3
+name: MiniMax-H3 (texte vers vidéo sonorisée)
+capability: text-to-video
+family: minimax-h3
+vendor: MiniMax
+license: minimax-h3-community-license
+license_class: restricted     # restrictions territoriales, y compris sur les sorties
+status: candidate
+
+notes: >
+  Challenger de ltx-video-2b, seul titulaire de la capacité. La comparaison sera
+  malhonnête si on ne dit pas ce qui les sépare : LTX rend une vidéo muette en
+  quelques dizaines de secondes, celui-ci rend une vidéo sonorisée en lisant
+  plus de cent gibioctets depuis le SSD. Ce ne sont pas deux implémentations de
+  la même chose. C'est pour cela que le contrat a gagné un champ `audio` plutôt
+  qu'une capacité neuve : le dénominateur commun reste la vidéo, et la présence
+  du champ dit à elle seule qu'il y a du son.
+
+links:
+  homepage: https://huggingface.co/MiniMaxAI/MiniMax-H3
+  # `code` désigne ici l'implémentation qui exécute réellement le modèle, et non
+  # celle de son éditeur : c'est `h3.c` qui tourne, pas le pipeline diffusers de
+  # MiniMax, dont aucune ligne n'est chargée.
+  code: https://github.com/antirez/h3.c
+
+variants:
+  # Un seul variant, et son nom porte la condition d'exécution plutôt qu'un
+  # détail de réglage : sans `--ssd-streaming`, le DiT résident demande environ
+  # 36,5 Gio, soit le double du budget. L'adaptateur refuse de démarrer si
+  # `options.ssd_streaming` est mis à faux.
+  - id: bf16-ssd
+    quantization: bf16
+    tier: hot
+    runtime: custom
+    runtime_env: h3-metal
+    entrypoint: runtimes/h3-metal/run.py
+    source:
+      # Pas de `kind: huggingface` : ces poids ne sont pas gérés par le parc. Ils
+      # ont été déposés à la main et sont déclarés dans `[scan] declared` de
+      # ~/.ecurie/config.toml pour que `ecurie store scan` les compte. Le chemin
+      # est écrit relativement au foyer — le résolveur applique `expanduser()` —
+      # afin qu'un autre Mac qui range l'instantané au même endroit n'ait rien à
+      # modifier ici. `ecurie pull` ne peut rien pour ce variant, et c'est voulu.
+      kind: local
+      path: "~/AI/minimax-h3/MiniMax-H3"
+    defaults:
+      # Volontairement modestes. Le coût de ce modèle croît avec la définition,
+      # le nombre d'images et les pas ; un défaut généreux ferait d'un essai
+      # distrait un quart d'heure de machine.
+      width: 512
+      height: 320
+      num_frames: 25
+      steps: 20
+    options:
+      # Réglages propres au modèle, hors contrat de capacité — le contrat ne
+      # déclare que le dénominateur commun de la génération vidéo.
+      ssd_streaming: true
+      layers: 50        # 50 = exact, 45 = rapide, 40 = agressif
+      reuse: 1          # 1 = toutes les vélocités calculées, 2 = une sur deux extrapolée
+    caveats:
+      - "LICENCE À RESTRICTIONS TERRITORIALES, et elles portent aussi sur les sorties. Le « territoire applicable » de la MiniMax H3 Community License est le monde MOINS l'Union européenne, le Royaume-Uni, la Corée du Sud et les États-Unis. L'article V.4 interdit l'usage, la reproduction, la distribution et l'affichage des Œuvres ET DE LEURS SORTIES hors de ce territoire : une vidéo produite ici ne peut pas être diffusée aux États-Unis ou en Europe sous cet accord. S'y ajoutent une autorisation écrite au-delà de 20 M$ de revenus annuels, l'affichage obligatoire de « MiniMax H3 » sur toute interface commerciale, et l'interdiction d'employer les sorties pour améliorer un autre modèle. À lire avant tout emploi, professionnel ou non."
+      - "Les poids ne sont pas gérés par le parc : 134 Gio déposés à la main, désignés par un chemin local. `ecurie pull` ne les téléchargera pas et `ecurie store trash` ne les effacera pas. Leur présence est vérifiée au chargement par `h3 --info`, qui contrôle la disposition sans mapper un octet."
+      - "Le binaire `h3` doit être construit à la main : le code amont est un dépôt Git avec un Makefile, il n'est pas versionné ici. Deux commandes dans runtimes/h3-metal/README.md, ou la variable `ECURIE_H3_BIN` pour désigner une construction déjà faite ailleurs."
+      - "FFmpeg et FFprobe doivent être sur le PATH — le binaire écrit le MP4 avec le premier, l'adaptateur le relit avec le second. Leur absence est signalée au chargement plutôt qu'à la fin d'un job."
+      - "TROIS CHAMPS DU CONTRAT SONT REÇUS ET IGNORÉS : `fps` (H3 produit à 24 im/s, point), `guidance_scale` et `negative_prompt` (aucun équivalent dans la CLI amont). Le job les rend dans sa métrique `ignored_contract_fields` : un réglage sans effet qui ne se voit nulle part est pire qu'un réglage absent."
+      - "H3 quantifie le nombre d'images sur sa propre grille — une demande de 8 images en rend 22, vérifié. Les métriques du job déclarent `frames_requested` et `frames_produced` séparément, et toute mesure porte sur ce qui a été produit."
+      - "Le contrat plafonne `num_frames` à 129, soit 5,4 s à 24 im/s. Le modèle sait aller au-delà — le binaire a produit ici des séquences de 10 s — mais le parc ne sait pas le lui demander. Relever ce plafond ferait échouer les modèles plus légers de la même capacité ; c'est le besoin d'un contrat qui s'adapte au variant, pas un défaut de ce manifeste."
+      - "Le DiT Ref2VA n'est pas dans cette partition : `h3 --info` le rend à 0 fichier, 0 tenseur, et le model_index.json ne déclare que `t2va` et `fl2va`. Les références Ref2VA (`--ref-image`, `--ref-video`) sont donc inutilisables, et l'adaptateur ne les expose pas."
+      - "Le conditionnement par première et dernière image (`fl2va`) est disponible dans les poids mais pas exposé : il relève de `image-to-video`, donc d'un second manifeste, non écrit dans ce cycle."
+      - "Le facteur limitant est le SSD, pas le GPU. Une sonde à 256×256 a lu 115,6 Gio à 5,05 Gio/s, dont 13,5 s d'attente non masquée sur 23,2 s de débruitage. Un disque plus lent changerait le profil bien plus qu'un GPU plus lent."
+      - "Le pic mémoire est mesuré par deux instruments — le RSS du processus fils échantillonné toutes les 100 ms, et les `peak=` par phase du `--profile` — dont le maximum est retenu ; la métrique `peak_source` du job dit lequel a gagné. Les deux changent de place : sur le cas court du banc, le RSS seul aurait déclaré 3,47 Gio là où le pilote Metal en tenait 9,55 ; sur un job minuscule c'est l'inverse, le RSS l'emporte de 50 %."
+      - "ATTENTION EN COMPARANT DEUX MESURES DE CE VARIANT : le RSS n'est pas reproductible ici. Le même job rendu quatre fois a donné 3,47, 3,60, 5,45 et 5,85 Gio, pendant que le profil Metal rendait le même octet à chaque fois. Le RSS compte les pages mappées d'un fichier de poids de 134 Gio, que macOS garde ou évince selon la pression du moment : c'est un état de la machine, pas une propriété du modèle. Deux relevés ne se comparent que si leur `peak_source` est le même."
+      - "Le pic ne varie pas avec le nombre d'images : 9,55 Gio à 39, 56 et 107 images produites, à l'octet près. Ce n'est pas un instrument gelé — le mur du VAE vidéo croît linéairement (26,6 s, 43,8 s, 88,6 s) et les deux autres instruments bougent, le pic du DiT de 2,02 à 2,40 Gio et le RSS du fils de 3,47 à 5,26. Le VAE vidéo décode par tuiles à empreinte fixe. Le `peak_scaling` du profil porte donc une pente nulle qui est un fait du modèle, et son `measured_range` dit jusqu'où ce fait a été éprouvé."
+      - "Rien ne gagne à laisser ce variant résident : le binaire meurt avec son job et ne garde rien en mémoire entre deux appels. Chaque job repaie le chargement. C'est aussi pourquoi `warmup_ms` est ridiculement bas — il ne mesure que `h3 --info` et deux appels de version, pas un chargement de poids."
+      - "LES LATENCES SONT CELLES D'UNE MACHINE CHAUDE, ET C'EST VOULU. Le banc a tourné trois fois : 282/426/795 s la première, sur une machine froide, puis 366/500/846 et 372/510/864 après une heure de charge — les deux dernières s'accordant à 2 %. Le README amont prévient que cette charge est sensible au throttling thermique et demande de comparer sur des exécutions répétées. Le profil porte donc le relevé à chaud, qui décrit l'usage réel ; un premier essai sur une machine au repos paraîtra 25 % plus rapide, sans que rien n'ait changé."
+    profile:
+      disk_bytes: 144051254765
+      peak_unified_memory_bytes: 10258529386
+      peak_scaling:
+        parameter: "num_frames"
+        base_bytes: 10258529386
+        bytes_per_unit: 0.0
+        measured_range: [25.0, 97.0]
+        r_squared: 1.0
+      warmup_ms: 70
+      latency_ms_p50: 510372
+      throughput: "1 sortie / 582.2 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.5.2 / ffmpeg 8.1 / ffprobe 8.1 / h3 0.1.0-dev"
+      measured_at: "2026-08-25"
+      harness_version: "0.3.0"

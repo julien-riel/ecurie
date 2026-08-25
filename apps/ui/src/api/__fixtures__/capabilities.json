@@ -571,7 +571,8 @@
       "models": [
         "gemma4-12b-ocr",
         "qwen3-vl-8b-ocr",
-        "qwen36-27b-ocr"
+        "qwen36-27b-ocr",
+        "qwen38-27b-ocr"
       ],
       "output": {
         "properties": {
@@ -604,7 +605,8 @@
         "gemma4-12b-ocr@4bit",
         "gemma4-12b-ocr@mxfp4",
         "qwen3-vl-8b-ocr@4bit",
-        "qwen36-27b-ocr@mxfp4"
+        "qwen36-27b-ocr@mxfp4",
+        "qwen38-27b-ocr@mxfp4"
       ],
       "required": [
         "document"
@@ -1507,7 +1509,8 @@
       "models": [
         "gemma4-12b-detect",
         "qwen3-vl-8b-detect",
-        "qwen36-27b-detect"
+        "qwen36-27b-detect",
+        "qwen38-27b-detect"
       ],
       "output": {
         "properties": {
@@ -1541,7 +1544,8 @@
         "gemma4-12b-detect@4bit",
         "gemma4-12b-detect@mxfp4",
         "qwen3-vl-8b-detect@4bit",
-        "qwen36-27b-detect@mxfp4"
+        "qwen36-27b-detect@mxfp4",
+        "qwen38-27b-detect@mxfp4"
       ],
       "required": [
         "image"
@@ -2264,7 +2268,8 @@
         "minicpm-o45-describe",
         "minicpm-v46-describe",
         "qwen3-vl-8b-describe",
-        "qwen36-27b-describe"
+        "qwen36-27b-describe",
+        "qwen38-27b-describe"
       ],
       "output": {
         "properties": {
@@ -2303,7 +2308,8 @@
         "minicpm-v46-describe@4bit",
         "minicpm-v46-describe@bf16",
         "qwen3-vl-8b-describe@4bit",
-        "qwen36-27b-describe@mxfp4"
+        "qwen36-27b-describe@mxfp4",
+        "qwen38-27b-describe@mxfp4"
       ],
       "required": [
         "image"
@@ -3273,7 +3279,8 @@
       "models": [
         "gemma4-12b-texte",
         "qwen25-coder-7b",
-        "qwen36-27b-texte"
+        "qwen36-27b-texte",
+        "qwen38-27b-texte"
       ],
       "output": {
         "properties": {
@@ -3310,7 +3317,8 @@
         "gemma4-12b-texte@mxfp4",
         "qwen25-coder-7b@4bit",
         "qwen36-27b-texte@4bit",
-        "qwen36-27b-texte@mxfp4"
+        "qwen36-27b-texte@mxfp4",
+        "qwen38-27b-texte@mxfp4"
       ],
       "required": [
         "prompt"
@@ -3577,7 +3585,7 @@
         "steps": 30,
         "width": 832
       },
-      "description": "Produit une séquence animée à partir d'une consigne. Le nombre d'images demandé multiplie tout — la durée du calcul comme la mémoire.",
+      "description": "Produit une séquence animée à partir d'une consigne. Le nombre d'images demandé multiplie tout — la durée du calcul comme la mémoire. Certains modèles produisent en plus une bande-son synchronisée ; elle est alors dans la vidéo, et le champ `audio` en donne une copie séparée.",
       "human_subject": null,
       "id": "text-to-video",
       "incumbent": null,
@@ -3651,13 +3659,19 @@
         "type": "object"
       },
       "models": [
-        "ltx-video-2b"
+        "ltx-video-2b",
+        "minimax-h3"
       ],
       "output": {
         "properties": {
+          "audio": {
+            "contentMediaType": "audio/wav",
+            "description": "Chemin de la bande-son seule, relatif au dossier du job. Absent des modèles qui ne rendent que de l'image — c'est la présence de ce champ, et elle seule, qui dit qu'il y a du son. La piste est déjà dans la vidéo ; cette copie existe pour qu'on puisse l'écouter et la juger sans la regarder.",
+            "type": "string"
+          },
           "video": {
             "contentMediaType": "video/mp4",
-            "description": "Chemin de la vidéo produite, relatif au dossier du job.",
+            "description": "Chemin de la vidéo produite, relatif au dossier du job. Elle porte la bande-son quand le modèle en produit une.",
             "type": "string"
           }
         },
@@ -3667,10 +3681,12 @@
         "type": "object"
       },
       "output_media_types": {
+        "audio": "audio/wav",
         "video": "video/mp4"
       },
       "ready_variants": [
-        "ltx-video-2b@bf16"
+        "ltx-video-2b@bf16",
+        "minimax-h3@bf16-ssd"
       ],
       "required": [
         "prompt"
@@ -3948,7 +3964,8 @@
       "models": [
         "gemma4-12b-outils",
         "qwen3-4b-outils",
-        "qwen36-27b-outils"
+        "qwen36-27b-outils",
+        "qwen38-27b-outils"
       ],
       "output": {
         "properties": {
@@ -3991,7 +4008,8 @@
         "gemma4-12b-outils@4bit",
         "gemma4-12b-outils@mxfp4",
         "qwen3-4b-outils@4bit",
-        "qwen36-27b-outils@mxfp4"
+        "qwen36-27b-outils@mxfp4",
+        "qwen38-27b-outils@mxfp4"
       ],
       "required": [
         "task",
@@ -4062,7 +4080,8 @@
       "models": [
         "gemma4-12b-traduction",
         "qwen3-4b-traduction",
-        "qwen36-27b-traduction"
+        "qwen36-27b-traduction",
+        "qwen38-27b-traduction"
       ],
       "output": {
         "properties": {
@@ -4093,7 +4112,8 @@
         "gemma4-12b-traduction@4bit",
         "gemma4-12b-traduction@mxfp4",
         "qwen3-4b-traduction@4bit",
-        "qwen36-27b-traduction@mxfp4"
+        "qwen36-27b-traduction@mxfp4",
+        "qwen38-27b-traduction@mxfp4"
       ],
       "required": [
         "text",
@@ -4297,7 +4317,8 @@
       "models": [
         "gemma4-12b-video",
         "qwen3-vl-8b-video",
-        "qwen36-27b-video"
+        "qwen36-27b-video",
+        "qwen38-27b-video"
       ],
       "output": {
         "properties": {
@@ -4346,7 +4367,8 @@
         "gemma4-12b-video@4bit",
         "gemma4-12b-video@mxfp4",
         "qwen3-vl-8b-video@4bit",
-        "qwen36-27b-video@mxfp4"
+        "qwen36-27b-video@mxfp4",
+        "qwen38-27b-video@mxfp4"
       ],
       "required": [
         "video"

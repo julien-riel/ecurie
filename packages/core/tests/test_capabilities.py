@@ -176,11 +176,17 @@ def test_chaque_sortie_typee_annonce_un_chemin_de_fichier(repo_root):
     # aperçu n'est pas décoratif : c'est la seule façon de voir qu'une caméra
     # est mal placée.
     #
+    # **76 depuis le 25 août 2026**, et la seule de plus est la première du parc
+    # à être facultative pour la capacité qui la déclare : `text-to-video.audio`
+    # n'existe que pour les modèles qui rendent une bande-son. MiniMax-H3 en rend
+    # une, `ltx-video-2b` non, et c'est la présence du champ dans la sortie d'un
+    # job — pas une option du contrat — qui distingue les deux.
+    #
     # Ce total est la seule assertion du dépôt qui compte sur TOUTES les
     # capacités à la fois. Il casse à chaque contrat ajouté, et c'est voulu :
     # une sortie typée est un fichier de plus dans le dossier d'un job, donc une
     # promesse de plus faite à qui le relira.
-    assert len(typées) == 75
+    assert len(typées) == 76
     mal_décrites = {
         ref
         for ref, champ in typées.items()

@@ -1,0 +1,8 @@
+version = 1
+revision = 3
+requires-python = ">=3.11"
+
+[[package]]
+name = "ecurie-runtime-h3-metal"
+version = "0.1.0"
+source = { virtual = "." }

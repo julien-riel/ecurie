@@ -47,7 +47,7 @@ uv run ecurie store status # les trois chiffres : apparent, réel unique, récup
 `~/.cache/huggingface/hub`, `~/.ollama/models` et `~/.lmstudio/models`. Il n'y a rien
 à saisir ; un chemin absent au scan est ignoré, pas une erreur.
 
-Deux environnements demandent une étape de plus, et le disent — `ecurie env list`
+Trois environnements demandent une étape de plus, et le disent — `ecurie env list`
 les signale dans sa colonne « À lire » :
 
 - `runtimes/hunyuan3d` — le code d'inférence de Tencent n'existe pas sur PyPI et doit
@@ -56,6 +56,11 @@ les signale dans sa colonne « À lire » :
   licence **non commerciale**, et il n'a donc pas sa place dans ce dépôt. Un script
   versionné en extrait la partie utile et affiche son empreinte
   ([son README](runtimes/cad-recode/README.md)).
+- `runtimes/h3-metal` — troisième motif encore : il n'y a rien à installer en Python,
+  parce que l'inférence est faite par un **binaire C + Metal** qu'il faut construire
+  (`git clone` puis `make`), et parce qu'elle demande FFmpeg sur le PATH
+  ([son README](runtimes/h3-metal/README.md)). C'est le seul runtime du parc dont
+  `uv sync` ne fabrique qu'un interpréteur nu.
 - tout `runtimes/*/vendor/` en général : pas versionné, reconstruit d'après le README
   de l'environnement concerné.
 
