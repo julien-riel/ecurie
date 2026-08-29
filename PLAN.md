@@ -96,10 +96,12 @@ verte, et l'antériorité sur le créneau est datée d'un tag.
 | 1.4 | Sorties en fichiers et ressources, progression par notifications — jamais un blob dans le contexte de l'agent | une image générée revient comme chemin + ressource |
 | 1.5 | `title` et `description` anglais des douze contrats exposés — de la rédaction, mais lue par des modèles : c'est du prompt engineering, budget de jetons compté | `tools/list` parle anglais |
 | 1.6 | Dogfooding instrumenté : la table `runs` devient l'instrument de la gate du mois 1. Le recrutement des un ou deux testeurs externes **démarre ici**, pas à J3 | des jobs MCP quotidiens dans la table |
+| 1.7 | Outil `ecurie_fan_out(input, capabilities[])` — une même entrée envoyée à N capacités du catalogue, N résultats retournés, l'admission décidant en **réservation groupée**. Première étape de la fiche fan-out de flux (`registry/veille/BACKLOG.md` §E) ; le cas caméra-visage passe par l'opt-in `--tools faces`, l'exclusion par défaut ne bouge pas. **Opportuniste** : ne conditionne pas le critère de sortie de J1 | N modèles co-résidents prouvés en un appel — la matière première de la démo 3.2 |
 
 **Critère de sortie** : depuis Claude Code, `claude mcp add ecurie` puis un
 outil non-texte exécuté produit un fichier, l'admission est tracée dans la
-réponse — et le dogfooding quotidien a commencé.
+réponse — et le dogfooding quotidien a commencé. La tâche 1.7 n'en fait pas
+partie : elle glisse en J2 sans conséquence si les semaines 2-4 sont pleines.
 
 ### J2 — Profils dignes de confiance (semaines 5-6)
 
@@ -136,6 +138,15 @@ sera **délégué**, jamais réimplémenté), puis `/v1/messages` en proxy, puis
 Bibliothèque et le rejeu — la quatrième douleur fondatrice —, puis la délégation
 des moteurs texte (vllm-mlx ou llama-server supervisés) et l'éviction négociée
 en opt-in.
+
+S'y ajoutent, si l'outil `ecurie_fan_out` de 1.7 a trouvé ses usages, les étapes 2 et
+3 de la fiche fan-out de flux (`registry/veille/BACKLOG.md` §E) : les **sorties
+push** — le client reste le connecteur, les résultats partent vers une
+interface configurée au lieu de revenir dans la réponse —, puis les **sources
+gérées** par le serveur, déclaratives et jamais générées. Leur prérequis est
+une extension du plan de contrôle, pas une feature : des **réservations
+durables**, qui épinglent N modèles pour la durée d'un pipeline là où
+l'admission raisonne aujourd'hui par requête.
 
 ### Le sort de l'ancien plan
 

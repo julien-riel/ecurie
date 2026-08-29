@@ -296,6 +296,54 @@ composition — ce que l'`ARCHITECTURE.md` §10 esquisse pour `text-to-mesh`
 (route A, deux temps) et n'a jamais généralisé. À trancher avant d'ajouter des
 modèles qui n'ont d'intérêt qu'en chaîne.
 
+### Fan-out de flux — une source, plusieurs modèles, sorties poussées (2026-08-29)
+
+L'autre forme de composition, parallèle celle-là, posée par Julien le
+2026-08-29 : le serveur MCP permet de **configurer** — jamais de générer — des
+pipelines où une source continue (le cas type : un flux caméra) alimente
+simultanément plusieurs capacités co-résidentes, chaque modèle poussant ses
+résultats au fil de l'eau vers une interface de sortie programmatique
+(WebSocket, webhook, fichier…). Le découpage qui rend l'idée compatible avec le
+pivot : MCP reste le **plan de contrôle** du pipeline — créer, inspecter,
+arrêter, le cerveau chez le client —, les données coulent **hors bande**. C'est
+le pitch prolongé : le plan de contrôle qui arbitre la mémoire arbitre aussi des
+flux, et « N modèles de vision co-résidents sans swap » est la vitrine de
+l'admission qu'aucun concurrent identifié ne peut donner.
+
+Trois étapes, dans cet ordre :
+
+1. **`ecurie_fan_out(input, [capacités])`** — un outil MCP synchrone : une même entrée
+   envoyée à N capacités du catalogue, N résultats retournés. Pas de source, pas
+   de streaming, pas de cycle de vie — juste l'admission qui prouve qu'elle
+   tient N modèles co-résidents en une réservation groupée. Assez petit pour
+   être envisagé dès J1-J2, sans toucher aux gels.
+2. **Sorties push** — le client reste le connecteur (c'est lui qui boucle sur sa
+   source) ; les résultats partent vers une interface de sortie configurée au
+   lieu de revenir dans la réponse.
+3. **Sources gérées par le serveur** — déclaratives, jamais générées ;
+   post-J3, seulement si les signaux externes le justifient.
+
+**Le visage est dans le périmètre, par l'opt-in déjà conçu.** Une caméra
+regarde d'abord des gens : les six capacités `face-*` du parc (`uniface` —
+détection, landmarks, parsing, embedding, orientation de tête, regard) sont le
+cœur du cas d'usage. Elles y entrent par `ecurie mcp --tools faces`, tel que la
+conception le prévoit — l'exclusion par défaut du catalogue (champ
+`human_subject`) ne bouge pas d'un octet. Ce qui manque au parc pour l'exemple
+complet : la lecture d'expressions (`face-expression`, laissée hors périmètre
+au §D, licence des poids non établie) ; en attendant, `image-to-text` décrit.
+
+Prérequis côté plan de contrôle : des **réservations durables** — épingler N
+modèles résidents pour la durée d'un pipeline, extension de l'admission par
+requête. Contraintes connues avant d'instruire les étapes 2-3 : la cadence
+(aucun parc de vision ne traite 30 fps — échantillonner, décider quoi jeter),
+la backpressure quand un modèle est plus lent que les autres, la synchronisation
+des sorties multi-modèles par frame, le cycle de vie des pipelines.
+
+Écarté d'emblée : **le serveur qui écrit lui-même les connecteurs.** Générer du
+code est le travail de l'agent client (décision 1 du pivot — le cerveau reste
+chez le client) ; côté serveur ce serait réimplémenter un agent, le piège du
+harnais dsh sous un autre nom.
+
 ## F. Le filtre qui décidera, avant toute autre considération
 
 1. **Apple Silicon.** Le parc n'exécute que MLX, PyTorch/MPS, ONNX et
