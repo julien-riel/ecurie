@@ -1,16 +1,66 @@
-# Écurie — Architecture v0.1
+# Écurie — Architecture v0.2
 
-> Registre déclaratif, comptabilité disque et UI générique pour un parc de modèles
-> open-weight exécutés localement sur Apple Silicon.
+> Le serveur MCP multimodal qui ne swappe jamais : douze outils locaux — voix,
+> image, profondeur, diarisation… — servis aux agents derrière un contrôle
+> d'admission mémoire à profils mesurés, avec la comptabilité de chaque
+> gigaoctet du parc.
 >
 > Cible matérielle de référence : MacBook Air M5, 24 Go de mémoire unifiée.
-> Date : 19 août 2026.
+> v0.1 : 19 août 2026. v0.2, le pivot : 29 août 2026.
+
+---
+
+## Le pivot du 29 août 2026 — lire ceci d'abord
+
+Un audit produit contradictoire — six enquêteurs, quatre juges, huit
+contre-enquêtes — a rendu un verdict que ce document doit porter avant tout le
+reste : la promesse « un parc de 41 capacités avec son UI » est invendable, et
+elle cumule les trois causes de mort documentées du marché — largeur
+inentretenable seul, serving texte saturé, position en sandwich entre les
+moteurs qui montent et les apps qui descendent. Mais deux actifs du projet
+n'ont, en août 2026, aucun équivalent identifié : le **contrôle d'admission
+mémoire inter-runtimes sur profils mesurés**, et la **comptabilité disque
+inter-caches en registre**.
+
+La promesse devient donc celle-ci, et elle tient en une phrase :
+
+> *Écurie is the never-swap MCP server for Apple Silicon: local eyes, ears and
+> a voice for your coding agent — twelve multimodal tools, memory-safe by
+> measured profiles.*
+
+Tout découle d'une inversion : **l'utilisateur du produit est un agent, pas une
+personne.** Le cerveau — le LLM — appartient au client : Claude Code, Cursor,
+n'importe quel client MCP. Écurie fournit les sens et les mains. Cette
+inversion règle d'un coup trois problèmes qui n'avaient pas de bonne solution :
+la capacité `chat` n'a plus à exister (on ne reconstruit pas celle qui a été
+perdue), la concurrence frontale avec vllm-mlx et le router de llama.cpp
+s'évapore (ils servent des cerveaux, Écurie sert des outils), et le tour de
+rôle du superviseur cesse d'être une limite — un agent appelle ses outils
+séquentiellement, c'est le régime nominal.
+
+La devise qui gouverne le périmètre : **les moteurs exécutent, Écurie admet.**
+Ce qu'elle engage est au piège 4 ci-dessous ; ce que le produit promet
+exactement est au §4 (le catalogue des douze) ; ce qui se passe si personne ne
+vient est au §15.
+
+**Le test d'existence change de voie.** L'ancien critère — une semaine d'usage
+réel où l'UI est le chemin par défaut — est remplacé : des jobs MCP lancés par
+l'auteur au moins cinq jours sur sept pendant une semaine, la table des runs en
+fait foi. C'est la gate du lancement public (§15).
+
+**Roadmap publique, sans dates** — annoncée, jamais datée : *Planned:
+OpenAI-compatible `/v1/audio/*` and `/v1/images/generations`. Chat completions
+will be delegated, never reimplemented.* Puis `/v1/messages` (Anthropic), la
+Bibliothèque et le rejeu, la délégation des moteurs texte — vllm-mlx,
+llama-server — comme runtimes supervisés, et la lecture des résidents d'Ollama
+et de LM Studio dans la décision d'admission.
 
 ---
 
 ## 0. Critique préalable — ce que ce projet ne doit surtout pas être
 
-Avant de spécifier, il faut éliminer trois pièges qui tueraient le projet.
+Avant de spécifier, il fallait éliminer trois pièges qui tueraient le projet.
+Le pivot du 29 août en a gravé un quatrième.
 
 **Piège 1 : réécrire un runtime.** MLX, `mlx-audio`, `diffusers`, `llama.cpp`, ComfyUI,
 `whisper.cpp` existent et sont maintenus par des équipes entières. Écurie n'exécute
@@ -27,6 +77,12 @@ modèles est trivial — l'API Hugging Face te sort 200 candidats par semaine. L
 dur est **l'évaluation comparative**, et sans harnais d'évaluation la veille ne produit
 que du bruit sous forme de liste. C'est ce qui décide si le module veille a de la valeur
 ou non (§7).
+
+**Piège 4 — gravé au pivot : réimplémenter un moteur.** Le piège 1 interdisait
+de réécrire un runtime ; celui-ci interdit sa forme subtile — servir du
+chat/complétion « juste derrière une façade », concurrencer vllm-mlx ou le
+router de llama.cpp sur leur métier. La règle est absolue : **Écurie ne
+réimplémente jamais un moteur.** Les moteurs exécutent. Écurie admet.
 
 **Le vrai trou, celui qui justifie le projet :**
 
@@ -221,6 +277,19 @@ Capacités du parc initial : `text-to-speech`, `speech-to-text`, `text-to-music`
 > chargement — aujourd'hui portée par une convention de manifeste que rien ne
 > valide.
 
+> **Le 29 août 2026 — le catalogue promis se sépare du parc.** Le pivot
+> distingue ce que le produit *promet d'entretenir* de ce que le registre
+> *décrit*. Douze capacités forment le catalogue servi par défaut aux agents :
+> `text-to-speech`, `speech-to-text`, `speaker-diarization`,
+> `audio-separation`, `text-to-image`, `image-to-image`, `image-to-text`,
+> `image-upscale`, `image-matting`, `image-segment`, `depth-estimation`,
+> `time-series-forecast` — toutes mesurées, toutes éprouvées. Les capacités
+> `face-*` en sont exclues par défaut : c'est `human_subject` appliqué, pas une
+> option d'interface. Les vingt-neuf autres passent « experimental » —
+> découvrables par les méta-outils du serveur MCP, sans promesse d'entretien ni
+> profil garanti. La filière 3D est coupée de la v1 (§10), et Hunyuan3D perd un
+> statut de titulaire qu'aucune exécution n'a jamais justifié.
+
 ---
 
 ## 5. Couches et arborescence
@@ -234,7 +303,8 @@ ecurie/
     runtime/                # adaptateurs par runtime + gestion des envs isolés
       adapters/mlx_audio.py  mlx_lm.py  diffusers_mps.py  comfy.py  ollama.py
     api/                    # FastAPI : jobs, SSE, ressources
-    veille/                 # agents + connecteurs de sources
+    mcp/                    # serveur MCP stdio, outils engendrés des contrats — la porte d'entrée
+    veille/                 # agents + connecteurs de sources (gelée, §8)
   apps/
     ui/                     # front, rendu piloté par schéma
   .claude/skills/           # skills Claude Code (veille, banc d'essai, élagage)
@@ -346,6 +416,17 @@ TTS rend l'outil désagréable.
 > donc `"auto"` — `resolve_heavy_threshold` tire les octets du budget détecté —
 > et un nombre explicite dans `~/.ecurie/config.toml` le remplace.
 
+> **Trois états d'admission depuis le pivot, jamais silencieux.** La règle « un
+> profil estimé est un profil faux » tient toujours : seul un pic *mesuré sur
+> place* s'écrit dans `profile`. Mais un adoptant n'a pas à re-bencher le parc
+> avant son premier job : l'admission distingue **mesuré-local** (la règle
+> fondatrice), **hérité-de-classe** (le relevé d'une machine de même classe
+> puce+RAM, majoré d'une marge conservatrice de 15 %) et **borné** (pire-cas
+> dérivé du poids sur disque). L'état utilisé est étiqueté dans chaque réponse
+> d'outil et chaque manifeste de job, et l'usage promeut : le pic observé d'un
+> job réel convertit l'hérité en mesuré. Le détail — résolution, marge, banc
+> opportuniste au `pull` — est dans CONCEPTION.md.
+
 Mesure du profil, par le banc d'essai :
 - MLX : `mx.get_peak_memory()` après reset, valeur exacte.
 - PyTorch/MPS : `torch.mps.driver_allocated_memory()` + RSS du processus via `psutil`.
@@ -354,6 +435,14 @@ Mesure du profil, par le banc d'essai :
 ---
 
 ## 8. Veille technologique — agents et skills
+
+> **Gelée au pivot du 29 août 2026.** Le diagnostic du piège 3 s'est vérifié
+> contre le projet lui-même : soixante-dix manifestes sur soixante-douze en
+> `candidate`, et rien n'a jamais été comparé. La veille ne reprend que le jour
+> où le harnais d'évaluation du §8.3 existe et départage — d'ici là, chaque
+> cycle accumulerait des candidats indépartageables qui se périment en silence.
+> Le principe directeur et le dispositif ci-dessous restent tels quels : c'est
+> le bon design, il attend son préalable.
 
 ### 8.1 Principe directeur
 
@@ -417,6 +506,12 @@ l'effort après le v0.2.
 
 ## 9. UI générique
 
+> **Gelée au pivot.** L'UI reste l'atelier personnel de l'auteur — hors
+> promesse, hors README produit, aucun écran nouveau. La Bibliothèque (écran 4)
+> rejoint la roadmap post-v1 ; la Confrontation attend, comme la veille, que
+> quelque chose soit comparable. Les quatre écrans ci-dessous décrivent
+> l'intention d'origine, toujours valable pour l'atelier.
+
 Quatre écrans, pas davantage.
 
 1. **Atelier** — sélection d'une capacité, puis d'un variant. Formulaire rendu depuis le
@@ -435,6 +530,13 @@ L'écran 4 est celui qu'on oublie systématiquement et qu'on regrette au bout de
 ---
 
 ## 10. Texte → 3D : la case manquante
+
+> **Coupée de la v1 au pivot.** Hunyuan3D était le seul risque jamais levé du
+> projet — un `run.py` jamais lancé, 7,37 Go jamais téléchargés — et un produit
+> ne promet pas ce qu'il n'a jamais exécuté. La filière passe « experimental »,
+> le statut de titulaire est retiré, et cette section redevient ce qu'elle
+> était : une étude de routes, pas un engagement. Si un concurrent prend la
+> case « 3D local pour agents », elle aura été cédée en connaissance de cause.
 
 État réel au 19 août 2026, sans complaisance : **il n'existe pas de modèle open-weight
 texte→3D natif qui tourne convenablement sur Apple Silicon.** Trois routes, par ordre de
@@ -497,7 +599,12 @@ de tes cas d'usage.
 - Pas de moteur de graphes généraliste type ComfyUI. Une seule composition est câblée
   (texte→3D), les autres capacités restent atomiques.
 - Pas de fine-tuning, pas d'entraînement.
-- Pas de publication npm/PyPI avant le v0.4. C'est d'abord ton outil.
+- Pas de chat, pas de complétion, pas d'embeddings texte : le cerveau
+  appartient au client. Le texte se délègue (roadmap du pivot), il ne se sert
+  pas — c'est le piège 4.
+- La publication PyPI (`ecurie`) arrive au jalon J0 du pivot — l'interdit
+  d'avant-v0.4 est levé : le paquet est devenu la porte d'entrée, plus une
+  distraction.
 
 ---
 
@@ -518,6 +625,13 @@ immédiatement et il valide le modèle de données avant que tu n'investisses da
 adaptateurs. Si le v0.1 ne te sert pas dans la semaine qui suit, le projet entier est à
 remettre en question — c'est le test à passer.
 
+> **Le 29 août 2026, ce tableau devient l'histoire.** v0.1 à v0.3 sont livrés,
+> leurs tests d'existence passés. Le v0.4 a été interrompu en cours par le
+> pivot — son critère de sortie (l'UI chemin par défaut) est remplacé par la
+> voie agents (voir le pivot, en tête). v0.5 à v0.7 ne sont pas abandonnés, ils
+> sont réordonnés ou gelés : la suite s'appelle **J0 → J3** et vit dans
+> PLAN.md, avec le lancement pour horizon à huit semaines.
+
 ---
 
 ## 13. Risques
@@ -530,3 +644,48 @@ remettre en question — c'est le test à passer.
 | Effort du front sous-estimé | Moyenne | RJSF plutôt que des formulaires écrits à la main ; 4 écrans, plafond ferme |
 | Dérive vers un clone de ComfyUI | Moyenne | Périmètre §11 relu à chaque jalon |
 | Une opération de dédup détruit des poids | Faible mais grave | Hash vérifié avant tout lien, `--dry-run` obligatoire, jamais de suppression sans plan affiché |
+
+---
+
+## 14. Gouvernance d'un mainteneur seul
+
+Le produit est conçu pour **survivre à zéro contributeur**.
+
+- **Licence : Apache-2.0**, tout le dépôt, données du registre comprises. La
+  clause de brevets et la lisibilité entreprise valent le surcoût de
+  verbosité ; c'est la licence de l'infrastructure ML.
+- **Langue : l'anglais, progressivement.** La surface d'abord — README, sorties
+  CLI, erreurs, descriptions et titres des douze contrats exposés, qui sont du
+  *prompt engineering* lu par des modèles — puis les identifiants, les
+  documents de conception et les quarante et un contrats, au fil de l'eau :
+  chaque fichier substantiellement réécrit migre au passage. D'ici là : *the
+  product speaks English; the engine room still speaks French — and is
+  migrating.*
+- **Contribution : des données, pas du code.** Le geste communautaire attendu
+  est une PR d'un seul fichier JSON — un relevé de mesures depuis une autre
+  classe de machine — validée par la CI et mergée sans revue humaine. Les
+  nouveaux runtimes et les nouveaux contrats restent l'affaire du mainteneur ;
+  la CI est la seule relectrice qui passe à l'échelle. *Maintained by one
+  person, no SLA* — écrit dans SUPPORT.md, pas caché dans un coin.
+
+---
+
+## 15. Le repli, pré-engagé
+
+Le sunk cost a tué AUTOMATIC1111 et GPT4All plus sûrement qu'aucun concurrent.
+La parade est d'écrire la condition de retraite *avant* le lancement, ici même,
+et de s'y tenir.
+
+- **La gate du mois 1.** Sans usage réel par l'auteur — des jobs MCP lancés au
+  moins cinq jours sur sept pendant une semaine, la table des runs en fait
+  foi — il n'y a **pas de lancement public**. On ne promet pas aux autres ce
+  qu'on ne s'est pas prouvé.
+- **La revue des 3 mois.** Trois mois après l'annonce : zéro issue externe,
+  zéro fork actif, zéro relevé de mesures venu d'une machine tierce — alors le
+  projet redescend officiellement à « projet personnel publié ». La
+  communication s'arrête, le travail produit aussi ; l'outil, lui, continue de
+  servir son auteur chaque jour.
+
+L'échec du produit n'est pas l'échec du projet. Un dépôt de cette qualité qui
+ne sert que son auteur est un état parfaitement digne — c'est même l'état dont
+il est parti.
