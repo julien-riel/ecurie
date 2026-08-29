@@ -585,6 +585,14 @@ une épingle est une préférence, un job est un travail, et l'évincer ne rendr
 pas la mémoire tout de suite. Là encore, le cas ne pouvait pas se poser tant
 qu'une commande tenait seule le parc.
 
+**L'admission raisonne par candidat unique, et deux extensions sont annoncées
+sans être servies.** La **réservation groupée** (tâche 1.7) admet N candidats
+sur la somme de leurs pics, tout ou rien — c'est le même algorithme plié sur
+une liste, au service de l'outil `ecurie_fan_out` du §6.3. Les **réservations
+durables** (§13.7) épingleraient N modèles pour la durée d'un pipeline — cela
+touche à la nature du bail et à la doctrine « une épingle est une préférence
+humaine », et se tranche quand le besoin sera réel, pas avant.
+
 **Un refus se lit** — corrigé au 4.4, et le défaut datait du v0.3. La décision
 d'admission porte une `reason` rendue telle quelle par `ecurie ps --for` et par
 l'Atelier ; elle disait « demande 25704234348 octets, le budget entier est de
@@ -908,13 +916,27 @@ présents :
 - `ecurie_status` — résidents (étrangers compris, §5.5), budget Metal, les
   trois chiffres du disque. En lecture seule.
 
+**Un quatrième méta-outil est conçu, pas encore servi** :
+`ecurie_fan_out(input, capabilities[])` — la même entrée envoyée à N capacités
+du catalogue, N résultats retournés (tâche 1.7 du plan, opportuniste). Sa seule
+nouveauté est dans l'admission : une **réservation groupée**, qui décide sur la
+somme des pics des N candidats et refuse en bloc, avec les mêmes options
+chiffrées qu'un refus simple — retirer une capacité de la liste en est une de
+plus. Les sorties suivent la règle commune : des chemins et des ressources,
+jamais des blobs. Le cas d'usage qui le motive — une caméra, plusieurs modèles
+de vision co-résidents — met les `face-*` dans son périmètre par l'opt-in
+`--tools faces`, sans toucher l'exclusion par défaut. La suite de l'idée —
+sorties push hors bande, sources gérées déclaratives — est une fiche du backlog
+(`registry/veille/BACKLOG.md` §E), post-v1 ; son prérequis, les réservations
+durables, est une question ouverte (§13.7).
+
 La contrainte dimensionnante est une mesure — la seule chose qui survive au
 harnais dsh : **40 outils déclarés = 16 690 jetons de catalogue** et le choix
 encore juste ; **67 = boucle de répétition**, sans que rien ne lève (relevé sur
 `gemma4-12b-chat@4bit`, août 2026). Les cerveaux des clients MCP tiennent
-mieux, mais le coût de contexte, lui, vaut pour tous : douze plus trois laisse
-de la marge, et les familles complètes sont un opt-in (`ecurie mcp --tools
-faces`, `--tools all`). Les capacités `face-*` sont exclues du catalogue par
+mieux, mais le coût de contexte, lui, vaut pour tous : douze plus trois —
+seize quand `ecurie_fan_out` entrera — laisse de la marge, et les familles
+complètes sont un opt-in (`ecurie mcp --tools faces`, `--tools all`). Les capacités `face-*` sont exclues du catalogue par
 défaut — application du champ `human_subject`, pas une opinion du serveur. Le
 catalogue est une **liste versionnée dans `packages/mcp`**, pas un champ du
 schéma du registre : les vingt-neuf capacités restantes ne changent pas d'un
@@ -1835,3 +1857,10 @@ s'y rend sans qu'une ligne de test soit écrite.
    du parc réel sont en `status: candidate` : ils fonctionnent et sont mesurés,
    mais rien ne dit encore qu'ils sont les bons. La promotion en `incumbent`
    demande une comparaison, donc le v0.5.
+7. **Les réservations durables du fan-out de flux.** `ecurie_fan_out` (1.7) se
+   contente d'une réservation groupée le temps d'un appel ; les étapes 2 et 3 de
+   la fiche (`registry/veille/BACKLOG.md` §E — sorties push, sources gérées)
+   demandent d'épingler N modèles pour la durée d'un pipeline. Qui pose cette
+   épingle, qui la lève, ce qu'elle fait au LRU, à `max_heavy_resident` et à la
+   doctrine « une épingle est une préférence humaine » — à trancher quand
+   `ecurie_fan_out` aura trouvé ses usages, jamais avant.
