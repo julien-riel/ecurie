@@ -13,6 +13,13 @@
 > socle de l'UI a établi, les §1.1 et §5 ce que le déménagement du superviseur
 > dans le processus de l'API a changé, et le §6 ce que la route des jobs a
 > tranché — la forme des URL de sortie, et ce qui se refuse avant plutôt qu'après.
+>
+> Révisé le 29 août 2026, au pivot v1.0 — le serveur MCP devient la porte
+> d'entrée du produit ; le pourquoi est dans `ARCHITECTURE.md`, la réalisation
+> dans `PLAN.md`. Ici : le §5.5 fixe les profils par classe de machine et les
+> trois états de l'admission, le §6.3 la conception du serveur MCP, et le §8
+> gagne la validation de forme et la garde du profil aveugle. Les §9 et §10
+> restent la conception d'écrans et d'une veille aujourd'hui gelés.
 
 ---
 
@@ -566,7 +573,11 @@ sont lourds et la règle ne discrimine plus rien), les légers restent chauds. C
 de 16 Go retomberait dans le travers reproché aux 6 Go. Un variant **sans profil mesuré**
 n'est exécutable qu'en mode mesure : parc déchargé entièrement, échantillonnage RSS,
 le résultat écrit le premier profil. C'est ce qui rend la règle « jamais de profil
-estimé » vivable au premier lancement.
+estimé » vivable au premier lancement. Cette règle a été écrite pour la machine
+qui instruit son parc ; ce qu'elle coûterait à un adoptant — re-mesurer
+soixante-douze variants avant le premier `run` — est réglé au §5.5, sans
+l'assouplir : un pic qui n'a pas été mesuré ici porte son état sur lui, il ne se
+fait jamais passer pour un relevé.
 
 Le mode mesure vide le parc **épinglés compris** — un profil pris en concurrence
 mesure la machine et non le modèle —, mais il s'arrête devant un **job en cours** :
@@ -586,6 +597,68 @@ compte en **unités binaires** : `fmt_bytes` du store est décimal parce qu'un
 disque se lit ainsi, mais le budget, le seuil de lourdeur et les profils mesurés
 sont des puissances de deux, et un seuil écrit `8 * (1 << 30)` s'affichait
 « 8.59 Go » — un chiffre qui n'apparaît dans aucun fichier de configuration.
+
+### 5.5 Profils par classe de machine — les trois états de l'admission
+
+Le §5.4 tient tant que la machine qui exécute est celle qui a mesuré. Pour un
+adoptant, cette identité se brise au premier `pull` : les relevés du dépôt
+viennent d'un seul poste, et exiger de re-mesurer le parc avant le premier `run`
+tuerait les dix minutes du parcours d'adoption — pendant que livrer des
+estimations trahirait la règle qui rend l'admission digne de confiance. La
+sortie n'est ni l'un ni l'autre : **l'admission garde un seul algorithme, mais
+le pic qu'on lui donne porte désormais un état**, et cet état ne se tait jamais.
+
+- **`measured-local`** — le relevé vient de cette machine. C'est le §5.4
+  inchangé, et le seul état dont les chiffres finissent dans un bloc `profile:`
+  ou un relevé de `registry/measurements/`.
+- **`inherited-class`** — aucun relevé local, mais le dépôt en porte un pour la
+  **même classe de machine**. Le pic hérité est majoré d'une marge conservatrice
+  de **15 %**, et l'étiquette accompagne chaque décision : réponse d'outil MCP,
+  `ecurie ps --for`, manifeste du job.
+- **`bounded`** — aucun relevé, nulle part. Le pic est borné par le pire cas,
+  `disk_bytes` × un facteur par runtime, versionné avec le code et calibré
+  pessimiste. Jamais silencieux, et refusé net si la borne dépasse le budget :
+  entre un job différé et un swap subi, le choix est déjà fait depuis le §0 de
+  l'architecture.
+
+L'ordre de résolution est celui de la liste, et il ne se remonte pas : un état
+faible ne se fait jamais passer pour un fort, ni dans une réponse, ni dans un
+manifeste, ni dans un fichier committé.
+
+**La classe de machine, c'est famille de puce + mémoire unifiée** — et le layout
+l'avait déjà compris : le « fichier par machine » du §8 se nomme
+`mac17-4-24-gio.json`, c'est-à-dire par sa classe. On formalise : deux machines
+de la même classe partagent le relevé. On n'hérite **jamais d'une classe
+voisine** : un pic pris sous 36 Gio de mémoire unifiée ne dit rien de la
+pression Metal à 24, et refuser de deviner est précisément ce que le produit
+vend.
+
+Deux mécanismes ramènent tout vers `measured-local`, sans jamais barrer la
+première valeur :
+
+**Le banc court au pull, en tâche de fond, quand le parc est calme.** Le mode
+mesure vide le parc (§5.4) ; on ne le déclenche donc pas au milieu d'une
+session. Mais dans le parcours d'un adoptant, après un `pull`, le parc *est*
+vide : le banc part tout seul, et le premier `run` trouve souvent un relevé
+local déjà écrit. S'il n'a pas fini, le job court quand même, en
+`inherited-class` ou `bounded`, étiqueté.
+
+**L'usage remplace le banc.** Chaque job mesure déjà son pic observé — les
+métriques du manifeste (§6.2) — et un job complet exécuté en `inherited-class`
+promeut son variant en `measured-local`. La promotion porte **le point d'usage,
+pas la pente** : la pente de `peak_scaling` reste celle de la classe tant que le
+banc n'a pas rejoué la charge type, parce qu'un point unique n'ajuste pas une
+droite. Et le patch de `registry/measurements/` que le banc affiche (§8) devient
+ici le premier geste communautaire : une PR d'un seul fichier JSON, validée
+mécaniquement par la CI, mergeable sans relecture de code.
+
+**Les résidents étrangers comptent.** `ecurie status` et la décision d'admission
+lisent, au moment de décider, les modèles chargés d'Ollama (`/api/ps`) et de
+LM Studio — en lecture seule — et les déduisent du budget : « Ollama tient
+9,2 Gio ; ce job n'entre pas » vaut mieux qu'un swap subi dont Écurie aurait
+juré être innocente. Un démon absent ne compte rien. En v1 on ne décharge
+jamais ce qu'on n'a pas chargé soi-même : l'éviction négociée est un chantier
+d'après, opt-in (`PLAN.md`).
 
 ---
 
@@ -803,6 +876,97 @@ copiée dans le dossier du job (texte inline dans le manifeste, fichiers copiés
 résolue diffère de celle du manifeste, sauf `--force`.
 
 Un job = une ligne dans `runs` (télémétrie du poste « jamais utilisé » du GC).
+
+### 6.3 Le serveur MCP — `packages/mcp`
+
+La porte d'entrée du produit depuis le pivot du 29 août (`ARCHITECTURE.md`) :
+`ecurie mcp`, un serveur MCP stdio dans son propre paquet. Il vit dans ce
+chapitre parce qu'il est le deuxième consommateur de la surface du §6, après
+l'Atelier — et qu'il n'en exige aucune route nouvelle : `POST /jobs`, le SSE,
+`/jobs/{id}/files` et `POST /runtime/admission` suffisent.
+
+**L'outillage est engendré, pas écrit.** Le bloc `input` d'un contrat de
+capacité est déjà du JSON Schema 2020-12, et un outil MCP se déclare par un
+`inputSchema` du même dialecte : la conversion est mécanique — le pari qui
+engendre les formulaires RJSF (§7), appliqué une troisième fois. Les extensions
+`x-ui` sont ignorées : elles parlent à un écran, pas à un agent. La description
+de l'outil, elle, ne s'engendre pas : c'est du **prompt engineering** — en
+anglais, à budget de jetons compté, avec un exemple d'appel dans le texte —
+rédigé à la main pour les capacités exposées, comme leurs `title`.
+
+**Le catalogue est éditorial, versionné dans le code, et petit.** Douze outils
+par défaut, un par capacité promise : `text_to_speech`, `speech_to_text`,
+`speaker_diarization`, `audio_separation`, `text_to_image`, `image_to_image`,
+`image_to_text`, `image_upscale`, `image_matting`, `image_segment`,
+`depth_estimation`, `time_series_forecast`. Plus trois méta-outils toujours
+présents :
+
+- `ecurie_catalog` — la découverte : les quarante et une capacités, les modèles
+  installés, l'état de leurs profils ;
+- `ecurie_run` — l'échappatoire : n'importe quelle capacité par son contrat,
+  paramètres validés comme un `POST /jobs` ;
+- `ecurie_status` — résidents (étrangers compris, §5.5), budget Metal, les
+  trois chiffres du disque. En lecture seule.
+
+La contrainte dimensionnante est une mesure — la seule chose qui survive au
+harnais dsh : **40 outils déclarés = 16 690 jetons de catalogue** et le choix
+encore juste ; **67 = boucle de répétition**, sans que rien ne lève (relevé sur
+`gemma4-12b-chat@4bit`, août 2026). Les cerveaux des clients MCP tiennent
+mieux, mais le coût de contexte, lui, vaut pour tous : douze plus trois laisse
+de la marge, et les familles complètes sont un opt-in (`ecurie mcp --tools
+faces`, `--tools all`). Les capacités `face-*` sont exclues du catalogue par
+défaut — application du champ `human_subject`, pas une opinion du serveur. Le
+catalogue est une **liste versionnée dans `packages/mcp`**, pas un champ du
+schéma du registre : les vingt-neuf capacités restantes ne changent pas d'un
+octet de manifeste, restent découvrables par `ecurie_catalog` et exécutables
+par `ecurie_run`.
+
+**Un refus d'admission est une donnée, pas un message.** La règle de la CLI —
+chaque erreur porte la commande qui répare — se transpose : chaque refus porte
+les options que l'agent peut exécuter, chiffrées à partir de la même décision
+d'admission. L'éviction LRU des résidents ni épinglés ni occupés étant
+automatique (§5.4), un refus ne survient que quand il ne reste rien à évincer —
+et c'est exactement ce que le payload raconte :
+
+```json
+{
+  "error": "admission_refused",
+  "requested": {"capability": "text-to-image", "variant": "sdxl-base@bf16-mps",
+                "peak_bytes": 14254080000, "basis": "measured-local"},
+  "budget_bytes": 19070000000,
+  "residents": [
+    {"variant": "qwen3-tts-1.7b@8bit-mlx", "peak_bytes": 3328599654, "pinned": true},
+    {"variant": "moss-transcribe@8bit-mlx", "peak_bytes": 6442450944, "busy": true}
+  ],
+  "options": [
+    {"kind": "retry", "when": "job j_01k3 on moss-transcribe ends",
+     "frees_bytes": 6442450944},
+    {"kind": "variant", "ref": "sdxl-base@8bit-mps", "peak_bytes": 8912000000,
+     "basis": "inherited-class", "fits_now": true},
+    {"kind": "reduce_input", "parameter": "width", "max_admissible": 768},
+    {"kind": "human_command", "command": "ecurie unload qwen3-tts-1.7b@8bit-mlx",
+     "why": "pinned by its human"}
+  ]
+}
+```
+
+Une épingle est une préférence humaine : l'agent ne la lève pas, il transmet la
+commande à qui de droit. Le refus MCP parle anglais — c'est la surface produit ;
+la phrase française du §6.1 suivra la politique de langue du pivot.
+
+**Les sorties sont des chemins et des ressources, jamais des blobs.** Une image
+générée revient comme chemin + ressource MCP servie depuis
+`/jobs/{id}/files` ; une transcription courte revient en texte, une longue en
+fichier. Rien ne transite en base64 dans le contexte de l'agent — le contexte
+est un budget, pas un tuyau. La progression des jobs longs passe par les
+notifications de progression MCP, alimentées par le SSE existant : pas de
+nouveau canal.
+
+**Rien de destructif côté agent.** Le GC, la quarantaine, les suppressions et
+le tiering restent des gestes de CLI humaine ; `ecurie_status` lit et ne touche
+pas. Un agent qui sait générer une image n'a aucune raison de savoir vider un
+cache — et un refus se négocie par les options qu'il transporte, jamais par un
+pouvoir général de décharge.
 
 ---
 
@@ -1452,6 +1616,24 @@ une phrase de deux secondes qu'à un paragraphe de quinze, alors que le warmup
 pèse surtout sur la première. `throughput` en est l'inverse ; si les deux cessent
 de l'être, l'un des deux est faux.
 
+**Le banc regarde désormais la forme de ce qu'il produit** (jalon J2 du pivot).
+Découvert le 22 août : `moss-transcribe` a passé ses trois cas au vert en
+livrant des marqueurs de locuteur dans un fichier annoncé `text/plain`. Le banc
+mesure un coût, pas une qualité — mais entre les deux il y a la conformité, et
+elle est presque gratuite : chaque sortie de cas est validée contre le **schéma
+de sortie du contrat** (le validateur est celui des jobs), les fichiers annoncés
+existent avec le media type promis, un `text/plain` ne contient pas de balisage,
+un JSON se relit. Un cas qui produit n'importe quoi vite ne « passe » plus.
+
+**La garde du profil aveugle** (même jalon). L'affaire `da3-large` : un pic
+sous-déclaré de 42,6 % « depuis le début » — le RSS relevé là où Metal payait —
+avec un symptôme lisible que personne ne lisait, une pente nulle sous un R² de
+1,0. Une mesure réelle a du bruit ; une droite parfaitement plate et
+parfaitement ajustée dit que l'instrument ne voit pas la variable. Sur ce
+symptôme, le banc refuse d'écrire le relevé et nomme l'instrument à changer, au
+lieu de committer le chiffre qui aurait fait cohabiter deux modèles dans une
+mémoire qui n'en tenait qu'un.
+
 ---
 
 ## 9. Évaluation — golden sets, A/B, Elo
@@ -1503,9 +1685,19 @@ de l'être, l'un des deux est faux.
   jamais stocké. Le choix des paires suit l'incertitude : on propose en priorité les
   paires les moins départagées.
 
+Le pivot du 29 août 2026 gèle l'écran Confrontation avec le reste de l'UI ; ce
+qui précède reste la conception du jour où une évaluation comparative ouvrira —
+le même jour qui conditionne la réouverture de la veille (§10).
+
 ---
 
 ## 10. Veille et CI
+
+**Gelée au pivot du 29 août 2026** : plus de cycle de veille tant qu'aucune
+évaluation comparative n'existe — soixante-dix des soixante-douze manifestes
+sont des candidats que rien n'a jamais départagés, et chaque cycle en ajoutait.
+La CI du registre, elle, ne gèle pas : elle entre au jalon J0 (`PLAN.md`). Ce
+qui suit reste la conception du jour où la veille rouvrira.
 
 - Le skill existant (`SKILL.md` → `.claude/skills/veille-modeles/`) est déjà écrit ;
   le v0.6 lui fournit ce qui lui manque : `registry/veille/last_run.json`,

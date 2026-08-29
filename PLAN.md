@@ -1,11 +1,154 @@
 # Écurie — Plan de réalisation
 
-> Découpage en tâches des jalons du §12 de `ARCHITECTURE.md`, selon la conception de
-> `CONCEPTION.md`. Chaque jalon a un critère de sortie unique et vérifiable ; on ne
-> passe pas au suivant sans lui.
+> Découpage en tâches des jalons, selon la conception de `CONCEPTION.md` et le
+> pivot d'`ARCHITECTURE.md`. Depuis le 29 août 2026, le plan actif est **J0 → J3**
+> (le plan v1.0, ci-dessous) ; les jalons v0.1 → v0.4 racontent comment le socle
+> s'est construit, et le sort de v0.5 → v0.7 est réglé ligne par ligne dans « Le
+> sort de l'ancien plan ». Chaque jalon a un critère de sortie unique et
+> vérifiable ; on ne passe pas au suivant sans lui.
 >
-> Rappel du test d'existence du projet : **si le v0.1 ne sert pas dans la semaine qui
-> suit sa livraison, on arrête et on réévalue.**
+> Rappel du test d'existence du projet, dans sa forme du pivot : **si le serveur
+> MCP ne sert pas Julien au quotidien dans le mois qui suit sa livraison, il n'y a
+> pas de lancement public — on réévalue.** (La forme d'origine — « si le v0.1 ne
+> sert pas dans la semaine qui suit sa livraison, on arrête » — a été passée : il
+> a servi.)
+
+## État au 29 août 2026 — le pivot
+
+Un audit produit multi-agents — six enquêteurs sur le dépôt et l'écosystème,
+quatre juges, huit contre-enquêtes adversariales — a rendu son verdict, et les
+douze décisions qui en découlent ont été tranchées le jour même. Le constat tient
+en trois phrases. La promesse « un parc de quarante et une capacités avec UI »
+est invendable : elle cumule les trois causes de mort documentées du marché —
+largeur inentretenable seul, serving texte saturé, position en sandwich entre
+les runtimes qui montent et les apps qui descendent. Mais deux actifs du dépôt
+n'ont d'équivalent identifié nulle part : le **contrôle d'admission mémoire
+inter-runtimes sur profils mesurés**, et la **comptabilité disque inter-caches
+en registre**. Et le seul standard qui couvre les capacités non textuelles —
+près de 80 % du parc, que le vocabulaire OpenAI ne sait pas nommer — est MCP,
+dont les contrats de capacité sont déjà, à une conversion mécanique près, des
+`inputSchema`.
+
+Le produit v1.0 est donc **le serveur MCP multimodal d'Apple Silicon qui ne
+swappe jamais** : douze outils éprouvés, servis à Claude Code, Cursor et tout
+client MCP, derrière l'admission mesurée. L'utilisateur du produit est un agent ;
+le cerveau reste chez le client. Le pourquoi vit dans `ARCHITECTURE.md` (le
+pivot, le repli pré-engagé), le comment dans `CONCEPTION.md` (le serveur MCP,
+les trois états d'admission) ; ce qui suit est le plan.
+
+Les douze décisions validées, une ligne chacune :
+
+1. **Le pivot MCP-first** — le serveur MCP est le produit, l'agent est l'utilisateur.
+2. **Apache-2.0**, tout le dépôt, données du registre comprises.
+3. **Tout anglais, progressivement** — la surface d'abord ; chaque fichier
+   substantiellement réécrit migre au passage.
+4. **Le nom reste Écurie**, paquet PyPI `ecurie` (vérifié libre le 29 août).
+5. **L'UI gelée** ; le test d'existence passe par la voie agents.
+6. **La veille gelée** jusqu'à l'existence d'une évaluation comparative, skill
+   et cron compris.
+7. **Le catalogue : douze capacités promises**, les `face-*` exclues par défaut
+   (`human_subject`), vingt-neuf en « experimental ».
+8. **La filière 3D coupée**, le statut `incumbent` de Hunyuan3D retiré.
+9. **Le harnais DSH et la capacité `chat` abandonnés** définitivement — pas de
+   reconstruction.
+10. **`/v1` dans la roadmap publique, sans dates** — « Planned: OpenAI-compatible
+    `/v1/audio/*` and `/v1/images/generations`. Chat completions will be
+    delegated, never reimplemented. »
+11. **Le repli pré-engagé, publié** dans le dépôt avant le lancement.
+12. **La validation tierce par un ou deux testeurs externes** recrutés dès J1 ;
+    repli : location d'un Mac d'une autre classe.
+
+| Jalon | État | Critère de sortie |
+|---|---|---|
+| J0 — Publiable | à faire | un inconnu peut légalement utiliser le dépôt, la CI est verte, l'antériorité est datée |
+| J1 — MCP servi | à faire | depuis Claude Code, un outil non-texte exécuté → un fichier produit, l'admission tracée dans la réponse ; le dogfooding quotidien commence |
+| J2 — Profils dignes de confiance | à faire | sur une machine fraîchement installée de la même classe, `pull` + `run` sans re-bench préalable ; chaque réponse porte son état d'admission étiqueté |
+| J3 — Lancement | à faire | le quickstart rejoué en moins de dix minutes par un tiers sur une autre classe de machine ; publication faite |
+
+v0.1 → v0.3 restent livrés — tout J1 repose sur ce socle. Le v0.4 s'achève par
+la voie agents : son critère de sortie (« une semaine d'usage réel où l'UI est
+le chemin par défaut ») est remplacé par la gate du mois 1 — l'usage MCP
+quotidien, la table `runs` en fait foi. L'UI reste l'atelier personnel, hors
+promesse.
+
+## Le plan v1.0 — J0 → J3 (~8 semaines)
+
+### J0 — Publiable (semaine 1)
+
+| # | Tâche | Livrable |
+|---|---|---|
+| 0.1 | LICENSE Apache-2.0 à la racine + champ `license` dans les cinq `pyproject.toml` | le dépôt cesse d'être « tous droits réservés » — sans ce fichier, aucune adoption tierce n'est licite |
+| 0.2 | Docs adoptant : README anglais réécrit sur le pitch, `README.fr.md`, `SUPPORT.md` (« maintained by one person, no SLA »), `CONTRIBUTING.md` (contribution = données, politique de langue). Rédigées à la mise à jour de conception — la tâche est la relecture et le commit | la page d'accueil dit le produit, pas le parc |
+| 0.3 | CI GitHub Actions : `uv sync`, `ecurie registry validate`, pytest des quatre paquets (marqueur `real` exclu), ruff. L'ancienne 6.1 le disait déjà : les invariants existent en tests, il s'agit de les câbler | CI verte exigée sur chaque PR |
+| 0.4 | Nettoyage du pivot : suppression de `harness/`, retrait des mesures orphelines (`gemma4-12b-chat@4bit`, `qwen38-27b-chat@mxfp4`), retrait du statut `incumbent` de Hunyuan3D, note de gel dans `registry/veille/BACKLOG.md` | le dépôt ne revendique plus rien qu'il ne contient |
+| 0.5 | Réservation PyPI : paquet `ecurie` minimal installable — la CLI au moins ; le bootstrap complet des venvs runtimes est en 2.6 | `uv tool install ecurie` donne quelque chose, et le nom est pris |
+
+**Critère de sortie** : un inconnu peut légalement utiliser le dépôt, la CI est
+verte, et l'antériorité sur le créneau est datée d'un tag.
+
+### J1 — MCP servi (semaines 2-4)
+
+| # | Tâche | Livrable |
+|---|---|---|
+| 1.1 | Serveur MCP stdio : outils engendrés des contrats — le bloc `input` devient l'`inputSchema`, `x-ui` est ignoré. Le même pari que les formulaires RJSF, appliqué une troisième fois | `ecurie mcp` répond à `tools/list` |
+| 1.2 | Catalogue éditorial versionné : les douze capacités promises — `text-to-speech`, `speech-to-text`, `speaker-diarization`, `audio-separation`, `text-to-image`, `image-to-image`, `image-to-text`, `image-upscale`, `image-matting`, `image-segment`, `depth-estimation`, `time-series-forecast` — plus trois méta-outils : `ecurie_catalog` (découvrir les quarante et une), `ecurie_run` (n'importe quelle capacité par son contrat), `ecurie_status` (budget, résidents, disque, en lecture seule). Familles en opt-in, `face-*` exclues par défaut | douze + trois outils, sous la limite mesurée des quarante |
+| 1.3 | Refus d'admission négociables : le refus de `POST /runtime/admission` devient une erreur MCP structurée — chiffres mesurés et options exécutables (réessayer quand le job en cours finit, prendre un variant plus léger, réduire l'entrée) ; une épingle humaine n'est jamais levée par l'agent, il relaie la commande (`CONCEPTION.md` §6.3) | l'agent répare son refus tout seul |
+| 1.4 | Sorties en fichiers et ressources, progression par notifications — jamais un blob dans le contexte de l'agent | une image générée revient comme chemin + ressource |
+| 1.5 | `title` et `description` anglais des douze contrats exposés — de la rédaction, mais lue par des modèles : c'est du prompt engineering, budget de jetons compté | `tools/list` parle anglais |
+| 1.6 | Dogfooding instrumenté : la table `runs` devient l'instrument de la gate du mois 1. Le recrutement des un ou deux testeurs externes **démarre ici**, pas à J3 | des jobs MCP quotidiens dans la table |
+
+**Critère de sortie** : depuis Claude Code, `claude mcp add ecurie` puis un
+outil non-texte exécuté produit un fichier, l'admission est tracée dans la
+réponse — et le dogfooding quotidien a commencé.
+
+### J2 — Profils dignes de confiance (semaines 5-6)
+
+| # | Tâche | Livrable |
+|---|---|---|
+| 2.1 | Banc durci : validation de forme des sorties contre le schéma du contrat, et la garde « profil aveugle » — une pente nulle avec un R² de 1,0 est un instrument, pas un résultat. Les deux dettes avouées du 22 et du 24 août, soldées ensemble | `moss-transcribe` ne repasserait plus au vert |
+| 2.2 | Re-mesure des douze titulaires — dont `da3-large`, sous-déclaré de 42,6 % depuis le début : sa correction est la démonstration vivante de 2.1 | douze profils dignes du mot |
+| 2.3 | Les trois états d'admission : mesuré-local / hérité-de-classe (+15 % de marge) / borné pire-cas — jamais silencieux, l'état tracé dans le manifeste de job et dans chaque réponse | un profil emprunté se dit tel |
+| 2.4 | Banc opportuniste au `pull` — le téléchargement dure des minutes, le banc suit, jamais bloquant pour la première valeur — et promotion hérité → mesuré-local par l'usage réel : chaque job mesure déjà son pic | l'usage remplace le banc |
+| 2.5 | `ecurie init` — détection puce, RAM, budget Metal, classe de machine, caches — et `doctor`, qui refuse proprement sous 16 Go ; sorties CLI en anglais au passage | les dix premières minutes tiennent sans lire la doc |
+| 2.6 | Lecture des résidents d'Ollama et LM Studio (`/api/ps`, `lms ps`) dans `status` et dans la décision d'admission — lecture seule, jamais d'éviction ; packaging PyPI complet, bootstrap `env sync` compris | « Ollama tient 9,2 Gio ; ce job n'entre pas » |
+
+**Critère de sortie** : sur une machine fraîchement installée de la même classe,
+`pull` + `run` sans re-bench préalable, et chaque réponse porte son état
+d'admission étiqueté.
+
+### J3 — Lancement (semaines 7-8)
+
+| # | Tâche | Livrable |
+|---|---|---|
+| 3.1 | Validation tierce : les testeurs recrutés depuis 1.6 rejouent le quickstart sur leur machine ; repli si aucun au début de la semaine 7 — location ou emprunt d'un Mac d'une autre classe ; en complément, smoke test d'installation sur runner macOS GitHub | le parcours prouvé hors de la machine de référence |
+| 3.2 | La démo de 90 secondes, enregistrée : le ballet mémoire multi-modèles, le Moniteur d'activité à swap zéro, un refus d'admission auto-réparé par l'agent en cours de session | l'argument de lancement, en tête de README |
+| 3.3 | Publication au registre MCP officiel et aux annuaires (Cursor/VS Code, awesome-mcp) | `claude mcp add ecurie` trouvable |
+| 3.4 | **La gate** : l'usage propre du mois 1 vérifié — au moins cinq jours sur sept pendant une semaine, la table `runs` en fait foi. Alors seulement : Show HN, r/LocalLLaMA, r/ClaudeAI. Sinon : pas de lancement public, réévaluation | le lancement, ou la décision honnête de ne pas lancer |
+
+**Critère de sortie** : le quickstart rejoué en moins de dix minutes par un
+tiers sur une autre classe de machine, et la publication faite.
+
+### Post-v1 — la roadmap publique, sans dates
+
+Déclenchée par la revue des trois mois, jamais avant, et rien n'en entame les
+huit semaines : la façade `/v1/audio/*` et `/v1/images/generations` (le chat
+sera **délégué**, jamais réimplémenté), puis `/v1/messages` en proxy, puis la
+Bibliothèque et le rejeu — la quatrième douleur fondatrice —, puis la délégation
+des moteurs texte (vllm-mlx ou llama-server supervisés) et l'éviction négociée
+en opt-in.
+
+### Le sort de l'ancien plan
+
+| Ancien | Sort |
+|---|---|
+| 4.2 Bibliothèque et rejeu | **post-v1** — chaque job écrit déjà son manifeste complet ; l'écran attendra les signaux |
+| 4.7 bandeau calculé sur la saisie | **gelé avec l'UI** |
+| v0.5 — enregistrements ASR, `ecurie eval`, A/B, Confrontation/Elo | **gelé** jusqu'à la réouverture de l'évaluation ; la validation de forme passe dans 2.1 |
+| v0.6 — CI registre, veille outillée | **absorbé et gelé** — la CI passe en 0.3, la garde des pentes (6.5) en 2.1 ; la veille est gelée jusqu'à l'éval comparative |
+| v0.7 — Hunyuan3D, contrats composites, 3D | **coupé** — l'`incumbent` est retiré en 0.4 ; la filière reste « experimental », sans promesse |
+| les `title` des 169 champs | **réduits aux douze contrats exposés** (1.5), en anglais ; le reste gelé |
+| l'index de similarité (chantier sans tâche) | **au backlog** — quatre capacités `*-embed` le réclament toujours, aucune n'est dans le catalogue promis |
+| la garde des profils aveugles (chantier sans tâche) | **portée par 2.1** |
 
 ## État au 22 août 2026
 
@@ -407,12 +550,21 @@ vendoré, 7,37 Go de poids non téléchargés (conception §13.4).
 **Critère de sortie** : une semaine d'usage réel où l'UI est le chemin par défaut
 pour lancer TTS et image — sans retomber sur les scripts d'origine.
 
+> **Remplacé le 29 août 2026.** Le jalon s'achève par la voie agents : la gate
+> du mois 1 (usage MCP quotidien, tâche 1.6) tient lieu de critère de sortie.
+> 4.2 part en post-v1, 4.7 est gelée avec l'UI — voir « Le sort de l'ancien
+> plan ».
+
 Ce que le v0.3 a rendu obligatoire ici : l'admission doit être interrogeable
 **avant** de soumettre (l'endpoint existe déjà en CLI sous `ecurie ps --for`), et
 l'UI doit rendre un refus lisible — « ce morceau de 30 s demanderait 24,2 Gio,
 au-delà des 17,8 disponibles » vaut mieux qu'un bouton grisé.
 
 ## v0.5 — Mesurer (2 semaines)
+
+> **Gelé le 29 août 2026** — jusqu'à la réouverture de l'évaluation
+> comparative. Seule la validation de forme survit, absorbée par 2.1 (banc
+> durci). Voir « Le sort de l'ancien plan ».
 
 | # | Tâche | Livrable |
 |---|---|---|
@@ -428,6 +580,10 @@ préférences réelles, et un artefact de trois semaines est rejoué à l'identi
 
 ## v0.6 — S'entretenir (1 semaine)
 
+> **Absorbé et gelé le 29 août 2026** — la CI (6.1) passe en 0.3, la garde des
+> pentes (6.5) en 2.1 ; la veille (6.2 à 6.4) est gelée jusqu'à l'éval
+> comparative, skill et cron compris.
+
 | # | Tâche | Livrable |
 |---|---|---|
 | 6.1 | `registry-ci.yml` : schéma, invariants, révisions épinglées existantes, licences, profil ⇔ mesure. La validation croisée `defaults:` ↔ contrat et la conformité pydantic ⇔ JSON Schema existent déjà en tests : il s'agit de les câbler, pas de les écrire | CI verte exigée sur `registry/` |
@@ -440,6 +596,11 @@ préférences réelles, et un artefact de trois semaines est rejoué à l'identi
 golden set, décision prise en connaissance de coût — sans rien télécharger avant l'accord.
 
 ## v0.7 — Texte → 3D (1 semaine)
+
+> **Coupé le 29 août 2026** — la filière 3D sort de la v1 et le statut
+> `incumbent` de Hunyuan3D est retiré (0.4) : un risque jamais levé n'a pas sa
+> place dans une promesse d'entretien. Les manifestes restent au registre, en
+> « experimental », sans promesse.
 
 | # | Tâche | Livrable |
 |---|---|---|
@@ -460,6 +621,10 @@ pas d'alternative.
 ---
 
 ## Ordre et dépendances
+
+> **Photo d'avant-pivot.** Ce diagramme décrit l'enchaînement v0.1 → v0.7 tel
+> qu'il se lisait au 27 août ; l'ordre actif est celui de « L'ordre », en fin de
+> document.
 
 ```
 v0.1 ── v0.2 ── v0.3 ── v0.4 ── v0.5 ── v0.6 ── v0.7
@@ -486,11 +651,16 @@ chaque jalon valide les fondations du suivant.
 
 ## Points de contrôle
 
+- **Depuis le 29 août 2026** : fin de chaque jalon J0 → J3, relire les douze
+  décisions du pivot — le risque « redevenir un parc de quarante et une
+  capacités » se combat là, et la gate du mois 1 puis la revue des trois mois
+  sont détaillées dans « Succès et repli ».
 - Fin de chaque jalon : relire le périmètre exclu (§11 de l'architecture) — le risque
   « dérive vers un clone de ComfyUI » se combat là.
-- Fin v0.1 : le test d'existence. Fin v0.4 : l'outil a-t-il remplacé les scripts ?
-  Sinon, corriger l'Atelier avant d'investir dans l'évaluation.
-- Après trois cycles de veille (post-v0.6) : réajuster les pondérations du score.
+- Fin v0.1 : le test d'existence. ~~Fin v0.4 : l'outil a-t-il remplacé les
+  scripts ?~~ — remplacé par la gate du mois 1 (voie agents).
+- ~~Après trois cycles de veille (post-v0.6) : réajuster les pondérations du
+  score.~~ — la veille est gelée.
 - ~~**Recalibrer `heavy_threshold_bytes`**~~ — **fait le 20 août 2026**, avant le
   v0.4 : les quatre modèles mesurés dépassaient les 6 Go du seuil hérité de
   l'architecture, donc aucun ne cohabitait avec un autre alors que la voix
@@ -827,7 +997,11 @@ permanence celui qu'on ne regarde pas.
 
 ## Ce qui reste à faire
 
-*Au 22 août 2026. Dix-huit tâches ouvertes sur quarante-quatre, plus quatre
+*Au 22 août 2026 — **photo d'avant-pivot**, conservée pour ce qu'elle décrit de
+l'état du parc. Le sort de chacune de ces tâches est réglé dans « Le sort de
+l'ancien plan » ; ce qui reste à faire aujourd'hui, ce sont les tableaux J0 → J3.*
+
+*Texte d'origine : dix-huit tâches ouvertes sur quarante-quatre, plus quatre
 chantiers qu'aucune tâche ne porte. Les tableaux des jalons font foi sur le détail ; cette
 section dit ce qui n'est pas fait, ce qui bloque chacun, et dans quel ordre s'y
 prendre.*
@@ -933,17 +1107,37 @@ se relit — coûterait peu et aurait trouvé celui-là.
 
 ### L'ordre
 
+*Mis à jour le 29 août 2026 — l'ordre du plan v1.0. La version d'avant-pivot
+(4.2, 7.0, les enregistrements ASR, les 169 `title`) est réglée ligne par ligne
+dans « Le sort de l'ancien plan ».*
+
 ```
-maintenant, en parallèle et sans dépendance
-  ├─ 4.2 Bibliothèque ──→ 4.7 bandeau vivant                       ┐ fin du v0.4
-  ├─ 7.0 éprouver Hunyuan3D   (le risque, à lever tôt)             │
-  ├─ les douze enregistrements ASR (5.1)                           │
-  └─ les `title` des 169 champs   (rédaction)                      ┘
-                                    │
-                        v0.5 ──→ v0.6 ──→ v0.7
+J0 ──────→ J1 ──────→ J2 ──────→ J3
+sem. 1     sem. 2-4   sem. 5-6   sem. 7-8
+
+en parallèle, sans dépendance de code :
+  ├─ 1.5 `title` et `description` anglais des douze   (rédaction)
+  ├─ 1.6 recrutement des testeurs externes            (démarre à J1, sert 3.1)
+  └─ 2.2 re-mesure des douze titulaires               (dès que 2.1 existe,
+                                                       sans attendre la fin de J1)
 ```
 
 Le reste est séquentiel, et c'est voulu : chaque jalon valide les fondations du
 suivant. Les seules choses parallélisables sont celles qui relèvent de la
-rédaction ou de la mesure — elles ne demandent l'accord de personne et lèvent des
-inconnues au lieu d'en ajouter.
+rédaction, du recrutement ou de la mesure — elles ne demandent l'accord de
+personne et lèvent des inconnues au lieu d'en ajouter.
+
+### Succès et repli
+
+La **gate du mois 1** d'abord : au moins cinq jours sur sept d'usage MCP réel
+pendant une semaine, la table `runs` en fait foi — sinon il n'y a pas de
+lancement public du tout, et l'échec se constate à guichet fermé.
+
+Puis, à **trois mois de l'annonce** : au moins une PR de mesures d'une machine
+tierce mergée — le signal roi, il prouve l'adoption et la portabilité d'un
+coup —, une cinquantaine d'étoiles, cinq issues de non-francophones. Sans aucun
+de ces signaux — zéro issue externe, zéro fork actif, zéro mesure tierce —, la
+redescente est officielle : « projet personnel publié », la communication
+s'arrête, l'outil garde toute sa valeur d'usage. Le texte pré-engagé vit dans
+`ARCHITECTURE.md` ; ce plan n'en est que le rappel. **L'échec du produit n'est
+pas l'échec du projet.**
