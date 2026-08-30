@@ -1,7 +1,10 @@
 # Écurie
 
-**The never-swap MCP server for Apple Silicon** — local eyes, ears and a voice
-for your coding agent: twelve multimodal tools, memory-safe by measured profiles.
+**Never-swap multimodal inference for Apple Silicon** — local eyes, ears and a
+voice for your coding agent, memory-safe by profiles a bench measured rather
+than guessed. Today that is a CLI and a local HTTP API over 41 capability
+contracts. The MCP server that turns twelve of them into agent tools is what
+**v1.0** means: `ecurie mcp` is not a command yet.
 
 An *écurie* is a racing stable. This one keeps a stable of open-weight models —
 maintained, measured, raced, and retired.
@@ -29,9 +32,9 @@ above. Read this table before believing anything else on this page:
 | Surfaces | CLI (16 commands), local HTTP API, personal UI | **MCP server** (`ecurie mcp`) |
 | Admission | measured profiles, on the machine that measured them | + machine classes, borrowed profiles — labeled, never silent |
 | Language | CLI output and internal docs in French | English surface |
-| License | none committed yet — all rights reserved | Apache-2.0 |
 
-Nothing below is aspirational except where marked **v1.0** or *planned*.
+Nothing on this page — the subtitle included — is aspirational except where
+marked **v1.0** or *planned*.
 
 ## The problem
 
@@ -49,13 +52,14 @@ every variant because it measured it, and refuses — legibly — what would not
 
 ## What the v1.0 catalog serves
 
-Twelve capabilities, every one with a measured incumbent, exposed as MCP tools
-generated from their typed contracts (`registry/capabilities/*.json`):
+Twelve capabilities, each served by a variant with a bench-measured profile,
+exposed as MCP tools generated from their typed contracts
+(`registry/capabilities/*.json`):
 
 - **Hearing** — `speech-to-text`, `speaker-diarization`, `audio-separation`
 - **Voice** — `text-to-speech`
-- **Sight** — `image-to-text` (describe + OCR), `depth-estimation`,
-  `image-segment`, `image-matting`
+- **Sight** — `image-to-text` (describe an image, or answer a question about
+  it), `depth-estimation`, `image-segment`, `image-matting`
 - **Making** — `text-to-image`, `image-to-image`, `image-upscale`
 - **Forecasting** — `time-series-forecast`
 
@@ -64,34 +68,62 @@ contracts and installed models), `ecurie_run` (invoke any capability by its
 contract — the escape hatch), `ecurie_status` (residents, Metal budget, disk
 accounting — read-only).
 
-Two deliberate exclusions. The `face-*` capabilities stay out of the default
-catalog: their contracts carry `human_subject`, and that flag is enforced, not
-decorative. The other 29 contracts in the registry are **experimental** —
-discoverable, runnable, but with no maintenance promise and no guaranteed
-profile. The catalog is small on purpose: the measured cost of an agent is its
-tool inventory, not its conversation, and forty declared tools is where local
-brains start to degrade.
+Two deliberate exclusions. Seven contracts declare a `human_subject` value —
+the six `face-*` (`analyzes`, and `identifies` for `face-embed`) and
+`voice-clone` (`synthesizes`). None of the seven is among the twelve, and
+**v1.0** keeps the `face-*` family out of the default catalog on that field
+rather than on a hand-kept list, families being opt-in
+(`ecurie mcp --tools faces`). Today the field is declared in the contracts and
+surfaced by the API; nothing gates on it yet.
+
+The other 29 contracts in the registry are **experimental** — discoverable,
+runnable, but with no maintenance promise and no guaranteed profile. OCR is one
+of them: `document-to-text` is deliberately a separate contract, because
+reading a page word-for-word and describing a picture are different jobs and
+are benched differently.
+
+The catalog is small on purpose, and its size comes from a measurement: the
+cost of an agent is its tool inventory, not its conversation. Forty declared
+tools cost 16,690 tokens of catalog before a single word is exchanged and the
+local model we measured still chose correctly; at sixty-seven it fell into a
+repetition loop, with nothing raising an error. That reading dates from August
+2026, on `gemma4-12b-chat@4bit`, taken with the `dsh` agent harness the pivot
+has since retired — the rig was never committed, so it is the one number on
+this page with no file behind it in this repository. A bigger client should
+hold its choice longer; the catalog cost is paid by every one of them. Twelve
+plus three leaves room.
 
 ## Admission: measured, and negotiable
 
 The rule that everything else serves: **a profile is filled by the bench, never
-by hand. An estimated profile is a wrong profile.** Every variant in the
-registry carries a measured peak (`peak_unified_memory_bytes`), and the
-admission check is a pure function over those measurements and the Metal budget.
+by hand. An estimated profile is a wrong profile.** A variant is admitted only
+if it carries a measured peak (`peak_unified_memory_bytes`); the fifteen of the
+hundred that don't yet are refused outright rather than guessed at, and
+`ecurie bench` is how they earn one. Admission itself is then a pure function
+over those measurements and the Metal budget.
 
 When a job doesn't fit, the refusal is not an error string — it is a decision
 with its numbers and its exits. Eviction of idle residents is automatic (LRU),
 so a refusal only happens when nothing is left to evict — and that is exactly
 what it explains. The CLI already answers every refusal with the command that
-repairs it; the MCP server (**v1.0**) makes that machine-readable:
+repairs it (in French today); the MCP server (**v1.0**) makes that
+machine-readable:
 
 ```
-refused:   measured peak 13.3 GiB exceeds 8.7 GiB free of the 17.76 GiB Metal budget
-residents: qwen3-tts-1.7b @8bit-mlx (3.1 GiB, pinned) · moss-transcribe (6.0 GiB, busy)
-options:   retry when the running transcription ends (frees 6.0 GiB)
-           use variant @8bit-mps (peak 8.3 GiB — fits now)
-           relay to your human: `ecurie unload qwen3-tts-1.7b` (pinned by them)
+refused:   seedvr2-3b@fp16 — measured peak 16.78 GiB exceeds the 10.11 GiB free
+           of the 17.76 GiB Metal budget
+residents: qwen3-tts-1.7b@8bit-mlx (7.65 GiB, pinned by your human)
+options:   use swin2sr@reel-x4 for the same capability (measured peak 6.28 GiB — fits now)
+           relay to your human: `ecurie unload qwen3-tts-1.7b` (they pinned it)
 ```
+
+Every number there is read from the registry as it stands, measured in August
+2026 on the 24 GB reference machine. Nothing on this page is illustrative — and
+the one number you cannot re-read from this repository says so where it stands.
+
+One escape hatch, human-only and recorded in the job manifest: `--hors-budget`
+admits a job over budget after emptying the fleet entirely — destroying no
+running work, overriding no human pin. The server never takes it on its own.
 
 Admission is invisible when it passes, legible and negotiable when it refuses.
 
@@ -128,12 +160,17 @@ Until v1.0, installation is from source. Prerequisites: macOS on Apple Silicon,
 [`uv`](https://docs.astral.sh/uv/). CLI output is currently in French.
 
 ```bash
-git clone <repo> && cd ecurie
-uv sync                    # the core: core, store, runtime, api
-uv run ecurie env sync     # the runtimes' isolated venvs, from their uv.lock files
-uv run ecurie store scan   # populate ~/.ecurie/state.db with what is already on disk
-uv run ecurie store status # the three numbers: apparent, real, reclaimable
+git clone https://github.com/julien-riel/ecurie.git && cd ecurie
+uv sync                           # the core: core, store, runtime, api
+uv run ecurie env sync mlx-audio  # one runtime's isolated venv, from its uv.lock
+uv run ecurie store scan          # populate ~/.ecurie/state.db from what is already on disk
+uv run ecurie store status        # the three numbers: apparent, real, reclaimable
 ```
+
+`env sync` takes names, and defaults to **all eighteen** runtimes when given
+none — 13 GB of venvs on this machine, `cad-recode` alone 1.9 GB, before a
+single weight is downloaded. `mlx-audio` is the only one the quickstart below
+needs; `ecurie env list` names the rest and their state.
 
 `~/.ecurie/config.toml` is **generated on first run**, auto-detecting
 `~/.cache/huggingface/hub`, `~/.ollama/models` and `~/.lmstudio/models`. There
@@ -146,7 +183,9 @@ non-commercial upstream code via a versioned script; anything under
 `runtimes/*/vendor/` is unversioned and rebuilt per that runtime's README.
 These all serve experimental capabilities — none is needed for the quickstart.
 
-Then download and run:
+Then download and run. The first line is the one that pulls gigabytes: workers
+run with `HF_HUB_OFFLINE=1`, so `ecurie run` never reaches the network and
+`ecurie pull` is the only path to it.
 
 ```bash
 uv run ecurie pull qwen3-tts-1.7b@8bit-mlx        # at the manifest's pinned revision
@@ -195,11 +234,19 @@ not a supported use, it is a different project.
 ## Developing
 
 ```bash
-uv run pytest                 # the suite; tests marked `real` are excluded
-uv run pytest -m real         # integration tests against the real fleet, not in CI
-uv run ruff check packages/   # lint, 100-column lines
-cd apps/ui && npm test        # the front-end suite (the UI is frozen, its tests are not)
+uv run pytest                 # the suite; the five tests marked `real` are excluded
+uv run pytest -m real         # those five, against the real fleet — not in CI
+uv run ruff check .           # lint, 100-column lines — the whole tree, as CI runs it
+cd apps/ui && npm ci && npm test  # the front-end suite (the UI is frozen, its tests are not)
 ```
+
+Lint is `.` and not `packages/` on purpose: the eighteen runtimes are the
+largest body of code here, and `.github/workflows/ci.yml` checks them. What a
+healthy clone looks like on the 24 GB reference machine, 2026-08-29: **1,296
+passed, 19 skipped, 5 deselected** on the Python side, **497 passed, 8 skipped**
+on the front. The nineteen skips are all *numpy absent* or *Pillow absent* —
+neither is a dependency of the four packages, neither is in `uv.lock`, and the
+count is the same on the Ubuntu runner.
 
 Two guards worth knowing before you hit them: `tools/openapi_dump.py` freezes
 the API schema and a test compares it — changing a route without regenerating
@@ -212,8 +259,9 @@ computes over the real registry — editing `registry/` can fail an API test;
 Four milestones to v1.0, no firm dates — one maintainer, and it says so in
 [SUPPORT.md](SUPPORT.md):
 
-- **J0 — Publishable.** Apache-2.0 LICENSE, minimal CI, the `ecurie` name on
-  PyPI, repo cleanup.
+- **J0 — Publishable.** Apache-2.0 LICENSE, CI on every pull request, repo
+  cleanup — done, in the commit that carries this sentence. Claiming the
+  `ecurie` name on PyPI is the step that remains.
 - **J1 — MCP served.** `ecurie mcp` (stdio): 12 tools + 3 meta-tools generated
   from the contracts, structured admission refusals, file outputs.
 - **J2 — Trustworthy profiles.** Hardened bench (output-shape validation,
@@ -235,6 +283,13 @@ published personal tool. The full pre-commitment is in
 
 ## License
 
-Écurie will ship under **Apache-2.0** — the LICENSE file lands with milestone
-J0. Until it is committed, the default "all rights reserved" applies; treat the
-repository as source-visible, not yet open source.
+**Apache-2.0**, for the whole repository — the four Python packages, the 72
+model manifests, the 41 capability contracts, the measurements and the bench
+assets.
+
+The weights are not covered. Écurie downloads them from their upstream hosts on
+`ecurie pull` and redistributes none; each manifest records its own upstream
+license as declared there, not as independently verified. Of the 72, thirteen
+are `restricted` — `da3-large` among them, CC BY-NC 4.0, non-commercial — two
+are `research-only` and two are `unknown`. Read the manifest before running the
+model it describes; the details are in [NOTICE](NOTICE).

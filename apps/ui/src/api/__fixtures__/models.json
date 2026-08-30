@@ -2178,20 +2178,21 @@
       "capability": "image-to-mesh",
       "family": "hunyuan3d",
       "id": "hunyuan3d-2.1-shape-mlx",
-      "incumbent": true,
+      "incumbent": false,
       "license": "tencent-hunyuan-community",
       "license_class": "restricted",
       "links": null,
       "name": "Hunyuan3D 2.1 Shape (MLX)",
       "notes": "Géométrie de bonne tenue sur Apple Silicon. Le pipeline PBR complet n'est pas couvert : prévoir une passe de texturation séparée. Alternative TRELLIS.2 (MIT, meilleure sur le papier) bloquée par ses noyaux CUDA — voir candidate trellis2.\n",
-      "status": "active",
+      "status": "candidate",
       "variants": [
         {
           "blockers": [],
           "caveats": [
             "Géométrie seulement, pas de PBR complet.",
             "Licence à restrictions : vérifier avant tout usage professionnel.",
-            "Le suffixe « mlx » de l'id est trompeur : aucun portage MLX de la partie shape 2.1 n'est publié (le portage communautaire s'arrête à 2.0/2mini). L'inférence passe par PyTorch/MPS, chemin non validé de bout en bout."
+            "Le suffixe « mlx » de l'id est trompeur : aucun portage MLX de la partie shape 2.1 n'est publié (le portage communautaire s'arrête à 2.0/2mini). L'inférence passe par PyTorch/MPS — chemin éprouvé au banc du 2026-08-24, sur cette machine et cette révision de poids seulement.",
+            "Hors promesse v1 : filière 3D coupée le 2026-08-29 (décision 8), statut de titulaire retiré, statut ramené à candidate. Le manifeste reste au registre : découvrable et exécutable, sans engagement d'entretien ni garantie que le profil reste à jour."
           ],
           "defaults": {
             "num_inference_steps": 30,

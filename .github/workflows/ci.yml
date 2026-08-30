@@ -1,0 +1,135 @@
+# CI for Écurie.
+#
+# The Python job runs the four checks that task 0.3 contracts for: the lockfile
+# is current, the registry validates, ruff is clean, the four packages' tests
+# pass. The front-end job is here for a reason that is not front-end hygiene:
+# the vitest suite reads registry/capabilities/*.json off disk at test time
+# (apps/ui/src/schema/__fixtures__/contrats.ts resolves ../../registry/capabilities
+# from process.cwd()), so a pull request touching only the registry can break it
+# while pytest stays green — and CONTRIBUTING.md promises contributors that a
+# green check is the whole review for a measurement.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Nothing here writes to the repository. Measurement pull requests arrive from
+# forks, where a write-scoped token would be handed to unreviewed code.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Superseded pull-request runs are cancelled to save minutes. Runs on main are
+  # not: the J0 provenance tag is cut from a green main, so every commit there
+  # needs its own verdict.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  python:
+    # This string is the name a branch-protection rule matches on. Renaming it
+    # silently un-pairs the rule and pull requests become mergeable with no CI,
+    # without any warning. Treat it as frozen.
+    name: registry, tests, lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      # Pinned to the full version, not @v10: astral-sh/setup-uv stopped
+      # publishing moving major tags after v7 — `git/matching-refs/tags/v10`
+      # returns v10.0.0 and v10.0.1 only, and there is no bare `v10` ref — so
+      # `@v10` does not resolve and the job would fail before its first step.
+      - name: Install uv on the interpreter the parc is measured on
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+          # uv.lock alone. The default glob also matches every
+          # runtimes/*/pyproject.toml — eighteen files outside the workspace,
+          # which uv never resolves — and would churn the cache key for nothing.
+          cache-dependency-glob: uv.lock
+          # Nothing in the repository pins the interpreter: there is no
+          # .python-version and requires-python is only >=3.12. The reference
+          # machine runs 3.13, so pin it here or the runner's default drifts.
+          python-version: "3.13"
+
+      # --locked fails loudly if uv.lock has drifted from the five pyproject
+      # files, instead of quietly re-resolving. It also holds the toolchain at
+      # the locked ruff 0.16.3 and pytest 9.1.1, so an upstream release cannot
+      # redden this workflow on its own. The workspace root depends on all four
+      # members and `dev` is a default group, so a plain sync installs
+      # everything: --all-packages and --dev would both be no-ops.
+      - name: The lockfile still resolves the whole workspace
+        run: uv sync --locked
+
+      # Exits 1 on errors only — `if n_err: raise typer.Exit(code=1)` at the end
+      # of registry_validate in ecurie_core/cli.py — so the two standing
+      # trellis2 warnings (unpinned revision, custom runtime without entrypoint)
+      # do not fail the build. No output parsing is needed.
+      - name: Every manifest and capability contract holds together
+        run: uv run ecurie registry validate
+
+      # Before the tests, not after. Steps in a job are fail-fast, so a step
+      # placed behind a red one never runs: with pytest first, a branch that is
+      # both broken and unformatted reports one defect per push. Measured on the
+      # reference machine, this check takes 0.04 s against pytest's 33.5 s, so
+      # running it first costs nothing on a green branch. The whole tree, not
+      # just packages/: the eighteen runtimes are the largest body of code in
+      # the repository and the only one that actually executes a model.
+      - name: Style and imports are clean across the tree
+        run: uv run ruff check .
+
+      # The root pyproject's addopts = "-m 'not real'" already drops the five
+      # tests that need the real parc, so there is no flag to add here: 1320
+      # collected, 1315 run.
+      - name: The four packages' invariants hold
+        run: uv run pytest -q
+
+  ui:
+    # Frozen for the same reason as the job name above.
+    name: front-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/ui
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Install Node
+        uses: actions/setup-node@v7
+        with:
+          # apps/ui/package.json declares no engines field; 24 is the current
+          # LTS. defaults.run.working-directory does not apply to `uses` steps,
+          # so this path is written from the repository root.
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: apps/ui/package-lock.json
+
+      # A plain `npm ci`, and the same command the README and CONTRIBUTING give.
+      # It used to need --legacy-peer-deps: openapi-typescript@7.13.0 declares
+      # `peer typescript@"^5.x"` while the project is on typescript@6.0.3, and
+      # 7.13.0 is the newest release there is — no published version accepts
+      # TypeScript 6, so upgrading out of the conflict is not available. The
+      # narrow `overrides` block in package.json settles it instead: measured,
+      # it changes nothing in the installed tree (the package set is identical
+      # to the one --legacy-peer-deps produced, and typescript stays hoisted at
+      # 6.0.3 with no nested copy), and package-lock.json needed no edit at all.
+      # The peer range is a stale upper bound rather than a real break —
+      # openapi-typescript 7.13.0 run against src/api/openapi.json under
+      # typescript 6.0.3 reproduces the committed openapi.gen.ts byte for byte.
+      # Drop the overrides block once openapi-typescript widens the range.
+      - name: The lockfile installs as recorded
+        run: npm ci
+
+      - name: The TypeScript surface still compiles
+        run: npm run typecheck
+
+      # Reads the real registry/capabilities off disk, so this is the guard that
+      # a new or edited capability contract still renders a form.
+      - name: Every capability contract on disk still renders a form
+        run: npm test

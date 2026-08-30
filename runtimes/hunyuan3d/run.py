@@ -85,7 +85,8 @@ NUM_CHUNKS_DEFAUT = 8000
 # décoratives : le contrôle d'admission et le banc d'essai s'appuient sur des
 # chiffres que ce worker ne sait pas encore produire exactement.
 CAVEATS = (
-    "Chemin non vérifié de bout en bout sur Apple Silicon : aucune trace publique "
+    "Tenue hors de cette machine non vérifiée : le chemin a passé le banc ici le "
+    "2026-08-24, mais sur une seule machine, et aucune trace publique n'existe "
     "d'un Hunyuan3DDiTFlowMatchingPipeline 2.1 complet exécuté sur MPS.",
     "Géométrie seulement — la texturation PBR amont exige des noyaux CUDA compilés.",
     "peak_memory_bytes est une borne inférieure du pic réel, pas une mesure exacte.",

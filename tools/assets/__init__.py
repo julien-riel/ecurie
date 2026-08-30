@@ -21,8 +21,10 @@ la comparabilité de toutes les mesures antérieures. `produire` ne remplace don
 jamais un fichier sans `force`, et la vérification est dans chaque recette plutôt
 qu'ici — c'est la recette qui sait ce qu'elle écrit.
 
-Ces recettes existent pour une raison qui a coûté cher : les six premières images
-de `registry/evals/bench/assets/` ont été produites par une recette
-« déterministe » jamais committée. Elles sont aujourd'hui des données orphelines,
-qu'on ne sait plus refaire ni expliquer.
+Ces recettes existent pour une raison qui a coûté cher : huit images de
+`registry/evals/bench/assets/` — trois solides, trois pages, deux masques — ont
+été produites par une recette « déterministe » jamais committée. Elles sont
+aujourd'hui des données orphelines, qu'on ne sait plus refaire ni expliquer.
+C'est l'exception et non la règle : les cinquante autres fichiers du dossier se
+refabriquent.
 """

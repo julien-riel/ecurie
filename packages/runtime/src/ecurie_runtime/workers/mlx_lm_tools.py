@@ -273,7 +273,7 @@ def valider(appels: list[dict[str, Any]], outils: list[dict[str, Any]]) -> list[
 
     Volontairement superficiel : on vérifie que l'outil existe et que ses
     arguments obligatoires sont là. La validation complète contre le JSON Schema
-    déclaré relève de `ecurie eval`, qui dispose de `jsonschema` — pas d'un
+    déclaré relèvera de `ecurie eval` (v0.5), qui disposera de `jsonschema` — pas d'un
     worker, dont l'environnement doit rester minimal.
     """
     connus = {str(outil.get("name")): outil for outil in outils if outil.get("name")}

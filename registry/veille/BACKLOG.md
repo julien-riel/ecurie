@@ -11,6 +11,26 @@ réel** (46 modèles, 26 capacités au 23 août 2026 ; 54 et 32 le 24 au matin ;
 comme une piste qui ouvre une capacité — la seconde coûte un contrat, un
 adaptateur, une charge type et souvent un runtime.
 
+> **Gelée le 2026-08-29**, par la décision 6 du pivot vers le serveur MCP : la
+> veille s'arrête, skill et exécution planifiée compris. Rien n'est détruit — la
+> file ci-dessous reste lisible, les quatre rapports datés de `registry/veille/`
+> restent l'historique du parc, et le dernier cycle demeure celui du 2026-08-24
+> (`last_run.json`). Ce qui est suspendu, c'est l'**entrée** de manifestes. Le
+> parc est monté à 72 modèles depuis les 64 du 24 août au soir, à capacités
+> constantes, et le diagnostic du pivot est qu'une piste instruite de plus n'est
+> pas ce qui lui manque : la largeur est ce qui le tue, pas ce qui le sauve.
+>
+> **Ce qui lèvera le gel : une évaluation comparative qui s'exécute.** Les golden
+> sets existent comme données — onze capacités sous `registry/evals/golden/` —
+> mais aucune commande ne les passe : `ecurie --help` rend neuf commandes de
+> premier niveau — `ps`, `unload`, `pull`, `run`, `bench`, `serve`, `registry`,
+> `store` et `env` — et `eval` n'en est pas une. La phase 2 du skill en tire
+> déjà les conséquences (« tant que le golden set n'est pas passé,
+> `gain_qualité_relatif` est inconnu »), et `last_run.json` pose l'exécuteur en
+> déclencheur, « troisième cycle consécutif bloqué par son absence ». Tant qu'un
+> candidat ne se compare au titulaire qu'à dire d'auteur, un cycle de veille
+> ajoute de la largeur et rien de vérifiable.
+
 ## Ordre de priorité voulu
 
 Julien place en tête **séries temporelles, CAO, géospatial, reconstruction

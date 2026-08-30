@@ -3,9 +3,9 @@
  *
  * Les capacités et les modèles viennent des fixtures capturées par
  * `tools/ui_fixtures.py` : ce sont les octets que le serveur envoie, avec ses
- * vingt-cinq contrats désormais tous pourvus d'au moins un modèle, son titulaire
- * de `text-to-speech` et son `image-to-mesh` qui affiche un titulaire sans rien
- * d'exécutable.
+ * quarante et un contrats désormais tous pourvus d'au moins un modèle, son
+ * unique titulaire — celui de `text-to-speech` — et son `image-to-mesh` qui n'en
+ * a plus depuis la décision 8 du 2026-08-29.
  */
 
 import { describe, expect, test } from "vitest";
@@ -77,8 +77,10 @@ describe("les capacités groupées par état", () => {
 
 describe("les variants groupés par modèle", () => {
   test("le titulaire passe devant", () => {
-    // `image-to-mesh` porte deux modèles, dont le titulaire est le second par
-    // ordre alphabétique : c'est le seul cas du parc qui prouve le tri.
+    // `image-to-mesh` porte deux modèles, et celui qu'on passe ici comme
+    // titulaire est le second par ordre alphabétique : c'est le seul cas du parc
+    // qui prouve le tri. Le registre n'en désigne plus aucun depuis la
+    // décision 8 du 2026-08-29 — le tri se teste sur l'argument, pas sur lui.
     const groupes = groupesDeVariants(modèlesDe("image-to-mesh"), "hunyuan3d-2.1-shape-mlx");
     expect(groupes.map((g) => g.modele)).toEqual(["hunyuan3d-2.1-shape-mlx", "trellis2"]);
     expect(groupes[0]!.titulaire).toBe(true);

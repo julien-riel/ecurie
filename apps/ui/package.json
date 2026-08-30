@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "version": "0.4.0",
+  "license": "Apache-2.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -35,5 +36,10 @@
     "typescript": "6.0.3",
     "vite": "8.2.2",
     "vitest": "4.1.11"
+  },
+  "overrides": {
+    "openapi-typescript": {
+      "typescript": "$typescript"
+    }
   }
 }

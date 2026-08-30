@@ -2,14 +2,21 @@
  * L'état d'une capacité, en trois cas et non deux.
  *
  * La nuance vient de ce qu'il ne suffit pas d'avoir un modèle pour pouvoir
- * lancer : `image-to-mesh` est le cas exemplaire — elle affiche un **titulaire**
- * et n'a rien de lançable, parce que ses 7,37 Go de poids ne sont pas
- * téléchargés. Réduire cela à « prête / pas prête » afficherait la même phrase
- * pour une capacité qu'on n'a jamais pourvue et pour une capacité dont il ne
- * manque qu'un `ecurie pull`, alors que la seconde est à une commande de marcher.
+ * lancer : `audio-denoise` est le cas exemplaire — son manifeste est là, ses
+ * 8,7 Mo de poids aussi, et rien n'est lançable parce que
+ * `deepfilternet3-mlx@fp32-mlx` n'a aucun profil mesuré et que l'admission
+ * refuse par principe un pic inconnu. Réduire cela à « prête / pas prête »
+ * afficherait la même phrase pour une capacité qu'on n'a jamais pourvue et pour
+ * une capacité dont il ne manque qu'un `ecurie bench`, alors que la seconde est
+ * à une commande de marcher.
  *
- * `sans-modèle` ne décrit plus aucune capacité du parc : les vingt-cinq contrats
- * ont au moins un manifeste, et un test l'exige désormais. Le cas reste ici, et
+ * (L'exemple d'origine était `image-to-mesh`, qui affichait un titulaire sans
+ * rien de téléchargé. Les deux moitiés ont cessé d'être vraies : ses poids sont
+ * là depuis le 24 août 2026 et son titulaire a été retiré le 29 — elle est
+ * `prête` aujourd'hui.)
+ *
+ * `sans-modèle` ne décrit plus aucune capacité du parc : les quarante et un
+ * contrats ont au moins un manifeste, et un test l'exige désormais. Le cas reste ici, et
  * ce n'est pas du code mort — un contrat s'ajoute avant son modèle, et c'est
  * même l'ordre normal du travail. Ce qui aurait été mort, c'est un état qu'on
  * aurait retiré au premier jour où le parc est complet, pour le réécrire au

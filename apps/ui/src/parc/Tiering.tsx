@@ -20,7 +20,11 @@ import type { ColdLink, TierVolume, VariantFootprint } from "../api/types";
 import { formatOctetsDisque } from "../format/bytes";
 import { phraseVolume } from "./parc";
 
-/** Ce qu'on montre sans déplier : au-delà, un parc complet fait vingt-six lignes. */
+/** Ce qu'on montre sans déplier : au-delà, un parc complet en fait bien plus —
+ * quatre-vingt-dix-huit variants déportables sur la machine de référence au
+ * 30 août 2026, contre vingt-six quand ce repli a été écrit. Ce chiffre-là est
+ * une propriété du disque de qui regarde, pas du registre : il n'a pas à être
+ * tenu à jour, il dit seulement pourquoi on replie. */
 const PREMIERS_VARIANTS = 8;
 
 export interface TieringProps {

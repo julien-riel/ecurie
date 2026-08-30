@@ -9,8 +9,8 @@ const CAPACITES = (capacités as unknown as { capabilities: Capability[] }).capa
 
 describe("l'état d'une capacité", () => {
   test("aucune capacite du parc n_est sans modele", () => {
-    // L'invariant que le registre tient désormais : les vingt-cinq contrats ont
-    // au moins un manifeste. Il vit aussi côté serveur
+    // L'invariant que le registre tient désormais : les quarante et un contrats
+    // ont au moins un manifeste. Il vit aussi côté serveur
     // (`test_real_registry.py`), qui est l'autorité ; ici, il garde ce que
     // l'Atelier affiche — un groupe « Aucun modèle au registre » qui n'aurait
     // plus lieu d'être.

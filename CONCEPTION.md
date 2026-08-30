@@ -139,7 +139,7 @@ ecurie/                          # monorepo uv workspace
     mlx-lm/          pyproject.toml + uv.lock  ✓ texte + traduction + appel d'outils
     diffusers-mps/   pyproject.toml + uv.lock  ✓ image
     torch-vision/    pyproject.toml + uv.lock  ✓ détourage + agrandissement
-    hunyuan3d/       pyproject.toml + run.py   ✓ écrit, jamais exécuté (§13.4)
+    hunyuan3d/       pyproject.toml + run.py   ✓ éprouvé au banc le 2026-08-24 (§13.4)
   .claude/skills/veille-modeles/SKILL.md       ✓
   .github/workflows/{registry-ci.yml, veille.yml}  v0.6
 ```
@@ -1840,11 +1840,18 @@ s'y rend sans qu'une ligne de test soit écrite.
    une page inutilisable, et le taux d'erreur global ne le dit pas.
 3. `iogpu.wired_limit_mb` : simple page de doc + réglage affiché dans Parc, pas de
    `sudo` lancé par l'outil.
-4. **Hunyuan3D n'a jamais été exécuté.** `runtimes/hunyuan3d/run.py` est écrit
-   d'après le source amont, son env n'est pas synchronisé, le code `hy3dshape`
-   n'est pas vendoré et les 7,37 Go de poids ne sont pas téléchargés. Rien ne
-   prouve que le chemin 2.1 sur MPS fonctionne, et aucune trace publique ne
-   l'établit. C'est le risque principal du v0.7, qui en dépend.
+4. ~~**Hunyuan3D n'a jamais été exécuté.**~~ — **levé le 24 août 2026**, et la
+   filière coupée le 29 pour d'autres motifs. `ecurie bench` a rendu les trois cas
+   de `registry/evals/bench/image-to-mesh.json` en `ok` sur un Mac17,4 de 24 Gio :
+   l'env est synchronisé, `hy3dshape` vendoré, les 7,37 Go téléchargés, le relevé
+   committé (`registry/measurements/hunyuan3d-2.1-shape-mlx@mlx-bf16/mac17-4-24-gio.json`).
+   Le chemin 2.1 sur MPS fonctionne donc, **sur cette machine-là** — et c'est ce
+   qui reste ouvert : un pic de 16,48 Gio ne tient pas dans les ~11,8 Gio d'un Mac
+   de 16 Gio, aucune comparaison n'a jamais départagé Hunyuan3D et TRELLIS.2 (dont
+   les noyaux CUDA de voxels épars n'ont aucun portage Metal connu), et `hy3dshape`
+   n'est publié sur aucun index de paquets — il se vendore à la main. Ces trois
+   faits, et non l'inexécution, motivent la coupe de la filière hors v1
+   (`ARCHITECTURE.md` §10).
 5. ~~**Le seuil « lourd » de 6 Go est à recalibrer.**~~ — **fait le 20 août 2026**,
    avant le v0.4. Il venait du §7 de l'architecture, écrit avant toute mesure, et
    les quatre modèles mesurés étaient tous au-dessus (6,25 à 15,95 Gio) : aucun ne

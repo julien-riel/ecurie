@@ -21,11 +21,38 @@ def test_le_registre_reel_ne_produit_aucune_erreur(repo_root):
 
 
 def test_un_titulaire_au_plus_par_capacite(repo_root):
+    """« Au plus » est un plafond ; son plancher est zéro, et zéro est un état légal.
+
+    `_check_incumbents` (registry.py) ne lève une erreur que pour *plusieurs*
+    titulaires sur une même capacité, jamais pour aucun, et la projection de l'API
+    lit déjà le résultat comme nullable (`titulaire.id if titulaire else None`,
+    projection.py:105). Ce test était le seul endroit du dépôt à exiger un
+    titulaire : il assertait `image-to-mesh` → `hunyuan3d-2.1-shape-mlx` jusqu'à ce
+    que la décision de pivot n°8 du 2026-08-29 coupe la filière 3D et retire ce
+    statut du manifeste. C'était un inventaire déguisé en règle — ce que l'en-tête
+    de ce fichier refuse — et il a cassé au premier changement de parc.
+
+    Restent les deux règles, qui elles ne dépendent d'aucun inventaire : le plafond
+    d'un titulaire par capacité, et `incumbent_for` qui rend le manifeste marqué ou
+    rien — jamais un modèle pris au hasard parmi ceux de la capacité. La nuance
+    compte ici : `image-to-mesh` a deux manifestes (hunyuan3d, trellis2) et aucun
+    titulaire, donc la fonction doit dire None là où elle a le choix.
+    """
     reg = load_registry(repo_root)
+    titulaires = [m for m in reg.models.values() if m.incumbent]
+    par_capacité = {m.capability: m.id for m in titulaires}
+    assert len(par_capacité) == len(titulaires), (
+        "deux manifestes titulaires sur une même capacité : "
+        + ", ".join(sorted(m.id for m in titulaires))
+    )
+    for capacité in sorted(set(reg.capabilities) | set(par_capacité)):
+        trouvé = reg.incumbent_for(capacité)
+        assert (trouvé.id if trouvé else None) == par_capacité.get(capacité), (
+            f"{capacité} : incumbent_for ne suit pas le champ incumbent des manifestes"
+        )
+    # L'unique titulaire du parc, et donc le seul point d'appui d'un A/B : les
+    # quarante autres capacités n'ont aucune référence désignée (PLAN.md 5.6).
     assert reg.incumbent_for("text-to-speech").id == "qwen3-tts-1.7b"
-    assert reg.incumbent_for("image-to-mesh").id == "hunyuan3d-2.1-shape-mlx"
-    titulaires = [m.id for m in reg.models.values() if m.incumbent]
-    assert len(titulaires) == len({m.capability for m in reg.models.values() if m.incumbent})
 
 
 def test_tout_ce_qui_est_installe_pointe_une_revision_de_commit(repo_root):

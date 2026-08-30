@@ -20,7 +20,7 @@
     },
     "status": {
       "enum": ["complet", "incomplet"],
-      "description": "« incomplet » signale un jeu dont des cas attendent encore leur fichier d'entrée. `ecurie eval` le dit dans ses résultats plutôt que de laisser croire à une couverture qu'il n'a pas."
+      "description": "« incomplet » signale un jeu dont des cas attendent encore leur fichier d'entrée. Au 29 août 2026 rien ne passe ces jeux — `ecurie --help` rend neuf commandes de premier niveau et `eval` n'en est pas une —, mais l'exécuteur du v0.5 devra le dire dans ses résultats plutôt que de laisser croire à une couverture qu'il n'a pas."
     },
     "description": { "type": "string" },
     "normalization": {
@@ -115,7 +115,7 @@
           "type": "object",
           "required": ["reason"],
           "additionalProperties": false,
-          "description": "Le cas est écrit et figé, mais le fichier que son `input` désigne n'existe pas encore. Le déclarer ici est ce qui permet à `ecurie eval` de compter ce qui manque au lieu d'échouer sur un chemin mort — et le jour où le fichier arrive, rien du cas ne change : seule cette clé disparaît. C'est ce qui rend la règle append-only tenable pour un jeu dont les entrées se produisent à la main.",
+          "description": "Le cas est écrit et figé, mais le fichier que son `input` désigne n'existe pas encore. Le déclarer ici est ce qui permettra à l'exécuteur d'évaluation du v0.5 de compter ce qui manque au lieu d'échouer sur un chemin mort — et le jour où le fichier arrive, rien du cas ne change : seule cette clé disparaît. C'est ce qui rend la règle append-only tenable pour un jeu dont les entrées se produisent à la main.",
           "properties": {
             "reason": { "type": "string" }
           }

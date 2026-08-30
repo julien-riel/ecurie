@@ -1,0 +1,75 @@
+Écurie
+Copyright 2026 Julien Riel
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+Apache-2.0 covers this repository and everything committed in it: the four
+Python packages, and, as of 2026-08-29, the 72 model manifests, the 41
+capability contracts, the 85 measurement records, and the evaluation inputs
+under registry/evals/. Those inputs are computed rather than collected, with the
+four qualifications recorded below.
+
+Computed means ray-marched signed distance fields, additively synthesised audio,
+analytic satellite bands, and document pages typeset from the very reference
+text they will be scored against — no photograph and no recording of a person.
+The four faces in registry/evals/bench/assets/visages-groupe.png do not exist
+and never did; registry/evals/bench/README.md says why that was the only honest
+way to build that load. The golden sets hold 79 committed data files — 44 inputs
+under */assets/ and 35 references — and 71 of them come from one of the 44 cases
+that carry a `source` block: every input, the 16 typeset reference texts a
+document page is rendered from, and the 11 reference images computed in the same
+pass as the input they are the ground truth of. tools/golden_assets.py rebuilds
+55 of those 71 from the block alone; the 16 reference texts are the authority it
+renders from, not its output. The 8 data files left over are the expected tool
+calls under registry/evals/golden/tool-use/reference/, written here rather than
+rendered. Of the 58 files under registry/evals/bench/assets/, 48 are rebuilt
+either by that same script or, since 2026-08-24, by a recipe under tools/assets/
+that tools/bench_assets.py drives. The twelve recordings the speech-to-text
+golden set calls for do not exist:
+registry/evals/golden/speech-to-text/SOURCING.md records that a public corpus was
+deliberately not imported instead.
+
+Where that is not the whole truth:
+
+- Eight bench images have no committed recipe: assets/cube.png, sphere.png,
+  cone.png, masque-cone.png, masque-fond.png, page-dense.png,
+  page-paragraphe.png and page-tableau.png. They predate the rule that a load
+  must say how it was made, and both tools/golden_assets.py and
+  registry/evals/bench/README.md record that their recipe was never versioned.
+  They are renders and not photographs — they carry no camera metadata, and they
+  are what the README describes, three 256x256 RGBA solids on a genuinely
+  transparent background, two 8-bit masks and three typeset pages — but that is
+  this project's memory plus an inspection of the files, not a recipe anyone can
+  re-run.
+- assets/atelier-mouvement.mp4 records its parameters and the ffmpeg command
+  that assembled it, but no committed script re-runs its `scene-animee` recipe.
+- assets/parole-fr-32s.wav and assets/parole-tts.wav are not renders at all:
+  they are output of a model in the parc, qwen3-tts-1.7b@8bit-mlx, which is
+  itself Apache-2.0. The voice is synthetic and the spoken text was written
+  here. The first has a committed recipe, tools/assets/parole.py; the second has
+  only a note in registry/evals/bench/speaker-diarization.json.
+- The three amino-acid sequences in registry/evals/bench/protein-embed.json —
+  PDB entries 1UBQ, 2LYZ and 1GFL — are the one thing under registry/evals/ that
+  was collected rather than computed. They come from the RCSB PDB under CC0 1.0
+  per its usage policy, read against https://www.rcsb.org/fasta/entry/<code> on
+  2026-08-24; that file's `provenance` field states this at length. CC0 requires
+  no attribution, so this is not one — only a statement of where they came from.
+
+The sixteen golden-set document pages are typeset with the macOS system fonts
+that tools/golden_assets.py names: Times New Roman, Arial, Courier New. Their
+rasterised glyphs are committed here; no font file is.
+
+Apache-2.0 does not cover the model weights those manifests describe. Écurie
+downloads them from their upstream hosts on `ecurie pull` and redistributes
+none. Each weight keeps its own license, recorded in its manifest's `license`
+and `license_class` fields as declared upstream, not as independently verified:
+of the 72, thirteen are `restricted`, two are `research-only`, and two are
+`unknown`. CAD-Recode is CC BY-NC 4.0 down to its inference code, which is why
+that code is not committed here; MiniMax-H3 and Hunyuan3D 2.1 carry territorial
+restrictions that reach the outputs they produce. Read the manifest before
+running the model it describes.
+
+packages/core, packages/store, packages/runtime and packages/api each hold a
+verbatim copy of LICENSE and of this file, so that the wheels and sdists built
+from them carry both, as Section 4(a) of the License requires of any
+redistribution. The copies at the root of the repository are the originals.
