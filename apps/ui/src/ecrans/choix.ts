@@ -12,7 +12,7 @@
  * liste, dans son propre groupe, parce qu'elle dit ce que le parc pourrait faire
  * et ne fait pas encore — c'est la moitié de ce qu'un registre sert à savoir.
  *
- * Le groupe « Aucun modèle au registre » ne s'affiche plus : les vingt-cinq
+ * Le groupe « Aucun modèle au registre » ne s'affiche plus : les quarante et un
  * contrats ont chacun au moins un manifeste, et les groupes vides sont omis. Il
  * reste écrit ici, parce qu'un contrat s'ajoute avant son modèle et que le jour
  * où cela se reproduira, la capacité doit apparaître quelque part plutôt que de

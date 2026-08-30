@@ -9,10 +9,13 @@
  *    mémoire bouge sans qu'on touche à l'écran — un `ecurie run` dans un
  *    terminal charge un modèle, un worker meurt —, et c'est la seule lecture du
  *    front qui sonde.
- * 2. **Les choix sont ordonnés par ce qui marche.** Les vingt-cinq capacités ont
- *    toutes un modèle depuis le 22 août 2026, mais cinq n'ont rien de
- *    téléchargé ; les mêler aux vingt exécutables oblige à lire vingt-cinq
- *    lignes pour en trouver une. Le variant est préselectionné sur le titulaire.
+ * 2. **Les choix sont ordonnés par ce qui marche.** Les quarante et une capacités
+ *    ont toutes un modèle depuis le 22 août 2026, mais toutes n'ont pas de quoi
+ *    tourner — une seule aujourd'hui, `audio-denoise`, dont le variant n'a aucun
+ *    profil mesuré ; les mêler aux quarante exécutables oblige à lire toute la
+ *    liste pour en trouver une. Le variant est préselectionné sur le titulaire.
+ *    L'ordre garde son sens quand le rapport s'inverse : c'est la règle qui est
+ *    posée ici, pas le compte du jour.
  * 3. **Ce qui empêche de lancer est écrit en clair**, sous le sélecteur, avec la
  *    commande qui répare. Un `<option>` qui porterait trois blockers en suffixe
  *    est illisible ; c'est ce que faisait le banc.
