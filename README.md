@@ -260,8 +260,9 @@ Four milestones to v1.0, no firm dates — one maintainer, and it says so in
 [SUPPORT.md](SUPPORT.md):
 
 - **J0 — Publishable.** Apache-2.0 LICENSE, CI on every pull request, repo
-  cleanup — done, in the commit that carries this sentence. Claiming the
-  `ecurie` name on PyPI is the step that remains.
+  cleanup — done, and dated by the `v0.4.0` tag. Claiming the `ecurie` name on
+  PyPI is the step that remains; it is deliberately deferred, since publishing
+  burns a name and a version number for good and nothing here depends on it yet.
 - **J1 — MCP served.** `ecurie mcp` (stdio): 12 tools + 3 meta-tools generated
   from the contracts, structured admission refusals, file outputs.
 - **J2 — Trustworthy profiles.** Hardened bench (output-shape validation,

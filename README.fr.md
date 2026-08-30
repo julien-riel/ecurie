@@ -149,8 +149,9 @@ Quatre jalons jusqu'à la v1.0, sans dates fermes — un seul mainteneur, et
 [SUPPORT.md](SUPPORT.md) le dit sans se dérober.
 
 **J0 Publiable** — LICENSE Apache-2.0, CI sur chaque PR et nettoyage du dépôt
-sont faits, dans le commit qui porte cette phrase ; reste à prendre le nom sur
-PyPI. Puis **J1 MCP servi** → **J2 Profils dignes de confiance** (banc durci,
+sont faits, et datés par le tag `v0.4.0` ; reste à prendre le nom sur PyPI,
+sciemment remis à plus tard — publier brûle un nom et un numéro pour de bon, et
+rien ici n'en dépend encore. Puis **J1 MCP servi** → **J2 Profils dignes de confiance** (banc durci,
 classes de machine, profils empruntés) → **J3 Lancement** (quickstart rejoué
 par des tiers, registre MCP).
 Prévu ensuite, sans dates : `/v1/audio/*` et `/v1/images/generations`
