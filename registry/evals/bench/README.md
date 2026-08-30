@@ -10,8 +10,10 @@ cas, on ne corrige jamais un cas existant. Une coquille dans un texte de charge
 type est sans conséquence sur la mesure ; la corriger, si.
 
 Ce que ces charges ne sont pas : un jeu d'évaluation de la *qualité*. Elles
-mesurent le coût — mémoire, warmup, latence, débit. La qualité relève des golden
-sets de `registry/evals/golden/`, au v0.5.
+mesurent le coût — mémoire, warmup, latence, débit. La qualité relèvera des golden
+sets de `registry/evals/golden/` : au 29 août 2026 ils existent comme données et
+rien ne les passe — `ecurie --help` rend neuf commandes de premier niveau, `eval`
+n'en est pas une.
 
 ## Choix des cas
 
@@ -38,9 +40,18 @@ sets de `registry/evals/golden/`, au v0.5.
 | `protein-embed` | ubiquitine-76, lysozyme-129, gfp-238 | trois protéines réelles de longueur croissante. **La seule charge du registre sans un octet sous `assets/`** : l'entrée de cette capacité est du texte saisi, pas un fichier. Aucun `scaling_parameter` — mesuré, le pic est plat à seize kibioctets près de 76 à 2048 résidus ; c'est la latence qui suit la longueur |
 | `pointcloud-to-cad` | cube, cylindre-perce, piece-en-l | trois familles de construction du dialecte CadQuery. Aucun `scaling_parameter` : le pic dépend bien de `n_points`, mais par une marche (R² = 0,771), et la durée est dominée par le nombre de jetons produits — qui n'est pas un paramètre d'entrée |
 
-Les images de `assets/` sont produites par une recette déterministe (silhouette
-et dégradé calculés, pas de photo) : elles n'ont ni licence ni provenance à
-suivre, et se refabriquent à l'identique si besoin.
+Les images de `assets/` sont calculées — silhouette et dégradé rendus, aucune
+photo, aucun enregistrement de personne : elles n'ont ni licence ni provenance à
+suivre. Trois réserves à cette phrase (le `NOTICE` du dépôt les reprend, et en
+ajoute une quatrième qui porte sur les recettes et non sur la provenance) :
+`parole-tts.wav` et `parole-fr-32s.wav` ne sont pas des rendus mais des sorties
+du modèle `qwen3-tts-1.7b@8bit-mlx` du parc, voix synthétique et texte écrit ici ;
+`atelier-mouvement.mp4` déclare une recette `scene-animee` et la commande ffmpeg
+qui l'a assemblée, mais aucun script committé ne l'exécute — `grep -rn
+"scene-animee"` ne rend que ce bloc `source` et le `NOTICE` ; et les trois
+séquences d'acides aminés de `protein-embed.json` sont la seule entrée du dossier
+**collectée** plutôt que calculée — PDB 1UBQ, 2LYZ et 1GFL, CC0 1.0, dont le champ
+`provenance` de ce fichier dit la lecture du 24 août 2026.
 
 **Les recettes sont maintenant committées** — `tools/golden_assets.py` pour les
 images, les pages et le son ; et depuis le 24 août 2026, un module par famille
@@ -51,13 +62,23 @@ enregistrement de parole ne se fabriquent pas comme une page ou un solide. Chaqu
 module déclare l'environnement dont il a besoin, parce qu'il n'y en a pas un qui
 les serve tous — rasterio pour le GeoTIFF, rien du tout pour le PLY.
 
-Les cas qui en viennent portent un bloc `source` qui dit comment les refaire. Les six
-premières images de ce dossier, elles, n'en ont pas : leur recette n'a jamais été
-versionnée, et ce sont des données orphelines qu'on ne sait plus expliquer. On ne
-recommence pas. Elles sont en **RGBA avec un
-fond réellement transparent** — le pipeline Hunyuan3D recadre sur le canal alpha,
-et une image opaque le prive de sa seule indication de silhouette. Un fond gris
-uniforme n'est pas un détourage.
+Les cas qui en viennent portent un bloc `source` qui dit comment les refaire :
+**49 des 58 fichiers d'`assets/`** sont cités par au moins un cas qui en porte un.
+**Huit images n'en ont aucun** — `cube.png`, `sphere.png`, `cone.png`,
+`page-paragraphe.png`, `page-tableau.png` et `page-dense.png`, entrées le 20 août
+2026, puis `masque-cone.png` et `masque-fond.png` le 22 : leur recette n'a jamais
+été versionnée, et ce sont des données orphelines qu'on ne sait plus expliquer. On
+ne recommence pas. Le neuvième fichier sans bloc `source`, `parole-fr-32s.wav`,
+n'est pas orphelin pour autant : sa recette est `tools/assets/parole.py`, que la
+description d'`audio-align.json` nomme.
+
+Ces huit-là ne sont pas d'un seul tenant, et une inspection des fichiers le dit :
+les trois solides sont des 256×256 en **RGBA à fond réellement transparent**, les
+deux masques d'`image-inpaint` des 768×768 en niveaux de gris 8 bits, et les trois
+pages du RGB sur 1100 pixels de large. Le fond transparent des solides n'est pas
+une coquetterie : le pipeline Hunyuan3D recadre sur le canal alpha, et une image
+opaque le prive de sa seule indication de silhouette. Un fond gris uniforme n'est
+pas un détourage.
 
 ## Les visages, et pourquoi ils sont calculés
 

@@ -60,7 +60,7 @@ Les douze décisions validées, une ligne chacune :
 
 | Jalon | État | Critère de sortie |
 |---|---|---|
-| J0 — Publiable | à faire | un inconnu peut légalement utiliser le dépôt, la CI est verte, l'antériorité est datée |
+| J0 — Publiable | **livré le 30 août 2026** | atteint, sauf la publication PyPI et le tag, qui se posent à la fusion — voir le tableau |
 | J1 — MCP servi | à faire | depuis Claude Code, un outil non-texte exécuté → un fichier produit, l'admission tracée dans la réponse ; le dogfooding quotidien commence |
 | J2 — Profils dignes de confiance | à faire | sur une machine fraîchement installée de la même classe, `pull` + `run` sans re-bench préalable ; chaque réponse porte son état d'admission étiqueté |
 | J3 — Lancement | à faire | le quickstart rejoué en moins de dix minutes par un tiers sur une autre classe de machine ; publication faite |
@@ -71,17 +71,61 @@ le chemin par défaut ») est remplacé par la gate du mois 1 — l'usage MCP
 quotidien, la table `runs` en fait foi. L'UI reste l'atelier personnel, hors
 promesse.
 
+## État au 30 août 2026 — J0 livré, et ce qu'il a trouvé en chemin
+
+Le jalon tenait en cinq lignes de tableau et il a été fait en un jour. Ce qui a
+coûté le temps n'est pas ce qui était écrit : c'est **ce que le dépôt disait de
+lui-même et qui n'était pas vrai**. Trois vagues de vérification adversariale ont
+rendu dix bloquants, dix-sept majeurs et dix-neuf mineurs ; les quatre tâches
+elles-mêmes tenaient dans une matinée.
+
+Quatre choses que l'exercice a apprises, et qu'aucune ligne du plan ne prévoyait :
+
+1. **Une suppression propre casse ce qu'on ne pensait pas à regarder.** Retirer
+   `incumbent: true` d'un manifeste — quatorze caractères — a cassé trois tests et
+   laissé deux fixtures du front, **versionnées**, qui revendiquaient encore le
+   titulaire supprimé. Le test fautif était le seul endroit du dépôt à exiger
+   qu'une capacité ait un titulaire : `_check_incumbents` n'a jamais eu de branche
+   pour zéro, et `projection.py` lisait déjà le résultat comme nullable. Le
+   correctif n'a pas été d'inverser l'assertion — l'en-tête du fichier refuse de
+   figer un inventaire — mais d'écrire ce que « au plus un » veut dire quand le
+   plancher est zéro.
+2. **Le dépôt sous-déclarait ce qu'il contient, et c'est le symétrique du
+   livrable de 0.4.** `PLAN.md`, `ARCHITECTURE.md` et `CONCEPTION.md` affirmaient
+   tous les trois, le 29 août, que Hunyuan3D « n'a jamais été exécuté » et que
+   c'était « le seul risque non levé du projet ». Il avait passé le banc **le
+   24 août** — trois cas en `ok`, relevé committé, 6,9 Go de poids sur le disque.
+   La décision de couper la filière 3D a donc été prise sur une prémisse fausse.
+   Elle tient sur d'autres motifs, tous vrais, et elle n'a pas été rediscutée ;
+   mais la prémisse a été réécrite dans les trois documents. Un dépôt qui oublie
+   ce qu'il a fait se trompe aussi sûrement qu'un dépôt qui promet ce qu'il n'a
+   pas fait.
+3. **La licence n'entre pas dans un paquet par une ligne de métadonnée.**
+   `license-files = ["../../LICENSE"]` fait *réussir* le build et produit un wheel
+   sans aucun fichier de licence, sans erreur ni avertissement — PEP 639 interdit
+   `..`, hatchling se tait. Un symlink casse au dépaquetage de la sdist. La seule
+   voie qui marche est un fichier réel dans le dossier du paquet, que hatchling
+   auto-globe. L'article 4(a) veut qu'une copie parte avec toute redistribution ;
+   un wheel en est une, et le défaut aurait voyagé.
+4. **« CI verte exigée » ne s'obtient pas en écrivant un workflow.** Le fichier
+   rend la CI *visible* ; l'exiger demande une protection de branche côté GitHub,
+   qu'aucun fichier du dépôt ne porte. La même distinction vaut pour la promesse
+   de `CONTRIBUTING.md` : `registry validate` signale un `profile:` fabriqué
+   comme un **avertissement** et sort en 0 — une PR de mesures inventée passe les
+   deux jobs au vert. La page le dit maintenant.
+
 ## Le plan v1.0 — J0 → J3 (~8 semaines)
 
 ### J0 — Publiable (semaine 1)
 
 | # | Tâche | Livrable |
 |---|---|---|
-| 0.1 | LICENSE Apache-2.0 à la racine + champ `license` dans les cinq `pyproject.toml` | le dépôt cesse d'être « tous droits réservés » — sans ce fichier, aucune adoption tierce n'est licite |
-| 0.2 | Docs adoptant : README anglais réécrit sur le pitch, `README.fr.md`, `SUPPORT.md` (« maintained by one person, no SLA »), `CONTRIBUTING.md` (contribution = données, politique de langue). Rédigées à la mise à jour de conception — la tâche est la relecture et le commit | la page d'accueil dit le produit, pas le parc |
-| 0.3 | CI GitHub Actions : `uv sync`, `ecurie registry validate`, pytest des quatre paquets (marqueur `real` exclu), ruff. L'ancienne 6.1 le disait déjà : les invariants existent en tests, il s'agit de les câbler | CI verte exigée sur chaque PR |
-| 0.4 | Nettoyage du pivot : suppression de `harness/`, retrait des mesures orphelines (`gemma4-12b-chat@4bit`, `qwen38-27b-chat@mxfp4`), retrait du statut `incumbent` de Hunyuan3D, note de gel dans `registry/veille/BACKLOG.md` | le dépôt ne revendique plus rien qu'il ne contient |
-| 0.5 | Réservation PyPI : paquet `ecurie` minimal installable — la CLI au moins ; le bootstrap complet des venvs runtimes est en 2.6 | `uv tool install ecurie` donne quelque chose, et le nom est pris |
+| 0.1 | ✓ LICENSE Apache-2.0 à la racine + champ `license` dans les cinq `pyproject.toml` | le dépôt cesse d'être « tous droits réservés ». Un `NOTICE` s'y est ajouté, que rien ne demandait et que l'article 4(d) fait voyager avec chaque fork : il pose la frontière qu'Apache-2.0 ne pose pas — la licence couvre le dépôt, jamais les poids, qu'Écurie télécharge et ne redistribue pas. Les deux fichiers sont copiés dans les quatre paquets, seule voie mesurée qui les fasse entrer dans un wheel (`license-files = ["../../LICENSE"]` construit sans un mot et ne copie rien ; un symlink casse au dépaquetage de la sdist) |
+| 0.2 | ✓ Docs adoptant : README anglais réécrit sur le pitch, `README.fr.md`, `SUPPORT.md`, `CONTRIBUTING.md` | la relecture a trouvé plus que des coquilles : un sous-titre qui promettait le serveur MCP **au présent** au-dessus du tableau qui devait le ranger dans le futur, un `npm ci` qui échoue en ERESOLVE sur un clone neuf, une commande de lint plus étroite que celle de la CI, et le chemin de la PR de mesures — le signal roi — qui contredisait ce que `ecurie bench` produit vraiment |
+| 0.3 | ✓ CI GitHub Actions : `uv sync`, `ecurie registry validate`, pytest des quatre paquets (marqueur `real` exclu), ruff | CI verte **visible** sur chaque PR. « Exigée » demande une protection de branche côté GitHub, posée à part |
+| 0.4 | ✓ Nettoyage du pivot : suppression de `harness/` (coquille vide, jamais commitée), retrait des mesures orphelines (`gemma4-12b-chat@4bit`, `qwen38-27b-chat@mxfp4`, jamais suivies non plus), retrait du statut `incumbent` de Hunyuan3D, note de gel dans `registry/veille/BACKLOG.md` et sur le skill de veille | le vrai coût était ailleurs : retirer l'`incumbent` a cassé trois tests et laissé deux fixtures du front **versionnées** qui revendiquaient encore le titulaire supprimé. La vérification a aussi trouvé l'inverse d'une revendication morte — un dépôt qui **sous-déclare** ce qu'il contient (voir 7.0) |
+| 0.5 | ◑ Paquet `ecurie` : la distribution `ecurie-core` est renommée `ecurie` en 0.4.0, le module reste `ecurie_core` — le patron de `pillow`/`PIL`. Mesuré dans un venv jetable : `ecurie --help` répond en exit 0 depuis un dossier vide, `ecurie registry validate` valide un clone à 72/41/0/2. Les trois imports de frères de `cli.py` étaient déjà sous `try/except ImportError` : la dégradation était écrite avant qu'on en ait besoin | **la publication reste à faire** — elle est irréversible, le nom et le numéro sont brûlés à vie. Le bootstrap complet des venvs runtimes est en 2.6 |
+| 0.6 | Le tag d'antériorité `v0.4.0`, posé sur la fusion de J0 dans `main`, CI verte. Le critère de sortie l'exigeait et aucune tâche ne le portait : le manque était dans le plan, pas dans le travail | l'antériorité sur le créneau, datée |
 
 **Critère de sortie** : un inconnu peut légalement utiliser le dépôt, la CI est
 verte, et l'antériorité sur le créneau est datée d'un tag.
@@ -156,7 +200,7 @@ l'admission raisonne aujourd'hui par requête.
 | 4.7 bandeau calculé sur la saisie | **gelé avec l'UI** |
 | v0.5 — enregistrements ASR, `ecurie eval`, A/B, Confrontation/Elo | **gelé** jusqu'à la réouverture de l'évaluation ; la validation de forme passe dans 2.1 |
 | v0.6 — CI registre, veille outillée | **absorbé et gelé** — la CI passe en 0.3, la garde des pentes (6.5) en 2.1 ; la veille est gelée jusqu'à l'éval comparative |
-| v0.7 — Hunyuan3D, contrats composites, 3D | **coupé** — l'`incumbent` est retiré en 0.4 ; la filière reste « experimental », sans promesse |
+| v0.7 — Hunyuan3D, contrats composites, 3D | **coupé** — l'`incumbent` est retiré en 0.4 et le manifeste repasse à `status: candidate` ; la capacité reste « experimental » au sens éditorial de `SUPPORT.md`, sans promesse. « experimental » n'est pas une valeur du champ `status`, qui ne connaît que `active`, `candidate`, `deprecated` et `retired` |
 | les `title` des 169 champs | **réduits aux douze contrats exposés** (1.5), en anglais ; le reste gelé |
 | l'index de similarité (chantier sans tâche) | **au backlog** — quatre capacités `*-embed` le réclament toujours, aucune n'est dans le catalogue promis |
 | la garde des profils aveugles (chantier sans tâche) | **portée par 2.1** |
@@ -175,7 +219,7 @@ Le parc réel compte **quarante et une capacités déclarées**, toutes pourvues
 moins un modèle — soixante-douze manifestes. Dix-huit environnements de runtime,
 cinquante-deux adaptateurs sous `workers/` plus les entrypoints des runtimes
 `custom`, quatre paquets Python et un front,
-**1 293 tests Python et 497 tests de front**, plus les essais sur le vrai parc et
+**1 296 tests Python et 497 tests de front**, plus les essais sur le vrai parc et
 contre un vrai serveur, exclus par défaut.
 
 Deux choses ont été faites en marge du jalon, et elles n'attendaient personne :
@@ -531,20 +575,22 @@ confirmée.
 | 3.1 | ✓ Contrats de capacité du parc initial (`capabilities/*.json`) + validation croisée au chargement du registre | schémas d'E/S committés |
 | 3.2 | ✓ Protocole worker + superviseur (spawn dans le venv, ping, timeout, kill) | testé avec `fake_worker.py` |
 | 3.3 | ✓ `runtimes/` : `pyproject.toml` par env, `ecurie env sync` | envs reconstructibles |
-| 3.4 | ✓ Adaptateurs `mlx_audio`, `diffusers_mps`, `custom` (entrypoint Hunyuan3D) | 3 écrits, 2 éprouvés en vrai ; l'entrypoint Hunyuan3D n'a jamais tourné. Deux de plus sont venus après coup : `mlx_vlm` et `mlx_audio_music` |
+| 3.4 | ✓ Adaptateurs `mlx_audio`, `diffusers_mps`, `custom` (entrypoint Hunyuan3D) | 3 écrits, 2 éprouvés en vrai à la clôture du jalon ; l'entrypoint Hunyuan3D n'avait alors jamais tourné — il a passé le banc le 24 août. Deux de plus sont venus après coup : `mlx_vlm` et `mlx_audio_music` |
 | 3.5 | ✓ `ecurie pull` (téléchargement à révision épinglée, garde des 15 % de disque libre) ; épingler les vraies révisions des 2 manifestes actifs | placeholders `0000000` éliminés |
 | 3.6 | ✓ Contrôle d'admission (budget, LRU, mode mesure pour variant sans profil) + `ecurie ps` / `ecurie unload` | simulation testée unitairement |
 | 3.7 | ✓ `ecurie run <ref> -p k=v` : job complet, sortie fichiers, ligne `runs` | premier `run` TTS réel |
-| 3.8 | ✓ `ecurie bench <ref>` : mesure du profil, écriture `measurements/`, patch `profile:` | 4 profils mesurés et committés (voix, image, document, musique). Le titulaire `image-to-mesh` manque, faute de poids téléchargés |
+| 3.8 | ✓ `ecurie bench <ref>` : mesure du profil, écriture `measurements/`, patch `profile:` | 4 profils mesurés et committés (voix, image, document, musique). `image-to-mesh` manquait alors, faute de poids téléchargés — il a été mesuré le 24 août, et n'a plus de titulaire depuis le 29 (décision 8) |
 
 **Critère de sortie** : `ecurie run qwen3-tts-1.7b -p text="…"` produit un wav ;
 lancer ensuite un job image décharge le TTS proprement (visible dans `ecurie ps`),
 sans swap ni OOM. **Atteint le 20 août 2026** — wav de 4,64 s en 3,4 s, puis
 `ecurie run sdxl-base` a tué le worker TTS pour prendre sa place.
 
-Reste en dette, à traiter avant le v0.7 qui en dépend : `runtimes/hunyuan3d/run.py`
-est écrit mais n'a **jamais été exécuté** — env non synchronisé, `hy3dshape` non
-vendoré, 7,37 Go de poids non téléchargés (conception §13.4).
+~~Reste en dette, à traiter avant le v0.7 qui en dépend : `runtimes/hunyuan3d/run.py`
+est écrit mais n'a **jamais été exécuté**.~~ — **soldé le 24 août 2026** : env
+synchronisé, `hy3dshape` vendoré, 7,37 Go téléchargés, trois cas du banc en `ok`
+(conception §13.4). La dette a été payée sans que ce plan le note, et c'est la
+vérification de J0 qui l'a découvert le 30.
 
 ## v0.4 — Utilisable au quotidien (2 semaines)
 
@@ -609,13 +655,19 @@ golden set, décision prise en connaissance de coût — sans rien télécharger
 ## v0.7 — Texte → 3D (1 semaine)
 
 > **Coupé le 29 août 2026** — la filière 3D sort de la v1 et le statut
-> `incumbent` de Hunyuan3D est retiré (0.4) : un risque jamais levé n'a pas sa
-> place dans une promesse d'entretien. Les manifestes restent au registre, en
-> « experimental », sans promesse.
+> `incumbent` de Hunyuan3D est retiré (0.4). Le motif écrit ce jour-là — « un
+> risque jamais levé » — **était faux**, et la vérification de J0 l'a établi le
+> 30 : Hunyuan3D avait passé le banc le 24 août, trois cas en `ok` sur un Mac17,4
+> de 24 Gio, relevé committé. La décision tient sur trois autres faits, tous
+> vrais : aucune comparaison n'a jamais départagé Hunyuan3D et TRELLIS.2 (noyaux
+> CUDA de voxels épars, aucun portage Metal connu), `hy3dshape` n'est publié sur
+> aucun index de paquets et se vendore à la main, et le pic de 16,48 Gio ne tient
+> pas dans les ~11,8 Gio d'un Mac de 16 Gio. Les manifestes restent au registre
+> en `status: candidate`, sans promesse.
 
 | # | Tâche | Livrable |
 |---|---|---|
-| 7.0 | **Éprouver Hunyuan3D**, qui n'a jamais tourné : synchroniser l'env, vendorer `hy3dshape`, télécharger les 7,37 Go, mesurer. Rien ne prouve aujourd'hui que le chemin 2.1 sur MPS fonctionne — c'est le préalable de tout ce jalon, et il peut le condamner | un maillage produit par `ecurie run`, ou la décision de changer de modèle |
+| 7.0 | ✓ **Éprouver Hunyuan3D** — fait le 24 août 2026, et le plan ne s'en était pas aperçu : l'env est synchronisé, `hy3dshape` vendoré, les 7,37 Go téléchargés, et `ecurie bench` a rendu les trois cas de la charge type en `ok`. Le chemin 2.1 sur MPS fonctionne | trois maillages produits (768 104, 608 292 et 1 173 776 faces), pic de 16,48 Gio, relevé committé. Le risque résiduel a changé de nature : il n'est plus « est-ce que ça marche », il est « est-ce que ça marche ailleurs qu'ici » |
 | 7.1 | Contrat composite `text-to-mesh` (steps + checkpoint) + validation du typage inter-étapes. Le méta-schéma des capacités exige `input` et `output` : le contrat composite devra les déclarer, ou l'exigence sera relâchée sous `composite: true` — à trancher ici | schéma committé |
 | 7.2 | Exécuteur composite (jobs chaînés, admission entre étapes : décharger l'image avant le mesh) | pipeline réel Z-Image/FLUX → Hunyuan3D |
 | 7.3 | UI : point d'arrêt sur l'image intermédiaire, *régénérer* / *continuer* | boucle d'itération bon marché de la Route A |
@@ -1044,7 +1096,7 @@ qui reste est du temps, pas du code.
 | **5.3** | Exécution A/B — même entrée, deux variants, séquentielle sous admission | 5.2 |
 | **5.4** | Écran **Confrontation** + `preferences.jsonl` + Elo dérivé | 5.3. La navigation de 4.5 est là : y ajouter un écran est une entrée dans un tableau |
 | **5.5** | Écran **Bibliothèque** — le quatrième écran, plafond atteint | 4.2 |
-| **5.6** | Promouvoir en `incumbent` les candidats qui l'ont mérité | 5.2 et 5.4. Vingt-quatre modèles sur vingt-six sont `candidate`, et seules `text-to-speech` et `image-to-mesh` ont un titulaire : **rien n'a jamais été comparé**, et la seconde n'a même pas ses poids |
+| **5.6** | Promouvoir en `incumbent` les candidats qui l'ont mérité | 5.2 et 5.4. Soixante et onze manifestes sur soixante-douze sont `candidate`, et depuis le retrait du statut de Hunyuan3D (0.4) **une seule** capacité a un titulaire, `text-to-speech` : rien n'a jamais été comparé |
 
 ### v0.6 — cinq tâches, aucune commencée
 

@@ -2,9 +2,21 @@
 name = "ecurie-api"
 version = "0.4.0"
 description = "Écurie — API HTTP : registre, parc, résidents, jobs"
+# `LICENSE` et `NOTICE` de ce dossier sont des copies conformes de ceux de la
+# racine, qui restent les originaux — sha256 1100b26d…33727e pour LICENSE. Elles
+# sont là parce que c'est la seule voie mesurée qui fasse entrer la licence dans
+# le wheel : hatchling auto-globe un fichier de licence posé dans le dossier du
+# paquet, et METADATA gagne alors ses lignes `License-File:`. Les deux autres
+# voies ont été essayées et rejetées — `license-files = ["../../LICENSE"]`
+# construit sans un mot et ne copie rien (PEP 639 interdit `..`), et un symlink
+# fait échouer le dépaquetage de la sdist (« symlink destination is outside of
+# the target directory »). L'article 4(a) de la licence veut qu'une copie parte
+# avec toute redistribution ; un wheel en est une.
+license = "Apache-2.0"
+authors = [{ name = "Julien Riel", email = "julien.riel@gmail.com" }]
 requires-python = ">=3.12"
 dependencies = [
-    "ecurie-core",
+    "ecurie",
     "ecurie-store",
     "ecurie-runtime",
     "fastapi>=0.115",
@@ -18,8 +30,17 @@ dependencies = [
     "rich>=13",
 ]
 
+# Trois `Project-URL:` dans METADATA, seul chemin de retour depuis une page PyPI
+# vers le dépôt : sans eux, le `NOTICE` que le wheel embarque désormais ne
+# renvoie à rien de consultable. Le bloc ne peut pas suivre `authors` — une
+# sous-table TOML avalerait les clés `[project]` qui la suivent.
+[project.urls]
+Homepage = "https://github.com/julien-riel/ecurie"
+Repository = "https://github.com/julien-riel/ecurie"
+Issues = "https://github.com/julien-riel/ecurie/issues"
+
 [tool.uv.sources]
-ecurie-core = { workspace = true }
+ecurie = { workspace = true }
 ecurie-store = { workspace = true }
 ecurie-runtime = { workspace = true }
 

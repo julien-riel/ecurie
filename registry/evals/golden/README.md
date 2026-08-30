@@ -1,8 +1,12 @@
 # Golden sets — juger la qualité
 
 Entrées figées, une par capacité, avec leur vérité terrain quand il y en a une.
-Elles alimentent `ecurie eval` (métriques automatiques) et l'écran Confrontation
-(préférences humaines) du v0.5.
+**Rien ne les passe encore** : au 29 août 2026, `ecurie --help` rend neuf
+commandes de premier niveau — `ps`, `unload`, `pull`, `run`, `bench`, `serve`,
+`registry`, `store`, `env` — et `eval` n'en est pas une. Ce dossier est donc de la
+donnée committée, pas un résultat. Elles alimenteront `ecurie eval` (métriques
+automatiques) et l'écran Confrontation (préférences humaines) du v0.5, et c'est
+cette exécution qui lèvera le gel de la veille (`registry/veille/BACKLOG.md`).
 
 ## Ce que ce dossier n'est pas
 
@@ -96,10 +100,13 @@ jour où l'enregistrement arrive, rien du cas ne change.
   test le vérifie, et c'est ce qui empêche un jeu d'essai de dériver du contrat ;
 - `notes` est **obligatoire**. Un cas dont personne ne sait plus ce qu'il testait
   ne se remplace pas, et il ne s'interprète plus non plus ;
-- `source` dit comment le fichier d'entrée a été fabriqué. Les images du banc
-  d'essai n'en ont pas : leur recette « déterministe » n'a jamais été committée,
-  et ce sont aujourd'hui des données orphelines qu'on ne sait plus refaire. On ne
-  recommence pas.
+- `source` dit comment le fichier d'entrée a été fabriqué. **Huit** images du banc
+  d'essai n'en ont pas — les trois solides, les trois pages et les deux masques
+  d'`image-inpaint` : leur recette « déterministe » n'a jamais été committée, et
+  ce sont aujourd'hui des données orphelines qu'on ne sait plus refaire. On ne
+  recommence pas. Sur les cinquante autres fichiers de `bench/assets/`, 49
+  viennent d'un cas qui en porte un ; le cinquantième, `parole-fr-32s.wav`, a sa
+  recette dans `tools/assets/parole.py`.
 
 ### Comparaison des textes
 
@@ -131,7 +138,8 @@ d'essai : les deux emploient les mêmes recettes et la même règle append-only,
 seule diffère la question qu'elles posent. Une cible est un dossier de golden set
 ou un fichier de charge type.
 
-Trois recettes, toutes déterministes et sans réseau :
+Cinq recettes, toutes déterministes et sans réseau. Trois servent les golden
+sets :
 
 - **`page`** rend une page de document depuis son texte de référence. Le
   manifeste reste l'autorité — la page et sa vérité terrain ne peuvent donc pas
@@ -145,3 +153,7 @@ Trois recettes, toutes déterministes et sans réseau :
   n'est pas annotée après coup, c'est celle qui a servi à fabriquer l'image. Avec
   `reduire`, l'entrée devient la réduction bicubique de la scène et la scène
   entière devient la référence — le procédé de l'agrandissement.
+
+Les deux autres, `musique` et `portrait`, ne servent aujourd'hui qu'au banc
+d'essai — `text-to-music` et les six capacités « visage » — et aucun golden set ne
+les appelle.

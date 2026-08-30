@@ -402,7 +402,10 @@ def composer_commande(binaire: Path, poids: Path, args: Arguments, sortie: Path)
 
 def sonder(chemin: Path) -> dict[str, Any]:
     """Ce que FFprobe dit du fichier produit. Un MP4 bien formé peut être vide."""
-    champs = "stream=codec_type,codec_name,width,height,nb_frames,r_frame_rate,duration,sample_rate,channels"
+    champs = (
+        "stream=codec_type,codec_name,width,height,nb_frames,"
+        "r_frame_rate,duration,sample_rate,channels"
+    )
     sortie = subprocess.run(
         ["ffprobe", "-v", "error", "-show_entries", champs, "-of", "json", str(chemin)],
         capture_output=True,
@@ -542,7 +545,7 @@ class H3Worker(Worker):
         # la clé du dictionnaire porte déjà le nom, et le profil affiche les deux
         # accolés.
         entête = next(
-            (l.strip() for l in texte.splitlines() if l.startswith("h3-metal")), ""
+            (ligne.strip() for ligne in texte.splitlines() if ligne.startswith("h3-metal")), ""
         )
         version = entête.split(maxsplit=1)[1] if " " in entête else "?"
         return {

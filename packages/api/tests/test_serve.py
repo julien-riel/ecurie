@@ -1,8 +1,8 @@
 """`ecurie serve` — ce que la commande garantit avant d'écouter.
 
 Le test qui compte est celui du refus : l'API dit où sont les poids sur le
-disque, ce que la machine a en mémoire, et lancera bientôt des jobs. Publiée sur
-un réseau, elle donne tout cela à qui passe. L'écoute non locale doit donc être
+disque, ce que la machine a en mémoire, et lance des jobs. Publiée sur un
+réseau, elle donne tout cela à qui passe. L'écoute non locale doit donc être
 un choix explicite, jamais un défaut ni une conséquence d'un `--host` recopié.
 """
 

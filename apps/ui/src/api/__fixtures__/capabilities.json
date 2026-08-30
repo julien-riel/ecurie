@@ -2132,7 +2132,7 @@
       "description": "Reconstruit un objet en trois dimensions depuis une seule image. Le pipeline recadre sur le canal alpha : une image opaque le prive de sa seule indication de silhouette.",
       "human_subject": null,
       "id": "image-to-mesh",
-      "incumbent": "hunyuan3d-2.1-shape-mlx",
+      "incumbent": null,
       "input": {
         "additionalProperties": false,
         "properties": {

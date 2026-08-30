@@ -2,8 +2,9 @@
 name = "ecurie-workspace"
 version = "0.1.0"
 description = "Racine du workspace Écurie — voir ARCHITECTURE.md"
+license = "Apache-2.0"
 requires-python = ">=3.12"
-dependencies = ["ecurie-core", "ecurie-store", "ecurie-runtime", "ecurie-api"]
+dependencies = ["ecurie", "ecurie-store", "ecurie-runtime", "ecurie-api"]
 
 [dependency-groups]
 dev = [
@@ -20,7 +21,7 @@ package = false
 members = ["packages/*"]
 
 [tool.uv.sources]
-ecurie-core = { workspace = true }
+ecurie = { workspace = true }
 ecurie-store = { workspace = true }
 ecurie-runtime = { workspace = true }
 ecurie-api = { workspace = true }

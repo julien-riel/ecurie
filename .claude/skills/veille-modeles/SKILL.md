@@ -1,6 +1,7 @@
 ---
 name: veille-modeles
 description: >
+  GELÉ depuis le 2026-08-29 (pivot MCP) — ne pas lancer de cycle sans demande explicite.
   Effectue un cycle de veille sur les modèles open-weight pour le parc Écurie. Utiliser
   quand l'utilisateur demande une veille, une mise à jour du parc, la recherche de
   remplaçants pour une capacité, ou l'évaluation d'un modèle candidat. Produit une
@@ -9,6 +10,15 @@ description: >
 ---
 
 # Veille modèles — Écurie
+
+> **Gelé le 2026-08-29.** Le pivot v1.0 vers le serveur MCP suspend la veille
+> jusqu'à l'existence d'une évaluation comparative exécutable (décision 6). Les
+> golden sets de `registry/evals/golden/` sont onze jeux de données que rien ne
+> passe : la phase 2 ci-dessous ne sait donc pas chiffrer `gain_qualité_relatif`,
+> et elle le dit déjà. Le skill reste au dépôt — la méthode qu'il décrit a
+> produit les cycles des 23 et 24 août —, mais son invocation cesse d'être une
+> routine : elle demande une demande explicite. L'état de la file et la condition
+> de levée sont dans `registry/veille/BACKLOG.md`.
 
 ## Règle cardinale
 

@@ -6,7 +6,7 @@ machine qui héberge un parc de modèles.
 **Le serveur écoute sur la boucle locale, et il faut le vouloir pour en sortir.**
 `ecurie serve` refuse une adresse non locale sans `--expose`. Ce n'est pas de la
 prudence de principe : l'API dit où sont les poids sur le disque, ce que la
-machine a en mémoire, et bientôt lancera des jobs. Publiée sur un réseau, elle
+machine a en mémoire, et lance des jobs. Publiée sur un réseau, elle
 donne tout cela à qui passe.
 
 **Les origines CORS sont énumérées, jamais `*`.** L'UI de développement tourne

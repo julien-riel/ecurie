@@ -9,7 +9,7 @@ consignée comme sa dette : ce sont des extraits de Sen1Floods11, imagerie tierc
 dont le projet amont ne publie aucun fichier de licence — l'API GitHub rend
 `license: null`, et `LICENSE` répond 404. Le README du banc pose que les entrées
 « n'ont ni licence ni provenance à suivre, et se refabriquent à l'identique », et
-que sur les six actifs orphelins du dossier « on ne recommence pas ».
+que sur les huit actifs orphelins du dossier « on ne recommence pas ».
 
 **Ce que la recette doit produire et qu'aucune autre du dépôt ne sait faire.**
 Six bandes, dont trois invisibles à l'œil. Un PNG n'a pas de place pour le proche

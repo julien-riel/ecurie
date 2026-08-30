@@ -32,7 +32,7 @@ Cette reproductibilité est **conditionnelle**, et il faut le dire : elle tient 
 la révision épinglée du TTS, à la version de MLX, et à la machine. La recette
 n'est donc pas une garantie bit à bit pour l'éternité — c'est une explication
 exécutable de ce que le fichier contient, ce qui est précisément ce qui manque
-aux six images orphelines du dossier.
+aux huit images orphelines du dossier.
 
 **Aucune donnée à licencier, personne à qui demander.** La voix est synthétique,
 le texte est écrit ici. Un enregistrement de quelqu'un serait versionné, public

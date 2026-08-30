@@ -138,7 +138,8 @@ def test_les_fichiers_de_reference_existent_et_ne_sont_pas_vides(repo_root, jeux
 
 
 def test_les_reponses_structurees_attendues_sont_du_json_valide(repo_root, jeux):
-    """Une référence d'appel d'outils est relue par `ecurie eval` : elle doit
+    """Une référence d'appel d'outils sera relue par l'exécuteur d'évaluation du
+    v0.5 — gelé au 2026-08-29, la donnée l'attend : elle doit
     parser, et porter une liste — un appel unique écrit sans crochets ferait
     échouer la comparaison sur une différence de forme, pas de fond."""
     for dossier in jeux:

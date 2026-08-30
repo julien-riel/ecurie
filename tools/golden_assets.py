@@ -25,11 +25,14 @@ Cinq recettes, toutes déterministes et sans réseau :
   de quelqu'un. Le visage calculé n'a ni identité, ni consentement à recueillir,
   ni licence à suivre.
 
-**Ce script existe surtout pour ne pas répéter l'oubli du banc d'essai.** Les
-images de `registry/evals/bench/assets/` ont été produites par une recette
-« déterministe » qui n'a jamais été committée : elles sont donc des données
-orphelines, qu'on ne sait plus refaire ni expliquer. Une entrée de jeu d'essai
-sans sa recette est une entrée dont on ne peut plus dire ce qu'elle contient.
+**Ce script existe surtout pour ne pas répéter l'oubli du banc d'essai.** Huit
+images de `registry/evals/bench/assets/` — trois solides, trois pages, deux
+masques — ont été produites par une recette « déterministe » qui n'a jamais été
+committée : ce sont des données orphelines, qu'on ne sait plus refaire ni
+expliquer. C'est l'exception et non la règle : 48 des 58 fichiers du dossier se
+refabriquent, par ce script ou par un module de `tools/assets/`. Une entrée de jeu
+d'essai sans sa recette est une entrée dont on ne peut plus dire ce qu'elle
+contient.
 
 Il n'écrase jamais un fichier existant sans `--force`, et c'est la règle
 append-only rendue mécanique : une image de golden set qui change en silence
@@ -452,7 +455,7 @@ def rendre_solide(forme: str, taille: int = 768, *, suréchantillon: int = 2) ->
 # années, ce qui est exactement ce qu'on ne fait pas du portrait de quelqu'un.
 # Un visage calculé n'a ni identité, ni consentement à recueillir, ni licence à
 # suivre — et il se refabrique à l'identique, ce que le README de ce dossier
-# réclame depuis que les six premières images s'en sont trouvées privées.
+# réclame depuis que les huit premières images s'en sont trouvées privées.
 #
 # **Le réalisme n'est pas une coquetterie, c'est le critère de recevabilité.**
 # Une première version sans paupières — le globe oculaire entier apparent — était

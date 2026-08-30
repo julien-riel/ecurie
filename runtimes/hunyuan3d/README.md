@@ -4,9 +4,23 @@ Environnement isolé du variant `hunyuan3d-2.1-shape-mlx@mlx-bf16`
 (`registry/models/hunyuan3d-2.1-shape-mlx.yaml`), capacité **`image-to-mesh`** :
 une image en entrée, un maillage `model/gltf-binary` en sortie.
 
-C'est le second maillon de la capacité composite `text-to-mesh`
-(`ARCHITECTURE.md` §10, route A) et le seul chemin `runtime: custom` du parc :
-le superviseur lance `run.py` avec le python de `.venv`, et lui parle le protocole
+C'était le second maillon de ce qui devait être la capacité composite
+`text-to-mesh` (`ARCHITECTURE.md` §10, route A). Ce contrat n'existe pas : le nom
+est déclaré dans l'énumération des capacités (`packages/core/src/ecurie_core/models.py`,
+`registry/schema/model.schema.json`) mais aucun `registry/capabilities/text-to-mesh.json`
+ne le suit — un test fige d'ailleurs cet écart (`test_capabilities.py`, « text-to-mesh
+est déclarée sans contrat ») —, et la tâche 7.1 qui devait l'écrire est coupée depuis
+le 2026-08-29. Seul `image-to-mesh` existe comme contrat, et c'est celui que ce runtime
+sert.
+
+**Hors promesse v1.** La filière 3D est coupée de la v1 (décision 8 du pivot) : le
+statut de titulaire de Hunyuan3D est retiré et son manifeste est passé de
+`status: active` à `status: candidate`. Ce runtime reste découvrable et exécutable,
+sans engagement d'entretien ni garantie que son profil reste à jour.
+
+C'est l'un des trois chemins `runtime: custom` du parc — avec `minimax-h3`, et
+avec `trellis2`, qui n'a ni environnement construit ni profil mesuré : le
+superviseur lance `run.py` avec le python de `.venv`, et lui parle le protocole
 JSON Lines de `CONCEPTION.md` §5.1.
 
 > **Le nom du manifeste dit « MLX ». L'exécution, elle, est en PyTorch sur MPS.**
@@ -51,9 +65,8 @@ refuse de démarrer avec ces commandes en clair si le fichier manque. Un dossier
 `vendor/` rangé autrement se déclare par `ECURIE_HY3DSHAPE_PATH` (le dossier qui
 *contient* le paquet `hy3dshape`).
 
-`vendor/` n'est pas versionné : le dépôt amont pèse trop et évolue pour son compte.
-Il n'est pas non plus couvert par le `.gitignore` du dépôt — une ligne
-`runtimes/*/vendor/` y a sa place.
+`vendor/` n'est pas versionné : le dépôt amont pèse trop et évolue pour son
+compte. Le `.gitignore` du dépôt l'écarte par `runtimes/*/vendor/` (l. 15).
 
 ### 3. Les poids
 
@@ -73,8 +86,21 @@ superviseur et recompose l'environnement du chargeur amont pour pointer dessus.
 
 ## Ce qui est vérifié, et ce qui ne l'est pas
 
-Cette distinction n'est pas de la prudence rhétorique : elle décide si le manifeste
-peut passer en `status: active` et si un profil mémoire peut être écrit.
+Cette distinction n'est pas de la prudence rhétorique : elle décidait si un profil
+mémoire pouvait être écrit au manifeste. Le banc du 24 août 2026 l'a écrit.
+
+### Éprouvé — au banc, une fois
+
+`ecurie bench` a exécuté les trois cas de `registry/evals/bench/image-to-mesh.json`
+sur `mps` le 2026-08-24 (Mac17,4 24 Gio / macOS 26.5.2). Les trois sont sortis `ok`,
+avec des maillages de 768 104, 608 292 et 1 173 776 faces. Pic de mémoire unifiée
+17 693 065 216 o pour un budget de 19 069 665 280 o, chargement 44,7 s, médiane
+372,8 s par sortie. Le relevé est
+`registry/measurements/hunyuan3d-2.1-shape-mlx@mlx-bf16/mac17-4-24-gio.json`, et
+c'est de lui que vient le bloc `profile:` du manifeste.
+
+Une machine, une révision de poids, trois cas d'un banc qui vérifie la forme du
+fichier de sortie et non son contenu : c'est tout ce que « éprouvé » veut dire ici.
 
 ### Vérifié — par lecture du source amont
 
@@ -93,15 +119,16 @@ peut passer en `status: active` et si un profil mémoire peut être écrit.
 
 ### Non vérifié — et assumé comme tel
 
-- **Le run complet sur MPS.** Personne, à notre connaissance, ne publie de trace
-  d'un `Hunyuan3DDiTFlowMatchingPipeline` 2.1 exécuté de bout en bout sur Apple
-  Silicon. Un test de fumée est un préalable à `status: active`.
-- **La durée et le pic mémoire.** Aucun chiffre n'est donné ici, volontairement :
-  les seules mesures Mac publiées portent sur les modèles 2.0 / 2-mini portés en
-  MLX, pas sur la 2.1 en PyTorch. Tencent annonce 10 Go de VRAM côté CUDA ; sur
-  mémoire unifiée il faut y ajouter le pic transitoire du `torch.load` du
-  checkpoint de 7,37 Go, non mesuré. `ecurie bench` est la seule source légitime
-  d'un profil.
+- **La tenue du chemin ailleurs qu'ici.** Personne, à notre connaissance, ne publie
+  de trace d'un `Hunyuan3DDiTFlowMatchingPipeline` 2.1 exécuté de bout en bout sur
+  Apple Silicon, et le banc du 24 août est le seul dont ce dépôt dispose : une
+  machine, une classe de machine. Rien ne dit ce que fait ce chemin sur un Mac de
+  16 Gio, où le pic mesuré de 16,48 Gio ne tient pas.
+- **La portabilité du profil.** Les seules mesures Mac publiées portent sur les
+  modèles 2.0 / 2-mini portés en MLX, pas sur la 2.1 en PyTorch ; Tencent annonce
+  10 Go de VRAM côté CUDA, chiffre sans rapport avec les 16,48 Gio de mémoire
+  unifiée relevés ici. `ecurie bench` reste la seule source légitime d'un profil, et il n'a
+  tourné que sur une machine.
 - **Les versions récentes des dépendances.** Tencent épingle `transformers==4.46`,
   `diffusers==0.30`, `numpy==1.24.4`, `trimesh==4.4.7`. Les bornes du
   `pyproject.toml` sont plus larges, et la compatibilité des versions hautes n'a
@@ -111,8 +138,10 @@ peut passer en `status: active` et si un profil mémoire peut être écrit.
 - **La validité du GLB produit** pour un maillage non texturé issu de ce pipeline.
 - Les roues macOS arm64 de `pymeshlab` pour la version de Python retenue.
 
-`run.py` remonte les trois premières de ces limites dans `metrics.caveats` à chaque
-job, pour qu'elles apparaissent au manifeste du run et pas seulement ici.
+`run.py` remonte trois de ces limites dans `metrics.caveats` à chaque job — l'absence
+de trace publique d'un run 2.1 complet sur MPS, la géométrie sans PBR, et le fait que
+`peak_memory_bytes` est une borne inférieure du pic réel —, pour qu'elles apparaissent
+au manifeste du run et pas seulement ici. Le relevé du 24 août les porte toutes trois.
 
 ---
 

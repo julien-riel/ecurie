@@ -58,11 +58,11 @@ def serve_command(
     ] = False,
     log_level: Annotated[str, typer.Option("--log-level", help="Verbosité d'uvicorn.")] = "info",
 ) -> None:
-    """Sert l'API de lecture du parc : registre, occupation disque, résidents."""
+    """Sert l'API du parc : registre, occupation disque, résidents, jobs."""
     if not _is_local(host) and not expose:
         console.print(
             f"[red]{host} n'est pas une adresse locale.[/red] L'API dit où sont les poids "
-            "sur le disque, ce que la machine a en mémoire, et lancera bientôt des jobs. "
+            "sur le disque, ce que la machine a en mémoire, et lance des jobs. "
             "La publier sur un réseau donne tout cela à qui passe — "
             "[bold]--expose[/bold] si c'est bien l'intention."
         )

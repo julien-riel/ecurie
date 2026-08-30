@@ -288,7 +288,8 @@ Capacités du parc initial : `text-to-speech`, `speech-to-text`, `text-to-music`
 > option d'interface. Les vingt-neuf autres passent « experimental » —
 > découvrables par les méta-outils du serveur MCP, sans promesse d'entretien ni
 > profil garanti. La filière 3D est coupée de la v1 (§10), et Hunyuan3D perd un
-> statut de titulaire qu'aucune exécution n'a jamais justifié.
+> statut de titulaire qu'aucune comparaison n'a jamais gagné — son manifeste
+> repasse de `status: active` à `status: candidate`.
 
 ---
 
@@ -531,12 +532,31 @@ L'écran 4 est celui qu'on oublie systématiquement et qu'on regrette au bout de
 
 ## 10. Texte → 3D : la case manquante
 
-> **Coupée de la v1 au pivot.** Hunyuan3D était le seul risque jamais levé du
-> projet — un `run.py` jamais lancé, 7,37 Go jamais téléchargés — et un produit
-> ne promet pas ce qu'il n'a jamais exécuté. La filière passe « experimental »,
-> le statut de titulaire est retiré, et cette section redevient ce qu'elle
-> était : une étude de routes, pas un engagement. Si un concurrent prend la
-> case « 3D local pour agents », elle aura été cédée en connaissance de cause.
+> **Coupée de la v1 au pivot — et pas pour la raison qu'on a longtemps écrite
+> ici.** `runtimes/hunyuan3d/run.py` a tourné : le 2026-08-24, `ecurie bench` a
+> rendu les trois cas de `registry/evals/bench/image-to-mesh.json` en `ok` sur
+> un Mac17,4 de 24 Gio, et les 7,37 Go de poids sont sur le disque
+> (`registry/measurements/hunyuan3d-2.1-shape-mlx@mlx-bf16/mac17-4-24-gio.json`).
+> Ce qui coupe la filière est ailleurs, en trois faits. **Aucune comparaison
+> n'a jamais départagé Hunyuan3D et TRELLIS.2** : la seule alternative crédible
+> (route B) n'est même pas installable ici, ses opérations de voxels épars
+> tenant à des noyaux CUDA sans portage Metal connu — le titulaire l'était donc
+> sans avoir rien gagné. **Aucune promesse d'entretien n'est tenable à un
+> mainteneur seul** sur une filière dont le code d'inférence n'est publié sur
+> aucun index de paquets et se vendore à la main
+> (`runtimes/hunyuan3d/README.md`). **Et le pic mesuré ne tient pas sur un Mac
+> de 16 Gio** : 16,48 Gio (17 693 065 216 o) contre un budget qui y tombe vers
+> 11,8 Gio, Écurie le dérivant du `recommendedMaxWorkingSetSize` de Metal —
+> environ 75 % de la mémoire unifiée (§7,
+> `packages/runtime/src/ecurie_runtime/budget.py`). La capacité passe donc
+> « experimental » au sens de SUPPORT.md — découvrable et exécutable, sans
+> promesse d'entretien ni profil garanti ; ce n'est pas une valeur du champ
+> `status`, que le schéma borne à `active`, `candidate`, `deprecated`,
+> `retired`. Le statut de titulaire est retiré, le manifeste passe à
+> `status: candidate` et reste au registre, et cette section redevient ce
+> qu'elle était : une étude de routes, pas un engagement. Si un concurrent
+> prend la case « 3D local pour agents », elle aura été cédée en connaissance
+> de cause.
 
 État réel au 19 août 2026, sans complaisance : **il n'existe pas de modèle open-weight
 texte→3D natif qui tourne convenablement sur Apple Silicon.** Trois routes, par ordre de
@@ -628,8 +648,9 @@ remettre en question — c'est le test à passer.
 > **Le 29 août 2026, ce tableau devient l'histoire.** v0.1 à v0.3 sont livrés,
 > leurs tests d'existence passés. Le v0.4 a été interrompu en cours par le
 > pivot — son critère de sortie (l'UI chemin par défaut) est remplacé par la
-> voie agents (voir le pivot, en tête). v0.5 à v0.7 ne sont pas abandonnés, ils
-> sont réordonnés ou gelés : la suite s'appelle **J0 → J3** et vit dans
+> voie agents (voir le pivot, en tête). v0.5 et v0.6 ne sont pas abandonnés, ils
+> sont réordonnés ou gelés ; le v0.7 est coupé (§10). La suite s'appelle
+> **J0 → J3** et vit dans
 > PLAN.md, avec le lancement pour horizon à huit semaines.
 
 ---

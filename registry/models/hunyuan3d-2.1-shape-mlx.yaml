@@ -1,4 +1,6 @@
-# Second maillon de la capacité composite text-to-mesh.
+# Second maillon de ce qui devait être la capacité composite text-to-mesh : le
+# contrat n'a jamais été écrit (tâche 7.1) et la filière est coupée depuis le
+# 2026-08-29. Seul image-to-mesh existe comme contrat.
 id: hunyuan3d-2.1-shape-mlx
 name: Hunyuan3D 2.1 Shape (MLX)
 capability: image-to-mesh
@@ -6,8 +8,15 @@ family: hunyuan3d
 vendor: Tencent
 license: tencent-hunyuan-community
 license_class: restricted     # restrictions géographiques et de seuil d'usage — à lire avant tout usage pro
-status: active
-incumbent: true
+# `candidate`, et non `active` : sur les 72 manifestes, les deux seuls `active`
+# étaient les deux titulaires, et le statut de titulaire a été retiré ici le
+# 2026-08-29 (décision 8). Dans ce dépôt, `candidate` ne veut pas dire « ne marche
+# pas » — CONCEPTION.md l'écrit des trois modèles du parc réel : « ils fonctionnent
+# et sont mesurés, mais rien ne dit encore qu'ils sont les bons ». C'est l'état
+# exact : trois cas de banc rendus le 2026-08-24, aucune comparaison qui promeuve.
+# `retired` serait faux — le schéma en fait « poids supprimés du disque », et les
+# 7,37 Go sont là.
+status: candidate
 
 notes: >
   Géométrie de bonne tenue sur Apple Silicon. Le pipeline PBR complet n'est pas couvert :
@@ -39,7 +48,8 @@ variants:
     caveats:
       - "Géométrie seulement, pas de PBR complet."
       - "Licence à restrictions : vérifier avant tout usage professionnel."
-      - "Le suffixe « mlx » de l'id est trompeur : aucun portage MLX de la partie shape 2.1 n'est publié (le portage communautaire s'arrête à 2.0/2mini). L'inférence passe par PyTorch/MPS, chemin non validé de bout en bout."
+      - "Le suffixe « mlx » de l'id est trompeur : aucun portage MLX de la partie shape 2.1 n'est publié (le portage communautaire s'arrête à 2.0/2mini). L'inférence passe par PyTorch/MPS — chemin éprouvé au banc du 2026-08-24, sur cette machine et cette révision de poids seulement."
+      - "Hors promesse v1 : filière 3D coupée le 2026-08-29 (décision 8), statut de titulaire retiré, statut ramené à candidate. Le manifeste reste au registre : découvrable et exécutable, sans engagement d'entretien ni garantie que le profil reste à jour."
     profile:
       disk_bytes: 7366426405
       peak_unified_memory_bytes: 17693065216

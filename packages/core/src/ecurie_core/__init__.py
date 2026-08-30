@@ -1,6 +1,6 @@
 """Écurie — noyau : modèles de données, contrats de capacité, registre, CLI."""
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 from ecurie_core.capabilities import CapabilityContract, load_capabilities
 from ecurie_core.issues import Issue
