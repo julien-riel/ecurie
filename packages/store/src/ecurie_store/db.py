@@ -49,7 +49,8 @@ CREATE TABLE IF NOT EXISTS runs (
     started_at  TEXT NOT NULL,
     duration_ms INTEGER,
     job_dir     TEXT,
-    ok          INTEGER
+    ok          INTEGER,
+    source      TEXT
 );
 CREATE TABLE IF NOT EXISTS kv (
     key   TEXT PRIMARY KEY,
@@ -96,6 +97,46 @@ class StateDB:
         path.parent.mkdir(parents=True, exist_ok=True)
         self.conn = sqlite3.connect(path)
         self.conn.executescript(_SCHEMA)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """Rattrape les colonnes ajoutées après coup à une base déjà sur le disque.
+
+        `_SCHEMA` n'est qu'une suite de `CREATE TABLE IF NOT EXISTS` : sur une
+        base existante, ajouter une colonne au DDL ne fait **rien**, et le
+        silence est total. Les tests, qui partent d'un `tmp_path` neuf, passent
+        au vert pendant que la seule machine qui compte lève « no such column »
+        au premier job. C'est la base de qui utilise Écurie depuis le v0.1 qui
+        décide ici, pas la base de la suite de tests.
+
+        Un `ALTER TABLE ADD COLUMN` sans défaut coûte O(1) en SQLite et laisse
+        les lignes existantes à NULL — ce qui est la vérité : on ignore par où
+        sont passés les jobs d'avant.
+
+        **Et deux ouvertures simultanées courent l'une contre l'autre.** Lire le
+        `PRAGMA` puis décider n'est pas atomique : deux connexions — deux appels
+        d'outils MCP que l'agent lance en parallèle, ou `ecurie serve` et
+        `ecurie mcp` qui démarrent ensemble — voient toutes deux la colonne
+        absente, la première l'ajoute, la seconde meurt sur « duplicate column
+        name ». Mesuré : dix-neuf paires sur vingt, dans la forme exacte du
+        serveur. La fenêtre ne dure que le temps d'un `ALTER`, mais elle tombe
+        pile au premier lancement après la mise à jour — c'est-à-dire à la seule
+        occasion où cette migration sert à quelque chose.
+
+        La garde est donc l'exception plutôt qu'un verrou : SQLite tranche
+        lui-même, et le perdant vérifie que la colonne existe bien avant de se
+        taire. Un `ALTER` qui échoue pour une autre raison remonte.
+        """
+        existantes = {row[1] for row in self.conn.execute("PRAGMA table_info(runs)")}
+        if "source" in existantes:
+            return
+        try:
+            with self.conn:
+                self.conn.execute("ALTER TABLE runs ADD COLUMN source TEXT")
+        except sqlite3.OperationalError:
+            colonnes = {row[1] for row in self.conn.execute("PRAGMA table_info(runs)")}
+            if "source" not in colonnes:
+                raise
 
     def close(self) -> None:
         self.conn.close()
@@ -223,12 +264,22 @@ class StateDB:
         duration_ms: int | None = None,
         job_dir: str | None = None,
         ok: bool | None = None,
+        source: str | None = None,
     ) -> None:
+        """Inscrit un usage. `source` dit par quelle porte il est entré.
+
+        La colonne est née d'une exigence du plan et non d'un besoin du GC : la
+        gate du mois 1 (tâche 3.4) demande « des jobs MCP au moins cinq jours sur
+        sept », et une table qui compte les jobs sans dire d'où ils viennent
+        laisserait un `ecurie bench` du dimanche tenir lieu de preuve d'usage. Le
+        poste « jamais utilisé » du plan de récupération, lui, continue de
+        compter toutes les portes — un variant servi par l'Atelier a servi.
+        """
         with self.conn:
             self.conn.execute(
                 "INSERT OR REPLACE INTO runs"
-                " (id, variant_ref, started_at, duration_ms, job_dir, ok)"
-                " VALUES (?, ?, ?, ?, ?, ?)",
+                " (id, variant_ref, started_at, duration_ms, job_dir, ok, source)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     run_id,
                     variant_ref,
@@ -236,6 +287,7 @@ class StateDB:
                     duration_ms,
                     job_dir,
                     None if ok is None else int(ok),
+                    source,
                 ),
             )
 

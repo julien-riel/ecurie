@@ -14,8 +14,8 @@ from ecurie_core.config import Config, resolve_heavy_threshold
 from ecurie_core.issues import Issue
 from ecurie_core.models import Model, Variant
 from ecurie_core.registry import Registry
+from ecurie_runtime.readiness import inspect_variant
 
-from ecurie_api.readiness import inspect_variant
 from ecurie_api.schemas import (
     CapabilityOut,
     IssueOut,

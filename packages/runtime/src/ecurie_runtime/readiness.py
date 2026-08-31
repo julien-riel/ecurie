@@ -20,6 +20,12 @@ que ce projet refuse de faire à la ligne de commande.
 On rend **toutes** les causes, pas la première : un variant candidat fraîchement
 ajouté au registre les cumule souvent toutes les trois, et les découvrir une par
 une coûte trois allers-retours.
+
+Ce module a vécu dans `ecurie_api` jusqu'au serveur MCP, et il n'y avait aucune
+raison : il n'importe ni FastAPI ni Starlette, et la question qu'il pose — ce
+variant tournerait-il maintenant ? — se pose avant toute surface. La déplacer ici
+évite à qui n'installe que le serveur MCP de tirer `fastapi` et `uvicorn` pour
+trois lectures de disque.
 """
 
 from dataclasses import dataclass, field
@@ -27,8 +33,9 @@ from pathlib import Path
 
 from ecurie_core.config import Config
 from ecurie_core.models import Model, Variant
-from ecurie_runtime.envs import EnvError, spec_for_variant
 from ecurie_store.weights import WeightsMissing, resolve_weights
+
+from ecurie_runtime.envs import EnvError, spec_for_variant
 
 
 @dataclass

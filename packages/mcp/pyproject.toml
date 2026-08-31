@@ -1,0 +1,59 @@
+[project]
+name = "ecurie-mcp"
+version = "0.4.0"
+description = "Écurie — MCP server: twelve multimodal tools behind measured memory admission"
+# `LICENSE` et `NOTICE` de ce dossier sont des copies conformes de ceux de la
+# racine, qui restent les originaux — sha256 1100b26d…33727e pour LICENSE. Elles
+# sont là parce que c'est la seule voie mesurée qui fasse entrer la licence dans
+# le wheel : hatchling auto-globe un fichier de licence posé dans le dossier du
+# paquet, et METADATA gagne alors ses lignes `License-File:`. Les deux autres
+# voies ont été essayées et rejetées — `license-files = ["../../LICENSE"]`
+# construit sans un mot et ne copie rien (PEP 639 interdit `..`), et un symlink
+# fait échouer le dépaquetage de la sdist (« symlink destination is outside of
+# the target directory »). L'article 4(a) de la licence veut qu'une copie parte
+# avec toute redistribution ; un wheel en est une.
+license = "Apache-2.0"
+authors = [{ name = "Julien Riel", email = "julien.riel@gmail.com" }]
+requires-python = ">=3.12"
+keywords = ["mcp", "model-context-protocol", "apple-silicon", "mlx", "local-models"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: MacOS X",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "ecurie",
+    "ecurie-store",
+    "ecurie-runtime",
+    # Le SDK officiel. La borne haute est délibérée : la 2.x a déplacé les
+    # handlers des décorateurs vers les arguments du constructeur et renommé
+    # FastMCP en MCPServer — une 3.x pourrait en faire autant, et un serveur qui
+    # ne démarre plus est la seule panne qu'un client MCP ne sait pas raconter.
+    "mcp>=2.1,<3",
+    "typer>=0.12",
+    "rich>=13",
+]
+
+# Trois `Project-URL:` dans METADATA, seul chemin de retour depuis une page PyPI
+# vers le dépôt : sans eux, le `NOTICE` que le wheel embarque désormais ne
+# renvoie à rien de consultable. Le bloc ne peut pas suivre `authors` — une
+# sous-table TOML avalerait les clés `[project]` qui la suivent.
+[project.urls]
+Homepage = "https://github.com/julien-riel/ecurie"
+Repository = "https://github.com/julien-riel/ecurie"
+Issues = "https://github.com/julien-riel/ecurie/issues"
+
+[tool.uv.sources]
+ecurie = { workspace = true }
+ecurie-store = { workspace = true }
+ecurie-runtime = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ecurie_mcp"]

@@ -3,8 +3,8 @@ Copyright 2026 Julien Riel
 
 Licensed under the Apache License, Version 2.0. See LICENSE.
 
-Apache-2.0 covers this repository and everything committed in it: the four
-Python packages, and, as of 2026-08-29, the 72 model manifests, the 41
+Apache-2.0 covers this repository and everything committed in it: the five
+Python packages, and, as of 2026-08-30, the 72 model manifests, the 41
 capability contracts, the 85 measurement records, and the evaluation inputs
 under registry/evals/. Those inputs are computed rather than collected, with the
 four qualifications recorded below.
@@ -69,7 +69,7 @@ that code is not committed here; MiniMax-H3 and Hunyuan3D 2.1 carry territorial
 restrictions that reach the outputs they produce. Read the manifest before
 running the model it describes.
 
-packages/core, packages/store, packages/runtime and packages/api each hold a
-verbatim copy of LICENSE and of this file, so that the wheels and sdists built
-from them carry both, as Section 4(a) of the License requires of any
-redistribution. The copies at the root of the repository are the originals.
+packages/core, packages/store, packages/runtime, packages/api and packages/mcp
+each hold a verbatim copy of LICENSE and of this file, so that the wheels and
+sdists built from them carry both, as Section 4(a) of the License requires of
+any redistribution. The copies at the root of the repository are the originals.

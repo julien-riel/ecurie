@@ -936,12 +936,22 @@ encore juste ; **67 = boucle de répétition**, sans que rien ne lève (relevé 
 `gemma4-12b-chat@4bit`, août 2026). Les cerveaux des clients MCP tiennent
 mieux, mais le coût de contexte, lui, vaut pour tous : douze plus trois —
 seize quand `ecurie_fan_out` entrera — laisse de la marge, et les familles
-complètes sont un opt-in (`ecurie mcp --tools faces`, `--tools all`). Les capacités `face-*` sont exclues du catalogue par
-défaut — application du champ `human_subject`, pas une opinion du serveur. Le
+complètes sont un opt-in (`ecurie mcp --tools faces`, `--tools all`). Le
 catalogue est une **liste versionnée dans `packages/mcp`**, pas un champ du
 schéma du registre : les vingt-neuf capacités restantes ne changent pas d'un
-octet de manifeste, restent découvrables par `ecurie_catalog` et exécutables
-par `ecurie_run`.
+octet de manifeste et restent découvrables par `ecurie_catalog`.
+
+**Le champ `human_subject` ferme les deux portes, et il a fallu le trancher.**
+Ce paragraphe portait jusqu'à J1 deux phrases qui se contredisaient : les
+`face-*` exclues « application du champ `human_subject`, pas une opinion du
+serveur », et les capacités restantes « exécutables par `ecurie_run` ». Prises
+ensemble, elles vident le champ de son sens — l'échappatoire rouvrirait ce que le
+catalogue ferme, et il suffirait à un agent de passer par `ecurie_run` pour
+identifier quelqu'un. Le champ gagne : `ecurie_run` refuse lui aussi les sept
+contrats qui le portent — les six `face-*` et `voice-clone` —, et l'opt-in les
+rouvre des deux côtés d'un même geste. Une capacité qui identifie une personne ne
+devient pas acceptable parce qu'elle est passée par une autre porte. Le refus
+porte alors la commande à relayer à l'humain, comme tous les autres.
 
 **Un refus d'admission est une donnée, pas un message.** La règle de la CLI —
 chaque erreur porte la commande qui répare — se transpose : chaque refus porte
@@ -953,24 +963,46 @@ et c'est exactement ce que le payload raconte :
 ```json
 {
   "error": "admission_refused",
+  "reason": "sdxl-base@bf16-mps ne tient pas : il manque 4,2 Gio …",
   "requested": {"capability": "text-to-image", "variant": "sdxl-base@bf16-mps",
-                "peak_bytes": 14254080000, "basis": "measured-local"},
+                "peak_bytes": 14254080000},
   "budget_bytes": 19070000000,
   "residents": [
     {"variant": "qwen3-tts-1.7b@8bit-mlx", "peak_bytes": 3328599654, "pinned": true},
     {"variant": "moss-transcribe@8bit-mlx", "peak_bytes": 6442450944, "busy": true}
   ],
   "options": [
-    {"kind": "retry", "when": "job j_01k3 on moss-transcribe ends",
+    {"kind": "retry", "when": "the job running on moss-transcribe@8bit-mlx ends",
      "frees_bytes": 6442450944},
     {"kind": "variant", "ref": "sdxl-base@8bit-mps", "peak_bytes": 8912000000,
-     "basis": "inherited-class", "fits_now": true},
-    {"kind": "reduce_input", "parameter": "width", "max_admissible": 768},
+     "fits_now": true},
+    {"kind": "reduce_input", "parameter": "max_seconds", "max_admissible": 18},
     {"kind": "human_command", "command": "ecurie unload qwen3-tts-1.7b@8bit-mlx",
-     "why": "pinned by its human"}
+     "why": "pinned by its human — relay this, do not decide it"}
   ]
 }
 ```
+
+**Trois corrections que la réalisation de J1 a imposées à cet exemple**, et elles
+disent chacune quelque chose du projet :
+
+- **`basis` a disparu.** Les trois états de l'admission — mesuré-local,
+  hérité-de-classe, borné — sont la tâche 2.3, au jalon J2. Aucun champ du code
+  ne les porte aujourd'hui : `Profile` ne connaît que `measured_on`, le nom de la
+  machine qui a mesuré. Écrire `"measured-local"` en dur aurait été faux pour
+  quiconque récupère un profil mesuré ailleurs — exactement la faute que J0 a
+  corrigée dans trois documents. Le champ **entrera avec 2.3**, pas avant ;
+- **`when` nomme un variant, pas un job.** L'identité du job qui occupe un worker
+  n'est pas publiée : `residents.json` ne porte que le pid de qui le tient, et le
+  superviseur assume que « quel job précisément occupe le worker ne regarde que
+  nous ». Le variant suffit à l'agent, qui ne peut de toute façon agir que sur
+  l'attente ;
+- **`reduce_input` ne porte pas sur `width`.** L'exemple d'origine réduisait une
+  largeur d'image, ce qu'aucun variant du parc ne sait faire : les trois seuls
+  `peak_scaling` mesurés portent sur une durée ou une longueur de contexte. Un
+  modèle dont le pic ne dépend pas de l'entrée ne se réduit pas, et l'option
+  n'est émise que là où une pente existe — **bornée à l'intervalle mesuré**,
+  parce qu'extrapoler vers le bas serait admettre sur une estimation.
 
 Une épingle est une préférence humaine : l'agent ne la lève pas, il transmet la
 commande à qui de droit. Le refus MCP parle anglais — c'est la surface produit ;

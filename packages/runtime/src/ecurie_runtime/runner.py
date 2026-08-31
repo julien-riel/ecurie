@@ -32,6 +32,7 @@ from ecurie_store.db import StateDB
 from jsonschema import Draft202012Validator
 
 from ecurie_runtime import __version__ as HARNESS_VERSION
+from ecurie_runtime.admission import Admission
 from ecurie_runtime.supervisor import AdmissionRefused, Lease, Supervisor, WaitFn
 from ecurie_runtime.worker import DeltaFn, JobResult, ProgressFn
 
@@ -84,6 +85,16 @@ class JobOutcome:
     warnings: list[str] = field(default_factory=list)
 
     file_outputs: tuple[str, ...] = ()  # clés de sortie qui sont des fichiers, chemins pointés
+
+    # La décision d'admission, telle que le contrôle l'a rendue — y compris
+    # quand elle refuse. `error` n'en garde qu'une phrase française, ce qui
+    # suffisait tant que le seul lecteur était un humain devant un terminal. Le
+    # serveur MCP, lui, doit rendre à l'agent des chiffres et des options
+    # exécutables (CONCEPTION.md §6.3), et les recomposer après coup en
+    # resimulant l'admission serait une seconde vérité : entre la simulation et
+    # la décision, un job a pu finir et libérer la place. C'est donc l'objet de
+    # la décision elle-même qui voyage.
+    admission: Admission | None = None
 
     @property
     def files(self) -> dict[str, Path]:
@@ -373,6 +384,7 @@ def run_job(
     pin: bool = False,
     overcommit: bool = False,
     job_id: str | None = None,
+    source: str = "cli",
 ) -> JobOutcome:
     """Exécute un job complet et rend un résultat déjà écrit sur le disque.
 
@@ -382,6 +394,12 @@ def run_job(
     dernier par la conversion du terminal marcherait par accident sur `1.0` et se
     tromperait sur `false`, qui deviendrait la chaîne `"False"`, donc le booléen
     vrai.
+
+    `source` dit par quelle porte le job est entré — `cli`, `api`, `mcp`. Il ne
+    change rien à l'exécution et ne sert qu'à la ligne de `runs` : la gate du
+    mois 1 compte des jobs **MCP**, et une télémétrie qui ne distingue pas les
+    portes ne saurait pas dire si le produit a servi ou si son auteur a lancé
+    des bancs d'essai.
     """
     ref = f"{model.id}@{variant.id}"
     job_id = job_id or new_job_id()
@@ -405,6 +423,7 @@ def run_job(
     lease: Lease | None = None
     résultat: JobResult | None = None
     erreur: str | None = None
+    admission: Admission | None = None
     try:
         lease = supervisor.acquire(
             model,
@@ -430,6 +449,8 @@ def run_job(
         # entier est de 17,76 »). La préfixer du nom de la classe ferait entrer
         # le seul mot anglais que l'utilisateur verra de tout le parcours.
         erreur = f"admission refusée : {exc}"
+        # La phrase suffit à un humain ; l'objet qui la porte a les chiffres.
+        admission = exc.admission
     except Exception as exc:  # noqa: BLE001 — l'échec est un résultat, il s'écrit comme les autres
         erreur = f"{type(exc).__name__}: {exc}"
     finally:
@@ -488,6 +509,7 @@ def run_job(
             duration_ms=durée_ms,
             job_dir=str(job_dir),
             ok=erreur is None,
+            source=source,
         )
 
     return JobOutcome(
@@ -503,6 +525,8 @@ def run_job(
         error=erreur,
         warnings=avertissements,
         file_outputs=tuple(sorted(contract.file_outputs())),
+        # Le refus l'a posée en chemin ; un job admis la porte sur son bail.
+        admission=admission or (lease.admission if lease else None),
     )
 
 

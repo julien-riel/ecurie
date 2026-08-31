@@ -2,10 +2,10 @@
 
 **L'inférence multimodale qui ne swappe jamais, sur Apple Silicon** — des yeux,
 des oreilles et une voix locales pour votre agent de code, protégés par des
-profils mémoire mesurés au banc plutôt qu'estimés. Aujourd'hui, c'est une CLI
-et une API HTTP locale sur 41 contrats de capacité. Le serveur MCP qui en fera
-douze outils d'agent est ce que veut dire **v1.0** : `ecurie mcp` n'est pas
-encore une commande.
+profils mémoire mesurés au banc plutôt qu'estimés. `ecurie mcp` sert douze de
+ses 41 contrats de capacité en outils MCP, à côté d'une CLI et d'une API HTTP
+locale. Ce que **v1.0** doit encore : le paquet PyPI, des profils empruntés qui
+se disent tels, et un démarrage éprouvé sur une machine qui n'est pas celle-ci.
 
 Écurie **n'exécute jamais un tenseur elle-même, et ne réimplémente jamais un
 moteur**. Elle orchestre MLX, `mlx-audio`, `diffusers`, `mlx-vlm`, des binaires
@@ -26,7 +26,7 @@ produit ; la salle des machines parle encore français, et
 | | Aujourd'hui | Avec la v1.0 |
 |---|---|---|
 | Installation | `git clone` + `uv sync` | `uv tool install ecurie` (PyPI) |
-| Surfaces | CLI (16 commandes), API HTTP locale, UI personnelle | **serveur MCP** (`ecurie mcp`) |
+| Surfaces | CLI (17 commandes), **serveur MCP** (`ecurie mcp`), API HTTP locale, UI personnelle | publication au registre MCP |
 | Admission | profils mesurés, sur la machine qui les a mesurés | + classes de machine, profils empruntés — étiquetés, jamais silencieux |
 | Langue | sortie CLI et docs internes en français | surface anglaise |
 
@@ -62,11 +62,12 @@ quelle capacité par son contrat), `ecurie_status` (résidents, budget Metal,
 comptabilité disque — lecture seule).
 
 Deux exclusions délibérées. Sept contrats déclarent une valeur `human_subject`
-— les six `face-*` et `voice-clone` — et aucun n'est parmi les douze : la
-**v1.0** tiendra la famille `face-*` hors du catalogue par défaut sur ce champ
-plutôt que sur une liste tenue à la main, les familles étant en opt-in
-(`ecurie mcp --tools faces`). Aujourd'hui le champ est déclaré et exposé par
-l'API ; rien ne filtre encore dessus. Les 29 autres contrats sont
+— les six `face-*` et `voice-clone` — et aucun n'est parmi les douze. Le serveur
+**filtre sur ce champ** plutôt que sur une liste tenue à la main, et il ferme
+les deux portes : le catalogue et l'échappatoire `ecurie_run`, parce qu'une
+capacité qui identifie quelqu'un ne devient pas acceptable pour être passée par
+une autre porte. `ecurie mcp --tools faces` rouvre les deux d'un même geste, et
+le refus porte cette commande, à exécuter soi-même. Les 29 autres contrats sont
 **expérimentaux** — découvrables, exécutables, sans promesse d'entretien ;
 l'OCR est de ceux-là, `document-to-text` étant délibérément un contrat séparé
 de `image-to-text`. Le catalogue est petit à dessein : le coût d'un agent est
@@ -86,7 +87,7 @@ jamais à la main. Un profil estimé est un profil faux.** Quand un job ne passe
 pas, le refus n'est pas un message d'erreur — c'est une décision avec ses
 chiffres et ses issues. L'éviction des résidents inactifs étant automatique
 (LRU), un refus ne survient que quand il ne reste rien à évincer — et c'est ce
-qu'il raconte. Le serveur MCP (**v1.0**) le rend lisible par la machine : le
+qu'il raconte. Le serveur MCP le rend lisible par la machine : le
 pic mesuré, le budget, les résidents en cause, et les options que l'agent peut
 exécuter (réessayer quand le job en cours finit, prendre un variant plus
 léger) — une épingle posée par l'humain, elle, n'est jamais levée par l'agent :
@@ -138,8 +139,11 @@ ni authentification ni isolation par utilisateur — « un Mac qui sert plusieur
 personnes » n'est pas un usage supporté, c'est un autre projet.
 
 `~/.ecurie/config.toml` est généré au premier lancement, avec autodétection des
-caches. Le serveur MCP et `claude mcp add ecurie -- ecurie mcp` arrivent avec
-la **v1.0**. Le détail des environnements à étape manuelle, des conventions de
+caches. Pour confier le parc à un agent, un seul processus et aucun port :
+`claude mcp add ecurie -- uv run --directory "$PWD" ecurie mcp`. Le serveur ne
+déclare que les outils dont un variant peut réellement tourner ici — une
+capacité aux poids absents n'apparaît pas, `ecurie_catalog` la nomme avec la
+commande qui répare. Le détail des environnements à étape manuelle, des conventions de
 mesure à plusieurs et des gardes de développement est dans
 [README.md](README.md).
 
@@ -166,7 +170,7 @@ personnel publié. Le pré-engagement complet est dans
 
 ## Licence
 
-**Apache-2.0**, pour tout le dépôt — les quatre paquets Python, les 72
+**Apache-2.0**, pour tout le dépôt — les cinq paquets Python, les 72
 manifestes de modèles, les 41 contrats de capacité, les mesures et les jeux de
 banc.
 

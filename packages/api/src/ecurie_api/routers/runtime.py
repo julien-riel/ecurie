@@ -20,6 +20,7 @@ de soumettre, et un refus doit se lire.
 
 from ecurie_core.capabilities import CapabilityContract
 from ecurie_core.models import Model, Variant
+from ecurie_runtime.readiness import inspect_variant
 from ecurie_runtime.runner import InputError, resolve_typed_input
 from ecurie_runtime.supervisor import RefError, Supervisor, parse_ref
 from ecurie_runtime.worker import pid_alive
@@ -27,7 +28,6 @@ from fastapi import APIRouter, HTTPException, Query
 
 from ecurie_api.deps import StateDep
 from ecurie_api.projection import admission_fields
-from ecurie_api.readiness import inspect_variant
 from ecurie_api.schemas import (
     AdmissionOut,
     AdmissionRequest,
