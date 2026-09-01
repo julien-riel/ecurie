@@ -1,7 +1,7 @@
 # CI for Écurie.
 #
 # The Python job runs the four checks that task 0.3 contracts for: the lockfile
-# is current, the registry validates, ruff is clean, the four packages' tests
+# is current, the registry validates, ruff is clean, the five packages' tests
 # pass. The front-end job is here for a reason that is not front-end hygiene:
 # the vitest suite reads registry/capabilities/*.json off disk at test time
 # (apps/ui/src/schema/__fixtures__/contrats.ts resolves ../../registry/capabilities
@@ -56,7 +56,7 @@ jobs:
           # machine runs 3.13, so pin it here or the runner's default drifts.
           python-version: "3.13"
 
-      # --locked fails loudly if uv.lock has drifted from the five pyproject
+      # --locked fails loudly if uv.lock has drifted from the six pyproject
       # files, instead of quietly re-resolving. It also holds the toolchain at
       # the locked ruff 0.16.3 and pytest 9.1.1, so an upstream release cannot
       # redden this workflow on its own. The workspace root depends on all four
@@ -82,10 +82,10 @@ jobs:
       - name: Style and imports are clean across the tree
         run: uv run ruff check .
 
-      # The root pyproject's addopts = "-m 'not real'" already drops the five
-      # tests that need the real parc, so there is no flag to add here: 1320
-      # collected, 1315 run.
-      - name: The four packages' invariants hold
+      # The root pyproject's addopts = "-m 'not real'" already drops the tests
+      # that need the real parc, so there is no flag to add here: 1426
+      # collected, 1419 run (7 deselected, 19 skipped).
+      - name: The five packages' invariants hold
         run: uv run pytest -q
 
   ui:

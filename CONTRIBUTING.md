@@ -144,7 +144,7 @@ messages remain perfectly fine.
 ## Developing
 
 ```bash
-uv run pytest                 # the suite; the five `real` tests excluded by default
+uv run pytest                 # the suite; the seven `real` tests excluded by default
 uv run ruff check .           # lint, 100-column lines — the whole tree, as CI runs it
 cd apps/ui && npm ci && npm test  # front-end suite
 ```

@@ -57,7 +57,7 @@ def registry_validate(
         raise typer.Exit(code=1)
 
 
-# Les paquets store, runtime et api sont optionnels pour ecurie-core ; leurs
+# Les paquets store, runtime, api et mcp sont optionnels pour ecurie-core ; leurs
 # commandes se greffent quand ils sont installés (toujours le cas dans le workspace).
 try:
     from ecurie_store.cli import store_app
@@ -79,6 +79,13 @@ except ImportError:
     pass
 else:
     register_api(app)
+
+try:
+    from ecurie_mcp.cli import register as register_mcp
+except ImportError:
+    pass
+else:
+    register_mcp(app)
 
 
 if __name__ == "__main__":

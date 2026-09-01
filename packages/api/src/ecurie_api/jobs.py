@@ -393,6 +393,7 @@ class JobRegistry:
                 db=db,
                 overcommit=job.overcommit,
                 job_id=job.id,
+                source="api",
                 on_progress=job.advance,
                 on_delta=job.receive_delta,
                 on_wait=job.waiting_for,

@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Racine du workspace Écurie — voir ARCHITECTURE.md"
 license = "Apache-2.0"
 requires-python = ">=3.12"
-dependencies = ["ecurie", "ecurie-store", "ecurie-runtime", "ecurie-api"]
+dependencies = ["ecurie", "ecurie-store", "ecurie-runtime", "ecurie-api", "ecurie-mcp"]
 
 [dependency-groups]
 dev = [
@@ -25,6 +25,7 @@ ecurie = { workspace = true }
 ecurie-store = { workspace = true }
 ecurie-runtime = { workspace = true }
 ecurie-api = { workspace = true }
+ecurie-mcp = { workspace = true }
 
 [tool.ruff]
 line-length = 100
@@ -39,6 +40,7 @@ testpaths = [
     "packages/store/tests",
     "packages/runtime/tests",
     "packages/api/tests",
+    "packages/mcp/tests",
 ]
 markers = ["real: tests d'intégration sur le vrai parc, hors CI"]
 addopts = "-m 'not real'"

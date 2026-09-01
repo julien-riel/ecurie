@@ -41,6 +41,7 @@ from typing import Any
 
 from ecurie_core.capabilities import CapabilityContract
 from ecurie_core.models import Model, Variant
+from ecurie_runtime.readiness import inspect_variant
 from ecurie_runtime.runner import InputError, resolve_typed_input
 from ecurie_runtime.supervisor import RefError, parse_ref
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect, status
@@ -49,7 +50,6 @@ from pydantic import ValidationError
 
 from ecurie_api.deps import StateDep
 from ecurie_api.jobs import Job, TooManyJobs, file_url
-from ecurie_api.readiness import inspect_variant
 from ecurie_api.schemas import JobDetail, JobOut, JobRequest
 from ecurie_api.state import AppState
 

@@ -2,9 +2,10 @@
 
 **Never-swap multimodal inference for Apple Silicon** — local eyes, ears and a
 voice for your coding agent, memory-safe by profiles a bench measured rather
-than guessed. Today that is a CLI and a local HTTP API over 41 capability
-contracts. The MCP server that turns twelve of them into agent tools is what
-**v1.0** means: `ecurie mcp` is not a command yet.
+than guessed. `ecurie mcp` serves twelve of its 41 capability contracts as MCP
+tools, alongside a CLI and a local HTTP API. What **v1.0** still owes is the
+PyPI package, borrowed profiles that label themselves, and a quickstart proven
+on a machine that is not this one.
 
 An *écurie* is a racing stable. This one keeps a stable of open-weight models —
 maintained, measured, raced, and retired.
@@ -29,7 +30,7 @@ above. Read this table before believing anything else on this page:
 | | Today | Lands with v1.0 |
 |---|---|---|
 | Install | `git clone` + `uv sync` | `uv tool install ecurie` (PyPI) |
-| Surfaces | CLI (16 commands), local HTTP API, personal UI | **MCP server** (`ecurie mcp`) |
+| Surfaces | CLI (17 commands), **MCP server** (`ecurie mcp`), local HTTP API, personal UI | publication to the MCP registry |
 | Admission | measured profiles, on the machine that measured them | + machine classes, borrowed profiles — labeled, never silent |
 | Language | CLI output and internal docs in French | English surface |
 
@@ -54,7 +55,9 @@ every variant because it measured it, and refuses — legibly — what would not
 
 Twelve capabilities, each served by a variant with a bench-measured profile,
 exposed as MCP tools generated from their typed contracts
-(`registry/capabilities/*.json`):
+(`registry/capabilities/*.json`). Fifteen tools cost **10,105 tokens** of
+catalog on this machine — measured, against the 16,690 that forty declared tools
+cost the local model of the reading below:
 
 - **Hearing** — `speech-to-text`, `speaker-diarization`, `audio-separation`
 - **Voice** — `text-to-speech`
@@ -70,11 +73,12 @@ accounting — read-only).
 
 Two deliberate exclusions. Seven contracts declare a `human_subject` value —
 the six `face-*` (`analyzes`, and `identifies` for `face-embed`) and
-`voice-clone` (`synthesizes`). None of the seven is among the twelve, and
-**v1.0** keeps the `face-*` family out of the default catalog on that field
-rather than on a hand-kept list, families being opt-in
-(`ecurie mcp --tools faces`). Today the field is declared in the contracts and
-surfaced by the API; nothing gates on it yet.
+`voice-clone` (`synthesizes`). None of the seven is among the twelve, and the
+server now **gates on that field** rather than on a hand-kept list: it closes
+both doors, the catalog and the `ecurie_run` escape hatch, because a capability
+that identifies someone does not become acceptable for having come through
+another door. `ecurie mcp --tools faces` reopens both at once, and the refusal
+carries that command for you to run yourself.
 
 The other 29 contracts in the registry are **experimental** — discoverable,
 runnable, but with no maintenance promise and no guaranteed profile. OCR is one
@@ -105,9 +109,9 @@ over those measurements and the Metal budget.
 When a job doesn't fit, the refusal is not an error string — it is a decision
 with its numbers and its exits. Eviction of idle residents is automatic (LRU),
 so a refusal only happens when nothing is left to evict — and that is exactly
-what it explains. The CLI already answers every refusal with the command that
-repairs it (in French today); the MCP server (**v1.0**) makes that
-machine-readable:
+what it explains. The CLI answers every refusal with the command that repairs it
+(in French today); the MCP server makes the same decision machine-readable, in
+English, as a tool error the agent is expected to act on rather than report:
 
 ```
 refused:   seedvr2-3b@fp16 — measured peak 16.78 GiB exceeds the 10.11 GiB free
@@ -194,7 +198,18 @@ uv run ecurie ps                                   # residents, budget, next job
 uv run ecurie serve                                # the API, on 127.0.0.1:8765
 ```
 
-The MCP server and `claude mcp add ecurie -- ecurie mcp` land with **v1.0**.
+Then hand the fleet to your agent. One process, no port, nothing else to start:
+
+```bash
+claude mcp add ecurie -- uv run --directory "$PWD" ecurie mcp
+```
+
+`ecurie mcp` speaks MCP over stdio and runs jobs in its own process. It serves
+the twelve tools whose variant can actually run here — a capability whose
+weights are missing is **not** declared, since an agent has no way to learn from
+`tools/list` why a tool always fails; `ecurie_catalog` names it, with the
+command that fixes it. Everything the server has to say goes to stderr: stdout
+belongs to the protocol.
 
 ## What adapts to your Mac by itself
 
@@ -242,11 +257,13 @@ cd apps/ui && npm ci && npm test  # the front-end suite (the UI is frozen, its t
 
 Lint is `.` and not `packages/` on purpose: the eighteen runtimes are the
 largest body of code here, and `.github/workflows/ci.yml` checks them. What a
-healthy clone looks like on the 24 GB reference machine, 2026-08-29: **1,296
-passed, 19 skipped, 5 deselected** on the Python side, **497 passed, 8 skipped**
+healthy clone looks like on the 24 GB reference machine, 2026-08-30: **1,400
+passed, 19 skipped, 7 deselected** on the Python side, **497 passed, 8 skipped**
 on the front. The nineteen skips are all *numpy absent* or *Pillow absent* —
-neither is a dependency of the four packages, neither is in `uv.lock`, and the
-count is the same on the Ubuntu runner.
+neither is a dependency of the five packages, neither is in `uv.lock`, and the
+count is the same on the Ubuntu runner. The seven deselected are the `real`
+tests, which need the parc on disk; two of them drive `ecurie mcp` as a real
+subprocess over stdio.
 
 Two guards worth knowing before you hit them: `tools/openapi_dump.py` freezes
 the API schema and a test compares it — changing a route without regenerating
@@ -264,7 +281,9 @@ Four milestones to v1.0, no firm dates — one maintainer, and it says so in
   PyPI is the step that remains; it is deliberately deferred, since publishing
   burns a name and a version number for good and nothing here depends on it yet.
 - **J1 — MCP served.** `ecurie mcp` (stdio): 12 tools + 3 meta-tools generated
-  from the contracts, structured admission refusals, file outputs.
+  from the contracts, structured admission refusals, file outputs — served, and
+  proven on this machine. What remains is not code: the daily use that the
+  month-one gate counts, and the outside testers it recruits.
 - **J2 — Trustworthy profiles.** Hardened bench (output-shape validation,
   blind-profile guard), machine classes with borrowed profiles (+15 % margin,
   labeled, never silent), opportunistic bench on pull, `ecurie init` /

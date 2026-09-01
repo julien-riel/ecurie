@@ -61,7 +61,7 @@ Les douze décisions validées, une ligne chacune :
 | Jalon | État | Critère de sortie |
 |---|---|---|
 | J0 — Publiable | **livré le 30 août 2026** | atteint sur ses trois membres : `LICENSE` et `NOTICE` sur `main`, la CI verte, l'antériorité datée par le tag `v0.4.0`. La publication PyPI (0.5) est reportée par décision — elle n'est pas au critère de sortie |
-| J1 — MCP servi | à faire | depuis Claude Code, un outil non-texte exécuté → un fichier produit, l'admission tracée dans la réponse ; le dogfooding quotidien commence |
+| J1 — MCP servi | **le serveur est servi ; la gate court** | le mécanisme est atteint et éprouvé — `ecurie mcp` sert quinze outils, un `text_to_speech` réel a rendu son wav, l'admission est dans la réponse, la ligne de `runs` porte `mcp`. Ce qui reste ne s'écrit pas : **l'usage quotidien** et le **recrutement des testeurs** (1.6), qui demandent des jours |
 | J2 — Profils dignes de confiance | à faire | sur une machine fraîchement installée de la même classe, `pull` + `run` sans re-bench préalable ; chaque réponse porte son état d'admission étiqueté |
 | J3 — Lancement | à faire | le quickstart rejoué en moins de dix minutes par un tiers sur une autre classe de machine ; publication faite |
 
@@ -114,6 +114,83 @@ Quatre choses que l'exercice a apprises, et qu'aucune ligne du plan ne prévoyai
    comme un **avertissement** et sort en 0 — une PR de mesures inventée passe les
    deux jobs au vert. La page le dit maintenant.
 
+## État au 30 août 2026 — J1, et ce que le protocole a imposé
+
+Le serveur MCP existe et sert le vrai parc. Ce qui a coûté le temps n'est ni le
+protocole ni les douze outils : c'est **ce que le socle ne savait pas encore
+dire**, et deux fois sur trois le manque était invisible.
+
+Cinq choses que l'exercice a apprises, et qu'aucune ligne du plan ne prévoyait :
+
+1. **Un refus qu'on résume est un refus qu'on ne peut plus négocier.** `run_job`
+   attrapait `AdmissionRefused` et n'en gardait qu'une phrase française — ce qui
+   suffisait tant que le seul lecteur était un humain devant un terminal. Le
+   §6.3 veut des chiffres et des options exécutables. La tentation était de
+   resimuler l'admission après l'échec ; c'eût été une **seconde vérité**,
+   mesurée à un autre instant, alors qu'entre les deux un job a pu finir et
+   libérer la place. La décision voyage donc désormais dans `JobOutcome`, entière.
+2. **Ajouter une colonne au DDL ne l'ajoute pas.** `_SCHEMA` n'est qu'une suite
+   de `CREATE TABLE IF NOT EXISTS` : sur une base existante, la ligne nouvelle ne
+   fait rien, sans un mot. Les tests, qui partent d'un dossier neuf, seraient
+   passés au vert pendant que la seule machine qui compte — celle qui a des runs
+   depuis le v0.1 — aurait levé « no such column » au premier job. C'est le
+   symétrique exact de la leçon 3 de J0 : ce qui marche en construction ne prouve
+   rien sur ce qui existe déjà.
+3. **Un type dont le nom ressemble à un objet peut être un dictionnaire.** Le
+   jeton de progression se lit dans `ctx.meta`, que le SDK type
+   `RequestParamsMeta` — un `TypedDict`. L'interroger par attribut rend `None` et
+   ne lève jamais. Le premier job réel a donc été **entièrement muet**, et le
+   `except` qui protégeait le job d'un client parti a masqué la cause. Le §8 dit
+   que le banc ne regarde pas la forme ; il faut y ajouter qu'**un canal qu'aucun
+   test n'écoute est un canal qu'on croit ouvert**.
+4. **Le catalogue coûte là où on ne regarde pas.** Quinze outils pesaient 12 208
+   jetons, et **59 % venaient de l'`outputSchema`** — l'enveloppe de sortie,
+   identique pour les douze, documentée douze fois. La prose est partie dans les
+   `instructions` du serveur, lues une fois par session : 10 105 jetons, 39 % de
+   marge sous le relevé de 16 690. La règle est générale : ce qui vaut pour tous
+   les outils se paie une fois, ce qui est dans un outil se paie à chaque outil.
+5. **Deux phrases d'un même paragraphe peuvent se contredire sans qu'on le voie.**
+   Le §6.3 excluait les `face-*` « application du champ `human_subject` » et
+   déclarait les autres capacités « exécutables par `ecurie_run` » : ensemble,
+   elles laissaient l'échappatoire rouvrir ce que le catalogue ferme. Il a fallu
+   trancher — le champ ferme les deux portes — et corriger le document. Une
+   contradiction dans une conception ne se voit qu'à l'implémentation, parce que
+   le code, lui, doit choisir.
+
+**Une revue adversariale a trouvé ce que les tests laissaient passer.** Six
+lentilles sur le paquet, chaque trouvaille soumise à trois sceptiques chargés de
+la réfuter : trente-quatre ont survécu, dix sont tombées. Les plus coûteuses
+n'étaient pas des fautes de frappe mais des **options qui ne réparaient rien** —
+et c'est la doctrine du projet qu'elles trahissaient, pas une règle de style :
+
+- le refus proposait « prends ce variant plus léger », et **aucun outil
+  n'acceptait de référence de variant**. L'option la mieux chiffrée du payload
+  était une impasse ; `ecurie_run` gagne un paramètre `variant`, et un test
+  parcourt la boucle entière — refusé, on lit l'option, on la prend, ça passe ;
+- `retry` était proposé pour un résident **à la fois épinglé et occupé** : la fin
+  du job rend le worker libre, pas sa mémoire. Il l'était aussi quand attendre
+  tout ce qui tourne n'aurait pas suffi. `frees_bytes` se compare désormais au
+  manque ;
+- le refus le plus simple — un seul variant, trop gros pour le budget — repartait
+  avec `options: []` et une raison **française** proposant `--hors-budget` à
+  l'agent. Il porte maintenant une raison anglaise, et l'issue qui reste : la
+  relayer à un humain ;
+- le pic annoncé était recalculé sur les arguments bruts quand l'admission avait
+  décidé sur l'entrée **résolue**, défauts fusionnés compris : deux vérités dans
+  le même payload, et un `fits_now` qui bascule sur un variant qui tenait ;
+- deux appels d'outils simultanés couraient sur la migration de `runs` — dix-neuf
+  paires sur vingt mouraient sur « duplicate column name », exactement au premier
+  lancement après la mise à jour, la seule fois où cette migration sert ;
+- un `progressToken` valant **zéro** éteignait toute la progression, par un `or`
+  qui le confondait avec l'absence de jeton — la même panne que celle du
+  `TypedDict`, sous une autre forme ;
+- la capacité `resources` n'était jamais annoncée : le SDK ne la déduit que d'un
+  handler `resources/list`, et sans elle **tous les liens de ressources étaient
+  des culs-de-sac** pour un client conforme.
+
+Ce qui n'est pas fait, et qui ne s'écrit pas : **l'usage**. La gate du mois 1
+compte des jours, pas des tâches.
+
 ## Le plan v1.0 — J0 → J3 (~8 semaines)
 
 ### J0 — Publiable (semaine 1)
@@ -134,12 +211,12 @@ verte, et l'antériorité sur le créneau est datée d'un tag.
 
 | # | Tâche | Livrable |
 |---|---|---|
-| 1.1 | Serveur MCP stdio : outils engendrés des contrats — le bloc `input` devient l'`inputSchema`, `x-ui` est ignoré. Le même pari que les formulaires RJSF, appliqué une troisième fois | `ecurie mcp` répond à `tools/list` |
-| 1.2 | Catalogue éditorial versionné : les douze capacités promises — `text-to-speech`, `speech-to-text`, `speaker-diarization`, `audio-separation`, `text-to-image`, `image-to-image`, `image-to-text`, `image-upscale`, `image-matting`, `image-segment`, `depth-estimation`, `time-series-forecast` — plus trois méta-outils : `ecurie_catalog` (découvrir les quarante et une), `ecurie_run` (n'importe quelle capacité par son contrat), `ecurie_status` (budget, résidents, disque, en lecture seule). Familles en opt-in, `face-*` exclues par défaut | douze + trois outils, sous la limite mesurée des quarante |
-| 1.3 | Refus d'admission négociables : le refus de `POST /runtime/admission` devient une erreur MCP structurée — chiffres mesurés et options exécutables (réessayer quand le job en cours finit, prendre un variant plus léger, réduire l'entrée) ; une épingle humaine n'est jamais levée par l'agent, il relaie la commande (`CONCEPTION.md` §6.3) | l'agent répare son refus tout seul |
-| 1.4 | Sorties en fichiers et ressources, progression par notifications — jamais un blob dans le contexte de l'agent | une image générée revient comme chemin + ressource |
-| 1.5 | `title` et `description` anglais des douze contrats exposés — de la rédaction, mais lue par des modèles : c'est du prompt engineering, budget de jetons compté | `tools/list` parle anglais |
-| 1.6 | Dogfooding instrumenté : la table `runs` devient l'instrument de la gate du mois 1. Le recrutement des un ou deux testeurs externes **démarre ici**, pas à J3 | des jobs MCP quotidiens dans la table |
+| 1.1 | ✓ Serveur MCP stdio : outils engendrés des contrats — le bloc `input` devient l'`inputSchema`, `x-ui` est ignoré. Le même pari que les formulaires RJSF, appliqué une troisième fois | `ecurie mcp` répond à `tools/list` : quinze outils, sur le vrai parc. « Ignoré » a été tranché en **retiré** et non « laissé passer » — un client qui valide en AJV strict refuse un mot-clé inconnu, et l'UI ne s'en tire qu'en désactivant ce mode. Le serveur tourne **en-process** : il monte son propre contexte et appelle `run_job` directement, sans HTTP ni port, si bien qu'il n'exige aucune route nouvelle — aucune route du tout |
+| 1.2 | ✓ Catalogue éditorial versionné : les douze capacités promises — `text-to-speech`, `speech-to-text`, `speaker-diarization`, `audio-separation`, `text-to-image`, `image-to-image`, `image-to-text`, `image-upscale`, `image-matting`, `image-segment`, `depth-estimation`, `time-series-forecast` — plus trois méta-outils : `ecurie_catalog` (découvrir les quarante et une), `ecurie_run` (n'importe quelle capacité par son contrat), `ecurie_status` (budget, résidents, disque, en lecture seule). Familles en opt-in, `face-*` exclues par défaut | quinze outils, **10 105 jetons de catalogue** mesurés sur le vrai parc — 39 % de marge sous le relevé de 16 690. La mesure a servi tout de suite : l'enveloppe de sortie documentée champ par champ pesait **59 % du catalogue** à elle seule, la même prose répétée douze fois. Elle est partie dans les `instructions` du serveur, lues une fois par session |
+| 1.3 | ✓ Refus d'admission négociables : le refus de `POST /runtime/admission` devient une erreur MCP structurée — chiffres mesurés et options exécutables (réessayer quand le job en cours finit, prendre un variant plus léger, réduire l'entrée) ; une épingle humaine n'est jamais levée par l'agent, il relaie la commande (`CONCEPTION.md` §6.3) | l'agent répare son refus tout seul. Il a fallu **remonter la décision jusqu'au résultat** : `run_job` avalait `AdmissionRefused` en une phrase française, et recomposer les chiffres après coup aurait mesuré un autre instant que le refus — entre les deux, un job a pu finir. `JobOutcome` porte donc l'objet `Admission`. Trois écarts avec l'exemple du §6.3, corrigés dans le document : `basis` n'existe pas avant 2.3, `when` nomme un variant faute que l'identité du job soit publiée, et `reduce_input` ne porte que là où une pente a été mesurée |
+| 1.4 | ◑ Sorties en fichiers et ressources, progression par notifications — jamais un blob dans le contexte de l'agent | une image générée revient comme chemin absolu + `ResourceLink`, et `resources/read` les résout sous la même garde de traversée que la route HTTP. **La progression est livrée et à moitié muette, pour une raison qui n'est pas la nôtre** : mesuré sur le SDK 2.1.1, un client en ère handshake envoie son `progressToken` et la barre avance ; en ère moderne (2026-07-28) il n'en envoie **aucun**, et rien ne peut partir. Le job aboutit dans les deux cas. Deux tests tiennent le fait, dont un qui échouera le jour où le SDK le corrigera |
+| 1.5 | ✓ `title` et `description` anglais des douze contrats exposés — de la rédaction, mais lue par des modèles : c'est du prompt engineering, budget de jetons compté | `tools/list` parle anglais : douze descriptions de 48 à 55 mots, chacune départageant l'outil de son voisin le plus confusable — ce qui est **dit** contre **qui** l'a dit, détourer contre segmenter, créer contre transformer contre agrandir, et où va l'OCR. Sept tests tiennent le texte contre les contrats : un champ inventé ou omis fait échouer la suite, comme une promesse de qualité non mesurée ou un nom de modèle cité |
+| 1.6 | ◑ Dogfooding instrumenté : la table `runs` devient l'instrument de la gate du mois 1. Le recrutement des un ou deux testeurs externes **démarre ici**, pas à J3 | la table sait désormais **par quelle porte** un job est entré — `cli`, `api`, `mcp` —, sans quoi la gate aurait compté des bancs d'essai du dimanche pour de l'usage. La colonne est arrivée avec sa migration : l'ajouter au seul DDL était un no-op silencieux sur une base existante, vert en test et cassé sur la seule machine qui compte. Restent à faire, et ils demandent des jours et non du code : **l'usage quotidien** et **le recrutement des testeurs** |
 | 1.7 | Outil `ecurie_fan_out(input, capabilities[])` — une même entrée envoyée à N capacités du catalogue, N résultats retournés, l'admission décidant en **réservation groupée**. Première étape de la fiche fan-out de flux (`registry/veille/BACKLOG.md` §E) ; le cas caméra-visage passe par l'opt-in `--tools faces`, l'exclusion par défaut ne bouge pas. **Opportuniste** : ne conditionne pas le critère de sortie de J1 | N modèles co-résidents prouvés en un appel — la matière première de la démo 3.2 |
 
 **Critère de sortie** : depuis Claude Code, `claude mcp add ecurie` puis un
