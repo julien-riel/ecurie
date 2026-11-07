@@ -1,7 +1,7 @@
 {
   "$schema": "../../../schema/golden.schema.json",
   "capability": "text-to-speech",
-  "version": 1,
+  "version": 2,
   "status": "complet",
   "description": "Dix phrases figées pour juger la QUALITÉ d'une voix, là où registry/evals/bench/text-to-speech.json mesure un coût. Aucune référence : il n'existe pas de wav « correct », et une distance acoustique à un enregistrement humain ne mesurerait qu'une ressemblance à ce locuteur-là. Ces phrases alimentent l'écran Confrontation, qui départage deux variants sur la même entrée. Seuls le texte et la graine sont fixés — la vitesse, la voix et les réglages propres au moteur restent ceux du variant, faute de quoi on jugerait un modèle sur des réglages faits pour un autre.",
   "cases": [
@@ -54,6 +54,13 @@
       "id": "abreviations",
       "input": { "text": "Mme Beauchêne, du 1290 rue Ste-Catherine E., app. 2e étage, cf. le dossier n° R-1428, etc.", "seed": 110 },
       "notes": "Abréviations qui se développent à l'oral, une adresse et un numéro de dossier. Lire « c f » ou « etc » comme des lettres est la panne classique, et elle rend la phrase incompréhensible."
-    }
+    },
+    {"id": "en-training-intro", "input": {"text": "Welcome to this training module. Over the next few minutes, we'll walk through how to set up your workspace, connect your first data source, and share a report with your team. By the end, you'll be ready to do it on your own.", "seed": 201}, "notes": "Registre de narration de formation en anglais américain : ton posé, trois éléments énumérés et une adresse directe. C'est la charge que ce jeu doit juger en premier."},
+    {"id": "en-numbers-dates", "input": {"text": "On March 3rd, 2026, revenue grew 12.5 percent to $4.7 million, and the team closed 1,284 tickets in 36 hours. Call 1-800-555-0142 before 5:30 p.m.", "seed": 202}, "notes": "Date, pourcentage, montant, séparateur de milliers, durée, numéro de téléphone et heure : autant de formes qu'une voix lit chiffre par chiffre quand sa normalisation est faible."},
+    {"id": "en-acronyms", "input": {"text": "Our API returns JSON over HTTPS, the SQL database runs on AWS, and the CEO wants the SaaS KPI dashboard exported as a PDF.", "seed": 203}, "notes": "Sigles épelés (API, SQL, AWS, CEO, KPI, PDF) contre sigles prononcés comme des mots (JSON, SaaS). La confusion entre les deux est la panne la plus visible d'une narration technique."},
+    {"id": "en-product-names", "input": {"text": "Open GitHub, install the Kubernetes plugin, then sync it with PostgreSQL, Figma, and macOS before you launch Slack.", "seed": 204}, "notes": "Noms de produits à casse et à prononciation particulières, absents d'un lexique ordinaire. Ce cas dit ce qu'un dictionnaire de prononciation devra corriger."},
+    {"id": "en-homographs", "input": {"text": "The lead engineer will lead the record-breaking effort to record a live demo, because we live in a world where you read what others read yesterday.", "seed": 205}, "notes": "Homographes dont la prononciation dépend de la syntaxe : lead, record, live, read. Le seul moyen de les réussir est de comprendre la phrase."},
+    {"id": "en-question-emphasis", "input": {"text": "Are you ready? Great! Now, here's the key point: don't skip this step, because everything else depends on it.", "seed": 206}, "notes": "Intonation montante, exclamation et insistance : ce qui sépare une narration vivante d'une lecture plate, et que le texte seul ne prescrit pas."},
+    {"id": "en-long-sentence", "input": {"text": "Before you publish the update, make sure that every member of the team who relies on the shared dashboard has reviewed the changes, confirmed that the numbers still match the source system, and agreed on the date when the previous version will be retired.", "seed": 207}, "notes": "Longue phrase à subordonnées : le souffle, le groupement prosodique et la tenue de la voix jusqu'au bout."}
   ]
 }

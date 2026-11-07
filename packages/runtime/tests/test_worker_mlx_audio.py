@@ -32,10 +32,12 @@ from ecurie_runtime.workers.mlx_audio import (
     announced_languages,
     announced_voices,
     generation_method,
+    honors_speed,
     import_runtime,
     merge_segments,
     plan_generation,
     read_config,
+    voice_file,
 )
 
 VOIX = ["serena", "vivian", "ryan"]
@@ -235,6 +237,25 @@ def test_le_repli_code_en_dur_ne_sert_qu_a_qwen3() -> None:
     assert announced_voices(FauxModele(voix=None), {"model_type": "kokoro"}) == []
 
 
+def test_les_voix_livrees_avec_les_poids_sont_annoncees(tmp_path: Path) -> None:
+    """Kokoro ne déclare aucun timbre : son dossier `voices/` est la seule source."""
+    (tmp_path / "voices").mkdir()
+    (tmp_path / "voices" / "am_adam.safetensors").touch()
+    (tmp_path / "voices" / "af_heart.safetensors").touch()
+    (tmp_path / "voices" / "af_heart.pt").touch()
+    voix = announced_voices(FauxModele(voix=None), {"model_type": "kokoro"}, tmp_path)
+    assert voix == ["af_heart", "am_adam"]
+    assert voice_file(tmp_path, "af_heart").is_file()
+
+
+def test_seule_une_famille_declaree_honore_la_vitesse() -> None:
+    """La signature ne prouve rien : le `generate` de Qwen3-TTS déclare `speed` sans l'appliquer."""
+    kokoro = type("Model", (), {"__module__": "mlx_audio.tts.models.kokoro.kokoro"})()
+    qwen = type("Model", (), {"__module__": "mlx_audio.tts.models.qwen3_tts.qwen3_tts"})()
+    assert honors_speed(kokoro)
+    assert not honors_speed(qwen)
+
+
 def test_les_dialectes_sont_ecartes_des_langues() -> None:
     langues = announced_languages(FauxModele(voix=None), CONFIG_CUSTOM_VOICE)
     assert langues == [AUTO_LANGUAGE, "french", "english"]
@@ -348,6 +369,22 @@ def test_speed_est_signale_jamais_fabrique() -> None:
     assert "vitesse" in plan.messages[0]
 
 
+def test_speed_est_transmise_au_moteur_qui_l_honore() -> None:
+    plan = plan_generation(
+        entree={"text": "Hello", "speed": 1.2},
+        params={},
+        defaults={},
+        method=METHOD_GENERIC,
+        voices=["af_heart"],
+        language="a",
+        native_speed=True,
+    )
+    assert plan.kwargs["speed"] == 1.2
+    assert plan.kwargs["lang_code"] == "a"
+    assert plan.speed_applied == 1.2
+    assert plan.warnings == ()
+
+
 def test_speed_nominale_ne_declenche_rien() -> None:
     assert _plan(entree={"text": "Bonjour"}, defaults={"speed": 1.0}).warnings == ()
 
@@ -380,6 +417,17 @@ def test_plusieurs_segments_sont_concatenes_et_leurs_compteurs_additionnes() -> 
     assert fusion.segments == 3
     assert fusion.samples == 42_000
     assert fusion.token_count == 35
+
+
+def test_la_longueur_vient_du_signal_et_non_du_compteur_du_modele() -> None:
+    """Kokoro annonce `samples = 1` : sans ceci, le banc reste vert avec un débit absurde."""
+
+    class Signal:
+        shape = (48_000,)
+
+    segment = FauxSegment("pcm", samples=1)
+    segment.audio = Signal()
+    assert merge_segments([segment], lambda parts: parts[0]).samples == 48_000
 
 
 def test_aucun_segment_est_une_erreur_explicite() -> None:

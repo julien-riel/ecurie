@@ -3548,7 +3548,9 @@
         "type": "object"
       },
       "models": [
-        "qwen3-tts-1.7b"
+        "kokoro-82m",
+        "qwen3-tts-1.7b",
+        "voxcpm2"
       ],
       "output": {
         "properties": {
@@ -3567,7 +3569,9 @@
         "audio": "audio/wav"
       },
       "ready_variants": [
-        "qwen3-tts-1.7b@8bit-mlx"
+        "kokoro-82m@bf16",
+        "qwen3-tts-1.7b@8bit-mlx",
+        "voxcpm2@8bit-mlx"
       ],
       "required": [
         "text"

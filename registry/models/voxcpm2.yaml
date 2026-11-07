@@ -1,0 +1,52 @@
+# Synthèse vocale 48 kHz sans voix embarquée — VoxCPM2, sur le runtime mlx-audio déjà là.
+#
+# `mlx_audio/tts/models/voxcpm2/` est présent dans le venv : ni environnement ni
+# dépendance de plus, seuls les poids arrivent. Ce modèle n'embarque aucun timbre :
+# la voix se décrit (`options.instruct`) ou se clone, et rien ne dit encore qu'une
+# description donne la même voix d'un segment à l'autre.
+id: voxcpm2
+name: VoxCPM2 2B
+capability: text-to-speech
+family: voxcpm
+vendor: OpenBMB
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Candidat de la comparaison de narration en anglais américain. Le dépôt amont
+  déclare trente langues, dont l'anglais et le français ; la carte du portage MLX
+  n'en cite que cinq.
+
+links:
+  homepage: https://huggingface.co/openbmb/VoxCPM2
+
+variants:
+  - id: 8bit-mlx
+    quantization: 8bit
+    tier: hot
+    runtime: mlx-audio
+    source:
+      kind: huggingface
+      repo: mlx-community/VoxCPM2-8bit
+      revision: "d52725898a0675703f7f9ddc5a4d1a3cdbb99032"   # 2026-04-08, apache-2.0
+      allow_patterns: ["*.json", "*.safetensors"]
+    defaults:
+      speed: 1.0
+    options:
+      instruct: "A warm, clear American English voice for a professional training narration, measured pace."
+    caveats:
+      - "`speed` n'est pas honoré par ce modèle."
+      - "Plus lent que le temps réel : compter environ 1,5 s de calcul par seconde d'audio."
+      - "LA VOIX NE TIENT PAS d'un segment à l'autre : à description et graine identiques, la hauteur médiane va de 106 à 195 Hz sur une narration de 21 segments (193 à 205 Hz pour Kokoro). À écarter pour une narration longue tant qu'aucune référence audio ne l'ancre."
+      - "Profil mesuré sur la charge type du banc, en français : un coût, pas une qualité."
+    profile:
+      disk_bytes: 3225461623
+      peak_unified_memory_bytes: 8477564156
+      warmup_ms: 1826
+      latency_ms_p50: 21243
+      rtf: 1.472907
+      throughput: "0.68× temps réel"
+      measured_on: "Mac17,4 24 Gio / macOS 26.6.2"
+      measured_at: "2026-11-07"
+      harness_version: "0.3.0"

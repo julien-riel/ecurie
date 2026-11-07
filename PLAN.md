@@ -13,6 +13,48 @@
 > sert pas dans la semaine qui suit sa livraison, on arrête » — a été passée : il
 > a servi.)
 
+## État au 6 novembre 2026 — la narration, avant J2
+
+Écurie reprend après deux mois sans usage (dernier job MCP le 2 septembre). Julien
+fait passer devant J2 une chaîne de narration en **anglais américain**, à **voix
+préréglées**, sans clonage, comme **outil au-dessus du MCP** : `tools/narrate.py`.
+Le serveur n'y gagne aucune capacité, les décisions du 29 août restent en vigueur.
+
+Le même script de 5 minutes, sur la même machine, avec les mêmes réglages :
+
+| Variant | Calcul total | Pic au profil | Hauteur par segment | Transcription à l'aveugle |
+|---|---|---|---|---|
+| `kokoro-82m@bf16`, `af_heart` | 38 s | 2,25 Gio (2,54 en usage réel) | 193-205 Hz | aucun mot perdu |
+| `qwen3-tts-1.7b@8bit-mlx`, `aiden` | 176 s | 7,65 Gio | 130-168 Hz | aucun mot perdu |
+| `voxcpm2@8bit-mlx`, voix décrite | 446 s | 7,90 Gio | **106-195 Hz** | aucun mot perdu |
+
+Ce tableau mesure un coût et une stabilité, **pas une qualité de voix** : le choix
+du titulaire attend une écoute humaine, et rien n'est promu d'ici là. La transcription
+ne juge ni l'intonation ni la prononciation fine, et son modèle de langue peut en
+masquer les défauts.
+
+Ce que le travail a trouvé en chemin :
+
+- **Une réussite à côté de plus** : Kokoro annonce `samples = 1`, et le banc restait
+  vert avec un facteur temps réel de 29 343. Le worker lit désormais la longueur du signal.
+- **VoxCPM2 ne tient pas une voix** d'un segment à l'autre, à description et graine
+  identiques. L'ancrer sur une référence audio reste à essayer.
+- **Le profil de Kokoro sous-déclare de 13 %** sur des segments de narration : le texte
+  le plus long de la charge type fait environ 190 caractères, ceux du script jusqu'à 400.
+- **Une reprise de Kokoro ne change presque rien** (corrélation de 0,995) : ce modèle se
+  corrige par le texte ou le lexique, pas par la graine.
+- **`loudnorm` passait en mode dynamique sans le dire** (7 novembre). Julien a
+  entendu des sauts dans la voix, que Maestro a signalés. La seconde passe demandait un
+  traitement linéaire, mais ffmpeg y renonce quand le plafond de crête ne laisse pas la
+  marge : le gain variait de ×1,9 à ×3,2 au fil de la narration Kokoro. `narrate.py`
+  applique désormais **un gain unique**, plafonné à -1,5 dBTP, et le manifeste dit le
+  mode et le gain. Julien garde le gain seul, sans limiteur, quitte à rester sous la
+  cible : -24,6 LUFS pour Kokoro, -20,8 pour Qwen3 et -25,3 pour VoxCPM2 sur ce script.
+  Les « -16 LUFS » annoncés le 6 novembre venaient du mode dynamique.
+- **La garde de disque refuse tout téléchargement sur cette machine** (2,3 % libres
+  pour un seuil de 15 %), et quatre tests de `test_pull.py` lisent le vrai disque : ils
+  échouent ici, sur `main` comme ailleurs. Dette à solder.
+
 ## État au 29 août 2026 — le pivot
 
 Un audit produit multi-agents — six enquêteurs sur le dépôt et l'écosystème,

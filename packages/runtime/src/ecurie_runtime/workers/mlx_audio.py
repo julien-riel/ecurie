@@ -47,6 +47,10 @@ DEFAULT_SAMPLE_RATE = 24_000
 METHOD_CUSTOM_VOICE = "generate_custom_voice"
 METHOD_GENERIC = "generate"
 
+# Les familles dont la vitesse est réellement appliquée. Lire la signature ne suffit
+# pas : le `generate` de Qwen3-TTS déclare `speed` sans l'honorer.
+NATIVE_SPEED_FAMILIES = frozenset({"kokoro"})
+
 # Réglages d'échantillonnage portant le même nom dans les deux méthodes de
 # Qwen3-TTS. Ils ne figurent dans aucun contrat de capacité : ils n'arrivent que
 # si un manifeste ou un job les pose explicitement, et sinon on laisse les
@@ -95,6 +99,7 @@ class GenerationPlan:
     method: str
     kwargs: dict[str, Any]
     speed: float = 1.0
+    speed_applied: float = 1.0
     warnings: tuple[tuple[str, str], ...] = ()
 
     @property
@@ -163,7 +168,19 @@ def generation_method(model: Any, config: Mapping[str, Any]) -> str:
     return METHOD_GENERIC
 
 
-def announced_voices(model: Any, config: Mapping[str, Any]) -> list[str]:
+def honors_speed(model: Any) -> bool:
+    """Vrai si la famille du modèle chargé applique `speed`, d'après son module mlx-audio."""
+    return not NATIVE_SPEED_FAMILIES.isdisjoint(type(model).__module__.split("."))
+
+
+def voice_file(weights_path: Path, voice: str) -> Path:
+    """Le fichier d'une voix livrée avec les poids, existant ou non."""
+    return weights_path / "voices" / f"{voice}.safetensors"
+
+
+def announced_voices(
+    model: Any, config: Mapping[str, Any], weights_path: Path | None = None
+) -> list[str]:
     """Les timbres réellement disponibles, pour le `x-options-from: runtime.voices` du contrat."""
     voix = _liste_annoncee(model, "get_supported_speakers")
     if voix:
@@ -171,6 +188,10 @@ def announced_voices(model: Any, config: Mapping[str, Any]) -> list[str]:
     voix = [str(nom) for nom in _sous_config(config, "spk_id")]
     if voix:
         return voix
+    if weights_path is not None:
+        voix = sorted(p.stem for p in (weights_path / "voices").glob("*.safetensors"))
+        if voix:
+            return voix
     # Le repli n'est légitime que pour la famille dont il vient : servir neuf
     # noms chinois à un Kokoro produirait une liste de voix inexistantes, donc
     # une UI qui propose des choix qui échoueront tous.
@@ -224,6 +245,7 @@ def plan_generation(
     method: str,
     voices: Sequence[str] = (),
     language: str = AUTO_LANGUAGE,
+    native_speed: bool = False,
 ) -> GenerationPlan:
     """Traduit une demande du protocole en arguments pour la méthode de synthèse.
 
@@ -258,7 +280,7 @@ def plan_generation(
 
     avertissements: list[tuple[str, str]] = []
     vitesse = _vitesse(_reglage("speed", *couches))
-    if abs(vitesse - 1.0) > 1e-6:
+    if abs(vitesse - 1.0) > 1e-6 and not native_speed:
         # Vérifié dans le source de mlx-audio : `generate_custom_voice` n'a
         # aucun paramètre de vitesse, et `generate` documente le sien comme
         # « not directly supported yet » pour Qwen3-TTS. Rééchantillonner nous-
@@ -267,7 +289,7 @@ def plan_generation(
         avertissements.append(
             (
                 "speed",
-                f"speed={vitesse:g} ignoré : Qwen3-TTS n'expose aucun contrôle de vitesse "
+                f"speed={vitesse:g} ignoré : ce moteur n'expose aucun contrôle de vitesse "
                 "et Écurie ne rééchantillonne pas — l'audio sort à la vitesse nominale",
             )
         )
@@ -286,6 +308,8 @@ def plan_generation(
     else:
         # `generate` renomme les deux mêmes notions : `voice` et `lang_code`.
         kwargs = {"text": texte, "voice": voix, "lang_code": langue}
+        if native_speed:
+            kwargs["speed"] = vitesse
 
     instruct = _reglage("instruct", *couches)
     if instruct:
@@ -299,6 +323,7 @@ def plan_generation(
         method=method,
         kwargs=kwargs,
         speed=vitesse,
+        speed_applied=vitesse if native_speed else 1.0,
         warnings=tuple(avertissements),
     )
 
@@ -338,8 +363,17 @@ def merge_segments(
         audio=audio,
         segments=len(segments),
         token_count=sum(_entier(s, "token_count") for s in segments),
-        samples=sum(_entier(s, "samples") for s in segments),
+        # La longueur du signal plutôt que le compteur du modèle : Kokoro annonce
+        # `samples = 1`, la première dimension de son tableau `[1, N]`, et le débit
+        # calculé dessus sortait à 29 000 fois le temps réel, sur un banc au vert.
+        samples=_longueur(audio) or sum(_entier(s, "samples") for s in segments),
     )
+
+
+def _longueur(audio: Any) -> int:
+    """Le nombre d'échantillons d'un signal mono, 0 si l'objet n'en dit rien."""
+    forme = getattr(audio, "shape", None)
+    return int(forme[0]) if forme else 0
 
 
 def _entier(segment: Any, nom: str) -> int:
@@ -363,6 +397,8 @@ class MlxAudioWorker(Worker):
         self._model: Any = None
         self._method = METHOD_GENERIC
         self._voices: list[str] = []
+        self._weights: Path | None = None
+        self._native_speed = False
         self._language = AUTO_LANGUAGE
         self._sample_rate = DEFAULT_SAMPLE_RATE
         self._defaults: dict[str, Any] = {}
@@ -389,7 +425,9 @@ class MlxAudioWorker(Worker):
         self._runtime = runtime
         self._model = model
         self._method = generation_method(model, config)
-        self._voices = announced_voices(model, config)
+        self._voices = announced_voices(model, config, chemin)
+        self._weights = chemin
+        self._native_speed = honors_speed(model)
         self._sample_rate = int(getattr(model, "sample_rate", None) or DEFAULT_SAMPLE_RATE)
         # Le contrat text-to-speech n'a pas de champ de langue, et il n'en aura
         # pas : toutes les synthèses vocales ne distinguent pas les langues, or un
@@ -426,6 +464,7 @@ class MlxAudioWorker(Worker):
             method=self._method,
             voices=self._voices,
             language=self._language,
+            native_speed=self._native_speed,
         )
         for clé, message in plan.warnings:
             self._avertir(clé, message)
@@ -441,7 +480,14 @@ class MlxAudioWorker(Worker):
 
         progress(15, "synthèse")
         debut = time.monotonic()
-        flux = getattr(self._model, plan.method)(**plan.kwargs)
+        kwargs = dict(plan.kwargs)
+        voix = kwargs.get("voice")
+        if voix and self._weights is not None and voice_file(self._weights, str(voix)).is_file():
+            # Kokoro chercherait sinon la voix dans le cache Hugging Face par nom de
+            # dépôt, puis sur le réseau, fermé pour un worker. Un chemin en
+            # `.safetensors` est la seule forme qu'il charge directement.
+            kwargs["voice"] = str(voice_file(self._weights, str(voix)))
+        flux = getattr(self._model, plan.method)(**kwargs)
         # Qwen3-TTS rend un générateur ; une autre famille mlx-audio pourrait
         # rendre un résultat seul. Un `hasattr` évite un TypeError illisible au
         # premier variant qui ne sera pas celui-ci.
@@ -512,7 +558,7 @@ class MlxAudioWorker(Worker):
             metriques["rtf"] = round(calcul / secondes, 4)
         if abs(plan.speed - 1.0) > 1e-6:
             metriques["speed_requested"] = plan.speed
-            metriques["speed_applied"] = 1.0
+            metriques["speed_applied"] = plan.speed_applied
         if plan.warnings:
             metriques["warnings"] = plan.messages
         return metriques

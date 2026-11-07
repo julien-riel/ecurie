@@ -45,7 +45,7 @@ d'écraser une image existante sans `--force`.
 | `tool-use` | 8 situations | **appel attendu** (JSON) | complet |
 | `image-to-text` | 8 scènes | mentions exigées | complet |
 | `text-generation` | 8 demandes de programmation | mentions exigées | complet |
-| `text-to-speech` | 10 phrases | aucune (confrontation) | complet |
+| `text-to-speech` | 17 phrases (10 FR, 7 EN) | aucune (confrontation) | complet |
 | `text-to-image` | 10 descriptions | aucune (confrontation) | complet |
 | `image-to-mesh` | 8 solides | genre topologique | complet |
 | `speech-to-text` | 12 extraits, dont 7 en français québécois | texte exact | **incomplet** — textes figés, enregistrements à produire (`speech-to-text/SOURCING.md`) |

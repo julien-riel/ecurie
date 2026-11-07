@@ -1,0 +1,50 @@
+# Synthèse vocale légère à voix préréglées — Kokoro 82M, en anglais américain.
+id: kokoro-82m
+name: Kokoro 82M
+capability: text-to-speech
+family: kokoro
+vendor: hexgrad
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Candidat de la comparaison de narration en anglais américain. Seules les voix
+  américaines sont téléchargées, parce que c'est le marché visé. Il dispose de son
+  propre environnement : misaki exige Python < 3.13.
+
+links:
+  homepage: https://huggingface.co/hexgrad/Kokoro-82M
+
+variants:
+  - id: bf16
+    quantization: bf16
+    tier: hot
+    runtime: mlx-audio
+    runtime_env: mlx-audio-kokoro
+    source:
+      kind: huggingface
+      repo: mlx-community/Kokoro-82M-bf16
+      revision: "a71e4d38b236d968966a2002c4c895dbd12b1c3c"   # 2025-12-02, apache-2.0
+      allow_patterns: ["config.json", "kokoro-v1_0.safetensors", "voices/af_*.safetensors", "voices/am_*.safetensors"]
+    defaults:
+      voice: af_heart
+      speed: 1.0
+    options:
+      # `a` est le code de l'anglais américain pour misaki, pas un code de langue ISO.
+      language: a
+    caveats:
+      - "Anglais américain seulement dans ce variant : les voix des autres langues ne sont pas téléchargées."
+      - "Profil mesuré sur la charge type du banc, en français, phonétisée comme de l'anglais : un coût, pas une qualité. Le pic croît avec la longueur du texte (0,85 Gio sur le cas court, 2,25 Gio sur le plus long)."
+      - "SOUS-DÉCLARÉ pour la narration : 2,54 Gio relevés en usage réel sur 373 caractères, soit 13 % au-dessus du profil. Le texte le plus long de la charge type fait environ 190 caractères."
+      - "Une autre graine ne change presque rien (même durée, corrélation de 0,995) : pour corriger une prononciation, modifier le texte ou le lexique, pas la graine."
+    profile:
+      disk_bytes: 337563903
+      peak_unified_memory_bytes: 2420625568
+      warmup_ms: 190
+      latency_ms_p50: 1158
+      rtf: 0.091648
+      throughput: "10.91× temps réel"
+      measured_on: "Mac17,4 24 Gio / macOS 26.6.2"
+      measured_at: "2026-11-07"
+      harness_version: "0.3.0"

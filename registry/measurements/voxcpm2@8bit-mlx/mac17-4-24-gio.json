@@ -1,0 +1,75 @@
+{
+  "ref": "voxcpm2@8bit-mlx",
+  "model": "voxcpm2",
+  "variant": "8bit-mlx",
+  "capability": "text-to-speech",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.6.2",
+  "measured_at": "2026-11-07",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/text-to-speech.json",
+    "version": 1,
+    "cases": [
+      "court",
+      "moyen",
+      "difficile"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 3225461623,
+    "peak_unified_memory_bytes": 8477564156,
+    "warmup_ms": 1826,
+    "latency_ms_p50": 21243,
+    "rtf": 1.472907,
+    "throughput": "0.68× temps réel"
+  },
+  "cases": [
+    {
+      "id": "court",
+      "ok": true,
+      "duration_ms": 3886,
+      "metrics": {
+        "duration_ms": 3886,
+        "sample_rate": 48000,
+        "token_count": 31,
+        "segments": 1,
+        "audio_seconds": 1.92,
+        "rtf": 1.8099,
+        "peak_memory_bytes": 4778229556
+      },
+      "error": null
+    },
+    {
+      "id": "moyen",
+      "ok": true,
+      "duration_ms": 21243,
+      "metrics": {
+        "duration_ms": 21243,
+        "sample_rate": 48000,
+        "token_count": 107,
+        "segments": 1,
+        "audio_seconds": 14.88,
+        "rtf": 1.3077,
+        "peak_memory_bytes": 7435902204
+      },
+      "error": null
+    },
+    {
+      "id": "difficile",
+      "ok": true,
+      "duration_ms": 26953,
+      "metrics": {
+        "duration_ms": 26953,
+        "sample_rate": 48000,
+        "token_count": 119,
+        "segments": 1,
+        "audio_seconds": 18.56,
+        "rtf": 1.3351,
+        "peak_memory_bytes": 8477564156
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

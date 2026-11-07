@@ -116,7 +116,7 @@ uv run ecurie store scan          # peuple ~/.ecurie/state.db
 uv run ecurie store status        # les trois chiffres
 ```
 
-`env sync` prend des noms, et sans argument reconstruit **les dix-huit**
+`env sync` prend des noms, et sans argument reconstruit **les dix-neuf**
 runtimes : 13 Go de venvs sur cette machine, dont 1,9 Go pour `cad-recode`
 seul, avant le moindre poids téléchargé. `mlx-audio` est le seul dont le
 quickstart ci-dessous a besoin ; `ecurie env list` nomme les autres.
