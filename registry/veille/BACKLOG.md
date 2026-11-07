@@ -77,6 +77,7 @@ que ça marche » mais « est-ce meilleur que ce qu'on a, sur la charge type ».
 | **Demucs** | `audio-separation` | `htdemucs-mlx@fp32-mlx` — **c'est déjà lui** | Adaptateur écrit le 24 août ; manque une charge type musicale |
 | **DeepFilterNet** | `audio-denoise` | `deepfilternet3-mlx` — **c'est déjà lui** | Adaptateur écrit mais **bloqué** : DSP non validé (voir §B) |
 | **Qwen3-TTS** | `text-to-speech` | `qwen3-tts-1.7b@8bit-mlx` — **titulaire** | Rien à faire |
+| **Kokoro 82M**, **VoxCPM2** | `text-to-speech` | candidats mesurés le 2026-11-06 (`PLAN.md`) | L'écoute humaine de la narration de 5 minutes ; VoxCPM2 doit d'abord tenir une voix d'un segment à l'autre |
 
 ## B. Dettes ouvertes sur des capacités déjà déclarées
 

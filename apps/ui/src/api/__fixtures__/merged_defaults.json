@@ -481,6 +481,17 @@
       "octree_resolution": 256
     }
   },
+  "kokoro-82m@bf16": {
+    "capability": "text-to-speech",
+    "merged": {
+      "speed": 1.0,
+      "voice": "af_heart"
+    },
+    "variant_defaults": {
+      "speed": 1.0,
+      "voice": "af_heart"
+    }
+  },
   "ltx-video-2b-i2v@bf16": {
     "capability": "image-to-video",
     "merged": {
@@ -1334,5 +1345,14 @@
       "octree_resolution": 256
     },
     "variant_defaults": {}
+  },
+  "voxcpm2@8bit-mlx": {
+    "capability": "text-to-speech",
+    "merged": {
+      "speed": 1.0
+    },
+    "variant_defaults": {
+      "speed": 1.0
+    }
   }
 }

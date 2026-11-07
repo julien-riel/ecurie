@@ -2238,6 +2238,76 @@
       "vendor": "Tencent"
     },
     {
+      "capability": "text-to-speech",
+      "family": "kokoro",
+      "id": "kokoro-82m",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/hexgrad/Kokoro-82M",
+        "paper": null
+      },
+      "name": "Kokoro 82M",
+      "notes": "Candidat de la comparaison de narration en anglais américain. Seules les voix américaines sont téléchargées, parce que c'est le marché visé. Il dispose de son propre environnement : misaki exige Python < 3.13.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Anglais américain seulement dans ce variant : les voix des autres langues ne sont pas téléchargées.",
+            "Profil mesuré sur la charge type du banc, en français, phonétisée comme de l'anglais : un coût, pas une qualité. Le pic croît avec la longueur du texte (0,85 Gio sur le cas court, 2,25 Gio sur le plus long).",
+            "SOUS-DÉCLARÉ pour la narration : 2,54 Gio relevés en usage réel sur 373 caractères, soit 13 % au-dessus du profil. Le texte le plus long de la charge type fait environ 190 caractères.",
+            "Une autre graine ne change presque rien (même durée, corrélation de 0,995) : pour corriger une prononciation, modifier le texte ou le lexique, pas la graine."
+          ],
+          "defaults": {
+            "speed": 1.0,
+            "voice": "af_heart"
+          },
+          "entrypoint": null,
+          "env": "mlx-audio-kokoro",
+          "heavy": false,
+          "id": "bf16",
+          "options": {
+            "language": "a"
+          },
+          "profile": {
+            "disk_bytes": 337563903,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 1158,
+            "measured_at": "2026-11-07",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.6.2",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 2420625568,
+            "rtf": 0.091648,
+            "throughput": "10.91× temps réel",
+            "warmup_ms": 190
+          },
+          "quantization": "bf16",
+          "ready": true,
+          "ref": "kokoro-82m@bf16",
+          "runtime": "mlx-audio",
+          "source": {
+            "allow_patterns": [
+              "config.json",
+              "kokoro-v1_0.safetensors",
+              "voices/af_*.safetensors",
+              "voices/am_*.safetensors"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/Kokoro-82M-bf16",
+            "revision": "a71e4d38b236d968966a2002c4c895dbd12b1c3c",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "hexgrad"
+    },
+    {
       "capability": "text-to-video",
       "family": "ltx-video",
       "id": "ltx-video-2b",
@@ -6429,6 +6499,73 @@
         }
       ],
       "vendor": "Microsoft Research"
+    },
+    {
+      "capability": "text-to-speech",
+      "family": "voxcpm",
+      "id": "voxcpm2",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": null,
+        "homepage": "https://huggingface.co/openbmb/VoxCPM2",
+        "paper": null
+      },
+      "name": "VoxCPM2 2B",
+      "notes": "Candidat de la comparaison de narration en anglais américain. Le dépôt amont déclare trente langues, dont l'anglais et le français ; la carte du portage MLX n'en cite que cinq.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "`speed` n'est pas honoré par ce modèle.",
+            "Plus lent que le temps réel : compter environ 1,5 s de calcul par seconde d'audio.",
+            "LA VOIX NE TIENT PAS d'un segment à l'autre : à description et graine identiques, la hauteur médiane va de 106 à 195 Hz sur une narration de 21 segments (193 à 205 Hz pour Kokoro). À écarter pour une narration longue tant qu'aucune référence audio ne l'ancre.",
+            "Profil mesuré sur la charge type du banc, en français : un coût, pas une qualité."
+          ],
+          "defaults": {
+            "speed": 1.0
+          },
+          "entrypoint": null,
+          "env": "mlx-audio",
+          "heavy": true,
+          "id": "8bit-mlx",
+          "options": {
+            "instruct": "A warm, clear American English voice for a professional training narration, measured pace."
+          },
+          "profile": {
+            "disk_bytes": 3225461623,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 21243,
+            "measured_at": "2026-11-07",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.6.2",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 8477564156,
+            "rtf": 1.472907,
+            "throughput": "0.68× temps réel",
+            "warmup_ms": 1826
+          },
+          "quantization": "8bit",
+          "ready": true,
+          "ref": "voxcpm2@8bit-mlx",
+          "runtime": "mlx-audio",
+          "source": {
+            "allow_patterns": [
+              "*.json",
+              "*.safetensors"
+            ],
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mlx-community/VoxCPM2-8bit",
+            "revision": "d52725898a0675703f7f9ddc5a4d1a3cdbb99032",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "OpenBMB"
     }
   ]
 }

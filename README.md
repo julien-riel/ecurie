@@ -171,7 +171,7 @@ uv run ecurie store scan          # populate ~/.ecurie/state.db from what is alr
 uv run ecurie store status        # the three numbers: apparent, real, reclaimable
 ```
 
-`env sync` takes names, and defaults to **all eighteen** runtimes when given
+`env sync` takes names, and defaults to **all nineteen** runtimes when given
 none — 13 GB of venvs on this machine, `cad-recode` alone 1.9 GB, before a
 single weight is downloaded. `mlx-audio` is the only one the quickstart below
 needs; `ecurie env list` names the rest and their state.
@@ -255,7 +255,7 @@ uv run ruff check .           # lint, 100-column lines — the whole tree, as CI
 cd apps/ui && npm ci && npm test  # the front-end suite (the UI is frozen, its tests are not)
 ```
 
-Lint is `.` and not `packages/` on purpose: the eighteen runtimes are the
+Lint is `.` and not `packages/` on purpose: the nineteen runtimes are the
 largest body of code here, and `.github/workflows/ci.yml` checks them. What a
 healthy clone looks like on the 24 GB reference machine, 2026-08-30: **1,400
 passed, 19 skipped, 7 deselected** on the Python side, **497 passed, 8 skipped**

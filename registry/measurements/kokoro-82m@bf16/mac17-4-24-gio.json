@@ -1,0 +1,75 @@
+{
+  "ref": "kokoro-82m@bf16",
+  "model": "kokoro-82m",
+  "variant": "bf16",
+  "capability": "text-to-speech",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.6.2",
+  "measured_at": "2026-11-07",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/text-to-speech.json",
+    "version": 1,
+    "cases": [
+      "court",
+      "moyen",
+      "difficile"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 337563903,
+    "peak_unified_memory_bytes": 2420625568,
+    "warmup_ms": 190,
+    "latency_ms_p50": 1158,
+    "rtf": 0.091648,
+    "throughput": "10.91× temps réel"
+  },
+  "cases": [
+    {
+      "id": "court",
+      "ok": true,
+      "duration_ms": 1395,
+      "metrics": {
+        "duration_ms": 1395,
+        "sample_rate": 24000,
+        "token_count": 30,
+        "segments": 1,
+        "audio_seconds": 2.35,
+        "rtf": 0.5881,
+        "peak_memory_bytes": 911043604
+      },
+      "error": null
+    },
+    {
+      "id": "moyen",
+      "ok": true,
+      "duration_ms": 1158,
+      "metrics": {
+        "duration_ms": 1158,
+        "sample_rate": 24000,
+        "token_count": 267,
+        "segments": 1,
+        "audio_seconds": 17.45,
+        "rtf": 0.0655,
+        "peak_memory_bytes": 2388380513
+      },
+      "error": null
+    },
+    {
+      "id": "difficile",
+      "ok": true,
+      "duration_ms": 1035,
+      "metrics": {
+        "duration_ms": 1035,
+        "sample_rate": 24000,
+        "token_count": 326,
+        "segments": 1,
+        "audio_seconds": 19.35,
+        "rtf": 0.0526,
+        "peak_memory_bytes": 2420625568
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

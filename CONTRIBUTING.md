@@ -11,7 +11,7 @@ so far comes from one machine. A measurement from *your* machine class is the
 most valuable thing you can send.
 
 You need the runtime and the weights first. `env sync` takes names and rebuilds
-all eighteen runtimes when given none — 13 GB of venvs — so name the one your
+all nineteen runtimes when given none — 13 GB of venvs — so name the one your
 variant declares in its manifest:
 
 ```bash
@@ -149,7 +149,7 @@ uv run ruff check .           # lint, 100-column lines — the whole tree, as CI
 cd apps/ui && npm ci && npm test  # front-end suite
 ```
 
-Lint the whole tree, not `packages/`: CI runs `ruff check .`, and the eighteen
+Lint the whole tree, not `packages/`: CI runs `ruff check .`, and the nineteen
 runtimes under `runtimes/` are the largest body of code here. A healthy clone
 gives 1,296 passed, 19 skipped, 5 deselected and 497 passed, 8 skipped
 (2026-08-29, 24 GB reference machine); the skips are all *numpy absent* or
