@@ -947,8 +947,8 @@ Ce paragraphe portait jusqu'à J1 deux phrases qui se contredisaient : les
 serveur », et les capacités restantes « exécutables par `ecurie_run` ». Prises
 ensemble, elles vident le champ de son sens — l'échappatoire rouvrirait ce que le
 catalogue ferme, et il suffirait à un agent de passer par `ecurie_run` pour
-identifier quelqu'un. Le champ gagne : `ecurie_run` refuse lui aussi les sept
-contrats qui le portent — les six `face-*` et `voice-clone` —, et l'opt-in les
+identifier quelqu'un. Le champ gagne : `ecurie_run` refuse lui aussi les huit
+contrats qui le portent — les six `face-*`, `voice-clone` et `talking-head` —, et l'opt-in les
 rouvre des deux côtés d'un même geste. Une capacité qui identifie une personne ne
 devient pas acceptable parce qu'elle est passée par une autre porte. Le refus
 porte alors la commande à relayer à l'humain, comme tous les autres.

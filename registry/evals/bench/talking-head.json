@@ -1,0 +1,38 @@
+{
+  "capability": "talking-head",
+  "version": 1,
+  "description": "Charge type du banc d'essai. La même parole de synthèse, sur un portrait de synthèse en 768×1024, à trois durées. Le portrait n'est pas carré pour que le cadrage par Apple Vision soit dans la mesure. La parole est en français : ce sont le coût et la présence d'un mouvement que ce banc mesure, pas la justesse de la bouche. `max_seconds` est le paramètre d'échelle : le réseau travaille par tronçons de 33 images et son pic devrait rester plat, mais wav2vec2 encode la parole d'un seul bloc. Les cas ne changent jamais.",
+  "scaling_parameter": "max_seconds",
+  "cases": [
+    {
+      "id": "portrait-4s",
+      "input": {
+        "portrait": "assets/visage-seul.png",
+        "audio": "assets/parole-fr-32s.wav",
+        "max_seconds": 4
+      },
+      "source": {
+        "recipe": "job",
+        "capability": "text-to-image",
+        "model": "sdxl-base@fp16",
+        "note": "visage-seul.png : sortie du parc, 768×1024, 30 pas, graine 1507 ; la personne n'existe pas. Prompt et négatif dans NOTICE."
+      }
+    },
+    {
+      "id": "portrait-12s",
+      "input": {
+        "portrait": "assets/visage-seul.png",
+        "audio": "assets/parole-fr-32s.wav",
+        "max_seconds": 12
+      }
+    },
+    {
+      "id": "portrait-32s",
+      "input": {
+        "portrait": "assets/visage-seul.png",
+        "audio": "assets/parole-fr-32s.wav",
+        "max_seconds": 32
+      }
+    }
+  ]
+}

@@ -67,6 +67,9 @@ Capability = Literal[
     # L'alignement complète `speech-to-text`, dont le contrat ne porte pas
     # d'horodatage au mot : le texte lui est donné, il ne le devine pas.
     "audio-align",
+    # Une tête entière générée à partir d'un portrait et d'une parole. Elle n'est pas
+    # `lip-sync`, qui ne régénère que la bouche et rend l'image d'origine autour.
+    "talking-head",
 ]
 
 Status = Literal["active", "candidate", "deprecated", "retired"]
@@ -93,6 +96,8 @@ Runtime = Literal[
     "esm-torch",
     "cad-recode",
     "lerobot",
+    # Le portage MLX de SoulX-FlashHead, vendoré : ni Torch ni MediaPipe.
+    "mlx-flashhead",
     "comfy",
     "ollama",
     "llama-cpp",

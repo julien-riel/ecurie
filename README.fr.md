@@ -3,7 +3,7 @@
 **L'inférence multimodale qui ne swappe jamais, sur Apple Silicon** — des yeux,
 des oreilles et une voix locales pour votre agent de code, protégés par des
 profils mémoire mesurés au banc plutôt qu'estimés. `ecurie mcp` sert douze de
-ses 41 contrats de capacité en outils MCP, à côté d'une CLI et d'une API HTTP
+ses 42 contrats de capacité en outils MCP, à côté d'une CLI et d'une API HTTP
 locale. Ce que **v1.0** doit encore : le paquet PyPI, des profils empruntés qui
 se disent tels, et un démarrage éprouvé sur une machine qui n'est pas celle-ci.
 
@@ -56,18 +56,19 @@ exposées en outils MCP engendrés de leurs contrats typés
 - **Produire** — `text-to-image`, `image-to-image`, `image-upscale`
 - **Prévoir** — `time-series-forecast`
 
-Plus trois méta-outils toujours présents : `ecurie_catalog` (découvrir les 41
+Plus trois méta-outils toujours présents : `ecurie_catalog` (découvrir les 42
 contrats et les modèles installés), `ecurie_run` (l'échappatoire : n'importe
 quelle capacité par son contrat), `ecurie_status` (résidents, budget Metal,
 comptabilité disque — lecture seule).
 
-Deux exclusions délibérées. Sept contrats déclarent une valeur `human_subject`
-— les six `face-*` et `voice-clone` — et aucun n'est parmi les douze. Le serveur
+Deux exclusions délibérées. Huit contrats déclarent une valeur `human_subject`
+— les six `face-*`, `voice-clone` et `talking-head` — et aucun n'est parmi les douze. Le serveur
 **filtre sur ce champ** plutôt que sur une liste tenue à la main, et il ferme
 les deux portes : le catalogue et l'échappatoire `ecurie_run`, parce qu'une
 capacité qui identifie quelqu'un ne devient pas acceptable pour être passée par
 une autre porte. `ecurie mcp --tools faces` rouvre les deux d'un même geste, et
-le refus porte cette commande, à exécuter soi-même. Les 29 autres contrats sont
+le refus porte cette commande, à exécuter soi-même ; `--tools voice` et
+`--tools talking-head` font de même pour ces deux-là. Les 30 autres contrats sont
 **expérimentaux** — découvrables, exécutables, sans promesse d'entretien ;
 l'OCR est de ceux-là, `document-to-text` étant délibérément un contrat séparé
 de `image-to-text`. Le catalogue est petit à dessein : le coût d'un agent est
@@ -116,7 +117,7 @@ uv run ecurie store scan          # peuple ~/.ecurie/state.db
 uv run ecurie store status        # les trois chiffres
 ```
 
-`env sync` prend des noms, et sans argument reconstruit **les dix-neuf**
+`env sync` prend des noms, et sans argument reconstruit **les vingt**
 runtimes : 13 Go de venvs sur cette machine, dont 1,9 Go pour `cad-recode`
 seul, avant le moindre poids téléchargé. `mlx-audio` est le seul dont le
 quickstart ci-dessous a besoin ; `ecurie env list` nomme les autres.

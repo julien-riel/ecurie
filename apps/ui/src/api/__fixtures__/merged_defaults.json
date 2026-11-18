@@ -1318,6 +1318,14 @@
       "steps": 10
     }
   },
+  "soulx-flashhead@pro-bf16": {
+    "capability": "talking-head",
+    "merged": {
+      "max_seconds": 600,
+      "seed": 0
+    },
+    "variant_defaults": {}
+  },
   "swin2sr@classique-x2": {
     "capability": "image-upscale",
     "merged": {

@@ -2,7 +2,7 @@
 
 **Never-swap multimodal inference for Apple Silicon** — local eyes, ears and a
 voice for your coding agent, memory-safe by profiles a bench measured rather
-than guessed. `ecurie mcp` serves twelve of its 41 capability contracts as MCP
+than guessed. `ecurie mcp` serves twelve of its 42 capability contracts as MCP
 tools, alongside a CLI and a local HTTP API. What **v1.0** still owes is the
 PyPI package, borrowed profiles that label themselves, and a quickstart proven
 on a machine that is not this one.
@@ -66,21 +66,22 @@ cost the local model of the reading below:
 - **Making** — `text-to-image`, `image-to-image`, `image-upscale`
 - **Forecasting** — `time-series-forecast`
 
-Plus three meta-tools, always present: `ecurie_catalog` (discover all 41
+Plus three meta-tools, always present: `ecurie_catalog` (discover all 42
 contracts and installed models), `ecurie_run` (invoke any capability by its
 contract — the escape hatch), `ecurie_status` (residents, Metal budget, disk
 accounting — read-only).
 
-Two deliberate exclusions. Seven contracts declare a `human_subject` value —
+Two deliberate exclusions. Eight contracts declare a `human_subject` value —
 the six `face-*` (`analyzes`, and `identifies` for `face-embed`) and
-`voice-clone` (`synthesizes`). None of the seven is among the twelve, and the
+`voice-clone` and `talking-head` (`synthesizes`). None of the eight is among the twelve, and the
 server now **gates on that field** rather than on a hand-kept list: it closes
 both doors, the catalog and the `ecurie_run` escape hatch, because a capability
 that identifies someone does not become acceptable for having come through
 another door. `ecurie mcp --tools faces` reopens both at once, and the refusal
-carries that command for you to run yourself.
+carries that command for you to run yourself. `--tools voice` and `--tools talking-head`
+do the same for those two.
 
-The other 29 contracts in the registry are **experimental** — discoverable,
+The other 30 contracts in the registry are **experimental** — discoverable,
 runnable, but with no maintenance promise and no guaranteed profile. OCR is one
 of them: `document-to-text` is deliberately a separate contract, because
 reading a page word-for-word and describing a picture are different jobs and
@@ -171,7 +172,7 @@ uv run ecurie store scan          # populate ~/.ecurie/state.db from what is alr
 uv run ecurie store status        # the three numbers: apparent, real, reclaimable
 ```
 
-`env sync` takes names, and defaults to **all nineteen** runtimes when given
+`env sync` takes names, and defaults to **all twenty** runtimes when given
 none — 13 GB of venvs on this machine, `cad-recode` alone 1.9 GB, before a
 single weight is downloaded. `mlx-audio` is the only one the quickstart below
 needs; `ecurie env list` names the rest and their state.
@@ -255,7 +256,7 @@ uv run ruff check .           # lint, 100-column lines — the whole tree, as CI
 cd apps/ui && npm ci && npm test  # the front-end suite (the UI is frozen, its tests are not)
 ```
 
-Lint is `.` and not `packages/` on purpose: the nineteen runtimes are the
+Lint is `.` and not `packages/` on purpose: the twenty runtimes are the
 largest body of code here, and `.github/workflows/ci.yml` checks them. What a
 healthy clone looks like on the 24 GB reference machine, 2026-08-30: **1,400
 passed, 19 skipped, 7 deselected** on the Python side, **497 passed, 8 skipped**

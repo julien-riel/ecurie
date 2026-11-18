@@ -1,0 +1,85 @@
+{
+  "ref": "soulx-flashhead@pro-bf16",
+  "model": "soulx-flashhead",
+  "variant": "pro-bf16",
+  "capability": "talking-head",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.6.2 / av 19.0.2 / mlx 0.32.1",
+  "measured_at": "2026-11-18",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/talking-head.json",
+    "version": 1,
+    "cases": [
+      "portrait-4s",
+      "portrait-12s",
+      "portrait-32s"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 6916077594,
+    "peak_unified_memory_bytes": 12694218594,
+    "peak_scaling": {
+      "parameter": "max_seconds",
+      "base_bytes": 12590602397,
+      "bytes_per_unit": 3235052.3,
+      "measured_range": [
+        4.0,
+        32.0
+      ],
+      "r_squared": 1.0
+    },
+    "warmup_ms": 25672,
+    "latency_ms_p50": 1836672,
+    "rtf": 74.0753,
+    "throughput": "1 sortie / 1497.7 s"
+  },
+  "cases": [
+    {
+      "id": "portrait-4s",
+      "ok": true,
+      "duration_ms": 285756,
+      "metrics": {
+        "duration_ms": 285756,
+        "rtf": 71.42541,
+        "infer_ms": 285701,
+        "avertissements": [
+          "parole tronquée à 4 s sur 32.3 s."
+        ],
+        "peak_memory_bytes": 12603778914
+      },
+      "error": null
+    },
+    {
+      "id": "portrait-12s",
+      "ok": true,
+      "duration_ms": 1836672,
+      "metrics": {
+        "duration_ms": 1836672,
+        "rtf": 153.04853,
+        "infer_ms": 1836582,
+        "avertissements": [
+          "parole tronquée à 12 s sur 32.3 s."
+        ],
+        "peak_memory_bytes": 12629092194
+      },
+      "error": null
+    },
+    {
+      "id": "portrait-32s",
+      "ok": true,
+      "duration_ms": 2370610,
+      "metrics": {
+        "duration_ms": 2370610,
+        "rtf": 74.07532,
+        "infer_ms": 2370410,
+        "avertissements": [
+          "parole tronquée à 32 s sur 32.3 s."
+        ],
+        "peak_memory_bytes": 12694218594
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}

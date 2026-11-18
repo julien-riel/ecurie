@@ -7,7 +7,7 @@ Apache-2.0 covers this repository and everything committed in it: the five
 Python packages, and, as of 2026-08-30, the 72 model manifests, the 41
 capability contracts, the 85 measurement records, and the evaluation inputs
 under registry/evals/. Those inputs are computed rather than collected, with the
-four qualifications recorded below.
+five qualifications recorded below.
 
 Computed means ray-marched signed distance fields, additively synthesised audio,
 analytic satellite bands, and document pages typeset from the very reference
@@ -48,6 +48,14 @@ Where that is not the whole truth:
   itself Apache-2.0. The voice is synthetic and the spoken text was written
   here. The first has a committed recipe, tools/assets/parole.py; the second has
   only a note in registry/evals/bench/speaker-diarization.json.
+- assets/visage-seul.png is output of a model in the parc, sdxl-base@fp16
+  (CreativeML Open RAIL++-M), 768x1024, 30 steps, seed 1507. The person does
+  not exist. Prompt: "photorealistic head and shoulders portrait of a fictional
+  corporate trainer, friendly neutral expression, mouth closed, looking straight
+  at the camera, soft even studio lighting, plain light grey background, sharp
+  focus, natural skin texture". Negative: "open mouth, teeth, smile, hands,
+  text, watermark, cartoon, illustration, blurry, deformed, sunglasses". No
+  committed script re-runs it; registry/evals/bench/talking-head.json notes it.
 - The three amino-acid sequences in registry/evals/bench/protein-embed.json —
   PDB entries 1UBQ, 2LYZ and 1GFL — are the one thing under registry/evals/ that
   was collected rather than computed. They come from the RCSB PDB under CC0 1.0

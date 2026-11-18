@@ -1,0 +1,83 @@
+{
+  "$schema": "../schema/capability.schema.json",
+  "id": "talking-head",
+  "title": "Tête parlante",
+  "description": "Reçoit le portrait d'une personne et un enregistrement de parole, et rend une vidéo carrée où cette tête prononce l'enregistrement : la bouche, mais aussi les mouvements de tête, les clignements et les expressions, tous générés. Aucun pixel de l'entrée n'est recollé, et c'est ce qui la sépare de `lip-sync`, qui ne régénère que le bas du visage et rend l'image d'origine autour. Le visage est cadré au carré autour de la tête détectée, puis la vidéo est produite à la définition du réseau. Elle fabrique l'image d'une personne disant ce qu'elle n'a pas dit, d'où `human_subject` : n'y soumettre qu'un visage de synthèse ou celui d'une personne qui y a consenti, et ne pas présenter le résultat comme un enregistrement réel.",
+  "human_subject": "synthesizes",
+  "input": {
+    "type": "object",
+    "required": ["portrait", "audio"],
+    "additionalProperties": false,
+    "properties": {
+      "portrait": {
+        "type": "string",
+        "contentMediaType": "image/*",
+        "x-ui": "file",
+        "description": "Image fixe d'une personne, de face ou de trois quarts. Le plus grand visage détecté est cadré au carré, tête et haut des épaules, et c'est ce carré qui parle. Sans visage détecté, le centre de l'image est pris, et le job le signale."
+      },
+      "audio": {
+        "type": "string",
+        "contentMediaType": "audio/*",
+        "x-ui": "file",
+        "description": "Parole à prononcer. Tout format et toute fréquence : le modèle l'écoute à 16 kHz en mono, et la vidéo garde le son d'origine, réencodé en AAC."
+      },
+      "max_seconds": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 600,
+        "default": 600,
+        "description": "Durée de parole retenue. Au-delà, l'enregistrement est tronqué et le job le signale."
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 0,
+        "description": "Graine du bruit initial. Une autre graine donne d'autres mouvements de tête sur la même parole."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "required": ["video", "fps", "width", "height", "frames", "duration_seconds", "crop_box", "mouth_motion"],
+    "properties": {
+      "video": {
+        "type": "string",
+        "contentMediaType": "video/mp4",
+        "description": "Vidéo H.264 et AAC, carrée, chemin relatif au dossier du job."
+      },
+      "fps": {
+        "type": "integer",
+        "description": "Toujours 25 : la cadence pour laquelle le modèle aligne la parole sur les images."
+      },
+      "width": {
+        "type": "integer",
+        "description": "Largeur de la vidéo, celle du réseau."
+      },
+      "height": {
+        "type": "integer",
+        "description": "Hauteur de la vidéo, égale à la largeur."
+      },
+      "frames": {
+        "type": "integer",
+        "description": "Nombre d'images produites."
+      },
+      "duration_seconds": {
+        "type": "number",
+        "description": "Durée de la vidéo produite."
+      },
+      "crop_box": {
+        "type": "array",
+        "items": { "type": "integer" },
+        "description": "Carré pris dans le portrait [x1, y1, x2, y2], en pixels de l'image d'entrée. C'est la seule partie du portrait que le réseau a vue."
+      },
+      "face_detected": {
+        "type": "boolean",
+        "description": "Faux quand aucun visage n'a été trouvé et que le centre de l'image a été pris à sa place."
+      },
+      "mouth_motion": {
+        "type": "number",
+        "description": "Écart moyen d'une image à la suivante autour de la bouche, sur 255. C'est la sonde de cette capacité : une bouche figée sur une parole réelle rend un job vert et une vidéo fausse, et ce chiffre proche de zéro est ce qui le trahit."
+      }
+    }
+  }
+}
