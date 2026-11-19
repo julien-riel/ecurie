@@ -4,6 +4,11 @@
 # pour le texte dans l'image, là où SDXL échoue. La version 2.1, plus récente,
 # est sous licence non commerciale et n'est pas retenue (voir la note de
 # licences du marché américain).
+#
+# Titulaire de `text-to-image` depuis le 2026-11-19 : choisi par Julien sur un
+# même portrait de présentateur, face à FLUX.2 Klein 4B et Z-Image-Turbo. Sur un
+# Mac de 24 Gio il ne tient pas dans le budget (voir caveats) : l'admission le
+# refuse, et il ne tourne qu'avec `--hors-budget` ou sur une machine plus grande.
 id: qwen-image-2512
 name: Qwen-Image-2512
 capability: text-to-image
@@ -11,7 +16,8 @@ family: qwen-image
 vendor: Alibaba Qwen
 license: apache-2.0
 license_class: permissive
-status: candidate
+status: active
+incumbent: true
 
 notes: >
   Poids pris dans la conversion `mflux-community` quantifiée en 4 bits. Le

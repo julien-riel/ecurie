@@ -3622,7 +3622,7 @@
       "capability": "text-to-image",
       "family": "qwen-image",
       "id": "qwen-image-2512",
-      "incumbent": false,
+      "incumbent": true,
       "license": "apache-2.0",
       "license_class": "permissive",
       "links": {
@@ -3632,7 +3632,7 @@
       },
       "name": "Qwen-Image-2512",
       "notes": "Poids pris dans la conversion `mflux-community` quantifiée en 4 bits. Le dépôt de Qwen pèse 57,7 Go en bf16 — 40,9 Go de transformer — et ne tient pas dans le budget de la machine. La conversion hérite de la licence Apache-2.0 de l'original.\n",
-      "status": "candidate",
+      "status": "active",
       "variants": [
         {
           "blockers": [],

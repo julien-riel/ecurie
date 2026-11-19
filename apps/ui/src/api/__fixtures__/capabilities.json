@@ -3453,7 +3453,7 @@
       "description": "Produit une image à partir d'une description. Le format et le nombre de pas font le coût, et le coût suit le produit largeur × hauteur × pas.",
       "human_subject": null,
       "id": "text-to-image",
-      "incumbent": null,
+      "incumbent": "qwen-image-2512",
       "input": {
         "additionalProperties": false,
         "properties": {
