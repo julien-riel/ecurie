@@ -245,6 +245,21 @@
       "max_faces": 10
     }
   },
+  "flux2-klein-4b@q8": {
+    "capability": "text-to-image",
+    "merged": {
+      "guidance_scale": 1.0,
+      "height": 1024,
+      "steps": 4,
+      "width": 1024
+    },
+    "variant_defaults": {
+      "guidance_scale": 1.0,
+      "height": 1024,
+      "steps": 4,
+      "width": 1024
+    }
+  },
   "gemma4-12b-describe@4bit": {
     "capability": "image-to-text",
     "merged": {
@@ -737,6 +752,21 @@
     "variant_defaults": {
       "overlap": 0,
       "tile_size": 576
+    }
+  },
+  "qwen-image-2512@q4": {
+    "capability": "text-to-image",
+    "merged": {
+      "guidance_scale": 4.0,
+      "height": 1024,
+      "steps": 30,
+      "width": 1024
+    },
+    "variant_defaults": {
+      "guidance_scale": 4.0,
+      "height": 1024,
+      "steps": 30,
+      "width": 1024
     }
   },
   "qwen2-audio-7b@4bit": {
@@ -1361,6 +1391,21 @@
     },
     "variant_defaults": {
       "speed": 1.0
+    }
+  },
+  "z-image-turbo@q8": {
+    "capability": "text-to-image",
+    "merged": {
+      "guidance_scale": 0.0,
+      "height": 1024,
+      "steps": 9,
+      "width": 1024
+    },
+    "variant_defaults": {
+      "guidance_scale": 0.0,
+      "height": 1024,
+      "steps": 9,
+      "width": 1024
     }
   }
 }

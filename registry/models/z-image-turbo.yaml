@@ -1,0 +1,52 @@
+# Z-Image-Turbo — le générateur 6B de Tongyi, distillé en neuf pas, sur `mflux`.
+#
+# C'est le modèle que l'ARCHITECTURE.md §10 désignait pour succéder à SDXL,
+# dès qu'il serait mesuré. La version de base, non distillée, existe aussi ;
+# l'amont la dit plus lente et moins bonne hors entraînement.
+id: z-image-turbo
+name: Z-Image-Turbo
+capability: text-to-image
+family: z-image
+vendor: Alibaba Tongyi-MAI
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Poids pris dans la conversion `mflux-community` quantifiée en 8 bits. Le
+  dépôt de Tongyi pèse 32,9 Go, dont un transformer de 24,6 Go. La
+  conversion hérite de la licence Apache-2.0 de l'original.
+
+links:
+  homepage: https://huggingface.co/Tongyi-MAI/Z-Image-Turbo
+  code: https://github.com/filipstrand/mflux
+
+variants:
+  - id: q8
+    quantization: 8bit
+    tier: hot
+    runtime: mflux
+    source:
+      kind: huggingface
+      repo: mflux-community/z-image-turbo-mflux-q8
+      revision: "4ccff28917346aa9daae49cd3c477cf5260a242c"   # 2026-09-26
+    defaults:
+      width: 1024
+      height: 1024
+      steps: 9
+      guidance_scale: 0.0
+    options:
+      mflux_model: z-image-turbo
+    caveats:
+      - "Modèle distillé : neuf pas, sans guidage. Le guidage et le `negative_prompt` sont ignorés."
+      - "Conversion communautaire (mflux-community), non publiée par Tongyi."
+      - "MESURÉ — LENT ET PRESQUE TOUT LE BUDGET. 16,72 Gio de pic pour 11 Go de poids, et 10 à 11 s par pas en 1024 : 94 s pour un portrait en 9 pas, contre 20 s pour FLUX.2 Klein en 4 pas (2026-11-19)."
+    profile:
+      disk_bytes: 10992105290
+      peak_unified_memory_bytes: 17949210748
+      warmup_ms: 24764
+      latency_ms_p50: 330342
+      throughput: "1 sortie / 238.0 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.6.2 / mlx 0.32.1"
+      measured_at: "2026-11-19"
+      harness_version: "0.3.0"

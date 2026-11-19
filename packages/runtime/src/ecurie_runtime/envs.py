@@ -143,6 +143,11 @@ WORKER_MODULES_BY_CAPABILITY = {
     # photo, inventer un grain est ce qu'on veut ; sur une capture d'écran,
     # inventer un caractère est une faute.
     ("mflux", "image-upscale"): "ecurie_runtime.workers.seedvr2",
+    # Le second usage de `mflux`, et la raison pour laquelle son env avait été
+    # ouvert : FLUX.2 Klein, Qwen-Image et Z-Image n'ont de conversion MLX que
+    # pour lui. Un seul adaptateur pour les trois, aiguillé par
+    # `options.mflux_model`.
+    ("mflux", "text-to-image"): "ecurie_runtime.workers.mflux_image",
     # Onzième famille, et la plus fournie : six capacités pour un seul runtime.
     # Elles ne se ressemblent pas — des boîtes, des points, une carte de régions,
     # un vecteur, deux jeux d'angles — mais elles partagent un socle réel, et pas
