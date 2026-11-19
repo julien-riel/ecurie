@@ -3,6 +3,10 @@
 # C'est le modèle que l'ARCHITECTURE.md §10 désignait pour succéder à SDXL,
 # dès qu'il serait mesuré. La version de base, non distillée, existe aussi ;
 # l'amont la dit plus lente et moins bonne hors entraînement.
+#
+# Titulaire de `text-to-image` depuis le 2026-11-19 : choisi par Julien sur un
+# même portrait de présentateur, face à FLUX.2 Klein 4B et Qwen-Image-2512.
+# Qwen, d'abord retenu, dépasse le budget d'un Mac de 24 Gio ; Z-Image y tient.
 id: z-image-turbo
 name: Z-Image-Turbo
 capability: text-to-image
@@ -10,7 +14,8 @@ family: z-image
 vendor: Alibaba Tongyi-MAI
 license: apache-2.0
 license_class: permissive
-status: candidate
+status: active
+incumbent: true
 
 notes: >
   Poids pris dans la conversion `mflux-community` quantifiée en 8 bits. Le

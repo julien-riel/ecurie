@@ -55,7 +55,7 @@ def test_un_titulaire_au_plus_par_capacite(repo_root):
     # désignée (PLAN.md 5.6).
     assert reg.incumbent_for("text-to-speech").id == "kokoro-82m"
     assert reg.incumbent_for("voice-clone").id == "omnivoice"
-    assert reg.incumbent_for("text-to-image").id == "qwen-image-2512"
+    assert reg.incumbent_for("text-to-image").id == "z-image-turbo"
 
 
 def test_tout_ce_qui_est_installe_pointe_une_revision_de_commit(repo_root):

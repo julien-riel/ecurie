@@ -5,10 +5,9 @@
 # est sous licence non commerciale et n'est pas retenue (voir la note de
 # licences du marché américain).
 #
-# Titulaire de `text-to-image` depuis le 2026-11-19 : choisi par Julien sur un
-# même portrait de présentateur, face à FLUX.2 Klein 4B et Z-Image-Turbo. Sur un
-# Mac de 24 Gio il ne tient pas dans le budget (voir caveats) : l'admission le
-# refuse, et il ne tourne qu'avec `--hors-budget` ou sur une machine plus grande.
+# Écarté du titre de titulaire le 2026-11-19 au profit de Z-Image-Turbo : sur
+# un Mac de 24 Gio il dépasse le budget (voir caveats), et l'admission refuserait
+# l'outil `text_to_image` à chaque appel. Reste candidat pour une machine plus grande.
 id: qwen-image-2512
 name: Qwen-Image-2512
 capability: text-to-image
@@ -16,8 +15,7 @@ family: qwen-image
 vendor: Alibaba Qwen
 license: apache-2.0
 license_class: permissive
-status: active
-incumbent: true
+status: candidate
 
 notes: >
   Poids pris dans la conversion `mflux-community` quantifiée en 4 bits. Le
