@@ -1,0 +1,45 @@
+# Environnement isolé du runtime `mlx-flashhead`.
+#
+#     ecurie env sync mlx-flashhead
+#     python3 runtimes/mlx-flashhead/vendorer.py
+#
+# **`env sync` ne suffit pas ici.** Le portage MLX de SoulX-FlashHead
+# (github.com/Avdpro/ai2apps, `packages/ai2apps-model-flashhead-mlx`) n'est publié
+# sur aucun index et n'a pas de `pyproject.toml` : `uv` ne peut pas l'installer
+# depuis Git. `vendorer.py` en copie le module `flashhead_mlx` sous `vendor/`, que le
+# `.gitignore` exclut, au commit épinglé. Le code est sous Apache-2.0
+# (`LICENSE.upstream` du paquet). Il pourrait donc être versionné ici, mais il compte
+# trois mille lignes qui ne sont pas les nôtres.
+#
+# Le portage n'importe pas Torch. Il lit les poids en safetensors, encode la parole
+# avec son propre wav2vec2 en MLX et écrit la vidéo avec PyAV. Le cadrage du visage
+# passe par Apple Vision et non par MediaPipe, que l'amont emploie : Vision est dans
+# le système, sans poids à télécharger.
+# Le `.venv` n'est pas versionné, ce fichier l'est.
+
+[project]
+name = "ecurie-runtime-mlx-flashhead"
+version = "0.1.0"
+description = "Écurie — env isolé : tête parlante par SoulX-FlashHead Pro sur MLX"
+requires-python = ">=3.12,<3.13"
+
+dependencies = [
+    # La même version que les autres environnements MLX du parc. Le portage a été
+    # mesuré par son auteur sur 0.32.0.
+    "mlx==0.32.1",
+    "numpy>=1.26",
+    "pillow>=10",
+    "soundfile>=0.12",
+    # `media.py` du portage écrit le MP4 avec PyAV et importe pyloudnorm en tête de
+    # module, même s'il n'est pas appelé sur le chemin employé ici.
+    "av>=14",
+    "pyloudnorm>=0.1.1",
+    # Le binaire ffmpeg est embarqué dans la roue : il ramène la parole à 16 kHz et
+    # remet le son d'origine dans la vidéo.
+    "imageio-ffmpeg>=0.5",
+    "pyobjc-framework-Vision>=11",
+]
+
+# Cet env n'est pas une bibliothèque : rien à construire, rien à installer de lui-même.
+[tool.uv]
+package = false

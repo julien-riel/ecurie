@@ -28,6 +28,8 @@ WORKER_MODULES = {
     "diffusers-mps": "ecurie_runtime.workers.diffusers_mps",
     "mlx-vlm": "ecurie_runtime.workers.mlx_vlm",
     "mlx-lm": "ecurie_runtime.workers.mlx_lm",
+    # Un runtime, une capacité : `talking-head`. Le portage ne sait rien faire d'autre.
+    "mlx-flashhead": "ecurie_runtime.workers.flashhead",
     # `torch-vision` n'a délibérément pas d'adaptateur par défaut : détourer et
     # agrandir ne partagent ni le modèle, ni l'appel, ni la sortie. Un runtime
     # est une famille de bibliothèques, pas une promesse d'API commune.

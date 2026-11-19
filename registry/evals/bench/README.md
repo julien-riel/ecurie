@@ -38,6 +38,7 @@ n'en est pas une.
 | `geo-segment` | tuile-384, tuile-576, tuile-768 | une scène à six bandes, trois tailles de tuile. Les cotes ne sont pas rondes et ce n'est pas un choix : MPS refuse `adaptive_avg_pool2d` non divisible, et le PPM d'UperNet impose un **multiple de 192** — la taille native des chips, 512, ne passe donc pas |
 | `geo-embed` | tuile-192, tuile-384, tuile-768 | la même scène, trois tuiles — l'encodeur seul, sans tête de segmentation, et son pic ne bouge pas d'un octet entre les trois |
 | `protein-embed` | ubiquitine-76, lysozyme-129, gfp-238 | trois protéines réelles de longueur croissante. **La seule charge du registre sans un octet sous `assets/`** : l'entrée de cette capacité est du texte saisi, pas un fichier. Aucun `scaling_parameter` — mesuré, le pic est plat à seize kibioctets près de 76 à 2048 résidus ; c'est la latence qui suit la longueur |
+| `talking-head` | portrait-4s, portrait-12s, portrait-32s | la même parole sur un portrait de synthèse non carré, trois durées. `max_seconds` est le paramètre d'échelle : le réseau travaille par tronçons de 33 images, mais wav2vec2 encode la parole d'un seul bloc |
 | `pointcloud-to-cad` | cube, cylindre-perce, piece-en-l | trois familles de construction du dialecte CadQuery. Aucun `scaling_parameter` : le pic dépend bien de `n_points`, mais par une marche (R² = 0,771), et la durée est dominée par le nombre de jetons produits — qui n'est pas un paramètre d'entrée |
 
 Les images de `assets/` sont calculées — silhouette et dégradé rendus, aucune

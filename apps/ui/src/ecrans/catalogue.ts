@@ -108,6 +108,7 @@ const PAR_CAPACITE: Record<string, Categorie> = {
   "image-to-video": "video",
   "video-to-text": "video",
   "video-to-motion": "video",
+  "talking-head": "video",
 
   "face-detect": "visage",
   "face-landmark": "visage",

@@ -1,7 +1,7 @@
 """Le catalogue est éditorial, versionné dans le code, et petit.
 
 Douze outils par défaut, un par capacité promise, plus trois méta-outils. Ce
-n'est pas une projection du registre : les quarante et une capacités y restent
+n'est pas une projection du registre : les quarante-deux capacités y restent
 découvrables par `ecurie_catalog` et exécutables par `ecurie_run`, sans qu'un
 octet de manifeste change. Le registre dit ce que le parc sait faire ; ce
 fichier dit ce que le produit promet.
@@ -15,7 +15,7 @@ qu'aucun fichier de ce dépôt ne porte. Les clients tiennent mieux, mais le co�
 de contexte, lui, est payé par tous : douze plus trois laisse de la marge.
 
 **Ce que le catalogue exclut, et sur quel critère.** Les capacités qui portent un
-`human_subject` — les six `face-*` et `voice-clone` — sont hors du catalogue par
+`human_subject` — les six `face-*`, `voice-clone` et `talking-head` — sont hors du catalogue par
 défaut. C'est l'application d'un champ du contrat, pas une opinion du serveur :
 le champ dit ce que la capacité **fait** d'une personne réelle, là où
 `license_class` ne dit que ce que le droit interdit.
@@ -68,6 +68,8 @@ FAMILLES: dict[str, tuple[str, ...]] = {
     # `--tools faces` — une commande qui ne l'aurait pas rouvert, donc une
     # promesse fausse dans le seul champ du payload que l'humain va exécuter.
     "voice": ("voice-clone",),
+    # `talking-head` porte `human_subject: synthesizes`, comme `voice-clone`.
+    "talking-head": ("talking-head",),
 }
 
 

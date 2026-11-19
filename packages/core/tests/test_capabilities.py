@@ -51,6 +51,7 @@ CAPACITÉS_DU_DÉPÔT = [
     "robot-action",
     "speaker-diarization",
     "speech-to-text",
+    "talking-head",
     "text-generation",
     "text-to-image",
     "text-to-music",
@@ -182,11 +183,13 @@ def test_chaque_sortie_typee_annonce_un_chemin_de_fichier(repo_root):
     # une, `ltx-video-2b` non, et c'est la présence du champ dans la sortie d'un
     # job — pas une option du contrat — qui distingue les deux.
     #
+    # **77 depuis le 17 novembre 2026** : `talking-head.video`.
+    #
     # Ce total est la seule assertion du dépôt qui compte sur TOUTES les
     # capacités à la fois. Il casse à chaque contrat ajouté, et c'est voulu :
     # une sortie typée est un fichier de plus dans le dossier d'un job, donc une
     # promesse de plus faite à qui le relira.
-    assert len(typées) == 76
+    assert len(typées) == 77
     mal_décrites = {
         ref
         for ref, champ in typées.items()

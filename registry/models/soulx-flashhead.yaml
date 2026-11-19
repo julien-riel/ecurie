@@ -1,0 +1,79 @@
+# Tête parlante — SoulX-FlashHead 1.3B, variante Pro, portage MLX.
+id: soulx-flashhead
+name: SoulX-FlashHead Pro
+capability: talking-head
+family: flashhead
+vendor: Soul AI Lab (Soul-AILab)
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Candidat pour un présentateur à l'écran dans les films de formation, à la place de
+  MuseTalk dont la tête restait immobile sur une image fixe. Un DiT Wan 2.1 de 1,3
+  milliard de paramètres, distillé en quatre pas, conditionné par wav2vec2 :
+  portrait et parole en entrée, vidéo 512×512 à 25 im/s en sortie, par tronçons de
+  33 images.
+
+  **Seule la variante Pro est au registre, pour une raison de licence.** La variante
+  Lite embarque le VAE de LTX-Video 0.9, dont la licence (« RAIL-M License dated
+  November 22, 2024 », fichier ltx-video-2b-v0.9.license.txt de Lightricks) réserve
+  l'usage à « academic or research purposes only ». La fiche amont l'écrit elle-même :
+  « If you only use Pro variant (VAE_WAN), the whole workflow is under Apache-2.0 ».
+  Pro, c'est le DiT (Apache-2.0), le VAE Wan 2.1 (Apache-2.0) et
+  wav2vec2-base-960h (Apache-2.0).
+
+  La fiche amont est passée de `license: apache-2.0` à `license: other` le
+  2026-10-09, pour détailler ces composants. Une confirmation écrite de l'usage
+  commercial a été demandée à l'éditeur (issue #86 du dépôt GitHub, 2026-11-14), sans
+  réponse au 2026-11-17. Le jeu d'entraînement, VividHead (782 h selon le papier),
+  n'a pas de licence publiée.
+
+  Les poids sont la conversion MLX d'Avdpro (AI2Apps), sans le VAE LTX, depuis la
+  révision amont 59119b6c68. Le code du portage est vendoré par
+  `runtimes/mlx-flashhead/vendorer.py`. Le cadrage passe par Apple Vision, pas par
+  MediaPipe.
+
+links:
+  homepage: https://huggingface.co/Soul-AILab/SoulX-FlashHead-1_3B
+  code: https://github.com/Soul-AILab/SoulX-FlashHead
+  paper: https://arxiv.org/abs/2602.07449
+
+variants:
+  - id: pro-bf16
+    quantization: bf16
+    tier: hot
+    runtime: mlx-flashhead
+    source:
+      kind: huggingface
+      repo: Avdpro/FlashHead-Pro-MLX
+      revision: "f1909ebd943017292d82249de0c1221f26a08a6b"   # 2026-09-30, apache-2.0
+      allow_patterns:
+        - "Model_Pro/*"
+        - "VAE_Wan/*"
+        - "wav2vec2/*"
+        - "LICENSE"
+        - "NOTICE.md"
+    caveats:
+      - "N'y soumettre qu'un visage de synthèse ou celui d'une personne qui y a consenti. La vidéo porte une mention dans ses métadonnées, qu'un réencodage peut effacer."
+      - "Sortie carrée en 512×512 : un plan plus large ou plus net demande un recadrage ou un agrandissement en aval."
+      - "Seule la variante Pro est au registre. Lite embarque le VAE de LTX-Video 0.9, réservé à la recherche par sa licence."
+      - "Confirmation écrite de la licence commerciale demandée à Soul-AILab (issue #86), sans réponse au 2026-11-17."
+      - "Vitesse mesurée très loin de l'amont : 71 à 153 s de calcul par seconde de vidéo sur un M5 de 24 Gio, quand l'auteur du portage annonce environ 13 sur un M5 Max de 128 Gio. Le banc a tourné avec 14,5 Gio de swap occupés et 1 173 s de temps système : le cas de 12 s a coûté deux fois plus par seconde que celui de 32 s, c'est la pagination qui domine. Une narration de 5 minutes prendrait plusieurs heures."
+      - "Le pic croît d'environ 3 Mo par seconde de parole, car wav2vec2 encode la parole d'un seul bloc : le banc s'arrête à 32 s, le contrat va à 600 s."
+    profile:
+      disk_bytes: 6916077594
+      peak_unified_memory_bytes: 12694218594
+      peak_scaling:
+        parameter: "max_seconds"
+        base_bytes: 12590602397
+        bytes_per_unit: 3235052.3
+        measured_range: [4.0, 32.0]
+        r_squared: 1.0
+      warmup_ms: 25672
+      latency_ms_p50: 1836672
+      rtf: 74.0753
+      throughput: "1 sortie / 1497.7 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.6.2 / av 19.0.2 / mlx 0.32.1"
+      measured_at: "2026-11-18"
+      harness_version: "0.3.0"

@@ -3206,6 +3206,122 @@
     {
       "composite": false,
       "defaults": {
+        "max_seconds": 600,
+        "seed": 0
+      },
+      "description": "Reçoit le portrait d'une personne et un enregistrement de parole, et rend une vidéo carrée où cette tête prononce l'enregistrement : la bouche, mais aussi les mouvements de tête, les clignements et les expressions, tous générés. Aucun pixel de l'entrée n'est recollé, et c'est ce qui la sépare de `lip-sync`, qui ne régénère que le bas du visage et rend l'image d'origine autour. Le visage est cadré au carré autour de la tête détectée, puis la vidéo est produite à la définition du réseau. Elle fabrique l'image d'une personne disant ce qu'elle n'a pas dit, d'où `human_subject` : n'y soumettre qu'un visage de synthèse ou celui d'une personne qui y a consenti, et ne pas présenter le résultat comme un enregistrement réel.",
+      "human_subject": "synthesizes",
+      "id": "talking-head",
+      "incumbent": null,
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "audio": {
+            "contentMediaType": "audio/*",
+            "description": "Parole à prononcer. Tout format et toute fréquence : le modèle l'écoute à 16 kHz en mono, et la vidéo garde le son d'origine, réencodé en AAC.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "max_seconds": {
+            "default": 600,
+            "description": "Durée de parole retenue. Au-delà, l'enregistrement est tronqué et le job le signale.",
+            "maximum": 600,
+            "minimum": 1,
+            "type": "number"
+          },
+          "portrait": {
+            "contentMediaType": "image/*",
+            "description": "Image fixe d'une personne, de face ou de trois quarts. Le plus grand visage détecté est cadré au carré, tête et haut des épaules, et c'est ce carré qui parle. Sans visage détecté, le centre de l'image est pris, et le job le signale.",
+            "type": "string",
+            "x-ui": "file"
+          },
+          "seed": {
+            "default": 0,
+            "description": "Graine du bruit initial. Une autre graine donne d'autres mouvements de tête sur la même parole.",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "portrait",
+          "audio"
+        ],
+        "type": "object"
+      },
+      "models": [
+        "soulx-flashhead"
+      ],
+      "output": {
+        "properties": {
+          "crop_box": {
+            "description": "Carré pris dans le portrait [x1, y1, x2, y2], en pixels de l'image d'entrée. C'est la seule partie du portrait que le réseau a vue.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "duration_seconds": {
+            "description": "Durée de la vidéo produite.",
+            "type": "number"
+          },
+          "face_detected": {
+            "description": "Faux quand aucun visage n'a été trouvé et que le centre de l'image a été pris à sa place.",
+            "type": "boolean"
+          },
+          "fps": {
+            "description": "Toujours 25 : la cadence pour laquelle le modèle aligne la parole sur les images.",
+            "type": "integer"
+          },
+          "frames": {
+            "description": "Nombre d'images produites.",
+            "type": "integer"
+          },
+          "height": {
+            "description": "Hauteur de la vidéo, égale à la largeur.",
+            "type": "integer"
+          },
+          "mouth_motion": {
+            "description": "Écart moyen d'une image à la suivante autour de la bouche, sur 255. C'est la sonde de cette capacité : une bouche figée sur une parole réelle rend un job vert et une vidéo fausse, et ce chiffre proche de zéro est ce qui le trahit.",
+            "type": "number"
+          },
+          "video": {
+            "contentMediaType": "video/mp4",
+            "description": "Vidéo H.264 et AAC, carrée, chemin relatif au dossier du job.",
+            "type": "string"
+          },
+          "width": {
+            "description": "Largeur de la vidéo, celle du réseau.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "video",
+          "fps",
+          "width",
+          "height",
+          "frames",
+          "duration_seconds",
+          "crop_box",
+          "mouth_motion"
+        ],
+        "type": "object"
+      },
+      "output_media_types": {
+        "video": "video/mp4"
+      },
+      "ready_variants": [
+        "soulx-flashhead@pro-bf16"
+      ],
+      "required": [
+        "portrait",
+        "audio"
+      ],
+      "steps": [],
+      "title": "Tête parlante"
+    },
+    {
+      "composite": false,
+      "defaults": {
         "max_tokens": 1024,
         "repetition_penalty": 1.0,
         "temperature": 0.7,

@@ -5,7 +5,7 @@ du serveur là où les douze ne le sont pas : un outil qui porte le nom d'une
 capacité fait le travail, un outil qui porte le nom du serveur parle du serveur.
 
 **`ecurie_catalog` rend une liste courte, et c'est une contrainte mesurée.** La
-projection complète du registre — quarante et un contrats, soixante-douze
+projection complète du registre — quarante-deux contrats, soixante-douze
 manifestes, cent variants, avec leurs schémas d'entrée — pèse 160 ko de JSON,
 environ quarante mille jetons : plus du double du catalogue de quarante outils
 qui saturait déjà le modèle mesuré en août. Rendre cela à un agent qui demande
