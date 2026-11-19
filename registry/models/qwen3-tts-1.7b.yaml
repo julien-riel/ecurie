@@ -1,4 +1,5 @@
-# Titulaire en poste pour la synthèse vocale.
+# Ancien titulaire de la synthèse vocale, remplacé par Kokoro 82M le 2026-11-19
+# après écoute comparative. Reste actif : c'est le repli si Kokoro manque.
 id: qwen3-tts-1.7b
 name: Qwen3-TTS 1.7B
 capability: text-to-speech
@@ -7,7 +8,6 @@ vendor: Alibaba Qwen
 license: apache-2.0
 license_class: permissive
 status: active
-incumbent: true
 
 notes: >
   Retenu plutôt que Fish Speech S2, à réévaluer si un portage MLX de Fish Speech S2
