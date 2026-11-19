@@ -1,4 +1,7 @@
 # Synthèse vocale légère à voix préréglées — Kokoro 82M, en anglais américain.
+#
+# Titulaire depuis le 2026-11-19 : préféré à Qwen3-TTS et VoxCPM2 à l'écoute,
+# sur un même extrait du script de formation, volumes égalisés à -23 LUFS.
 id: kokoro-82m
 name: Kokoro 82M
 capability: text-to-speech
@@ -6,7 +9,8 @@ family: kokoro
 vendor: hexgrad
 license: apache-2.0
 license_class: permissive
-status: candidate
+status: active
+incumbent: true
 
 notes: >
   Candidat de la comparaison de narration en anglais américain. Seules les voix

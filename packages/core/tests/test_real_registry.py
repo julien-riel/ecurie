@@ -50,9 +50,11 @@ def test_un_titulaire_au_plus_par_capacite(repo_root):
         assert (trouvé.id if trouvé else None) == par_capacité.get(capacité), (
             f"{capacité} : incumbent_for ne suit pas le champ incumbent des manifestes"
         )
-    # L'unique titulaire du parc, et donc le seul point d'appui d'un A/B : les
-    # quarante autres capacités n'ont aucune référence désignée (PLAN.md 5.6).
-    assert reg.incumbent_for("text-to-speech").id == "qwen3-tts-1.7b"
+    # Les deux titulaires du parc, choisis à l'écoute le 2026-11-19 : ce sont les
+    # seuls points d'appui d'un A/B, les autres capacités n'ont aucune référence
+    # désignée (PLAN.md 5.6).
+    assert reg.incumbent_for("text-to-speech").id == "kokoro-82m"
+    assert reg.incumbent_for("voice-clone").id == "omnivoice"
 
 
 def test_tout_ce_qui_est_installe_pointe_une_revision_de_commit(repo_root):

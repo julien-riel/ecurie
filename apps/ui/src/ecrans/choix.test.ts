@@ -105,7 +105,7 @@ describe("les variants groupés par modèle", () => {
 
 describe("le variant préselectionné", () => {
   test("le titulaire d_abord", () => {
-    expect(variantParDefaut(capacité("text-to-speech"))).toBe("qwen3-tts-1.7b@8bit-mlx");
+    expect(variantParDefaut(capacité("text-to-speech"))).toBe("kokoro-82m@bf16");
   });
 
   test("a defaut, le premier executable", () => {

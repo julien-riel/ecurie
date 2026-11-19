@@ -1,5 +1,7 @@
 # Synthèse à voix de référence — OmniVoice, sur le runtime mlx-audio déjà là.
 #
+# Titulaire de `voice-clone` depuis le 2026-11-19, jugé très bon à l'écoute.
+#
 # `mlx_audio/tts/models/omnivoice/` est présent dans le venv installé : la
 # capacité n'ajoute ni environnement, ni dépendance. Seuls les poids arrivent.
 id: omnivoice
@@ -9,7 +11,8 @@ family: omnivoice
 vendor: k2-fsa / Next-gen Kaldi
 license: apache-2.0
 license_class: permissive
-status: candidate
+status: active
+incumbent: true
 
 notes: >
   Capacité distincte de la synthèse vocale, et non un champ de plus sur elle :
