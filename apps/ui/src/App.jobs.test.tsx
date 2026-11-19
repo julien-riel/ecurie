@@ -26,14 +26,14 @@ import { App } from "./App";
 import type { Job } from "./api/types";
 
 const ID = "20260821-160000-abc123";
-const REF = "qwen3-tts-1.7b@8bit-mlx";
+const REF = "kokoro-82m@bf16";
 
 function job(partiel: Partial<Job> = {}): Job {
   return {
     id: ID,
     ref: REF,
-    model: "qwen3-tts-1.7b",
-    variant: "8bit-mlx",
+    model: "kokoro-82m",
+    variant: "bf16",
     capability: "text-to-speech",
     state: "queued",
     submitted_at: "2026-08-21T16:00:00+00:00",
@@ -96,9 +96,9 @@ describe("lancer un job", () => {
     const corps = JSON.parse(await envoyée!.clone().text());
     expect(corps.ref).toBe(REF);
     expect(corps.input.text).toBe("Bonjour.");
-    // `voice: serena` vient du manifeste et `speed: 1.0` du contrat : ce que
+    // `voice: af_heart` vient du manifeste et `speed: 1.0` du contrat : ce que
     // l'écran envoie est l'entrée complète, pas la seule saisie.
-    expect(corps.input.voice).toBe("serena");
+    expect(corps.input.voice).toBe("af_heart");
   });
 
   test("l_ecran suit le job de la file a la sortie", async () => {

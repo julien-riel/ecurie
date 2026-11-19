@@ -83,15 +83,15 @@ describe("le choix de la capacité et du variant", () => {
   });
 
   test("le titulaire est preselectionne, et ses defauts avec", async () => {
-    // `voice: serena` vient du manifeste, `speed: 1.0` du contrat : c'est la
+    // `voice: af_heart` vient du manifeste, `speed: 1.0` du contrat : c'est la
     // fusion que `initialValues` recopie du serveur, et elle doit être posée
     // par la préselection comme elle l'est par un choix à la main.
     render(<App />);
     const variants = await choisir("text-to-speech");
 
-    await waitFor(() => expect(variants.value).toBe("qwen3-tts-1.7b@8bit-mlx"));
+    await waitFor(() => expect(variants.value).toBe("kokoro-82m@bf16"));
     await waitFor(() =>
-      expect((document.getElementById("root_voice") as HTMLInputElement).value).toBe("serena"),
+      expect((document.getElementById("root_voice") as HTMLInputElement).value).toBe("af_heart"),
     );
   });
 
@@ -104,12 +104,12 @@ describe("le choix de la capacité et du variant", () => {
     render(<App />);
     await choisir("text-to-speech");
     await waitFor(() =>
-      expect((document.getElementById("root_voice") as HTMLInputElement).value).toBe("serena"),
+      expect((document.getElementById("root_voice") as HTMLInputElement).value).toBe("af_heart"),
     );
 
     const variants = await choisir("image-upscale");
     await waitFor(() => expect(variants.value).toBe("seedvr2-3b@fp16"));
-    expect([...variants.options].map((o) => o.value)).not.toContain("qwen3-tts-1.7b@8bit-mlx");
+    expect([...variants.options].map((o) => o.value)).not.toContain("kokoro-82m@bf16");
     // `scale: 2` vient du manifeste de `classique-x2`, pas du contrat. On le lit
     // dans la projection et non dans le champ : RJSF encode les enums **par
     // index**, si bien que le `<select>` porte « 0 » pour la valeur 2.
@@ -282,8 +282,8 @@ describe("le bandeau de ressources", () => {
       return {
         body: parc({
           residents: [
-            resident("qwen3-tts-1.7b@8bit-mlx", 8_209_951_240, {
-              options: { voices: ["serena", "ethan", "chelsie"] },
+            resident("kokoro-82m@bf16", 1_100_000_000, {
+              options: { voices: ["af_heart", "af_bella", "am_michael"] },
             }),
           ],
         }),
