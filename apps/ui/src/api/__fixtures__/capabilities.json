@@ -3453,7 +3453,7 @@
       "description": "Produit une image à partir d'une description. Le format et le nombre de pas font le coût, et le coût suit le produit largeur × hauteur × pas.",
       "human_subject": null,
       "id": "text-to-image",
-      "incumbent": null,
+      "incumbent": "z-image-turbo",
       "input": {
         "additionalProperties": false,
         "properties": {
@@ -3510,7 +3510,10 @@
         "type": "object"
       },
       "models": [
-        "sdxl-base"
+        "flux2-klein-4b",
+        "qwen-image-2512",
+        "sdxl-base",
+        "z-image-turbo"
       ],
       "output": {
         "properties": {
@@ -3529,7 +3532,10 @@
         "image": "image/png"
       },
       "ready_variants": [
-        "sdxl-base@fp16"
+        "flux2-klein-4b@q8",
+        "qwen-image-2512@q4",
+        "sdxl-base@fp16",
+        "z-image-turbo@q8"
       ],
       "required": [
         "prompt"

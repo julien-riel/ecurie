@@ -1133,6 +1133,72 @@
       "vendor": "Google"
     },
     {
+      "capability": "text-to-image",
+      "family": "flux2",
+      "id": "flux2-klein-4b",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/filipstrand/mflux",
+        "homepage": "https://huggingface.co/black-forest-labs/FLUX.2-klein-4B",
+        "paper": null
+      },
+      "name": "FLUX.2 [klein] 4B",
+      "notes": "Poids pris dans la conversion `mflux-community`, quantifiée en 8 bits par MLX sur l'encodeur de texte, le transformer et le VAE, et non dans le dépôt de Black Forest Labs : celui-ci pèse 23,7 Go en bf16, dont une copie du transformer en fichier unique que mflux ne lit pas. La conversion hérite de la licence Apache-2.0 de l'original, sans autre modification que le format.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Modèle distillé : quatre pas et un guidage de 1 sont son régime. Plus de pas coûte du temps sans gain net ; le `negative_prompt` est ignoré.",
+            "Conversion communautaire (mflux-community), non publiée par Black Forest Labs.",
+            "MESURÉ — 16,42 GIO DE PIC POUR 8,6 GO DE POIDS, ET CE N'EST PAS LE GUIDAGE. Le banc impose 30 pas et un guidage de 7 ; au-delà de 1, mflux fait deux passes du transformer par pas, ce qui explique les 266 s d'un carré de 1024. Mais dans son régime (4 pas, guidage 1), le même carré pique encore à 16,41 Gio, pour 20 s de calcul (mesuré le 2026-11-19). Rien d'autre ne reste résident à côté de lui."
+          ],
+          "defaults": {
+            "guidance_scale": 1.0,
+            "height": 1024,
+            "steps": 4,
+            "width": 1024
+          },
+          "entrypoint": null,
+          "env": "mflux",
+          "heavy": true,
+          "id": "q8",
+          "options": {
+            "mflux_model": "flux2-klein-4b"
+          },
+          "profile": {
+            "disk_bytes": 8569657503,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 266251,
+            "measured_at": "2026-11-19",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.6.2 / mlx 0.32.1",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 17629805994,
+            "rtf": null,
+            "throughput": "1 sortie / 201.2 s",
+            "warmup_ms": 3808
+          },
+          "quantization": "8bit",
+          "ready": true,
+          "ref": "flux2-klein-4b@q8",
+          "runtime": "mflux",
+          "source": {
+            "allow_patterns": null,
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mflux-community/flux2-klein-4b-mflux-q8",
+            "revision": "755dc213d6767d4a4eae9291dd3f6e829454177e",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Black Forest Labs"
+    },
+    {
       "capability": "image-to-text",
       "family": "gemma4",
       "id": "gemma4-12b-describe",
@@ -3551,6 +3617,74 @@
         }
       ],
       "vendor": "IBM et NASA (Szwarcman et al.)"
+    },
+    {
+      "capability": "text-to-image",
+      "family": "qwen-image",
+      "id": "qwen-image-2512",
+      "incumbent": false,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/filipstrand/mflux",
+        "homepage": "https://huggingface.co/Qwen/Qwen-Image-2512",
+        "paper": null
+      },
+      "name": "Qwen-Image-2512",
+      "notes": "Poids pris dans la conversion `mflux-community` quantifiée en 4 bits. Le dépôt de Qwen pèse 57,7 Go en bf16 — 40,9 Go de transformer — et ne tient pas dans le budget de la machine. La conversion hérite de la licence Apache-2.0 de l'original.\n",
+      "status": "candidate",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Non distillé : il lui faut des dizaines de pas et un vrai guidage, et le `negative_prompt` agit.",
+            "Conversion communautaire (mflux-community), non publiée par Qwen.",
+            "MESURÉ — NE TIENT PAS SUR 24 GIO. Le banc (sans éviction) pique à 30,27 Gio pour un budget de 17,76 : macOS pagine, et un carré de 1024 en 30 pas prend 23 min (47 s par pas). Il ne passe l'admission qu'avec `--hors-budget`.",
+            "MESURÉ — L'ÉVICTION DE L'ENCODEUR AIDE SANS SUFFIRE. Avec `evict_text_encoder`, le portrait de 1024 en 30 pas a piqué à 25,77 Gio et pris 16 min 17 s (2026-11-19). Le profil ci-dessous a été pris avant l'option : il est prudent, à remesurer."
+          ],
+          "defaults": {
+            "guidance_scale": 4.0,
+            "height": 1024,
+            "steps": 30,
+            "width": 1024
+          },
+          "entrypoint": null,
+          "env": "mflux",
+          "heavy": true,
+          "id": "q4",
+          "options": {
+            "evict_text_encoder": true,
+            "mflux_model": "qwen-image"
+          },
+          "profile": {
+            "disk_bytes": 27605818500,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 1352587,
+            "measured_at": "2026-11-19",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.6.2 / mlx 0.32.1",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 32503785674,
+            "rtf": null,
+            "throughput": "1 sortie / 1002.9 s",
+            "warmup_ms": 1690
+          },
+          "quantization": "4bit",
+          "ready": true,
+          "ref": "qwen-image-2512@q4",
+          "runtime": "mflux",
+          "source": {
+            "allow_patterns": null,
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mflux-community/qwen-image-2512-mflux-q4",
+            "revision": "f30c76ff30977000ffdc27fafdd4516bb1c3b44e",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Qwen"
     },
     {
       "capability": "audio-to-text",
@@ -6643,6 +6777,72 @@
         }
       ],
       "vendor": "OpenBMB"
+    },
+    {
+      "capability": "text-to-image",
+      "family": "z-image",
+      "id": "z-image-turbo",
+      "incumbent": true,
+      "license": "apache-2.0",
+      "license_class": "permissive",
+      "links": {
+        "code": "https://github.com/filipstrand/mflux",
+        "homepage": "https://huggingface.co/Tongyi-MAI/Z-Image-Turbo",
+        "paper": null
+      },
+      "name": "Z-Image-Turbo",
+      "notes": "Poids pris dans la conversion `mflux-community` quantifiée en 8 bits. Le dépôt de Tongyi pèse 32,9 Go, dont un transformer de 24,6 Go. La conversion hérite de la licence Apache-2.0 de l'original.\n",
+      "status": "active",
+      "variants": [
+        {
+          "blockers": [],
+          "caveats": [
+            "Modèle distillé : neuf pas, sans guidage. Le guidage et le `negative_prompt` sont ignorés.",
+            "Conversion communautaire (mflux-community), non publiée par Tongyi.",
+            "MESURÉ — LENT ET PRESQUE TOUT LE BUDGET. 16,72 Gio de pic pour 11 Go de poids, et 10 à 11 s par pas en 1024 : 94 s pour un portrait en 9 pas, contre 20 s pour FLUX.2 Klein en 4 pas (2026-11-19)."
+          ],
+          "defaults": {
+            "guidance_scale": 0.0,
+            "height": 1024,
+            "steps": 9,
+            "width": 1024
+          },
+          "entrypoint": null,
+          "env": "mflux",
+          "heavy": true,
+          "id": "q8",
+          "options": {
+            "mflux_model": "z-image-turbo"
+          },
+          "profile": {
+            "disk_bytes": 10992105290,
+            "harness_version": "0.3.0",
+            "latency_ms_p50": 330342,
+            "measured_at": "2026-11-19",
+            "measured_on": "Mac17,4 24 Gio / macOS 26.6.2 / mlx 0.32.1",
+            "peak_scaling": null,
+            "peak_unified_memory_bytes": 17949210748,
+            "rtf": null,
+            "throughput": "1 sortie / 238.0 s",
+            "warmup_ms": 24764
+          },
+          "quantization": "8bit",
+          "ready": true,
+          "ref": "z-image-turbo@q8",
+          "runtime": "mflux",
+          "source": {
+            "allow_patterns": null,
+            "kind": "huggingface",
+            "path": null,
+            "repo": "mflux-community/z-image-turbo-mflux-q8",
+            "revision": "4ccff28917346aa9daae49cd3c477cf5260a242c",
+            "url": null
+          },
+          "tier": "hot",
+          "weights_path": "<poids>"
+        }
+      ],
+      "vendor": "Alibaba Tongyi-MAI"
     }
   ]
 }

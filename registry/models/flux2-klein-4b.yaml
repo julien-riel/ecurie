@@ -1,0 +1,54 @@
+# FLUX.2 [klein] 4B — génération d'image distillée en quatre pas, sur `mflux`.
+#
+# Le plus léger des trois générateurs ouverts le 2026-11-18 avec le runtime
+# `mflux` pour `text-to-image`. Il est distillé : quatre pas suffisent et le
+# guidage travaille autour de 1, ce que SDXL ne sait pas faire.
+id: flux2-klein-4b
+name: FLUX.2 [klein] 4B
+capability: text-to-image
+family: flux2
+vendor: Black Forest Labs
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Poids pris dans la conversion `mflux-community`, quantifiée en 8 bits par
+  MLX sur l'encodeur de texte, le transformer et le VAE, et non dans le dépôt
+  de Black Forest Labs : celui-ci pèse 23,7 Go en bf16, dont une copie du
+  transformer en fichier unique que mflux ne lit pas. La conversion hérite de
+  la licence Apache-2.0 de l'original, sans autre modification que le format.
+
+links:
+  homepage: https://huggingface.co/black-forest-labs/FLUX.2-klein-4B
+  code: https://github.com/filipstrand/mflux
+
+variants:
+  - id: q8
+    quantization: 8bit
+    tier: hot
+    runtime: mflux
+    source:
+      kind: huggingface
+      repo: mflux-community/flux2-klein-4b-mflux-q8
+      revision: "755dc213d6767d4a4eae9291dd3f6e829454177e"   # 2026-11-01
+    defaults:
+      width: 1024
+      height: 1024
+      steps: 4
+      guidance_scale: 1.0
+    options:
+      mflux_model: flux2-klein-4b
+    caveats:
+      - "Modèle distillé : quatre pas et un guidage de 1 sont son régime. Plus de pas coûte du temps sans gain net ; le `negative_prompt` est ignoré."
+      - "Conversion communautaire (mflux-community), non publiée par Black Forest Labs."
+      - "MESURÉ — 16,42 GIO DE PIC POUR 8,6 GO DE POIDS, ET CE N'EST PAS LE GUIDAGE. Le banc impose 30 pas et un guidage de 7 ; au-delà de 1, mflux fait deux passes du transformer par pas, ce qui explique les 266 s d'un carré de 1024. Mais dans son régime (4 pas, guidage 1), le même carré pique encore à 16,41 Gio, pour 20 s de calcul (mesuré le 2026-11-19). Rien d'autre ne reste résident à côté de lui."
+    profile:
+      disk_bytes: 8569657503
+      peak_unified_memory_bytes: 17629805994
+      warmup_ms: 3808
+      latency_ms_p50: 266251
+      throughput: "1 sortie / 201.2 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.6.2 / mlx 0.32.1"
+      measured_at: "2026-11-19"
+      harness_version: "0.3.0"

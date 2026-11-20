@@ -1,0 +1,62 @@
+# Qwen-Image-2512 — le générateur d'image de Qwen, 20B, sur `mflux`.
+#
+# Le plus lourd des trois générateurs ouverts le 2026-11-18. Il est réputé
+# pour le texte dans l'image, là où SDXL échoue. La version 2.1, plus récente,
+# est sous licence non commerciale et n'est pas retenue (voir la note de
+# licences du marché américain).
+#
+# Écarté du titre de titulaire le 2026-11-19 au profit de Z-Image-Turbo : sur
+# un Mac de 24 Gio il dépasse le budget (voir caveats), et l'admission refuserait
+# l'outil `text_to_image` à chaque appel. Reste candidat pour une machine plus grande.
+id: qwen-image-2512
+name: Qwen-Image-2512
+capability: text-to-image
+family: qwen-image
+vendor: Alibaba Qwen
+license: apache-2.0
+license_class: permissive
+status: candidate
+
+notes: >
+  Poids pris dans la conversion `mflux-community` quantifiée en 4 bits. Le
+  dépôt de Qwen pèse 57,7 Go en bf16 — 40,9 Go de transformer — et ne tient
+  pas dans le budget de la machine. La conversion hérite de la licence
+  Apache-2.0 de l'original.
+
+links:
+  homepage: https://huggingface.co/Qwen/Qwen-Image-2512
+  code: https://github.com/filipstrand/mflux
+
+variants:
+  - id: q4
+    quantization: 4bit
+    tier: hot
+    runtime: mflux
+    source:
+      kind: huggingface
+      repo: mflux-community/qwen-image-2512-mflux-q4
+      revision: "f30c76ff30977000ffdc27fafdd4516bb1c3b44e"   # 2026-10-11
+    defaults:
+      width: 1024
+      height: 1024
+      steps: 30
+      guidance_scale: 4.0
+    options:
+      mflux_model: qwen-image
+      # L'encodeur de texte (14 Go) est rendu dès le prompt encodé ; le job
+      # suivant recharge le modèle. Voir les caveats pour ce que cela change.
+      evict_text_encoder: true
+    caveats:
+      - "Non distillé : il lui faut des dizaines de pas et un vrai guidage, et le `negative_prompt` agit."
+      - "Conversion communautaire (mflux-community), non publiée par Qwen."
+      - "MESURÉ — NE TIENT PAS SUR 24 GIO. Le banc (sans éviction) pique à 30,27 Gio pour un budget de 17,76 : macOS pagine, et un carré de 1024 en 30 pas prend 23 min (47 s par pas). Il ne passe l'admission qu'avec `--hors-budget`."
+      - "MESURÉ — L'ÉVICTION DE L'ENCODEUR AIDE SANS SUFFIRE. Avec `evict_text_encoder`, le portrait de 1024 en 30 pas a piqué à 25,77 Gio et pris 16 min 17 s (2026-11-19). Le profil ci-dessous a été pris avant l'option : il est prudent, à remesurer."
+    profile:
+      disk_bytes: 27605818500
+      peak_unified_memory_bytes: 32503785674
+      warmup_ms: 1690
+      latency_ms_p50: 1352587
+      throughput: "1 sortie / 1002.9 s"
+      measured_on: "Mac17,4 24 Gio / macOS 26.6.2 / mlx 0.32.1"
+      measured_at: "2026-11-19"
+      harness_version: "0.3.0"

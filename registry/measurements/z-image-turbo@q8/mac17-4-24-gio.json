@@ -1,0 +1,89 @@
+{
+  "ref": "z-image-turbo@q8",
+  "model": "z-image-turbo",
+  "variant": "q8",
+  "capability": "text-to-image",
+  "harness_version": "0.3.0",
+  "measured_on": "Mac17,4 24 Gio / macOS 26.6.2 / mlx 0.32.1",
+  "measured_at": "2026-11-19",
+  "budget_bytes": 19069665280,
+  "workload": {
+    "source": "registry/evals/bench/text-to-image.json",
+    "version": 1,
+    "cases": [
+      "vignette-512",
+      "carre-1024",
+      "paysage-1216"
+    ]
+  },
+  "profile": {
+    "disk_bytes": 10992105290,
+    "peak_unified_memory_bytes": 17949210748,
+    "warmup_ms": 24764,
+    "latency_ms_p50": 330342,
+    "throughput": "1 sortie / 238.0 s"
+  },
+  "cases": [
+    {
+      "id": "vignette-512",
+      "ok": true,
+      "duration_ms": 46006,
+      "metrics": {
+        "duration_ms": 46006,
+        "seed": 1,
+        "steps": 20,
+        "guidance_scale": 7.0,
+        "width": 512,
+        "height": 512,
+        "mflux_model": "z-image-turbo",
+        "generate_ms": 45360,
+        "ms_per_step": 2268.0,
+        "negative_prompt_ignored": false,
+        "text_encoder_evicted": false,
+        "peak_memory_bytes": 12873206598
+      },
+      "error": null
+    },
+    {
+      "id": "carre-1024",
+      "ok": true,
+      "duration_ms": 337723,
+      "metrics": {
+        "duration_ms": 337723,
+        "seed": 2,
+        "steps": 30,
+        "guidance_scale": 7.0,
+        "width": 1024,
+        "height": 1024,
+        "mflux_model": "z-image-turbo",
+        "generate_ms": 337228,
+        "ms_per_step": 11240.9,
+        "negative_prompt_ignored": false,
+        "text_encoder_evicted": false,
+        "peak_memory_bytes": 17949210748
+      },
+      "error": null
+    },
+    {
+      "id": "paysage-1216",
+      "ok": true,
+      "duration_ms": 330342,
+      "metrics": {
+        "duration_ms": 330342,
+        "seed": 3,
+        "steps": 30,
+        "guidance_scale": 7.0,
+        "width": 1216,
+        "height": 832,
+        "mflux_model": "z-image-turbo",
+        "generate_ms": 329661,
+        "ms_per_step": 10988.7,
+        "negative_prompt_ignored": false,
+        "text_encoder_evicted": false,
+        "peak_memory_bytes": 17699583728
+      },
+      "error": null
+    }
+  ],
+  "warnings": []
+}
